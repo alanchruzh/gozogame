@@ -1399,69 +1399,111 @@ function spawnParticles(x, y) {
   }
 }
 
-// ===================== PIXEL ART GOZO SPRITE =====================
-// 16x20 pixel art Gozo character based on the reference model:
+// ===================== ANIMATED PIXEL ART GOZO SPRITE (Stardew Valley Style) =====================
+// 16x20 pixel art Gozo - 4 walking frames with leg/arm animation
 // Yellow skin, red cap, dark hair, blue eyes, toothy grin, chain necklace, blue jeans
-const GOZO_SPRITE_W = 16;
-const GOZO_SPRITE_H = 20;
-const GOZO_PIXEL_DATA = [
-  // Row 0-1: cap top
-  '....rrrrrrrr....',
-  '...rrrrrrrrrr...',
-  '..rrrrrrrrrrrr..',
-  // Row 3: cap brim
-  '.rrrrrrrrrrrrrr.',
-  'rrrrrrrrrrrrrrrr',
-  // Row 5-6: hair + forehead
-  '..hhYYYYYYYYhh..',
-  '.hYYYYYYYYYYYYh.',
-  // Row 7: eyes
-  '.YYbWYYYYYYbWYY.',
-  '.YYBBYYYYYYBBYY.',
-  // Row 9-10: nose + face
-  '.YYYYYYYYYYYYYY.',
-  '.YYYYYwwwwYYYYY.',
-  // Row 11: mouth/grin
-  '.YYYYwTTTTwYYYY.',
-  '.YYYYYYYYYYYYYY.',
-  // Row 13: chain necklace
-  '..YYcScScScSYY..',
-  '...YYYYYYYYYY...',
-  // Row 15-16: shirt/torso (yellow)
-  '...YYYYYYYYYY...',
-  '..YYYYYYYYYYYY..',
-  // Row 17-19: blue jeans + shoes
-  '..jjjjjjjjjjjj..',
-  '..jjjjj..jjjjj..',
-  '..kkkk....kkkk..',
-];
 
-// Color palette for pixel art
+const GOZO_SPRITE_W = 16;
 const GOZO_PALETTE = {
-  '.': null,           // transparent
-  'r': '#B91C1C',      // red cap
-  'h': '#2D1B0E',      // dark hair
-  'Y': '#F5D442',      // yellow skin
-  'b': '#3B82F6',      // blue eye iris
-  'W': '#FFFFFF',       // white eye
-  'B': '#1E3A5F',      // dark blue pupil
-  'w': '#FFFFFF',       // white teeth
-  'T': '#FF8888',       // tongue/inner mouth
-  'c': '#A8A8A8',      // chain (silver)
-  'S': '#E0E0E0',      // chain link (bright silver)
-  'j': '#1E3A8A',      // blue jeans
-  'k': '#3D2B1F',      // shoes (dark brown)
+  '.': null,
+  'r': '#B91C1C',   // red cap
+  'R': '#8B0000',   // cap shadow
+  'h': '#2D1B0E',   // dark hair
+  'Y': '#F5D442',   // yellow skin
+  'y': '#D4A820',   // skin shadow
+  'b': '#3B82F6',   // blue eye iris
+  'W': '#FFFFFF',   // white / teeth
+  'B': '#1E3A5F',   // dark pupil
+  'T': '#FF8888',   // mouth inner
+  'c': '#A8A8A8',   // chain silver
+  'S': '#E0E0E0',   // chain bright
+  'j': '#1E3A8A',   // jeans
+  'J': '#14287a',   // jeans dark
+  'k': '#1a1a1a',   // shoes
+  'K': '#333333',   // shoes highlight
 };
 
-// Create offscreen pixel art canvas for Gozo - multiple sizes cached
-const gozoSpriteCache = {};
+// HEAD rows are shared across all frames (rows 0-13)
+const GOZO_HEAD = [
+  '....rrrrrrrr....',  // 0 cap top
+  '...rrrrrrrrr....',  // 1
+  '..rrrrrrrrrrrr..',  // 2
+  '.RRRRRRRRRRRRRr.',  // 3 cap brim
+  'RRRRRRRRRRRRRRRr',  // 4 brim bottom
+  '..hhYYYYYYYYhh..',  // 5 hair + forehead
+  '.hYYYYYYYYYYYYh.',  // 6
+  '.YYbWYYYYYYbWYY.',  // 7 eyes
+  '.YYBBYYYYYYBBYY.',  // 8 pupils
+  '.YYYYYYYYYYYYYY.',  // 9 face
+  '.YYYYYwwwwYYYYY.',  // 10
+  '.YYYYwTTTTwYYYY.',  // 11 grin
+  '.YYYYYYYYYYYYYY.',  // 12
+  '..YYcScScScSYY..',  // 13 chain
+];
 
-function getGozoSprite(targetSize) {
-  const key = targetSize;
-  if (gozoSpriteCache[key]) return gozoSpriteCache[key];
+// 4 walk frames - only torso+legs change (rows 14-19)
+// Frame 0: neutral
+// Frame 1: left step
+// Frame 2: neutral (slight)
+// Frame 3: right step
+const GOZO_FRAMES = [
+  // Frame 0 - neutral/idle
+  [
+    '...YYYYYYYYYY...',  // 14 torso
+    '..YYYYYYYYYYYY..',  // 15
+    '..jjjjjjjjjjjj..',  // 16 hips
+    '..jjjjj..jjjjj..',  // 17 legs apart
+    '.jjjjj....jjjjj.',  // 18
+    '..kkkk....kkkk..',  // 19 shoes
+  ],
+  // Frame 1 - left leg forward
+  [
+    '..AYYYYYYYYYY...',  // 14 torso + left arm forward
+    '..YYYYYYYYYYYY..',  // 15
+    '..jjjjjjjjjjjj..',  // 16 hips
+    '.jjjjjj..jjjj...',  // 17 left forward, right back
+    'jjjjjj....jjj...',  // 18
+    'kkkkkk.....kkk..',  // 19 left shoe forward
+  ],
+  // Frame 2 - mid stride
+  [
+    '...YYYYYYYYYY...',
+    '..YYYYYYYYYYYY..',
+    '..jjjjjjjjjjjj..',
+    '..jjjjj..jjjjj..',
+    '..jjjjj..jjjjj..',
+    '..kkkk....kkkk..',
+  ],
+  // Frame 3 - right leg forward
+  [
+    '...YYYYYYYYYY..A',  // 14 right arm forward
+    '..YYYYYYYYYYYY..',  // 15
+    '..jjjjjjjjjjjj..',  // 16
+    '...jjjj..jjjjjj.',  // 17 right forward, left back
+    '...jjj....jjjjjj',  // 18
+    '..kkk.....kkkkkk',  // 19 right shoe forward
+  ],
+];
 
+// Palette extension for arm
+GOZO_PALETTE['A'] = '#D4A820'; // arm/hand (skin shadow, indicates swing)
+
+// Build per-frame full pixel data
+function buildGozoFrameData(frameIdx) {
+  return [...GOZO_HEAD, ...GOZO_FRAMES[frameIdx]];
+}
+
+// Cache: frameIdx_size -> offscreen canvas
+const gozoAnimCache = {};
+
+function getGozoSprite(targetSize, frameIdx) {
+  frameIdx = (frameIdx || 0) % 4;
+  const key = targetSize + '_' + frameIdx;
+  if (gozoAnimCache[key]) return gozoAnimCache[key];
+
+  const pixelData = buildGozoFrameData(frameIdx);
   const cols = GOZO_SPRITE_W;
-  const rows = GOZO_PIXEL_DATA.length;
+  const rows = pixelData.length;
   const pixelSize = Math.max(1, Math.ceil(targetSize / cols));
   const offCanvas = document.createElement('canvas');
   offCanvas.width = cols * pixelSize;
@@ -1470,9 +1512,9 @@ function getGozoSprite(targetSize) {
   offCtx.imageSmoothingEnabled = false;
 
   for (let row = 0; row < rows; row++) {
-    const line = GOZO_PIXEL_DATA[row];
+    const line = pixelData[row];
     for (let col = 0; col < cols; col++) {
-      const ch = line[col] || '.';
+      const ch = (line && line[col]) || '.';
       const color = GOZO_PALETTE[ch];
       if (color) {
         offCtx.fillStyle = color;
@@ -1481,18 +1523,67 @@ function getGozoSprite(targetSize) {
     }
   }
 
-  gozoSpriteCache[key] = offCanvas;
+  gozoAnimCache[key] = offCanvas;
   return offCanvas;
 }
 
-// Draw pixel Gozo at any position/size on any canvas context
-// cx, cy = center position, size = desired width
+// Animation state for Gozo
+const gozoAnim = {
+  frame: 0,
+  tick: 0,
+  facingLeft: false,
+  isMoving: false,
+  lastX: -1,
+  lastY: -1,
+};
+
+// Call each game tick to advance animation
+function tickGozoAnim(playerX, playerY) {
+  const moved = (playerX !== gozoAnim.lastX || playerY !== gozoAnim.lastY);
+  gozoAnim.isMoving = moved;
+
+  // Determine facing direction
+  if (moved) {
+    if (playerX < gozoAnim.lastX) gozoAnim.facingLeft = true;
+    else if (playerX > gozoAnim.lastX) gozoAnim.facingLeft = false;
+  }
+
+  gozoAnim.lastX = playerX;
+  gozoAnim.lastY = playerY;
+
+  // Advance walk frame every ~8 render ticks (~8 frames @ 60fps = ~130ms per frame, feels like Stardew)
+  gozoAnim.tick++;
+  if (gozoAnim.isMoving) {
+    if (gozoAnim.tick >= 8) {
+      gozoAnim.frame = (gozoAnim.frame + 1) % 4;
+      gozoAnim.tick = 0;
+    }
+  } else {
+    // Idle: stay on frame 0, just bob
+    gozoAnim.frame = 0;
+    gozoAnim.tick = 0;
+  }
+}
+
+// Draw animated pixel Gozo at canvas position cx,cy with given size width
+// cx, cy = center position, size = desired width in px
 function drawPixelGozo(targetCtx, cx, cy, size) {
-  const sprite = getGozoSprite(size);
-  const h = size * (GOZO_PIXEL_DATA.length / GOZO_SPRITE_W);
+  const sprite = getGozoSprite(size, gozoAnim.frame);
+  const rows = GOZO_HEAD.length + GOZO_FRAMES[0].length;
+  const h = size * (rows / GOZO_SPRITE_W);
+
   targetCtx.save();
   targetCtx.imageSmoothingEnabled = false;
-  targetCtx.drawImage(sprite, cx - size / 2, cy - h / 2, size, h);
+
+  if (gozoAnim.facingLeft) {
+    // Flip horizontally to face left
+    targetCtx.translate(cx, cy - h / 2);
+    targetCtx.scale(-1, 1);
+    targetCtx.drawImage(sprite, -size / 2, 0, size, h);
+  } else {
+    targetCtx.drawImage(sprite, cx - size / 2, cy - h / 2, size, h);
+  }
+
   targetCtx.restore();
 }
 
@@ -2183,43 +2274,156 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// === DRAW BIRD (GOZO pixel character) ===
+// === PIXEL ART WINGS ===
+// Wing sprite: 10x7 pixels, rendered mirrored on each side
+// Colors: W=white feather tip, w=warm white, F=light gold/cream, f=gold, d=dark gold shadow
+const WING_PALETTE = {
+  '.': null,
+  'W': '#FFFFFF',
+  'w': '#F0F0F0',
+  'F': '#FFE066',
+  'f': '#F5C842',
+  'd': '#C8962A',
+  'D': '#8B6010',
+  's': 'rgba(0,0,0,0.18)',
+};
+
+// Wing up (flap up) - 10 wide x 7 tall
+const WING_UP = [
+  '....WFFFFF',
+  '..WFFFFffd',
+  '.WFFFfffdD',
+  'WFFfffdDDD',
+  '.Fffd.DDDD',
+  '..fd...DDD',
+  '...d....DD',
+];
+
+// Wing mid (glide) - slightly drooping
+const WING_MID = [
+  '.....WFFff',
+  '...WFFfffd',
+  '..WFfffdDD',
+  '.Wfffd.DDD',
+  'Wffd..DDDD',
+  '.fd....DDD',
+  '..d.....DD',
+];
+
+// Wing down (flap down / dive)
+const WING_DOWN = [
+  '......WFff',
+  '.....WFffd',
+  '....Wfffd.',
+  '...Wffd...',
+  '..WfD.....',
+  '.Wd.......',
+  'Dd........',
+];
+
+// Cache wing canvases
+const wingCache = {};
+
+function getWingSprite(variant, pixelSize) {
+  const key = variant + '_' + pixelSize;
+  if (wingCache[key]) return wingCache[key];
+
+  const data = variant === 'up' ? WING_UP : variant === 'down' ? WING_DOWN : WING_MID;
+  const cols = data[0].length;
+  const rows = data.length;
+
+  const offC = document.createElement('canvas');
+  offC.width = cols * pixelSize;
+  offC.height = rows * pixelSize;
+  const offCtx = offC.getContext('2d');
+  offCtx.imageSmoothingEnabled = false;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const ch = data[r][c];
+      const color = WING_PALETTE[ch];
+      if (color) {
+        offCtx.fillStyle = color;
+        offCtx.fillRect(c * pixelSize, r * pixelSize, pixelSize, pixelSize);
+      }
+    }
+  }
+  wingCache[key] = offC;
+  return offC;
+}
+
+function drawWings(targetCtx, cx, cy, size, variant) {
+  const pixelSize = Math.max(1, Math.ceil(size / 18));
+  const sprite = getWingSprite(variant, pixelSize);
+  const sw = sprite.width;
+  const sh = sprite.height;
+
+  // Right wing (behind character - draw first, slightly lower alpha)
+  targetCtx.save();
+  targetCtx.globalAlpha = 0.85;
+  targetCtx.imageSmoothingEnabled = false;
+  // Mirror right wing: flip horizontally from center-right
+  targetCtx.translate(cx + size * 0.22, cy - sh * 0.3);
+  targetCtx.drawImage(sprite, 0, 0, sw, sh);
+  targetCtx.restore();
+
+  // Left wing (mirror image, in front)
+  targetCtx.save();
+  targetCtx.globalAlpha = 0.92;
+  targetCtx.imageSmoothingEnabled = false;
+  targetCtx.translate(cx - size * 0.22, cy - sh * 0.3);
+  targetCtx.scale(-1, 1); // mirror
+  targetCtx.drawImage(sprite, 0, 0, sw, sh);
+  targetCtx.restore();
+}
+
+// === DRAW BIRD (GOZO pixel character + animated wings) ===
 function drawBird() {
   const angle = Math.min(Math.max(bird.vy * 0.04, -0.5), 1.2);
 
   // Wing flap animation
   if (gameState === 'playing') {
     if (flapAnim > 0) {
-      flapAnim -= 0.08;
-      wingAngle = flapAnim * 30;
+      flapAnim -= 0.07;
+      wingAngle = flapAnim * 40; // stronger flap angle
     } else {
-      wingAngle += wingDir * 2;
-      if (wingAngle > 15 || wingAngle < -15) wingDir *= -1;
+      wingAngle += wingDir * 2.5;
+      if (wingAngle > 18 || wingAngle < -10) wingDir *= -1;
     }
   } else {
-    wingAngle = Math.sin(performance.now() / 200) * 15;
+    wingAngle = Math.sin(performance.now() / 220) * 20;
   }
+
+  // Determine wing variant based on angle
+  let wingVariant;
+  if (wingAngle > 10) wingVariant = 'up';
+  else if (wingAngle < -5) wingVariant = 'down';
+  else wingVariant = 'mid';
 
   ctx.save();
   ctx.translate(bird.x, bird.y);
   ctx.rotate(angle);
 
   // Shadow underneath
-  ctx.globalAlpha = 0.15;
+  ctx.globalAlpha = 0.18;
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.ellipse(2, 6, bird.size / 2.2, bird.size / 4, 0, 0, Math.PI * 2);
+  ctx.ellipse(2, bird.size * 0.35, bird.size / 1.8, bird.size / 5, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  // Draw pixel art Gozo
+  // Draw wings BEHIND character first
+  drawWings(ctx, 0, 0, bird.size, wingVariant);
+
+  // Draw pixel art Gozo on top of wings
   drawPixelGozo(ctx, 0, 0, bird.size);
 
   ctx.restore();
 
-  // Trail particles when moving fast
-  if (gameState === 'playing' && bird.vy < -3) {
-    spawnGameParticles(bird.x - 15, bird.y + 5, 'rgba(255,215,0,0.4)', 1, 2, 0.2);
+  // Golden trail particles when flapping hard (going up)
+  if (gameState === 'playing' && bird.vy < -4) {
+    spawnGameParticles(bird.x - 18, bird.y + 8, 'rgba(255,215,0,0.5)', 2, 3, 0.25);
+    spawnGameParticles(bird.x + 18, bird.y + 8, 'rgba(255,215,0,0.5)', 2, 3, 0.25);
   }
 }
 
@@ -4171,13 +4375,18 @@ function rpgDraw() {
     }
   }
 
-  // Draw player (Gozo pixel art!)
+  // Draw player (Gozo pixel art - animated!)
   if (rpgPlayer) {
     const px = rpgPlayer.x * RPG_TILE - cx;
     const py = rpgPlayer.y * RPG_TILE - cy;
-    const bounce = Math.sin(rpgAnimFrame * 0.1) * 1.5;
 
-    // Draw pixel art Gozo
+    // Tick walk animation (uses player position to detect movement & direction)
+    tickGozoAnim(rpgPlayer.x, rpgPlayer.y);
+
+    // Idle bob when not moving
+    const bounce = gozoAnim.isMoving ? 0 : Math.sin(rpgAnimFrame * 0.08) * 1.2;
+
+    // Draw pixel art Gozo (animated)
     drawPixelGozo(rpgCtx, px + RPG_TILE / 2, py + RPG_TILE / 2 + bounce, RPG_TILE - 4);
 
     // Player HP bar at top of screen
@@ -4230,8 +4439,11 @@ function rpgDraw() {
     rpgCtx.strokeText('GOZO RPG', RPGW / 2, RPGH / 2 - 80);
     rpgCtx.fillText('GOZO RPG', RPGW / 2, RPGH / 2 - 80);
 
-    // Draw Gozo pixel character big
-    drawPixelGozo(rpgCtx, RPGW / 2, RPGH / 2, 70);
+    // Draw Gozo pixel character big (idle animation: frame 0 with gentle bob)
+    const idleBob = Math.sin(rpgAnimFrame * 0.05) * 3;
+    gozoAnim.isMoving = false;
+    gozoAnim.frame = Math.floor(rpgAnimFrame / 30) % 2 === 0 ? 0 : 0; // idle stays frame 0
+    drawPixelGozo(rpgCtx, RPGW / 2, RPGH / 2 + idleBob, 70);
 
     rpgCtx.font = '18px Nunito, sans-serif';
     rpgCtx.fillStyle = 'rgba(255,255,255,0.7)';
