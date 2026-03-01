@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOZO FARM - Play & Earn</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --yellow: #FFD700;
+  --red: #C0392B;
+  --green: #0D5C3A;
+  --dark: #0A3D25;
+  --chain: #C0C0C0;
+  --accent: #FF6B35;
+  --soil: #8B4513;
+  --soil-tilled: #6B2F0A;
+  --grass: #2d8a2d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--dark);
+  font-family: 'Nunito', sans-serif;
+  color: #fff;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle at 20% 50%, rgba(13,92,58,0.6) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(192,57,43,0.2) 0%, transparent 40%),
+                    radial-gradient(circle at 60% 80%, rgba(255,215,0,0.1) 0%, transparent 40%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+header {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 2rem;
+  border-bottom: 3px solid var(--yellow);
+  background: rgba(10,61,37,0.9);
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  font-family: 'Bangers', cursive;
+  font-size: 3rem;
+  color: var(--yellow);
+  letter-spacing: 4px;
+  text-shadow: 4px 4px 0 var(--red), 8px 8px 0 rgba(0,0,0,0.3);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  list-style: none;
+}
+
+.nav-links a {
+  font-family: 'Bangers', cursive;
+  font-size: 1.3rem;
+  color: #fff;
+  text-decoration: none;
+  letter-spacing: 2px;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover, .nav-links a.active { color: var(--yellow); }
+
+.wallet-btn {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  background: var(--yellow);
+  color: var(--dark);
+  border: 3px solid var(--red);
+  padding: 0.6rem 1.4rem;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 4px 4px 0 var(--red);
+}
+
+.wallet-btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--red); }
+.wallet-btn.connected { background: #2ecc71; border-color: #27ae60; box-shadow: 4px 4px 0 #27ae60; font-size: 0.85rem; }
+
+/* MAIN LAYOUT */
+.farm-container {
+  position: relative;
+  z-index: 5;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.farm-title {
+  font-family: 'Bangers', cursive;
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  color: var(--yellow);
+  letter-spacing: 4px;
+  text-shadow: 4px 4px 0 var(--red);
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+
+.farm-sub {
+  text-align: center;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+}
+
+.farm-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+/* GAME AREA */
+.farm-game-area {
+  flex: 1;
+  min-width: 300px;
+}
+
+/* SIDEBAR */
+.farm-sidebar {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-card {
+  background: rgba(255,215,0,0.08);
+  border: 2px solid var(--yellow);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.sidebar-card h3 {
+  font-family: 'Bangers', cursive;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: var(--yellow);
+  margin-bottom: 0.8rem;
+}
+
+/* TOOLS */
+.tools-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tool-btn {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.3);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-btn:hover { background: rgba(255,215,0,0.2); border-color: var(--yellow); }
+.tool-btn.active { background: var(--yellow); color: var(--dark); border-color: var(--red); box-shadow: 3px 3px 0 var(--red); }
+
+/* SEEDS */
+.seeds-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.seed-btn {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.2);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.seed-btn:hover { background: rgba(255,215,0,0.15); border-color: var(--yellow); }
+.seed-btn.active { background: rgba(255,215,0,0.3); border-color: var(--yellow); color: var(--yellow); }
+
+/* INVENTORY */
+.inventory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.inv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.inv-count {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  color: var(--yellow);
+}
+
+/* BALANCE */
+.balance-display {
+  font-family: 'Bangers', cursive;
+  font-size: 1.8rem;
+  color: var(--yellow);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.sell-btn {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  background: var(--accent);
+  color: #fff;
+  border: 3px solid #d45a28;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.15s;
+  box-shadow: 3px 3px 0 #d45a28;
+  margin-top: 0.5rem;
+}
+.sell-btn:hover { transform: translate(-2px,-2px); box-shadow: 5px 5px 0 #d45a28; }
+
+/* FIELD GRID */
+.field-wrap {
+  background: rgba(0,0,0,0.3);
+  border: 3px solid var(--yellow);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 30px rgba(255,215,0,0.2), 8px 8px 0 var(--red);
+  position: relative;
+}
+
+.field-header {
+  background: rgba(255,215,0,0.1);
+  padding: 0.8rem 1.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid rgba(255,215,0,0.3);
+}
+
+.field-header-title {
+  font-family: 'Bangers', cursive;
+  font-size: 1.3rem;
+  letter-spacing: 2px;
+  color: var(--yellow);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 1rem;
+  background: #1a4a1a;
+}
+
+/* PLOT */
+.plot {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--soil);
+  border: 2px solid #5c3010;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 90px;
+  overflow: hidden;
+}
+
+.plot:hover { border-color: var(--yellow); transform: scale(1.03); z-index: 2; }
+
+.plot.tilled {
+  background: var(--soil-tilled);
+  border-color: #8B4513;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 8px,
+    rgba(0,0,0,0.15) 8px,
+    rgba(0,0,0,0.15) 9px
+  );
+}
+
+.plot.planted { cursor: default; }
+.plot.planted:hover { transform: none; border-color: #8B4513; }
+.plot.ready { border-color: #FFD700; animation: plotGlow 1s infinite; }
+.plot.closed { background: var(--soil); border-color: #5c3010; }
+
+@keyframes plotGlow {
+  0%,100% { box-shadow: 0 0 5px rgba(255,215,0,0.4); }
+  50% { box-shadow: 0 0 15px rgba(255,215,0,0.8); }
+}
+
+.plot-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.plot-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  margin-top: 0.2rem;
+  text-align: center;
+}
+
+.plot-timer {
+  font-family: 'Bangers', cursive;
+  font-size: 1rem;
+  color: var(--yellow);
+  letter-spacing: 1px;
+}
+
+/* GOZO CHARACTER */
+.gozo-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.gozo-char {
+  font-size: 4rem;
+  animation: gozoFloat 2s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+}
+
+@keyframes gozoFloat {
+  0%,100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+
+.gozo-speech {
+  background: rgba(255,215,0,0.15);
+  border: 2px solid var(--yellow);
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--yellow);
+  text-align: center;
+  margin-top: 0.3rem;
+  min-height: 2rem;
+}
+
+/* OVERLAY */
+.farm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.farm-overlay.hidden { display: none; }
+
+.overlay-box {
+  background: var(--dark);
+  border: 4px solid var(--yellow);
+  border-radius: 20px;
+  padding: 2.5rem;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(255,215,0,0.3), 10px 10px 0 var(--red);
+}
+
+.overlay-title {
+  font-family: 'Bangers', cursive;
+  font-size: 2.5rem;
+  color: var(--yellow);
+  letter-spacing: 4px;
+  text-shadow: 3px 3px 0 var(--red);
+  margin-bottom: 0.5rem;
+}
+
+.overlay-sub {
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.overlay-cost {
+  font-family: 'Bangers', cursive;
+  font-size: 2rem;
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin-bottom: 1.5rem;
+}
+
+.play-btn {
+  font-family: 'Bangers', cursive;
+  font-size: 1.6rem;
+  letter-spacing: 3px;
+  background: var(--yellow);
+  color: var(--dark);
+  border: 4px solid var(--red);
+  padding: 0.8rem 2.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 5px 5px 0 var(--red);
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.play-btn:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 var(--red); }
+.play-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.how-to {
+  margin-top: 1.5rem;
+  text-align: left;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.how-to h4 {
+  font-family: 'Bangers', cursive;
+  font-size: 1.1rem;
+  color: var(--yellow);
+  letter-spacing: 1px;
+  margin-bottom: 0.6rem;
+}
+
+.how-to-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.8);
+  padding: 0.3rem 0;
+}
+
+/* TOAST */
+#toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--yellow);
+  color: var(--dark);
+  font-family: 'Bangers', cursive;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  border: 3px solid var(--red);
+  box-shadow: 4px 4px 0 var(--red);
+  z-index: 9999;
+  transition: transform 0.3s ease;
+  white-space: nowrap;
+}
+
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Plant growth stages display */
+.plant-stage {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 4px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.plant-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #2ecc71, #27ae60);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+@media(max-width: 768px) {
+  .farm-layout { flex-direction: column; }
+  .farm-sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; }
+  .sidebar-card { flex: 1; min-width: 140px; }
+  .field-grid { grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0.5rem; }
+  .plot { min-height: 70px; }
+  .plot-emoji { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <a href="index.html" class="logo">GOZO</a>
+  <nav>
+    <ul class="nav-links">
+      <li><a href="index.html#game-section">GAMES</a></li>
+      <li><a href="index.html#tokenomics">TOKEN</a></li>
+      <li><a href="farm.html" class="active">FARM</a></li>
+    </ul>
+  </nav>
+  <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">🔗 CONNECT</button>
+</header>
+
+<!-- MAIN -->
+<div class="farm-container">
+  <div class="farm-title">🌾 GOZO FARM</div>
+  <div class="farm-sub">Plant, harvest, sell & earn GOZO coins!</div>
+
+  <div class="farm-layout">
+    <!-- LEFT: FIELD -->
+    <div class="farm-game-area">
+      <!-- Gozo Character -->
+      <div class="gozo-scene">
+        <div class="gozo-char" id="gozoChar">👨‍🌾</div>
+        <div class="gozo-speech" id="gozoSpeech">Pick a tool and start farming! 🌱</div>
+      </div>
+
+      <!-- Field -->
+      <div class="field-wrap">
+        <div class="field-header">
+          <span class="field-header-title">🌿 GOZO FIELD</span>
+          <span style="font-size:0.85rem;color:rgba(255,255,255,0.6);">Click a plot to act</span>
+        </div>
+        <div class="field-grid" id="fieldGrid"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: SIDEBAR -->
+    <div class="farm-sidebar">
+
+      <!-- Balance -->
+      <div class="sidebar-card">
+        <h3>💰 BALANCE</h3>
+        <div class="balance-display" id="balanceDisplay">-- GOZO</div>
+        <button class="sell-btn" onclick="sellAllHarvest()">🛒 SELL ALL</button>
+      </div>
+
+      <!-- Tools -->
+      <div class="sidebar-card">
+        <h3>🔧 TOOLS</h3>
+        <div class="tools-grid">
+          <button class="tool-btn active" id="toolCangkul" onclick="selectTool('cangkul')">
+            <span>⛏️</span> <span>HOE</span>
+          </button>
+          <button class="tool-btn" id="toolCelurit" onclick="selectTool('celurit')">
+            <span>🌾</span> <span>SICKLE</span>
+          </button>
+          <button class="tool-btn" id="toolDigger" onclick="selectTool('digger')">
+            <span>🪣</span> <span>DIGGER</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Seeds -->
+      <div class="sidebar-card">
+        <h3>🌱 SEEDS</h3>
+        <div class="seeds-grid" id="seedsGrid">
+          <button class="seed-btn active" id="seedTomat" onclick="selectSeed('tomat')">
+            <span>🍅 Tomat</span><span class="inv-count" id="invTomat">∞</span>
+          </button>
+          <button class="seed-btn" id="seedCabe" onclick="selectSeed('cabe')">
+            <span>🌶️ Cabe</span><span class="inv-count" id="invCabe">∞</span>
+          </button>
+          <button class="seed-btn" id="seedBawangMerah" onclick="selectSeed('bawangMerah')">
+            <span>🧅 B. Merah</span><span class="inv-count" id="invBawangMerah">∞</span>
+          </button>
+          <button class="seed-btn" id="seedBawangPutih" onclick="selectSeed('bawangPutih')">
+            <span>🧄 B. Putih</span><span class="inv-count" id="invBawangPutih">∞</span>
+          </button>
+          <button class="seed-btn" id="seedWortel" onclick="selectSeed('wortel')">
+            <span>🥕 Wortel</span><span class="inv-count" id="invWortel">∞</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Inventory / Panen -->
+      <div class="sidebar-card">
+        <h3>🧺 HARVEST</h3>
+        <div class="inventory-list">
+          <div class="inv-item"><span>🍅 Tomat</span><span class="inv-count" id="harvestTomat">0</span></div>
+          <div class="inv-item"><span>🌶️ Cabe</span><span class="inv-count" id="harvestCabe">0</span></div>
+          <div class="inv-item"><span>🧅 B. Merah</span><span class="inv-count" id="harvestBawangMerah">0</span></div>
+          <div class="inv-item"><span>🧄 B. Putih</span><span class="inv-count" id="harvestBawangPutih">0</span></div>
+          <div class="inv-item"><span>🥕 Wortel</span><span class="inv-count" id="harvestWortel">0</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="farm-overlay" id="farmOverlay">
+  <div class="overlay-box">
+    <div style="font-size:4rem;margin-bottom:0.5rem;">🌾</div>
+    <div class="overlay-title">GOZO FARM</div>
+    <div class="overlay-sub">Farm with Gozo! Plant 5 types of crops and harvest every 10 seconds. Sell your harvest to earn GOZO coins!</div>
+    <div class="overlay-cost">💰 10 GOZO / session</div>
+    <button class="play-btn" id="farmPlayBtn" onclick="startFarmGame()">🎮 START FARMING</button>
+    <div class="how-to">
+      <h4>📖 HOW TO PLAY</h4>
+      <div class="how-to-step">⛏️ <span><b>HOE</b> — Till the soil first (click empty plot)</span></div>
+      <div class="how-to-step">🌱 <span><b>PLANT</b> — Pick a seed then click a tilled plot</span></div>
+      <div class="how-to-step">⏱️ <span><b>WAIT</b> — Crops are ready to harvest in 10 seconds</span></div>
+      <div class="how-to-step">🌾 <span><b>SICKLE</b> — Harvest crops with the sickle</span></div>
+      <div class="how-to-step">🪣 <span><b>DIGGER</b> — Close the soil so it can be replanted</span></div>
+      <div class="how-to-step">🛒 <span><b>SELL</b> — Click "Sell All" to earn GOZO!</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============= CONFIG =============
+const GOZO_CONTRACT = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const HYPEREVM_CHAIN_ID = '0x8F';
+const HYPEREVM_CHAIN = {
+  chainId: HYPEREVM_CHAIN_ID,
+  chainName: 'Monad',
+  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+  rpcUrls: ['https://rpc.monad.xyz'],
+  blockExplorerUrls: ['https://monadscan.com']
+};
+
+// Transfer 10 GOZO = 10 * 10^18 in hex
+const TEN_GOZO_HEX = '0x' + (BigInt(10) * BigInt('1000000000000000000')).toString(16);
+// ERC20 transfer function selector + recipient (burn address) + amount
+const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+
+let walletAddress = null;
+let gozoBalance = 0;
+let isConnected = false;
+let gameActive = false;
+
+// ============= PLANTS CONFIG =============
+const PLANTS = {
+  tomat:       { emoji: '🍅', name: 'Tomat',    grow: '🌿', ready: '🍅', reward: 3, color: '#e74c3c' },
+  cabe:        { emoji: '🌶️', name: 'Cabe',     grow: '🌱', ready: '🌶️', reward: 4, color: '#c0392b' },
+  bawangMerah: { emoji: '🧅', name: 'B. Merah', grow: '🌿', ready: '🧅', reward: 5, color: '#e67e22' },
+  bawangPutih: { emoji: '🧄', name: 'B. Putih', grow: '🌱', ready: '🧄', reward: 6, color: '#f1c40f' },
+  wortel:      { emoji: '🥕', name: 'Wortel',   grow: '🌿', ready: '🥕', reward: 5, color: '#e67e22' }
+};
+
+// ============= GAME STATE =============
+// Plot states: 'empty' | 'tilled' | 'planted' | 'ready' | 'closed'
+const PLOT_COUNT = 9;
+let plots = [];
+let timers = {};
+let selectedTool = 'cangkul';
+let selectedSeed = 'tomat';
+let harvest = { tomat: 0, cabe: 0, bawangMerah: 0, bawangPutih: 0, wortel: 0 };
+
+const speeches = {
+  cangkul: ["Let's till the soil! 💪", "Dig it deep! ⛏️", "Soil is ready to plant!"],
+  plant:   ["Plant the seeds now! 🌱", "Grow strong! 🙏", "Harvest in 10 seconds!"],
+  ready:   ["Harvest is ready! 🎉", "Quick, use the sickle! 🌾", "Don't wait too long!"],
+  harvest: ["Harvest complete! 🥳", "Great yield!", "Gozo is happy! 😄"],
+  sell:    ["GOZO earned! 💰", "Sell all your crops!", "Big profit! 🤑"],
+  digger:  ["Soil closed! 🪣", "Ready to plant again!", "Start fresh!"]
+};
+
+function randomSpeech(type) {
+  const arr = speeches[type];
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function setGozoSpeech(text) {
+  document.getElementById('gozoSpeech').textContent = text;
+}
+
+// ============= WALLET =============
+async function connectWallet() {
+  if (!window.ethereum) { showToast('⚠️ Install MetaMask!'); return; }
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    walletAddress = accounts[0];
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: HYPEREVM_CHAIN_ID }] });
+    } catch (e) {
+      if (e.code === 4902) {
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [HYPEREVM_CHAIN] });
+      }
+    }
+    isConnected = true;
+    const short = walletAddress.slice(0,6) + '...' + walletAddress.slice(-4);
+    document.getElementById('walletBtn').textContent = '✅ ' + short;
+    document.getElementById('walletBtn').classList.add('connected');
+    await fetchGozoBalance();
+    showToast('🎉 WALLET CONNECTED!');
+  } catch(e) {
+    showToast('❌ Failed to connect wallet');
+  }
+}
+
+async function fetchGozoBalance() {
+  try {
+    const data = '0x70a08231' + walletAddress.slice(2).padStart(64, '0');
+    const result = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: GOZO_CONTRACT, data }, 'latest']
+    });
+    const raw = parseInt(result, 16);
+    gozoBalance = Math.floor(raw / 1e18);
+    if (isNaN(gozoBalance)) gozoBalance = 0;
+  } catch {
+    gozoBalance = 500; // demo fallback
+  }
+  document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
+}
+
+// ============= START GAME =============
+async function startFarmGame() {
+  if (!isConnected) { showToast('🔗 Connect Wallet First!'); return; }
+
+  const btn = document.getElementById('farmPlayBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ PAYING...';
+
+  try {
+    // Build ERC20 transfer data: transfer(address,uint256)
+    const transferSig = '0xa9059cbb';
+    const recipient = BURN_ADDRESS.slice(2).padStart(64, '0');
+    const amount = (BigInt(10) * BigInt('1000000000000000000')).toString(16).padStart(64, '0');
+    const txData = transferSig + recipient + amount;
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddress,
+        to: GOZO_CONTRACT,
+        data: txData,
+        gas: '0x186A0'
+      }]
+    });
+
+    showToast('⏳ Sending 10 GOZO...');
+
+    let receipt = null;
+    let attempts = 0;
+    while (!receipt && attempts < 30) {
+      await new Promise(r => setTimeout(r, 2000));
+      receipt = await window.ethereum.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash]
+      });
+      attempts++;
+    }
+
+    if (receipt && receipt.status === '0x1') {
+      showToast('🌾 READY TO FARM!');
+      activateFarm();
+    } else {
+      showToast('❌ Transaction failed!');
+      btn.disabled = false;
+      btn.textContent = '🎮 START FARMING';
+    }
+  } catch(err) {
+    if (err.code === 4001) showToast('❌ Cancelled!');
+    else showToast('❌ Error: ' + (err.message || 'Unknown'));
+    btn.disabled = false;
+    btn.textContent = '🎮 START FARMING';
+  }
+}
+
+function activateFarm() {
+  document.getElementById('farmOverlay').classList.add('hidden');
+  gameActive = true;
+  initPlots();
+  setGozoSpeech('Pick a tool and start farming! 🌱');
+  showToast('🌿 WELCOME TO GOZO FARM!');
+}
+
+// ============= PLOTS =============
+function initPlots() {
+  plots = Array.from({length: PLOT_COUNT}, (_, i) => ({
+    id: i,
+    state: 'empty',
+    plant: null,
+    plantedAt: null,
+    growTime: 10000
+  }));
+  renderField();
+}
+
+function renderField() {
+  const grid = document.getElementById('fieldGrid');
+  grid.innerHTML = '';
+  plots.forEach(plot => {
+    const div = document.createElement('div');
+    div.className = 'plot ' + plot.state;
+    div.id = 'plot-' + plot.id;
+    div.onclick = () => handlePlotClick(plot.id);
+
+    const emoji = document.createElement('div');
+    emoji.className = 'plot-emoji';
+
+    const label = document.createElement('div');
+    label.className = 'plot-label';
+
+    const progressWrap = document.createElement('div');
+    progressWrap.className = 'plant-stage';
+    const progressBar = document.createElement('div');
+    progressBar.className = 'plant-progress';
+    progressBar.id = 'progress-' + plot.id;
+    progressWrap.appendChild(progressBar);
+
+    if (plot.state === 'empty') {
+      emoji.textContent = '🟫';
+      label.textContent = 'Empty';
+    } else if (plot.state === 'tilled') {
+      emoji.textContent = '⬛';
+      label.textContent = 'Ready to plant';
+    } else if (plot.state === 'planted') {
+      const p = PLANTS[plot.plant];
+      emoji.textContent = p.grow;
+      label.textContent = p.name;
+      div.appendChild(progressWrap);
+    } else if (plot.state === 'ready') {
+      const p = PLANTS[plot.plant];
+      emoji.textContent = p.ready;
+      label.textContent = '✨ HARVEST!';
+    } else if (plot.state === 'closed') {
+      emoji.textContent = '🟫';
+      label.textContent = 'Closed';
+    }
+
+    div.appendChild(emoji);
+    div.appendChild(label);
+    grid.appendChild(div);
+  });
+}
+
+function handlePlotClick(id) {
+  if (!gameActive) { showToast('🎮 Start the game first!'); return; }
+  const plot = plots[id];
+
+  if (selectedTool === 'cangkul') {
+    if (plot.state === 'empty' || plot.state === 'closed') {
+      plot.state = 'tilled';
+      updatePlotUI(id);
+      setGozoSpeech(randomSpeech('cangkul'));
+      playSound('dig');
+    } else {
+      showToast('⛏️ Already tilled!');
+    }
+  } else if (selectedTool === 'celurit') {
+    if (plot.state === 'ready') {
+      const p = PLANTS[plot.plant];
+      harvest[plot.plant]++;
+      updateHarvestUI();
+      clearInterval(timers[id]);
+      plot.state = 'harvested_wait';
+      plot.plant = null;
+      updatePlotUI(id);
+      // Temporarily show harvested
+      const el = document.getElementById('plot-' + id);
+      if (el) {
+        el.querySelector('.plot-emoji').textContent = '✨';
+        el.querySelector('.plot-label').textContent = '+1 ' + p.name;
+      }
+      setTimeout(() => {
+        plot.state = 'tilled';
+        updatePlotUI(id);
+      }, 600);
+      setGozoSpeech(randomSpeech('harvest'));
+      playSound('harvest');
+    } else {
+      showToast('🌾 Not ready to harvest yet!');
+    }
+  } else if (selectedTool === 'digger') {
+    if (plot.state === 'tilled') {
+      plot.state = 'closed';
+      updatePlotUI(id);
+      setGozoSpeech(randomSpeech('digger'));
+    } else {
+      showToast('🪣 Till the soil first, then close!');
+    }
+  }
+
+  // If cangkul and tilled, auto enter plant mode with selected seed
+  if (selectedTool === 'cangkul' && plot.state === 'tilled') {
+    // do nothing extra
+  }
+
+  // If current tool is cangkul but plot is tilled — treat as planting
+  if (selectedTool === 'cangkul' && plot.state === 'tilled' && plot.state !== 'empty') {
+    // Actually plant if plot was just tilled
+  }
+}
+
+// Handle planting separately: when plot is tilled and user clicks with no special tool, plant
+// Revised: clicking tilled plot always plants
+document.addEventListener('DOMContentLoaded', () => {});
+
+// Override plot click to support planting on tilled
+function handlePlotClick(id) {
+  if (!gameActive) { showToast('🎮 Start the game first!'); return; }
+  const plot = plots[id];
+
+  if (selectedTool === 'cangkul') {
+    if (plot.state === 'empty' || plot.state === 'closed') {
+      plot.state = 'tilled';
+      updatePlotUI(id);
+      setGozoSpeech(randomSpeech('cangkul'));
+      playSound('dig');
+    } else if (plot.state === 'tilled') {
+      // Plant seed
+      plantSeed(id);
+    } else {
+      showToast('⛏️ Plot is busy!');
+    }
+  } else if (selectedTool === 'celurit') {
+    if (plot.state === 'ready') {
+      doHarvest(id);
+    } else if (plot.state === 'planted') {
+      showToast('⏳ Not ready to harvest!');
+    } else {
+      showToast('🌾 Nothing to harvest!');
+    }
+  } else if (selectedTool === 'digger') {
+    if (plot.state === 'tilled' || plot.state === 'empty') {
+      plot.state = 'closed';
+      updatePlotUI(id);
+      setGozoSpeech(randomSpeech('digger'));
+      playSound('dig');
+    } else {
+      showToast('🪣 Can close empty or tilled plots!');
+    }
+  }
+}
+
+function plantSeed(id) {
+  const plot = plots[id];
+  if (plot.state !== 'tilled') return;
+  plot.state = 'planted';
+  plot.plant = selectedSeed;
+  plot.plantedAt = Date.now();
+  updatePlotUI(id);
+  setGozoSpeech(randomSpeech('plant'));
+  playSound('plant');
+
+  // Start grow timer
+  const startTime = Date.now();
+  timers[id] = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const pct = Math.min(100, (elapsed / 10000) * 100);
+    const bar = document.getElementById('progress-' + id);
+    if (bar) bar.style.width = pct + '%';
+
+    if (elapsed >= 10000) {
+      clearInterval(timers[id]);
+      plot.state = 'ready';
+      updatePlotUI(id);
+      setGozoSpeech(randomSpeech('ready'));
+      playSound('ready');
+    }
+  }, 100);
+}
+
+function doHarvest(id) {
+  const plot = plots[id];
+  const p = PLANTS[plot.plant];
+  harvest[plot.plant]++;
+  updateHarvestUI();
+  clearInterval(timers[id]);
+
+  const el = document.getElementById('plot-' + id);
+  if (el) {
+    el.querySelector('.plot-emoji').textContent = '✨';
+    el.querySelector('.plot-label').textContent = '+1 ' + p.name;
+  }
+
+  setTimeout(() => {
+    plot.state = 'tilled';
+    plot.plant = null;
+    updatePlotUI(id);
+  }, 600);
+
+  setGozoSpeech(randomSpeech('harvest'));
+  playSound('harvest');
+}
+
+function updatePlotUI(id) {
+  const plot = plots[id];
+  const el = document.getElementById('plot-' + id);
+  if (!el) return;
+
+  el.className = 'plot ' + (plot.state === 'harvested_wait' ? 'ready' : plot.state);
+
+  const emoji = el.querySelector('.plot-emoji');
+  const label = el.querySelector('.plot-label');
+  // Remove old progress
+  const oldProg = el.querySelector('.plant-stage');
+  if (oldProg) oldProg.remove();
+
+  if (plot.state === 'empty') {
+    emoji.textContent = '🟫'; label.textContent = 'Empty';
+  } else if (plot.state === 'tilled') {
+    emoji.textContent = '⬛'; label.textContent = 'Ready to plant';
+  } else if (plot.state === 'planted') {
+    const p = PLANTS[plot.plant];
+    emoji.textContent = p.grow; label.textContent = p.name;
+    const pw = document.createElement('div');
+    pw.className = 'plant-stage';
+    const pb = document.createElement('div');
+    pb.className = 'plant-progress';
+    pb.id = 'progress-' + id;
+    pw.appendChild(pb);
+    el.appendChild(pw);
+  } else if (plot.state === 'ready') {
+    const p = PLANTS[plot.plant];
+    emoji.textContent = p.ready; label.textContent = '✨ HARVEST!';
+  } else if (plot.state === 'closed') {
+    emoji.textContent = '🟫'; label.textContent = 'Closed';
+  }
+}
+
+function updateHarvestUI() {
+  Object.keys(harvest).forEach(k => {
+    document.getElementById('harvest' + k.charAt(0).toUpperCase() + k.slice(1)).textContent = harvest[k];
+  });
+}
+
+// ============= SELL =============
+function sellAllHarvest() {
+  if (!gameActive) { showToast('🎮 Start the game first!'); return; }
+  let totalEarned = 0;
+  Object.keys(harvest).forEach(k => {
+    totalEarned += harvest[k] * PLANTS[k].reward;
+    harvest[k] = 0;
+  });
+  if (totalEarned === 0) { showToast('🧺 No harvest yet!'); return; }
+  gozoBalance += totalEarned;
+  document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
+  updateHarvestUI();
+  setGozoSpeech(randomSpeech('sell'));
+  showToast('💰 +' + totalEarned + ' GOZO!');
+  playSound('coin');
+}
+
+// ============= TOOL / SEED SELECTION =============
+function selectTool(tool) {
+  selectedTool = tool;
+  ['cangkul','celurit','digger'].forEach(t => {
+    document.getElementById('tool' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tool);
+  });
+  const tips = { cangkul: 'Till empty soil, or click tilled plot to plant! ⛏️', celurit: 'Click a crop that is ready to harvest! 🌾', digger: 'Close tilled or empty soil! 🪣' };
+  setGozoSpeech(tips[tool]);
+}
+
+function selectSeed(seed) {
+  selectedSeed = seed;
+  document.querySelectorAll('.seed-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('seed' + seed.charAt(0).toUpperCase() + seed.slice(1)).classList.add('active');
+  setGozoSpeech('Seed ' + PLANTS[seed].name + ' selected! ' + PLANTS[seed].emoji);
+}
+
+// ============= SOUND =============
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playSound(type) {
+  try {
+    ensureAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'dig') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(200, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'plant') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.setValueAtTime(500, now + 0.1);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'ready') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.08);
+      osc.frequency.setValueAtTime(784, now + 0.16);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+    } else if (type === 'harvest') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(659, now);
+      osc.frequency.setValueAtTime(784, now + 0.1);
+      osc.frequency.setValueAtTime(1047, now + 0.2);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    } else if (type === 'coin') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1047, now);
+      osc.frequency.setValueAtTime(1319, now + 0.1);
+      osc.frequency.setValueAtTime(1568, now + 0.2);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+    }
+  } catch(e) {}
+}
+
+// ============= TOAST =============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============= INIT =============
+// Init field in preview mode
+initPlots();
+</script>
+</body>
+</html>
