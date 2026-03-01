@@ -1027,8 +1027,7 @@
     <ul class="nav-links">
       <li><a href="#game-section">GAMES</a></li>
       <li><a href="#tokenomics">TOKEN</a></li>
-      <li><a href="#leaderboard-section">SCORES</a></li>
-      <li><a href="#burn-tracker">BURN</a></li>
+
     </ul>
   </nav>
   <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">🔗 CONNECT WALLET</button>
@@ -1055,25 +1054,7 @@
   </div>
 </section>
 
-<!-- STATS BAR -->
-<div class="stats-bar">
-  <div class="stat-item">
-    <div class="stat-num" id="statPlayers">0</div>
-    <div class="stat-label">Players</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num" id="statGames">0</div>
-    <div class="stat-label">Games Played</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num" id="statBurned">0</div>
-    <div class="stat-label">GOZO Burned</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num" id="statTopScore">0</div>
-    <div class="stat-label">Top Score</div>
-  </div>
-</div>
+
 
 <!-- GAME SECTION -->
 <section id="game-section">
@@ -1189,14 +1170,7 @@
   </div>
   </div>
 
-  <div class="leaderboard" id="leaderboard-section">
-    <div class="lb-header">🏆 LEADERBOARD</div>
-    <div id="lbRows">
-      <div class="lb-row" style="justify-content:center;opacity:0.5;">
-        <div class="lb-addr">Loading...</div>
-      </div>
-    </div>
-  </div>
+
 </section>
 
 <!-- TOKENOMICS -->
@@ -1235,46 +1209,7 @@
 </section>
 
 
-<!-- BURN TRACKER -->
-<section id="burn-tracker">
-  <div class="section-title">BURN TRACKER</div>
-  <div class="section-sub">Live data from the Monad blockchain - Tokens sent to burn address 0x...dEaD</div>
 
-  <div class="burn-stats-grid">
-    <div class="burn-stat-card">
-      <div class="burn-icon">🔥</div>
-      <div class="burn-value" id="burnTotal">--</div>
-      <div class="burn-label">Total GOZO Burned</div>
-    </div>
-    <div class="burn-stat-card">
-      <div class="burn-icon">📊</div>
-      <div class="burn-value" id="burnPercent">--</div>
-      <div class="burn-label">% Supply Burned</div>
-    </div>
-    <div class="burn-stat-card">
-      <div class="burn-icon">💰</div>
-      <div class="burn-value" id="burnSupply">--</div>
-      <div class="burn-label">Total Supply</div>
-    </div>
-    <div class="burn-stat-card">
-      <div class="burn-icon">🔄</div>
-      <div class="burn-value" id="burnTxCount">--</div>
-      <div class="burn-label">Recent Burns</div>
-    </div>
-  </div>
-
-  <div class="burn-address-box">
-    <div class="burn-addr-label">Burn Address (Dead Wallet)</div>
-    <div class="burn-addr-value">0x000000000000000000000000000000000000dEaD</div>
-  </div>
-
-  <div class="burn-history-table">
-    <div class="burn-history-header">RECENT BURN HISTORY</div>
-    <div id="burnHistoryRows">
-      <div class="burn-loading">Loading data from blockchain...</div>
-    </div>
-  </div>
-</section>
 
 <!-- FOOTER -->
 <footer>
