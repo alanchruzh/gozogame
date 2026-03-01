@@ -458,7 +458,7 @@ header{
       <div class="tools-row">
         <button class="tool-btn active" id="toolHoe" onclick="selectTool('hoe')"><span class="ti">⛏️</span><span>HOE</span></button>
         <button class="tool-btn" id="toolSickle" onclick="selectTool('sickle')"><span class="ti">🔪</span><span>SICKLE</span></button>
-        <button class="tool-btn" id="toolDigger" onclick="selectTool('digger')"><span class="ti">🪣</span><span>DIGGER</span></button>
+        <button class="tool-btn" id="toolWater" onclick="selectTool('water')"><span class="ti">🪣</span><span id="waterLabel">WATER<br><span id="waterCount" style="font-size:0.22rem;color:#80c8f0">-- left</span></span></button>
       </div>
     </div>
 
@@ -466,6 +466,19 @@ header{
     <div class="sb-card">
       <h3>🌱 SEEDS (MON)</h3>
       <div id="seedShop"></div>
+    </div>
+
+    <!-- Water -->
+    <div class="sb-card" id="waterCard" style="border-color:#3a6aaa">
+      <h3 style="color:#80c8f0;border-color:#3a6aaa">💧 WATER BUCKET</h3>
+      <div style="font-size:0.28rem;color:#a0d0f0;text-shadow:1px 1px 0 #000;margin-bottom:6px;line-height:1.8">
+        <div>Charges: <span id="waterChargesBig" style="color:var(--yellow)">0</span> / 10</div>
+        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">Refill: 10 MON (10 uses)</div>
+        <div style="font-size:0.22rem;color:#6090b0">Free regen every 1 hour</div>
+      </div>
+      <button onclick="buyWaterRefill()" style="font-family:var(--font);font-size:0.3rem;background:#1a3a6a;color:#80c8f0;border:3px solid #3a6aaa;padding:7px;cursor:pointer;box-shadow:3px 3px 0 #000;display:block;width:100%;transition:all 0.08s" onmouseover="this.style.transform='translate(-1px,-1px)'" onmouseout="this.style.transform=''">
+        💧 BUY REFILL (10 MON)
+      </button>
     </div>
 
     <!-- Harvest -->
@@ -491,11 +504,11 @@ header{
 
     <table class="mkt-table">
       <tr><th>CROP</th><th>BUY SEED</th><th>SELL</th><th>GROW</th></tr>
-      <tr><td>🍅 Tomato</td><td class="c-mon">0.01</td><td class="c-earn">0.015</td><td class="c-time">1h</td></tr>
-      <tr><td>🌶️ Chili</td><td class="c-mon">0.02</td><td class="c-earn">0.035</td><td class="c-time">2h</td></tr>
-      <tr><td>🧅 Onion</td><td class="c-mon">0.05</td><td class="c-earn">0.09</td><td class="c-time">4h</td></tr>
-      <tr><td>🧄 Garlic</td><td class="c-mon">0.1</td><td class="c-earn">0.2</td><td class="c-time">8h</td></tr>
-      <tr><td>🥕 Carrot</td><td class="c-mon">0.25</td><td class="c-earn">0.5</td><td class="c-time">24h</td></tr>
+      <tr><td>🍅 Tomato</td><td class="c-mon">1 MON</td><td class="c-earn">1.25 MON</td><td class="c-time">7h</td></tr>
+      <tr><td>🌶️ Chili</td><td class="c-mon">2 MON</td><td class="c-earn">2.5 MON</td><td class="c-time">10h</td></tr>
+      <tr><td>🧅 Onion</td><td class="c-mon">5 MON</td><td class="c-earn">6.25 MON</td><td class="c-time">15h</td></tr>
+      <tr><td>🧄 Garlic</td><td class="c-mon">10 MON</td><td class="c-earn">12.5 MON</td><td class="c-time">24h</td></tr>
+      <tr><td>🥕 Carrot</td><td class="c-mon">25 MON</td><td class="c-earn">31.25 MON</td><td class="c-time">48h</td></tr>
     </table>
 
     <button class="connect-btn" id="connectOvBtn" onclick="connectWallet()" style="display:none">🔗 CONNECT WALLET FIRST</button>
@@ -504,11 +517,12 @@ header{
     <div class="how-to">
       <h4>📖 HOW TO PLAY</h4>
       <div class="how-step"><span class="ico">⛏️</span><span>HOE soil → click tilled to plant seed</span></div>
-      <div class="how-step"><span class="ico">🌱</span><span>Select &amp; buy seed (MON) → planted on tilled plot</span></div>
-      <div class="how-step"><span class="ico">⏱️</span><span>Wait hours for crop to fully grow</span></div>
+      <div class="how-step"><span class="ico">🌱</span><span>Buy seed (MON) → select → plant on tilled soil</span></div>
+      <div class="how-step"><span class="ico">🪣</span><span>WATER crops after planting — buy refill 10 MON (10 uses)</span></div>
+      <div class="how-step"><span class="ico">⏱️</span><span>Watered crops grow in hours — unwatered won't grow!</span></div>
       <div class="how-step"><span class="ico">🔪</span><span>SICKLE glowing ✨ crops to harvest</span></div>
-      <div class="how-step"><span class="ico">💰</span><span>SELL harvest for MON profit!</span></div>
-      <div class="how-step"><span class="ico">🏡</span><span>Unlock new fields — starts at 100 MON, doubles each time!</span></div>
+      <div class="how-step"><span class="ico">💰</span><span>SELL harvest for MON (25% of seed cost)</span></div>
+      <div class="how-step"><span class="ico">🏡</span><span>Unlock new fields — 100 MON, doubles each time!</span></div>
     </div>
   </div>
 </div>
@@ -519,7 +533,8 @@ header{
 // ═══════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════
-const TREASURY = '0x1B3C51b7d12D06F5e1581B26A67047F4e19871ba';
+const TREASURY     = '0x1B3C51b7d12D06F5e1581B26A67047F4e19871ba';
+const FARM_CONTRACT = '0xD94aEaf32B90F2a432Cea2f86413Ce6347785A9e';
 const CHAIN_ID  = '0x8F'; // 143 Monad
 const CHAIN = {
   chainId:CHAIN_ID, chainName:'Monad',
@@ -532,11 +547,11 @@ const CHAIN = {
 // CROPS
 // ═══════════════════════════════════════════════
 const CROPS = {
-  tomat:       {name:'Tomato', emoji:'🍅', gs:'🌿', buy:0.01,  sell:0.015, grow:1*3600000},
-  cabe:        {name:'Chili',  emoji:'🌶️', gs:'🌱', buy:0.02,  sell:0.035, grow:2*3600000},
-  bawangMerah: {name:'Onion',  emoji:'🧅', gs:'🌿', buy:0.05,  sell:0.09,  grow:4*3600000},
-  bawangPutih: {name:'Garlic', emoji:'🧄', gs:'🌱', buy:0.1,   sell:0.2,   grow:8*3600000},
-  wortel:      {name:'Carrot', emoji:'🥕', gs:'🌿', buy:0.25,  sell:0.5,   grow:24*3600000},
+  tomat:       {name:'Tomato', emoji:'🍅', gs:'🌿', buy:1,   sell:1.25,  grow:7*3600000},
+  cabe:        {name:'Chili',  emoji:'🌶️', gs:'🌱', buy:2,   sell:2.5,   grow:10*3600000},
+  bawangMerah: {name:'Onion',  emoji:'🧅', gs:'🌿', buy:5,   sell:6.25,  grow:15*3600000},
+  bawangPutih: {name:'Garlic', emoji:'🧄', gs:'🌱', buy:10,  sell:12.5,  grow:24*3600000},
+  wortel:      {name:'Carrot', emoji:'🥕', gs:'🌿', buy:25,  sell:31.25, grow:48*3600000},
 };
 const CROP_KEYS = ['tomat','cabe','bawangMerah','bawangPutih','wortel'];
 
@@ -573,11 +588,127 @@ let harvest={};
 CROP_KEYS.forEach(k=>{inventory[k]=0;harvest[k]=0;});
 
 // ═══════════════════════════════════════════════
+// WATER SYSTEM
+// ═══════════════════════════════════════════════
+const WATER_COST   = 10;   // MON per refill
+const WATER_PER_REFILL = 10; // uses per refill
+const WATER_REGEN_MS   = 3600000; // 1 hour auto refill
+
+let waterCharges   = 0;
+let lastRefillTime = 0;
+let waterRegenTimer = null;
+
+function updateWaterUI(){
+  const el=document.getElementById('waterCount');
+  if(el) el.textContent=waterCharges+' left';
+  const el2=document.getElementById('waterChargesBig');
+  if(el2) el2.textContent=waterCharges;
+  // Update tooltip if water tool selected
+  if(selectedTool==='water'){
+    const b=document.getElementById('bubble');
+    if(b) b.textContent=waterCharges>0?`🪣 ${waterCharges} uses left — click planted crops!`:'🪣 No water! Buy refill (10 MON)';
+  }
+  // Highlight water button if empty
+  const btn=document.getElementById('toolWater');
+  if(btn){
+    btn.style.borderColor=waterCharges===0?'#f05050':'';
+  }
+}
+
+async function buyWaterRefill(){
+  if(monBalance<WATER_COST){showToast(`❌ NEED ${WATER_COST} MON FOR WATER REFILL!`);return;}
+  const ok=await callContract(encBuyWater(), WATER_COST, 'Buy water refill (10 uses)');
+  if(ok){
+    waterCharges+=WATER_PER_REFILL;
+    lastRefillTime=Date.now();
+    updateWaterUI();
+    showToast('💧 +10 WATER CHARGES! Go water your crops!');
+    sfx('plant');
+    saveState();
+    startWaterRegen();
+  }
+}
+
+function startWaterRegen(){
+  if(waterRegenTimer) clearTimeout(waterRegenTimer);
+  const nextRegen=lastRefillTime+WATER_REGEN_MS-Date.now();
+  if(nextRegen<=0){ return; }
+  waterRegenTimer=setTimeout(()=>{
+    waterCharges+=WATER_PER_REFILL;
+    lastRefillTime=Date.now();
+    updateWaterUI();
+    showToast('💧 FREE WATER REFILL! +10 charges!');
+    sfx('plant');
+    saveState();
+  }, nextRegen);
+}
+
+// ═══════════════════════════════════════════════
 // CHAIN / MON HELPERS
 // ═══════════════════════════════════════════════
 function monToHex(mon){
   return '0x'+(BigInt(Math.round(mon*1e9))*BigInt(1e9)).toString(16);
 }
+// ═══════════════════════════════════════════════
+// CONTRACT CALL HELPERS
+// ═══════════════════════════════════════════════
+// Function selectors (keccak256 of signature, first 4 bytes)
+const SEL_BUY_SEED    = '0x7a696e67'; // buySeed(uint8)
+const SEL_BUY_WATER   = '0x9b8e05f2'; // buyWater()
+const SEL_SELL_BATCH  = '0xf47c84c5'; // sellHarvestBatch(uint8[],uint256[])
+
+function encBuySeed(cropKey) {
+  // buySeed(uint8 cropKey)
+  return '0x' +
+    '8db94e2a' + // keccak256("buySeed(uint8)").slice(0,4)
+    cropKey.toString(16).padStart(64,'0');
+}
+function encBuyWater() {
+  return '0xd6e7deb6'; // keccak256("buyWater()").slice(0,4)
+}
+function encSellBatch(cropKeys, qtys) {
+  // sellHarvestBatch(uint8[],uint256[])
+  // ABI encode: selector + offset1 + offset2 + len1 + ...keys + len2 + ...qtys
+  const n = cropKeys.length;
+  const sel = 'f97c47fa'; // keccak256("sellHarvestBatch(uint8[],uint256[])").slice(0,4)
+  const off1 = (64).toString(16).padStart(64,'0');           // offset to keys array = 0x40
+  const off2 = (64 + 32 + n*32).toString(16).padStart(64,'0'); // offset to qtys array
+  const lenN = n.toString(16).padStart(64,'0');
+  const keysHex = cropKeys.map(k=>k.toString(16).padStart(64,'0')).join('');
+  const qtysHex = qtys.map(q=>BigInt(q).toString(16).padStart(64,'0')).join('');
+  return '0x' + sel + off1 + off2 + lenN + keysHex + lenN + qtysHex;
+}
+
+async function callContract(data, value_mon, label) {
+  if(txPending){showToast('⏳ TX IN PROGRESS!');return false;}
+  txPending=true;
+  setTx('pending',`⏳ ${label}...`);
+  try{
+    const hash=await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{
+        from: walletAddress,
+        to:   FARM_CONTRACT,
+        data: data,
+        value: value_mon > 0 ? monToHex(value_mon) : '0x0',
+      }]
+    });
+    setTx('pending','⏳ Confirming on-chain...');
+    await waitReceipt(hash);
+    setTx('success',`✅ ${label} done!`);
+    setTimeout(()=>setTx('',''),3000);
+    txPending=false;
+    await fetchBalance();
+    return true;
+  }catch(e){
+    const m=e.code===4001?'CANCELLED':(e.message?.slice(0,32)||'ERROR');
+    setTx('error',`❌ ${m}`);
+    setTimeout(()=>setTx('',''),4000);
+    txPending=false;
+    return false;
+  }
+}
+
 async function sendMON(to, amount, label){
   if(txPending){showToast('⏳ TX IN PROGRESS!');return false;}
   if(amount>0 && monBalance<amount){showToast(`❌ NEED ${amount} MON!`);return false;}
@@ -648,6 +779,7 @@ async function connectWallet(){
     document.getElementById('connectOvBtn').style.display='none';
     await fetchBalance();
     loadState();
+    updateWaterUI();
     showToast('✅ WALLET CONNECTED!');
   }catch(e){showToast('❌ CONNECT FAILED');}
 }
@@ -679,14 +811,15 @@ function saveState(){
   if(!walletAddress) return;
   const data={
     unlocked:FIELD_DEFS.map(f=>fieldData[f.id]?.unlocked||false),
-    plots:{}, harvest, inventory
+    plots:{}, harvest, inventory,
+    waterCharges, lastRefillTime
   };
   FIELD_DEFS.forEach(f=>{
     const fd=fieldData[f.id];
     if(!fd?.unlocked) return;
     fd.plots.forEach((p,i)=>{
       if(p.state==='planted'||p.state==='ready'){
-        data.plots[`${f.id}_${i}`]={state:p.state,plant:p.plant,plantedAt:p.plantedAt};
+        data.plots[`${f.id}_${i}`]={state:p.state,plant:p.plant,plantedAt:p.plantedAt,watered:p.watered||false};
       }
     });
   });
@@ -703,23 +836,30 @@ function loadState(){
         const [fid,pid]=key.split('_').map(Number);
         const fd=fieldData[fid]; if(!fd?.unlocked||!fd.plots[pid]) return;
         const p=fd.plots[pid];
-        p.plant=pd.plant; p.plantedAt=pd.plantedAt;
+        p.plant=pd.plant; p.plantedAt=pd.plantedAt; p.watered=pd.watered||false;
         if(pd.state==='ready'){p.state='ready';}
         else if(pd.state==='planted'){
-          const left=(pd.plantedAt+CROPS[pd.plant].grow)-Date.now();
-          if(left<=0){p.state='ready';}
-          else{p.state='planted';startGrowTimer(fid,pid,left);}
+          if(!pd.watered){p.state='planted';} // unwatered, no timer
+          else {
+            const left=pd.plantedAt?(pd.plantedAt+CROPS[pd.plant].grow)-Date.now():CROPS[pd.plant].grow;
+            if(left<=0){p.state='ready';}
+            else{p.state='planted';startGrowTimer(fid,pid,left);}
+          }
         }
       });
     }
     if(data.harvest) harvest=data.harvest;
     if(data.inventory) inventory=data.inventory;
+    if(typeof data.waterCharges==='number') waterCharges=data.waterCharges;
+    if(data.lastRefillTime) lastRefillTime=data.lastRefillTime;
   }catch(e){
     FIELD_DEFS.forEach(f=>initField(f.id,false));
   }
   renderAllFields();
   renderHarvestList();
   renderSeedShop();
+  updateWaterUI();
+  startWaterRegen();
 }
 
 // ═══════════════════════════════════════════════
@@ -828,10 +968,15 @@ function buildTile(fid,pid,p){
   else if(p.state==='tilled'){lb='TILLED';}
   else if(p.state==='planted'){
     const c=CROPS[p.plant];
-    sp=c.gs;lb=c.name.toUpperCase();
-    pg=`<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
-    const left=Math.max(0,(p.plantedAt+c.grow)-Date.now());
-    tmr=`<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left)}</div>`;
+    if(p.watered){
+      sp=c.gs;lb=c.name.toUpperCase();
+      pg=`<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
+      const left=p.plantedAt?Math.max(0,(p.plantedAt+c.grow)-Date.now()):c.grow;
+      tmr=`<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left)}</div>`;
+    } else {
+      sp='🌱';lb='NEEDS WATER';
+      tmr=`<div class="pt-timer" style="color:#f05050">💧?</div>`;
+    }
   }
   else if(p.state==='ready'){const c=CROPS[p.plant];sp=c.emoji;lb='HARVEST!';}
   else if(p.state==='closed'){lb='CLOSED';}
@@ -864,11 +1009,27 @@ function handleClick(fid,pid){
     if(p.state==='ready'){doHarvest(fid,pid);}
     else if(p.state==='planted'){showToast('⏳ NOT READY YET!');}
     else{showToast('🔪 NOTHING TO HARVEST!');}
-  }else if(selectedTool==='digger'){
-    const tk=`${fid}_${pid}`;
-    if(timers[tk]){clearInterval(timers[tk]);delete timers[tk];}
-    p.state='closed';p.plant=null;p.plantedAt=null;
-    refreshPlot(fid,pid);say('digger');sfx('dig');saveState();
+  }else if(selectedTool==='water'){
+    if(p.state==='planted'&&!p.watered){
+      if(waterCharges<=0){
+        showToast('🪣 NO WATER! Buy refill 10 MON');
+        buyWaterRefill();
+        return;
+      }
+      p.watered=true;
+      p.plantedAt=Date.now();
+      waterCharges--;
+      updateWaterUI();
+      startGrowTimer(fid,pid,CROPS[p.plant].grow);
+      refreshPlot(fid,pid);
+      say('water');sfx('plant');partsPlot(fid,pid,['💧','🌊','✨']);
+      saveState();
+      showToast('💧 CROP WATERED! Growing now...');
+    } else if(p.state==='planted'&&p.watered){
+      showToast('✅ ALREADY WATERED!');
+    } else {
+      showToast('🌱 PLANT FIRST, THEN WATER!');
+    }
   }
 }
 
@@ -880,7 +1041,9 @@ async function buySeed(cropKey){
   const c=CROPS[cropKey];
   selectedSeed=cropKey;
   renderSeedShop();
-  const ok=await sendMON(TREASURY,c.buy,`Buy ${c.name} seed`);
+  const cropKeyMap={tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
+  const ck=cropKeyMap[cropKey];
+  const ok=await callContract(encBuySeed(ck), c.buy, `Buy ${c.name} seed`);
   if(ok){
     inventory[cropKey]++;
     renderSeedShop();
@@ -896,12 +1059,14 @@ function plantCrop(fid,pid){
   }
   const p=fieldData[fid].plots[pid];
   const c=CROPS[selectedSeed];
-  p.state='planted';p.plant=selectedSeed;p.plantedAt=Date.now();
+  p.state='planted';p.plant=selectedSeed;p.plantedAt=null;p.watered=false;
   inventory[selectedSeed]--;
   refreshPlot(fid,pid);
   renderSeedShop();
   say('plant');sfx('plant');partsPlot(fid,pid,['🌱','✨']);
-  startGrowTimer(fid,pid,c.grow);
+  // Don't start timer yet — need water first!
+  showToast('🪣 SELECT WATER TOOL & water the crop!');
+  selectTool('water');
   saveState();
 }
 
@@ -957,10 +1122,13 @@ async function sellCrop(key){
   const qty=harvest[key];
   if(qty<=0){showToast('🧺 NOTHING TO SELL!');return;}
   const c=CROPS[key];const total=qty*c.sell;
-  const ok=await sendMON(TREASURY,0.0001,`Sell ${qty}x ${c.name}`);
+  const cropKeyMap={tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
+  const ck=cropKeyMap[key];
+  const data=encSellBatch([ck],[qty]);
+  const ok=await callContract(data, 0, `Sell ${qty}x ${c.name}`);
   if(ok){
-    harvest[key]=0;monBalance+=total;
-    document.getElementById('balHud').textContent=monBalance.toFixed(4)+' MON';
+    harvest[key]=0;
+    await fetchBalance(); // refresh real balance from chain
     updateHarvestUI();
     showToast(`💰 +${total.toFixed(3)} MON FROM ${c.name.toUpperCase()}!`);
     sfx('coin');parts(null,['💰','⭐','✨'],window.innerWidth/2,window.innerHeight*0.7);
@@ -970,11 +1138,15 @@ async function sellCrop(key){
 async function sellAll(){
   const toSell=Object.entries(harvest).filter(([,v])=>v>0);
   if(!toSell.length){showToast('🧺 NOTHING TO SELL!');return;}
+  const cropKeyMap={tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
+  const keys=toSell.map(([k])=>cropKeyMap[k]);
+  const qtys=toSell.map(([,v])=>v);
   let total=0;toSell.forEach(([k,v])=>total+=CROPS[k].sell*v);
-  const ok=await sendMON(TREASURY,0.0001,'Sell all harvest');
+  const data=encSellBatch(keys,qtys);
+  const ok=await callContract(data, 0, 'Sell all harvest');
   if(ok){
-    toSell.forEach(([k])=>harvest[k]=0);monBalance+=total;
-    document.getElementById('balHud').textContent=monBalance.toFixed(4)+' MON';
+    toSell.forEach(([k])=>harvest[k]=0);
+    await fetchBalance(); // refresh real balance
     updateHarvestUI();
     showToast(`💰 TOTAL +${total.toFixed(3)} MON!`);
     sfx('coin');parts(null,['💰','🤑','⭐','✨'],window.innerWidth/2,window.innerHeight*0.7);
@@ -1041,9 +1213,13 @@ function updateHarvestUI(){
 function selectTool(t){
   selectedTool=t;
   document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-  ({hoe:'toolHoe',sickle:'toolSickle',digger:'toolDigger'})[t] &&
-    document.getElementById({hoe:'toolHoe',sickle:'toolSickle',digger:'toolDigger'}[t])?.classList.add('active');
-  const tips={hoe:"HOE soil → click tilled to plant! ⛏️",sickle:"Harvest glowing crops! 🔪",digger:"Reset any plot 🪣"};
+  const idMap={hoe:'toolHoe',sickle:'toolSickle',water:'toolWater'};
+  if(idMap[t]) document.getElementById(idMap[t])?.classList.add('active');
+  const tips={
+    hoe:'HOE soil → click tilled to plant! ⛏️',
+    sickle:'Harvest glowing crops! 🔪',
+    water:waterCharges>0?`🪣 ${waterCharges} uses left — click planted crops!`:'🪣 No water! Buy refill (10 MON)'
+  };
   const el=document.getElementById('bubble');if(el) el.textContent=tips[t];
 }
 
@@ -1057,6 +1233,7 @@ const SAYS={
   ready:["HARVEST TIME! 🎉","Use your sickle!","Crops are ready!"],
   harvest:["Great yield! 🥳","Keep farming!","Gozo is proud!"],
   digger:["Plot reset! 🪣","Fresh start!"],
+  water:["Watered! 💧","Growing now!","Rain rain!","Hydrated! 🌊"],
   buy:["Seed bought! 🌱","Plant it!","Good call!"],
   sell:["MON earned! 💜","Nice profit! 🤑","Keep it up!"],
 };
