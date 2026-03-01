@@ -1085,6 +1085,7 @@
     <button class="game-tab" onclick="switchGame('runner')" id="tabRunner">🏃 GOZO RUNNER</button>
     <button class="game-tab" onclick="switchGame('td')" id="tabTD">🏰 TOWER DEFENSE</button>
     <button class="game-tab" onclick="switchGame('rpg')" id="tabRPG">⚔️ GOZO RPG</button>
+    <button class="game-tab" onclick="switchGame('snake')" id="tabSnake">🐍 GOZO SNAKE</button>
   </div>
 
   <div class="game-layout">
@@ -1160,12 +1161,30 @@
   </div>
   </div><!-- end rpgContainer -->
 
+  <!-- GOZO SNAKE GAME -->
+  <div class="game-container" id="snakeContainer">
+  <div class="game-wrapper">
+    <canvas id="snakeCanvas" width="480" height="480"></canvas>
+    <div class="game-overlay" id="snakeOverlay">
+      <div class="overlay-title">🐍 GOZO SNAKE</div>
+      <div class="overlay-score">Eat coins, grow bigger!</div>
+      <div style="color:rgba(255,255,255,0.6); font-size:0.9rem;">Arrow keys or WASD to move</div>
+      <div style="color:rgba(255,215,0,0.8); font-size:0.85rem; margin-top:0.5rem;">⚡ Costs 1 MON to play</div>
+    </div>
+  </div>
+  <div class="td-info-bar" style="margin-top:0.5rem;">
+    <div class="td-info-item"><span>SCORE</span> <span id="snakeScore">0</span></div>
+    <div class="td-info-item"><span>LENGTH</span> <span id="snakeLength">1</span></div>
+    <div class="td-info-item"><span>BEST</span> <span id="snakeBest">0</span></div>
+  </div>
+  </div><!-- end snakeContainer -->
+
   <div class="game-ui">
     <div class="token-balance">
       <div class="label">GOZO Balance</div>
       <div class="value" id="balanceDisplay">---</div>
     </div>
-    <div class="play-cost">Cost per play: <span>10 GOZO</span></div>
+    <div class="play-cost" id="playCostDisplay">Cost per play: <span>10 GOZO</span></div>
     <button id="playBtn" onclick="startCurrentGame()" disabled>🎮 PLAY</button>
   </div>
   </div>
@@ -2948,23 +2967,33 @@ function switchGame(game) {
   document.getElementById('runnerContainer').classList.toggle('active', game === 'runner');
   document.getElementById('tdContainer').classList.toggle('active', game === 'td');
   document.getElementById('rpgContainer').classList.toggle('active', game === 'rpg');
+  document.getElementById('snakeContainer').classList.toggle('active', game === 'snake');
   document.getElementById('tabFlappy').classList.toggle('active', game === 'flappy');
   document.getElementById('tabRunner').classList.toggle('active', game === 'runner');
   document.getElementById('tabTD').classList.toggle('active', game === 'td');
   document.getElementById('tabRPG').classList.toggle('active', game === 'rpg');
+  document.getElementById('tabSnake').classList.toggle('active', game === 'snake');
 
   if (game === 'flappy') {
     document.getElementById('gameSectionTitle').textContent = 'FLAPPY GOZO';
     document.getElementById('gameSectionSub').textContent = 'Tap to fly \u2022 Dodge the pipes \u2022 Stack GOZO points';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
   } else if (game === 'runner') {
     document.getElementById('gameSectionTitle').textContent = 'GOZO RUNNER';
     document.getElementById('gameSectionSub').textContent = 'Jump & dodge \u2022 Collect GOZO coins \u2022 Survive the endless road';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
   } else if (game === 'td') {
     document.getElementById('gameSectionTitle').textContent = 'TOWER DEFENSE';
     document.getElementById('gameSectionSub').textContent = 'Place Gozo towers \u2022 Defeat the goblins \u2022 Survive the waves';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
+  } else if (game === 'snake') {
+    document.getElementById('gameSectionTitle').textContent = 'GOZO SNAKE';
+    document.getElementById('gameSectionSub').textContent = 'Eat coins \u2022 Grow longer \u2022 Don\'t bite yourself';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>1 MON</span>';
   } else {
     document.getElementById('gameSectionTitle').textContent = 'GOZO RPG';
     document.getElementById('gameSectionSub').textContent = 'Explore dungeons \u2022 Defeat monsters \u2022 Collect loot';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
   }
 }
 
@@ -2975,6 +3004,8 @@ function startCurrentGame() {
     startRunnerGame();
   } else if (currentGame === 'td') {
     startTDGame();
+  } else if (currentGame === 'snake') {
+    startSnakeGame();
   } else {
     startRPGGame();
   }
@@ -5523,7 +5554,489 @@ runnerCanvas.addEventListener('touchstart', function(e) {
 rInitBg();
 requestAnimationFrame(runnerGameLoop);
 
-// Mobile touch controls for RPG
+// ===================== GOZO SNAKE GAME =====================
+// Payment: 1 MON (native) sent to recipient address
+
+const SNAKE_RECIPIENT = '0x1B3C51b7d12D06F5e1581B26A67047F4e19871ba';
+const ONE_MON_HEX = '0xDE0B6B3A7640000'; // 1 MON = 1e18 wei
+
+const snakeCanvas = document.getElementById('snakeCanvas');
+const snakeCtx = snakeCanvas.getContext('2d');
+const SW = snakeCanvas.width, SH = snakeCanvas.height;
+
+const SNAKE_GRID = 24; // grid cell size in px
+const SNAKE_COLS = SW / SNAKE_GRID; // 20
+const SNAKE_ROWS = SH / SNAKE_GRID; // 20
+
+let snakeState = 'idle'; // idle, playing, dead
+let snakeBody = [];
+let snakeDir = { x: 1, y: 0 };
+let snakeNextDir = { x: 1, y: 0 };
+let snakeFood = [];
+let snakeBonus = null;
+let snakeScoreVal = 0;
+let snakeLengthVal = 1;
+let snakeBestVal = parseInt(localStorage.getItem('snakeBest') || '0');
+let snakeTick = 0;
+let snakeTickRate = 8; // frames per move
+let snakeFrame = 0;
+let snakeParticles = [];
+let snakeBonusTimer = 0;
+
+document.getElementById('snakeBest').textContent = snakeBestVal;
+
+function snakeReset() {
+  const cx = Math.floor(SNAKE_COLS / 2);
+  const cy = Math.floor(SNAKE_ROWS / 2);
+  snakeBody = [
+    { x: cx, y: cy },
+    { x: cx - 1, y: cy },
+    { x: cx - 2, y: cy },
+  ];
+  snakeDir = { x: 1, y: 0 };
+  snakeNextDir = { x: 1, y: 0 };
+  snakeFood = [];
+  snakeBonus = null;
+  snakeScoreVal = 0;
+  snakeLengthVal = snakeBody.length;
+  snakeTick = 0;
+  snakeTickRate = 8;
+  snakeBonusTimer = 0;
+  snakeParticles = [];
+  snakeSpawnFood();
+  snakeSpawnFood();
+  document.getElementById('snakeScore').textContent = 0;
+  document.getElementById('snakeLength').textContent = snakeLengthVal;
+}
+
+function snakeSpawnFood() {
+  let pos;
+  let tries = 0;
+  do {
+    pos = { x: Math.floor(Math.random() * SNAKE_COLS), y: Math.floor(Math.random() * SNAKE_ROWS) };
+    tries++;
+  } while (tries < 100 && (snakeBody.some(s => s.x === pos.x && s.y === pos.y) || snakeFood.some(f => f.x === pos.x && f.y === pos.y)));
+  snakeFood.push({ ...pos, pulse: Math.random() * Math.PI * 2 });
+}
+
+function snakeSpawnBonus() {
+  let pos;
+  let tries = 0;
+  do {
+    pos = { x: Math.floor(Math.random() * SNAKE_COLS), y: Math.floor(Math.random() * SNAKE_ROWS) };
+    tries++;
+  } while (tries < 100 && snakeBody.some(s => s.x === pos.x && s.y === pos.y));
+  snakeBonus = { ...pos, life: 180, pulse: 0 };
+}
+
+function snakeStep() {
+  snakeDir = { ...snakeNextDir };
+  const head = snakeBody[0];
+  const newHead = {
+    x: (head.x + snakeDir.x + SNAKE_COLS) % SNAKE_COLS,
+    y: (head.y + snakeDir.y + SNAKE_ROWS) % SNAKE_ROWS
+  };
+
+  // Self collision
+  if (snakeBody.some(s => s.x === newHead.x && s.y === newHead.y)) {
+    snakeState = 'dead';
+    if (snakeScoreVal > snakeBestVal) {
+      snakeBestVal = snakeScoreVal;
+      localStorage.setItem('snakeBest', snakeBestVal);
+      document.getElementById('snakeBest').textContent = snakeBestVal;
+    }
+    // Explosion particles
+    snakeBody.forEach(seg => {
+      for (let i = 0; i < 3; i++) {
+        snakeParticles.push({
+          x: seg.x * SNAKE_GRID + SNAKE_GRID / 2,
+          y: seg.y * SNAKE_GRID + SNAKE_GRID / 2,
+          vx: (Math.random() - 0.5) * 5,
+          vy: (Math.random() - 0.5) * 5,
+          life: 1,
+          color: '#FFD700', size: 4
+        });
+      }
+    });
+    return;
+  }
+
+  snakeBody.unshift(newHead);
+
+  // Check food
+  const foodIdx = snakeFood.findIndex(f => f.x === newHead.x && f.y === newHead.y);
+  if (foodIdx !== -1) {
+    snakeFood.splice(foodIdx, 1);
+    snakeScoreVal += 10;
+    snakeLengthVal = snakeBody.length;
+    snakeSpawnFood();
+    // Speed up slightly
+    snakeTickRate = Math.max(4, snakeTickRate - 0.15);
+    // Particles
+    for (let i = 0; i < 8; i++) {
+      snakeParticles.push({
+        x: newHead.x * SNAKE_GRID + SNAKE_GRID / 2,
+        y: newHead.y * SNAKE_GRID + SNAKE_GRID / 2,
+        vx: (Math.random() - 0.5) * 6,
+        vy: (Math.random() - 0.5) * 6,
+        life: 1, color: '#FFD700', size: 5
+      });
+    }
+    // Occasionally spawn bonus
+    if (Math.random() < 0.15 && !snakeBonus) snakeSpawnBonus();
+    document.getElementById('snakeScore').textContent = snakeScoreVal;
+    document.getElementById('snakeLength').textContent = snakeLengthVal;
+  } else {
+    snakeBody.pop();
+  }
+
+  // Check bonus
+  if (snakeBonus && snakeBonus.x === newHead.x && snakeBonus.y === newHead.y) {
+    snakeScoreVal += 50;
+    snakeLengthVal = snakeBody.length;
+    // Grow extra 3
+    for (let i = 0; i < 3; i++) snakeBody.push({ ...snakeBody[snakeBody.length - 1] });
+    snakeLengthVal = snakeBody.length;
+    for (let i = 0; i < 15; i++) {
+      snakeParticles.push({
+        x: newHead.x * SNAKE_GRID + SNAKE_GRID / 2,
+        y: newHead.y * SNAKE_GRID + SNAKE_GRID / 2,
+        vx: (Math.random() - 0.5) * 9,
+        vy: (Math.random() - 0.5) * 9,
+        life: 1, color: '#FF6B35', size: 7
+      });
+    }
+    snakeBonus = null;
+    document.getElementById('snakeScore').textContent = snakeScoreVal;
+    document.getElementById('snakeLength').textContent = snakeLengthVal;
+  }
+
+  // Bonus timer
+  if (snakeBonus) {
+    snakeBonus.life--;
+    if (snakeBonus.life <= 0) snakeBonus = null;
+  }
+}
+
+function snakeDraw() {
+  // Background
+  snakeCtx.fillStyle = '#0A1A0F';
+  snakeCtx.fillRect(0, 0, SW, SH);
+
+  // Grid
+  snakeCtx.strokeStyle = 'rgba(13,92,58,0.25)';
+  snakeCtx.lineWidth = 0.5;
+  for (let x = 0; x <= SNAKE_COLS; x++) {
+    snakeCtx.beginPath();
+    snakeCtx.moveTo(x * SNAKE_GRID, 0);
+    snakeCtx.lineTo(x * SNAKE_GRID, SH);
+    snakeCtx.stroke();
+  }
+  for (let y = 0; y <= SNAKE_ROWS; y++) {
+    snakeCtx.beginPath();
+    snakeCtx.moveTo(0, y * SNAKE_GRID);
+    snakeCtx.lineTo(SW, y * SNAKE_GRID);
+    snakeCtx.stroke();
+  }
+
+  // Food
+  snakeFood.forEach(f => {
+    const cx = f.x * SNAKE_GRID + SNAKE_GRID / 2;
+    const cy = f.y * SNAKE_GRID + SNAKE_GRID / 2;
+    const pulse = Math.sin(snakeFrame * 0.07 + f.pulse) * 2;
+    const r = SNAKE_GRID / 2 - 3 + pulse;
+    // Glow
+    const grd = snakeCtx.createRadialGradient(cx, cy, 0, cx, cy, r + 4);
+    grd.addColorStop(0, 'rgba(255,215,0,0.7)');
+    grd.addColorStop(1, 'rgba(255,215,0,0)');
+    snakeCtx.beginPath();
+    snakeCtx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+    snakeCtx.fillStyle = grd;
+    snakeCtx.fill();
+    // Coin
+    snakeCtx.beginPath();
+    snakeCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    snakeCtx.fillStyle = '#FFD700';
+    snakeCtx.fill();
+    snakeCtx.strokeStyle = '#C0392B';
+    snakeCtx.lineWidth = 2;
+    snakeCtx.stroke();
+    // G symbol
+    snakeCtx.fillStyle = '#C0392B';
+    snakeCtx.font = `bold ${Math.floor(SNAKE_GRID * 0.55)}px Bangers, cursive`;
+    snakeCtx.textAlign = 'center';
+    snakeCtx.textBaseline = 'middle';
+    snakeCtx.fillText('G', cx, cy + 1);
+  });
+
+  // Bonus star
+  if (snakeBonus) {
+    const bx = snakeBonus.x * SNAKE_GRID + SNAKE_GRID / 2;
+    const by = snakeBonus.y * SNAKE_GRID + SNAKE_GRID / 2;
+    const alpha = snakeBonus.life < 60 ? snakeBonus.life / 60 : 1;
+    const pulse = Math.sin(snakeFrame * 0.15) * 3;
+    snakeCtx.save();
+    snakeCtx.globalAlpha = alpha;
+    // Glow
+    const bgrd = snakeCtx.createRadialGradient(bx, by, 0, bx, by, 16);
+    bgrd.addColorStop(0, 'rgba(255,107,53,0.8)');
+    bgrd.addColorStop(1, 'rgba(255,107,53,0)');
+    snakeCtx.beginPath();
+    snakeCtx.arc(bx, by, 18 + pulse, 0, Math.PI * 2);
+    snakeCtx.fillStyle = bgrd;
+    snakeCtx.fill();
+    // Star shape
+    snakeCtx.fillStyle = '#FF6B35';
+    snakeCtx.font = `${Math.floor(SNAKE_GRID * 0.9)}px sans-serif`;
+    snakeCtx.textAlign = 'center';
+    snakeCtx.textBaseline = 'middle';
+    snakeCtx.fillText('⭐', bx, by + 1);
+    snakeCtx.restore();
+  }
+
+  // Snake body
+  if (snakeState === 'playing' || snakeState === 'dead') {
+    snakeBody.forEach((seg, i) => {
+      const isHead = i === 0;
+      const t = i / snakeBody.length;
+      const x = seg.x * SNAKE_GRID + 2;
+      const y = seg.y * SNAKE_GRID + 2;
+      const sz = SNAKE_GRID - 4;
+
+      if (isHead) {
+        // Head: bright yellow-green with outline
+        const headGrd = snakeCtx.createRadialGradient(
+          seg.x * SNAKE_GRID + SNAKE_GRID / 2, seg.y * SNAKE_GRID + SNAKE_GRID / 2, 0,
+          seg.x * SNAKE_GRID + SNAKE_GRID / 2, seg.y * SNAKE_GRID + SNAKE_GRID / 2, sz / 2
+        );
+        headGrd.addColorStop(0, '#AAFF44');
+        headGrd.addColorStop(1, '#44AA00');
+        snakeCtx.fillStyle = headGrd;
+        snakeCtx.strokeStyle = '#FFD700';
+        snakeCtx.lineWidth = 2.5;
+        snakeCtx.beginPath();
+        snakeCtx.roundRect(x, y, sz, sz, 6);
+        snakeCtx.fill();
+        snakeCtx.stroke();
+        // Eyes
+        const eyeSize = 3;
+        snakeCtx.fillStyle = '#fff';
+        let eye1 = { x: seg.x * SNAKE_GRID + 6, y: seg.y * SNAKE_GRID + 7 };
+        let eye2 = { x: seg.x * SNAKE_GRID + SNAKE_GRID - 7, y: seg.y * SNAKE_GRID + 7 };
+        if (snakeDir.y === 1) { eye1 = { x: seg.x * SNAKE_GRID + 6, y: seg.y * SNAKE_GRID + SNAKE_GRID - 7 }; eye2 = { x: seg.x * SNAKE_GRID + SNAKE_GRID - 7, y: seg.y * SNAKE_GRID + SNAKE_GRID - 7 }; }
+        if (snakeDir.x === -1) { eye1 = { x: seg.x * SNAKE_GRID + 7, y: seg.y * SNAKE_GRID + 6 }; eye2 = { x: seg.x * SNAKE_GRID + 7, y: seg.y * SNAKE_GRID + SNAKE_GRID - 7 }; }
+        if (snakeDir.y === -1) { eye1 = { x: seg.x * SNAKE_GRID + 6, y: seg.y * SNAKE_GRID + 7 }; eye2 = { x: seg.x * SNAKE_GRID + SNAKE_GRID - 7, y: seg.y * SNAKE_GRID + 7 }; }
+        snakeCtx.beginPath(); snakeCtx.arc(eye1.x, eye1.y, eyeSize, 0, Math.PI * 2); snakeCtx.fill();
+        snakeCtx.beginPath(); snakeCtx.arc(eye2.x, eye2.y, eyeSize, 0, Math.PI * 2); snakeCtx.fill();
+        snakeCtx.fillStyle = '#111';
+        snakeCtx.beginPath(); snakeCtx.arc(eye1.x + 1, eye1.y + 1, eyeSize - 1, 0, Math.PI * 2); snakeCtx.fill();
+        snakeCtx.beginPath(); snakeCtx.arc(eye2.x + 1, eye2.y + 1, eyeSize - 1, 0, Math.PI * 2); snakeCtx.fill();
+      } else {
+        // Body: gradient from bright to dark green
+        const r = Math.floor(34 + t * 10);
+        const g = Math.floor(170 - t * 80);
+        const b = 0;
+        snakeCtx.fillStyle = `rgb(${r},${g},${b})`;
+        snakeCtx.strokeStyle = `rgba(0,60,0,0.5)`;
+        snakeCtx.lineWidth = 1;
+        snakeCtx.beginPath();
+        snakeCtx.roundRect(x, y, sz, sz, 5);
+        snakeCtx.fill();
+        snakeCtx.stroke();
+        // Scale pattern on every 3rd segment
+        if (i % 3 === 0) {
+          snakeCtx.fillStyle = 'rgba(255,255,255,0.08)';
+          snakeCtx.beginPath();
+          snakeCtx.ellipse(seg.x * SNAKE_GRID + SNAKE_GRID / 2, seg.y * SNAKE_GRID + SNAKE_GRID / 2, sz / 3, sz / 4, 0, 0, Math.PI * 2);
+          snakeCtx.fill();
+        }
+      }
+    });
+  }
+
+  // Particles
+  snakeParticles.forEach(p => {
+    snakeCtx.save();
+    snakeCtx.globalAlpha = Math.max(0, p.life);
+    snakeCtx.fillStyle = p.color;
+    snakeCtx.beginPath();
+    snakeCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    snakeCtx.fill();
+    snakeCtx.restore();
+  });
+
+  // Overlays
+  if (snakeState === 'idle') {
+    snakeCtx.fillStyle = 'rgba(0,0,0,0.65)';
+    snakeCtx.fillRect(0, 0, SW, SH);
+    snakeCtx.font = 'bold 60px Bangers, cursive';
+    snakeCtx.textAlign = 'center';
+    snakeCtx.strokeStyle = '#C0392B';
+    snakeCtx.lineWidth = 5;
+    snakeCtx.strokeText('GOZO SNAKE', SW / 2, SH / 2 - 90);
+    snakeCtx.fillStyle = '#FFD700';
+    snakeCtx.fillText('GOZO SNAKE', SW / 2, SH / 2 - 90);
+    snakeCtx.font = '22px Nunito, sans-serif';
+    snakeCtx.fillStyle = 'rgba(255,255,255,0.7)';
+    snakeCtx.fillText('Arrow keys / WASD to move', SW / 2, SH / 2 - 30);
+    snakeCtx.font = 'bold 16px Bangers, cursive';
+    snakeCtx.fillStyle = 'rgba(255,215,0,0.7)';
+    snakeCtx.fillText('Eat 🪙 coins to grow • Don\'t bite yourself!', SW / 2, SH / 2 + 5);
+    if (snakeBestVal > 0) {
+      snakeCtx.font = 'bold 22px Bangers, cursive';
+      snakeCtx.fillStyle = '#FFD700';
+      snakeCtx.fillText('BEST: ' + snakeBestVal, SW / 2, SH / 2 + 45);
+    }
+    // Blinking play prompt
+    if (Math.floor(snakeFrame / 30) % 2 === 0) {
+      snakeCtx.font = 'bold 20px Bangers, cursive';
+      snakeCtx.fillStyle = '#FF6B35';
+      snakeCtx.fillText('Press PLAY (costs 1 MON)', SW / 2, SH / 2 + 80);
+    }
+  } else if (snakeState === 'dead') {
+    snakeCtx.fillStyle = 'rgba(0,0,0,0.75)';
+    snakeCtx.fillRect(0, 0, SW, SH);
+    snakeCtx.font = 'bold 55px Bangers, cursive';
+    snakeCtx.textAlign = 'center';
+    snakeCtx.strokeStyle = '#8B0000';
+    snakeCtx.lineWidth = 4;
+    snakeCtx.strokeText('GAME OVER', SW / 2, SH / 2 - 80);
+    snakeCtx.fillStyle = '#C0392B';
+    snakeCtx.fillText('GAME OVER', SW / 2, SH / 2 - 80);
+    snakeCtx.font = 'bold 36px Bangers, cursive';
+    snakeCtx.fillStyle = '#FFD700';
+    snakeCtx.fillText('Score: ' + snakeScoreVal, SW / 2, SH / 2 - 15);
+    snakeCtx.font = '22px Nunito, sans-serif';
+    snakeCtx.fillStyle = 'rgba(255,255,255,0.7)';
+    snakeCtx.fillText('Length: ' + snakeLengthVal, SW / 2, SH / 2 + 25);
+    if (snakeScoreVal >= snakeBestVal) {
+      snakeCtx.font = 'bold 22px Bangers, cursive';
+      snakeCtx.fillStyle = '#FFD700';
+      snakeCtx.fillText('🏆 NEW BEST!', SW / 2, SH / 2 + 60);
+    } else {
+      snakeCtx.font = '18px Nunito, sans-serif';
+      snakeCtx.fillStyle = 'rgba(255,255,255,0.5)';
+      snakeCtx.fillText('Best: ' + snakeBestVal, SW / 2, SH / 2 + 60);
+    }
+    if (Math.floor(snakeFrame / 25) % 2 === 0) {
+      snakeCtx.font = 'bold 20px Bangers, cursive';
+      snakeCtx.fillStyle = '#FF6B35';
+      snakeCtx.fillText('Press PLAY to try again (1 MON)', SW / 2, SH / 2 + 100);
+    }
+  }
+}
+
+// Snake game loop
+function snakeGameLoop() {
+  snakeFrame++;
+  // Update particles
+  snakeParticles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.035; });
+  snakeParticles = snakeParticles.filter(p => p.life > 0);
+
+  if (snakeState === 'playing') {
+    snakeTick++;
+    if (snakeTick >= snakeTickRate) {
+      snakeTick = 0;
+      snakeStep();
+    }
+  }
+  snakeDraw();
+  requestAnimationFrame(snakeGameLoop);
+}
+
+// Input
+document.addEventListener('keydown', function(e) {
+  if (currentGame !== 'snake') return;
+  switch (e.code) {
+    case 'ArrowUp': case 'KeyW':
+      if (snakeDir.y !== 1) snakeNextDir = { x: 0, y: -1 };
+      break;
+    case 'ArrowDown': case 'KeyS':
+      if (snakeDir.y !== -1) snakeNextDir = { x: 0, y: 1 };
+      break;
+    case 'ArrowLeft': case 'KeyA':
+      if (snakeDir.x !== 1) snakeNextDir = { x: -1, y: 0 };
+      break;
+    case 'ArrowRight': case 'KeyD':
+      if (snakeDir.x !== -1) snakeNextDir = { x: 1, y: 0 };
+      break;
+  }
+});
+
+// Touch swipe for snake
+let snakeTouchStart = null;
+snakeCanvas.addEventListener('touchstart', e => { snakeTouchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY }; e.preventDefault(); }, { passive: false });
+snakeCanvas.addEventListener('touchend', e => {
+  if (!snakeTouchStart) return;
+  const dx = e.changedTouches[0].clientX - snakeTouchStart.x;
+  const dy = e.changedTouches[0].clientY - snakeTouchStart.y;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > 20 && snakeDir.x !== -1) snakeNextDir = { x: 1, y: 0 };
+    else if (dx < -20 && snakeDir.x !== 1) snakeNextDir = { x: -1, y: 0 };
+  } else {
+    if (dy > 20 && snakeDir.y !== -1) snakeNextDir = { x: 0, y: 1 };
+    else if (dy < -20 && snakeDir.y !== 1) snakeNextDir = { x: 0, y: -1 };
+  }
+  e.preventDefault();
+}, { passive: false });
+
+// Start snake game with 1 MON native payment
+async function startSnakeGame() {
+  if (!isConnected) { showToast('🔗 Connect Wallet First!'); return; }
+
+  const playBtn = document.getElementById('playBtn');
+  playBtn.disabled = true;
+  playBtn.textContent = '⏳ PAYING...';
+
+  try {
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddress,
+        to: SNAKE_RECIPIENT,
+        value: ONE_MON_HEX,
+        gas: '0x5208' // 21000 gas for ETH transfer
+      }]
+    });
+
+    showToast('⏳ Sending 1 MON...');
+
+    let receipt = null;
+    let attempts = 0;
+    while (!receipt && attempts < 30) {
+      await new Promise(r => setTimeout(r, 2000));
+      receipt = await window.ethereum.request({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash]
+      });
+      attempts++;
+    }
+
+    if (receipt && receipt.status === '0x1') {
+      showToast('🐍 1 MON SENT! LET\'S SLITHER!');
+      snakeReset();
+      snakeState = 'playing';
+      document.getElementById('snakeOverlay').classList.add('hidden');
+    } else {
+      showToast('❌ Transaction failed!');
+    }
+  } catch (err) {
+    if (err.code === 4001) {
+      showToast('❌ Transaction cancelled!');
+    } else {
+      showToast('❌ Error: ' + (err.message || 'Unknown error'));
+    }
+  } finally {
+    playBtn.disabled = false;
+    playBtn.textContent = '🎮 PLAY';
+  }
+}
+
+// Init snake
+snakeReset();
+requestAnimationFrame(snakeGameLoop);
+
+
 rpgCanvas.addEventListener('click', function(e) {
   if (rpgState !== 'playing' || !rpgPlayer) return;
 
