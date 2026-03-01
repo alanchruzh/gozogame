@@ -2981,11 +2981,11 @@ function switchGame(game) {
   } else if (game === 'runner') {
     document.getElementById('gameSectionTitle').textContent = 'GOZO RUNNER';
     document.getElementById('gameSectionSub').textContent = 'Jump & dodge \u2022 Collect GOZO coins \u2022 Survive the endless road';
-    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>1 MON</span>';
   } else if (game === 'td') {
     document.getElementById('gameSectionTitle').textContent = 'TOWER DEFENSE';
     document.getElementById('gameSectionSub').textContent = 'Place Gozo towers \u2022 Defeat the goblins \u2022 Survive the waves';
-    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>1 MON</span>';
   } else if (game === 'snake') {
     document.getElementById('gameSectionTitle').textContent = 'GOZO SNAKE';
     document.getElementById('gameSectionSub').textContent = 'Eat coins \u2022 Grow longer \u2022 Don\'t bite yourself';
@@ -2993,7 +2993,7 @@ function switchGame(game) {
   } else {
     document.getElementById('gameSectionTitle').textContent = 'GOZO RPG';
     document.getElementById('gameSectionSub').textContent = 'Explore dungeons \u2022 Defeat monsters \u2022 Collect loot';
-    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>10 GOZO</span>';
+    document.getElementById('playCostDisplay').innerHTML = 'Cost per play: <span>1 MON</span>';
   }
 }
 
@@ -3104,30 +3104,23 @@ function selectTower(type) {
 // TD Start game
 async function startTDGame() {
   if (!isConnected) { showToast('🔗 Connect Wallet First!'); return; }
-  if (gozoBalance < 10) { showToast('❌ Need 10 GOZO to play!'); return; }
 
   const playBtn = document.getElementById('playBtn');
   playBtn.disabled = true;
-  playBtn.textContent = '⏳ BURNING...';
+  playBtn.textContent = '⏳ PAYING...';
 
   try {
-    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-    const AMOUNT_HEX = '0x0000000000000000000000000000000000000000000000008AC7230489E80000';
-    const data = '0xa9059cbb'
-      + BURN_ADDRESS.slice(2).padStart(64, '0')
-      + AMOUNT_HEX.slice(2);
-
     const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
         from: walletAddress,
-        to: GOZO_CONTRACT,
-        data: data,
-        gas: '0x186A0'
+        to: SNAKE_RECIPIENT,
+        value: ONE_MON_HEX,
+        gas: '0x5208'
       }]
     });
 
-    showToast('🔥 Burning 10 GOZO...');
+    showToast('⏳ Sending 1 MON...');
 
     let receipt = null;
     let attempts = 0;
@@ -3141,9 +3134,7 @@ async function startTDGame() {
     }
 
     if (receipt && receipt.status === '0x1') {
-      gozoBalance -= 10;
-      document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
-      showToast('🔥 10 GOZO BURNED! DEFEND THE TOWER!');
+      showToast('🏰 1 MON SENT! DEFEND THE TOWER!');
       ensureAudio();
       tdResetGame();
       tdState = 'playing';
@@ -4743,46 +4734,34 @@ function rpgResetGame() {
 
 async function startRPGGame() {
   if (!isConnected) { showToast('Connect Wallet First!'); return; }
-  if (gozoBalance < 10) { showToast('Need 10 GOZO to play!'); return; }
 
   const playBtn = document.getElementById('playBtn');
   playBtn.disabled = true;
-  playBtn.textContent = 'BURNING...';
+  playBtn.textContent = 'PAYING...';
 
   try {
-    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-    const AMOUNT_HEX = '0x0000000000000000000000000000000000000000000000008AC7230489E80000';
-    const data = '0xa9059cbb'
-      + BURN_ADDRESS.slice(2).padStart(64, '0')
-      + AMOUNT_HEX.slice(2);
-
     const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
       params: [{
         from: walletAddress,
-        to: GOZO_CONTRACT,
-        data: data,
-        gas: '0x186A0'
+        to: SNAKE_RECIPIENT,
+        value: ONE_MON_HEX,
+        gas: '0x5208'
       }]
     });
 
-    showToast('Burning 10 GOZO...');
+    showToast('⏳ Sending 1 MON...');
 
     let receipt = null;
     let attempts = 0;
     while (!receipt && attempts < 30) {
       await new Promise(r => setTimeout(r, 2000));
-      receipt = await window.ethereum.request({
-        method: 'eth_getTransactionReceipt',
-        params: [txHash]
-      });
+      receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
       attempts++;
     }
 
     if (receipt && receipt.status === '0x1') {
-      gozoBalance -= 10;
-      document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
-      showToast('10 GOZO BURNED! GET READY!');
+      showToast('⚔️ 1 MON SENT! GET READY!');
       ensureAudio();
       rpgResetGame();
     } else {
@@ -4993,24 +4972,17 @@ function rResetGame() {
 
 async function startRunnerGame() {
   if (!isConnected) { showToast('Connect Wallet First!'); return; }
-  if (gozoBalance < 10) { showToast('Need 10 GOZO to play!'); return; }
 
   const playBtn = document.getElementById('playBtn');
   playBtn.disabled = true;
-  playBtn.textContent = 'BURNING...';
+  playBtn.textContent = 'PAYING...';
 
   try {
-    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-    const AMOUNT_HEX = '0x0000000000000000000000000000000000000000000000008AC7230489E80000';
-    const data = '0xa9059cbb'
-      + BURN_ADDRESS.slice(2).padStart(64, '0')
-      + AMOUNT_HEX.slice(2);
-
     const txHash = await window.ethereum.request({
       method: 'eth_sendTransaction',
-      params: [{ from: walletAddress, to: GOZO_CONTRACT, data, gas: '0x186A0' }]
+      params: [{ from: walletAddress, to: SNAKE_RECIPIENT, value: ONE_MON_HEX, gas: '0x5208' }]
     });
-    showToast('Burning 10 GOZO...');
+    showToast('⏳ Sending 1 MON...');
 
     let receipt = null, attempts = 0;
     while (!receipt && attempts < 30) {
@@ -5020,9 +4992,7 @@ async function startRunnerGame() {
     }
 
     if (receipt && receipt.status === '0x1') {
-      gozoBalance -= 10;
-      document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
-      showToast('10 GOZO BURNED! RUN GOZO RUN!');
+      showToast('🏃 1 MON SENT! RUN GOZO RUN!');
       ensureAudio();
       rResetGame();
     } else { showToast('Transaction failed!'); }
