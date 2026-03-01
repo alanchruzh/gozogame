@@ -537,6 +537,7 @@ header{
 // ═══════════════════════════════════════════════
 const TREASURY     = '0x1B3C51b7d12D06F5e1581B26A67047F4e19871ba';
 const FARM_CONTRACT = '0xD94aEaf32B90F2a432Cea2f86413Ce6347785A9e';
+const STORAGE_CONTRACT = '0x8896249693F3D1c9911358550F6f95BDfB0410EE'; // GozoFarmStorage
 const CHAIN_ID  = '0x8F'; // 143 Monad
 const CHAIN = {
   chainId:CHAIN_ID, chainName:'Monad',
@@ -806,31 +807,261 @@ function startFarm(){
 }
 
 // ═══════════════════════════════════════════════
-// SAVE / LOAD
+// SAVE / LOAD — GozoFarmStorage (Blockchain)
 // ═══════════════════════════════════════════════
+
+// LocalStorage fallback key
 function sk(){return 'gfarm_'+(walletAddress||'').toLowerCase();}
+
+// ── ABI Encode Helpers ──────────────────────────
+function encUpdateInventory(seedInv, harvestInv, waterCharges){
+  // updateInventory(uint8[5],uint8[5],uint16)
+  const sel = 'a5bcb3c2';
+  const enc5 = arr => arr.map(v=>(v&0xff).toString(16).padStart(64,'0')).join('');
+  return '0x'+sel + enc5(seedInv) + enc5(harvestInv) + (waterCharges&0xffff).toString(16).padStart(64,'0');
+}
+function encUpdatePlot(fieldId, plotId, cropKey, state, watered, plantedAt){
+  // updatePlot(uint8,uint8,uint8,uint8,bool,uint64)
+  const sel = '4a7b48c9';
+  const p = v => (v&0xff).toString(16).padStart(64,'0');
+  const b = watered ? '1'.padStart(64,'0') : '0'.padStart(64,'0');
+  const t = BigInt(Math.floor(plantedAt/1000)).toString(16).padStart(64,'0');
+  return '0x'+sel + p(fieldId) + p(plotId) + p(cropKey) + p(state) + b + t;
+}
+function encUnlockField(fieldId){
+  // unlockField(uint8)
+  return '0x51cff8d9' + (fieldId&0xff).toString(16).padStart(64,'0');
+}
+function encClearPlot(fieldId, plotId){
+  // clearPlot(uint8,uint8)
+  return '0xd3cd73cf' + (fieldId&0xff).toString(16).padStart(64,'0') + (plotId&0xff).toString(16).padStart(64,'0');
+}
+
+// ── eth_call helper (read-only) ─────────────────
+async function ethCall(data){
+  return window.ethereum.request({
+    method:'eth_call',
+    params:[{to:STORAGE_CONTRACT, data}, 'latest']
+  });
+}
+
+// ── ABI Decode Helpers ──────────────────────────
+function decodeBytes(hex){
+  return hex.replace('0x','');
+}
+function decodeUint(hex, offset){
+  return parseInt(hex.slice(offset*2, offset*2+64), 16);
+}
+function decodeBool(hex, offset){
+  return parseInt(hex.slice(offset*2, offset*2+64), 16) !== 0;
+}
+
+// ── SAVE STATE to blockchain (non-blocking) ─────
+let saveQueue = [];
+let saveBusy  = false;
+
 function saveState(){
   if(!walletAddress) return;
+  // Always keep local backup
+  _saveLocal();
+  // Queue a blockchain save (debounced 3s)
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(()=>_saveBlockchain(), 3000);
+}
+
+function _saveLocal(){
   const data={
     unlocked:FIELD_DEFS.map(f=>fieldData[f.id]?.unlocked||false),
-    plots:{}, harvest, inventory,
-    waterCharges, lastRefillTime
+    plots:{}, harvest, inventory, waterCharges, lastRefillTime
   };
   FIELD_DEFS.forEach(f=>{
     const fd=fieldData[f.id];
     if(!fd?.unlocked) return;
     fd.plots.forEach((p,i)=>{
-      if(p.state==='planted'||p.state==='ready'){
+      if(p.state==='planted'||p.state==='ready')
         data.plots[`${f.id}_${i}`]={state:p.state,plant:p.plant,plantedAt:p.plantedAt,watered:p.watered||false};
-      }
     });
   });
-  localStorage.setItem(sk(), JSON.stringify(data));
+  try{ localStorage.setItem(sk(), JSON.stringify(data)); }catch(_){}
 }
-function loadState(){
+
+async function _saveBlockchain(){
+  if(!walletAddress||txPending) return;
+  const cropKeyMap={tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
+  const cropKeyArr=CROP_KEYS.map(k=>cropKeyMap[k]);
+
+  // 1. Save inventory
+  const seedInv    = CROP_KEYS.map(k=>Math.min(255,inventory[k]||0));
+  const harvestInv = CROP_KEYS.map(k=>Math.min(255,harvest[k]||0));
+  const wc         = Math.min(65535,waterCharges);
+
+  try{
+    const hash = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{from:walletAddress, to:STORAGE_CONTRACT,
+               data:encUpdateInventory(seedInv,harvestInv,wc), value:'0x0'}]
+    });
+    showToast('💾 SAVING TO BLOCKCHAIN...');
+    await waitReceipt(hash);
+
+    // 2. Save active plots
+    for(const f of FIELD_DEFS){
+      const fd=fieldData[f.id];
+      if(!fd?.unlocked) continue;
+      for(let pi=0; pi<fd.plots.length; pi++){
+        const p=fd.plots[pi];
+        if(p.state==='planted'||p.state==='ready'){
+          const ck  = cropKeyMap[p.plant]??0;
+          const st  = p.state==='ready'?3:2;
+          const wat = p.watered||false;
+          const ts  = p.plantedAt||Date.now();
+          const h2  = await window.ethereum.request({
+            method:'eth_sendTransaction',
+            params:[{from:walletAddress, to:STORAGE_CONTRACT,
+                     data:encUpdatePlot(f.id,pi,ck,st,wat,ts), value:'0x0'}]
+          });
+          await waitReceipt(h2);
+        }
+      }
+    }
+    showToast('✅ PROGRESS SAVED TO BLOCKCHAIN!');
+  }catch(e){
+    // silent — local save is the fallback
+    console.warn('Blockchain save failed, local saved.',e);
+  }
+}
+
+// Save field unlock to blockchain immediately
+async function saveFieldUnlock(fid){
+  if(!walletAddress) return;
+  try{
+    const h = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{from:walletAddress, to:STORAGE_CONTRACT,
+               data:encUnlockField(fid), value:'0x0'}]
+    });
+    await waitReceipt(h);
+  }catch(e){ console.warn('saveFieldUnlock failed',e); }
+}
+
+// ── LOAD STATE from blockchain ──────────────────
+async function loadState(){
+  FIELD_DEFS.forEach(f=>initField(f.id,false));
+
+  // Try blockchain first
+  try{
+    await _loadBlockchain();
+  }catch(e){
+    console.warn('Blockchain load failed, falling back to local.',e);
+    _loadLocal();
+  }
+
+  renderAllFields();
+  renderHarvestList();
+  renderSeedShop();
+  updateWaterUI();
+  startWaterRegen();
+}
+
+async function _loadBlockchain(){
+  const cropKeyMap=[`tomat`,`cabe`,`bawangMerah`,`bawangPutih`,`wortel`];
+
+  // loadBasic(address player)
+  const sel = 'e5b46a78';
+  const addr = walletAddress.toLowerCase().replace('0x','').padStart(64,'0');
+  const raw  = await ethCall('0x'+sel+addr);
+  const hex  = raw.replace('0x','');
+
+  if(hex.length < 128) throw new Error('no data');
+
+  const exists = decodeBool(hex, 0);
+  if(!exists) throw new Error('player not found');
+
+  // unlockedFields: bool[10] starting at offset 1 (each slot 32 bytes)
+  for(let i=0;i<10;i++){
+    const unlocked = decodeBool(hex, 1+i);
+    if(unlocked) initField(i, true);
+  }
+
+  // seedInventory: uint8[5] at offset 11
+  for(let i=0;i<5;i++){
+    inventory[cropKeyMap[i]] = decodeUint(hex, 11+i);
+  }
+  // harvestInventory: uint8[5] at offset 16
+  for(let i=0;i<5;i++){
+    harvest[cropKeyMap[i]] = decodeUint(hex, 16+i);
+  }
+  // waterCharges: uint16 at offset 21
+  waterCharges = decodeUint(hex, 21);
+
+  // Load plots for each unlocked field
+  for(const f of FIELD_DEFS){
+    if(!fieldData[f.id]?.unlocked) continue;
+    const fSel    = '9a8b6c2f';
+    const fidHex  = f.id.toString(16).padStart(64,'0');
+    const fRaw    = await ethCall('0x'+fSel+addr+fidHex);
+    _decodePlots(fRaw, f.id);
+  }
+}
+
+function _decodePlots(raw, fid){
+  const cropKeyMap=['tomat','cabe','bawangMerah','bawangPutih','wortel'];
+  const hex = raw.replace('0x','');
+  if(hex.length < 128) return;
+
+  // Returns 4 dynamic arrays: cropKeys, states, watered[], plantedAts
+  // ABI: offset1(32) offset2(32) offset3(32) offset4(32)
+  //      then each: len(32) + data
+  const off1 = decodeUint(hex,0); // byte offset → divide by 32 = slot
+  const cnt  = decodeUint(hex, off1/32);
+
+  if(cnt===0) return;
+
+  const off2 = decodeUint(hex,1);
+  const off3 = decodeUint(hex,2);
+  const off4 = decodeUint(hex,3);
+
+  const base1 = off1/32+1; // slot of first cropKey
+  const base2 = off2/32+1;
+  const base3 = off3/32+1;
+  const base4 = off4/32+1;
+
+  for(let i=0;i<cnt;i++){
+    const ck   = decodeUint(hex, base1+i);
+    const st   = decodeUint(hex, base2+i);
+    const wat  = decodeBool(hex, base3+i);
+    const ts   = decodeUint(hex, base4+i); // unix seconds
+
+    const fd = fieldData[fid];
+    if(!fd||!fd.plots[i]) continue;
+    const p  = fd.plots[i];
+
+    if(st===0||ck===0) continue; // empty
+
+    const cropKey = cropKeyMap[ck-1]; // contract: 1=Tomato etc
+    p.plant = cropKey;
+    p.watered = wat;
+    p.plantedAt = ts * 1000; // convert to ms
+
+    if(st===3){ // ready
+      p.state='ready';
+    } else if(st===2){ // planted
+      p.state='planted';
+      if(wat && p.plantedAt){
+        const left = (p.plantedAt + CROPS[cropKey].grow) - Date.now();
+        if(left<=0) p.state='ready';
+        else startGrowTimer(fid,i,left);
+      }
+    } else if(st===1){
+      p.state='tilled';
+    }
+  }
+}
+
+function _loadLocal(){
   try{
     const raw=localStorage.getItem(sk());
-    if(!raw){FIELD_DEFS.forEach(f=>initField(f.id,false));renderAllFields();return;}
+    if(!raw){ return; }
     const data=JSON.parse(raw);
     FIELD_DEFS.forEach((f,i)=>initField(f.id,data.unlocked?.[i]||false));
     if(data.plots){
@@ -841,8 +1072,8 @@ function loadState(){
         p.plant=pd.plant; p.plantedAt=pd.plantedAt; p.watered=pd.watered||false;
         if(pd.state==='ready'){p.state='ready';}
         else if(pd.state==='planted'){
-          if(!pd.watered){p.state='planted';} // unwatered, no timer
-          else {
+          if(!pd.watered){p.state='planted';}
+          else{
             const left=pd.plantedAt?(pd.plantedAt+CROPS[pd.plant].grow)-Date.now():CROPS[pd.plant].grow;
             if(left<=0){p.state='ready';}
             else{p.state='planted';startGrowTimer(fid,pid,left);}
@@ -854,14 +1085,7 @@ function loadState(){
     if(data.inventory) inventory=data.inventory;
     if(typeof data.waterCharges==='number') waterCharges=data.waterCharges;
     if(data.lastRefillTime) lastRefillTime=data.lastRefillTime;
-  }catch(e){
-    FIELD_DEFS.forEach(f=>initField(f.id,false));
-  }
-  renderAllFields();
-  renderHarvestList();
-  renderSeedShop();
-  updateWaterUI();
-  startWaterRegen();
+  }catch(e){ FIELD_DEFS.forEach(f=>initField(f.id,false)); }
 }
 
 // ═══════════════════════════════════════════════
@@ -895,6 +1119,7 @@ async function unlockField(fid){
     initField(fid,true);
     renderAllFields();
     saveState();
+    saveFieldUnlock(fid); // record unlock in GozoFarmStorage
     showToast(`🏡 ${cfg.name} UNLOCKED! ${cfg.cols*cfg.rows} plots ready!`);
     sfx('coin');
     parts(null,['🏡','⭐','✨','💜'],window.innerWidth/2,window.innerHeight*0.5);
