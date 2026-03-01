@@ -1082,6 +1082,7 @@
 
   <div class="game-selector">
     <button class="game-tab active" onclick="switchGame('flappy')" id="tabFlappy">🐦 FLAPPY GOZO</button>
+    <button class="game-tab" onclick="switchGame('runner')" id="tabRunner">🏃 GOZO RUNNER</button>
     <button class="game-tab" onclick="switchGame('td')" id="tabTD">🏰 TOWER DEFENSE</button>
     <button class="game-tab" onclick="switchGame('rpg')" id="tabRPG">⚔️ GOZO RPG</button>
   </div>
@@ -1099,6 +1100,24 @@
     </div>
   </div>
   </div><!-- end flappyContainer -->
+
+  <!-- ENDLESS RUNNER GAME -->
+  <div class="game-container" id="runnerContainer">
+  <div class="game-wrapper">
+    <canvas id="runnerCanvas" width="480" height="640"></canvas>
+    <div class="game-overlay" id="runnerOverlay">
+      <div class="overlay-title">GOZO RUNNER</div>
+      <div class="overlay-score" id="runnerOverlayScore">Dodge & Dash!</div>
+      <div style="color:rgba(255,255,255,0.6); font-size:0.9rem;">SPACE / TAP to jump • Double jump allowed!</div>
+    </div>
+  </div>
+  <div class="td-info-bar" id="runnerInfoBar">
+    <div class="td-info-item"><span>SCORE</span> <span id="runnerScoreDisplay">0</span></div>
+    <div class="td-info-item"><span>BEST</span> <span id="runnerBestDisplay">0</span></div>
+    <div class="td-info-item"><span>SPEED</span> <span id="runnerSpeedDisplay">1x</span></div>
+    <div class="td-info-item"><span>COINS</span> <span id="runnerCoinsDisplay">0</span></div>
+  </div>
+  </div><!-- end runnerContainer -->
 
   <!-- TOWER DEFENSE GAME -->
   <div class="game-container" id="tdContainer">
@@ -2926,15 +2945,20 @@ let currentGame = 'flappy'; // 'flappy', 'td', or 'rpg'
 function switchGame(game) {
   currentGame = game;
   document.getElementById('flappyContainer').classList.toggle('active', game === 'flappy');
+  document.getElementById('runnerContainer').classList.toggle('active', game === 'runner');
   document.getElementById('tdContainer').classList.toggle('active', game === 'td');
   document.getElementById('rpgContainer').classList.toggle('active', game === 'rpg');
   document.getElementById('tabFlappy').classList.toggle('active', game === 'flappy');
+  document.getElementById('tabRunner').classList.toggle('active', game === 'runner');
   document.getElementById('tabTD').classList.toggle('active', game === 'td');
   document.getElementById('tabRPG').classList.toggle('active', game === 'rpg');
 
   if (game === 'flappy') {
     document.getElementById('gameSectionTitle').textContent = 'FLAPPY GOZO';
     document.getElementById('gameSectionSub').textContent = 'Tap to fly \u2022 Dodge the pipes \u2022 Stack GOZO points';
+  } else if (game === 'runner') {
+    document.getElementById('gameSectionTitle').textContent = 'GOZO RUNNER';
+    document.getElementById('gameSectionSub').textContent = 'Jump & dodge \u2022 Collect GOZO coins \u2022 Survive the endless road';
   } else if (game === 'td') {
     document.getElementById('gameSectionTitle').textContent = 'TOWER DEFENSE';
     document.getElementById('gameSectionSub').textContent = 'Place Gozo towers \u2022 Defeat the goblins \u2022 Survive the waves';
@@ -2947,6 +2971,8 @@ function switchGame(game) {
 function startCurrentGame() {
   if (currentGame === 'flappy') {
     startGame();
+  } else if (currentGame === 'runner') {
+    startRunnerGame();
   } else if (currentGame === 'td') {
     startTDGame();
   } else {
@@ -4745,6 +4771,757 @@ async function startRPGGame() {
 
 // Start RPG render loop
 requestAnimationFrame(rpgGameLoop);
+
+// ===================== ENDLESS RUNNER GAME =====================
+const runnerCanvas = document.getElementById('runnerCanvas');
+const rCtx = runnerCanvas.getContext('2d');
+const RW = runnerCanvas.width;   // 480
+const RH = runnerCanvas.height;  // 640
+
+// --- Constants ---
+const R_GROUND = RH - 90;       // ground y
+const R_GRAVITY = 0.65;
+const R_JUMP_FORCE = -14.5;
+const R_DOUBLE_JUMP_FORCE = -13;
+
+// --- State ---
+let runnerState = 'idle'; // idle | playing | dead
+let runnerScore = 0;
+let runnerBest = 0;
+let runnerCoins = 0;
+let runnerSpeed = 5;
+let runnerDist = 0;
+let runnerFrame = 0;
+let runnerLastTime = 0;
+
+// --- Player ---
+let rPlayer = {
+  x: 90, y: R_GROUND,
+  vy: 0,
+  w: 38, h: 52,
+  onGround: true,
+  jumpsLeft: 2,
+  isDucking: false,
+  animFrame: 0,
+  animTick: 0,
+  facingLeft: false,
+  trail: [],
+};
+
+// --- Obstacles ---
+let rObstacles = [];
+let rObstacleTimer = 0;
+let rObstacleInterval = 90; // frames
+
+// --- Coins ---
+let rCoinItems = [];
+let rCoinTimer = 0;
+
+// --- Parallax BG layers ---
+let rBgLayers = [
+  // City skyline (far)
+  { x: 0, speed: 0.3, buildings: [] },
+  // Mid hills
+  { x: 0, speed: 0.7, hills: [] },
+];
+
+// --- Particles ---
+let rParticles = [];
+
+// --- Ground tiles offset ---
+let rGroundX = 0;
+
+// Init background buildings
+function rInitBg() {
+  rBgLayers[0].buildings = [];
+  let bx = 0;
+  while (bx < RW + 200) {
+    const h = 60 + Math.random() * 140;
+    const w = 30 + Math.random() * 50;
+    rBgLayers[0].buildings.push({ x: bx, w, h });
+    bx += w + 4 + Math.random() * 20;
+  }
+  rBgLayers[1].hills = [];
+  let hx = 0;
+  while (hx < RW + 200) {
+    const r = 50 + Math.random() * 80;
+    rBgLayers[1].hills.push({ x: hx, r });
+    hx += r * 1.2 + Math.random() * 40;
+  }
+}
+
+// --- Spawn obstacle ---
+function rSpawnObstacle() {
+  const types = ['box', 'spike', 'tall', 'hover'];
+  // hover only after score 200
+  const pool = runnerScore > 200 ? types : types.slice(0, 3);
+  const type = pool[Math.floor(Math.random() * pool.length)];
+
+  if (type === 'box') {
+    rObstacles.push({ x: RW + 10, type: 'box', w: 36, h: 40, y: R_GROUND - 40 + 40 });
+  } else if (type === 'spike') {
+    const count = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      rObstacles.push({ x: RW + 10 + i * 28, type: 'spike', w: 24, h: 32, y: R_GROUND - 32 + 32 });
+    }
+  } else if (type === 'tall') {
+    rObstacles.push({ x: RW + 10, type: 'tall', w: 28, h: 72, y: R_GROUND - 72 + 72 });
+  } else if (type === 'hover') {
+    // floating obstacle - must jump high
+    const hy = R_GROUND - 120 - Math.random() * 40;
+    rObstacles.push({ x: RW + 10, type: 'hover', w: 44, h: 22, y: hy + 22 });
+  }
+}
+
+// --- Spawn coin ---
+function rSpawnCoin() {
+  const patterns = ['line', 'arc', 'single'];
+  const p = patterns[Math.floor(Math.random() * patterns.length)];
+  if (p === 'line') {
+    for (let i = 0; i < 5; i++) {
+      rCoinItems.push({ x: RW + 20 + i * 38, y: R_GROUND - 60 - Math.random() * 20, collected: false, bob: Math.random() * Math.PI * 2 });
+    }
+  } else if (p === 'arc') {
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 5) * Math.PI;
+      rCoinItems.push({ x: RW + 20 + i * 36, y: R_GROUND - 55 - Math.sin(angle) * 70, collected: false, bob: i * 0.5 });
+    }
+  } else {
+    rCoinItems.push({ x: RW + 20, y: R_GROUND - 55 - Math.random() * 80, collected: false, bob: 0 });
+  }
+}
+
+// --- Particle spawn ---
+function rSpawnParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    rParticles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: -Math.random() * 5 - 2,
+      life: 1, color,
+      size: 3 + Math.random() * 3
+    });
+  }
+}
+
+// --- Jump ---
+function rJump() {
+  if (runnerState === 'idle') { startRunnerGame(); return; }
+  if (runnerState === 'dead') { rResetGame(); return; }
+  if (rPlayer.jumpsLeft > 0) {
+    rPlayer.vy = rPlayer.jumpsLeft === 2 ? R_JUMP_FORCE : R_DOUBLE_JUMP_FORCE;
+    rPlayer.jumpsLeft--;
+    rPlayer.onGround = false;
+    // Double jump sparkle
+    if (rPlayer.jumpsLeft === 0) {
+      rSpawnParticles(rPlayer.x, rPlayer.y - rPlayer.h / 2, '#FFD700', 10);
+    } else {
+      rSpawnParticles(rPlayer.x, rPlayer.y, 'rgba(255,255,255,0.6)', 5);
+    }
+    playSound && playSound('flap');
+  }
+}
+
+// --- Duck (hold down) ---
+function rDuck(active) {
+  if (runnerState !== 'playing') return;
+  rPlayer.isDucking = active;
+  if (active) {
+    rPlayer.h = 30;
+  } else {
+    rPlayer.h = 52;
+  }
+}
+
+// --- Reset ---
+function rResetGame() {
+  runnerScore = 0;
+  runnerCoins = 0;
+  runnerSpeed = 5;
+  runnerDist = 0;
+  runnerFrame = 0;
+  rObstacles = [];
+  rCoinItems = [];
+  rParticles = [];
+  rObstacleTimer = 0;
+  rCoinTimer = 0;
+  rGroundX = 0;
+  rPlayer.x = 90;
+  rPlayer.y = R_GROUND;
+  rPlayer.vy = 0;
+  rPlayer.onGround = true;
+  rPlayer.jumpsLeft = 2;
+  rPlayer.isDucking = false;
+  rPlayer.animFrame = 0;
+  rPlayer.animTick = 0;
+  rPlayer.trail = [];
+  rInitBg();
+  runnerState = 'playing';
+  document.getElementById('runnerOverlay').classList.add('hidden');
+}
+
+async function startRunnerGame() {
+  if (!isConnected) { showToast('Connect Wallet First!'); return; }
+  if (gozoBalance < 10) { showToast('Need 10 GOZO to play!'); return; }
+
+  const playBtn = document.getElementById('playBtn');
+  playBtn.disabled = true;
+  playBtn.textContent = 'BURNING...';
+
+  try {
+    const BURN_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+    const AMOUNT_HEX = '0x0000000000000000000000000000000000000000000000008AC7230489E80000';
+    const data = '0xa9059cbb'
+      + BURN_ADDRESS.slice(2).padStart(64, '0')
+      + AMOUNT_HEX.slice(2);
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: walletAddress, to: GOZO_CONTRACT, data, gas: '0x186A0' }]
+    });
+    showToast('Burning 10 GOZO...');
+
+    let receipt = null, attempts = 0;
+    while (!receipt && attempts < 30) {
+      await new Promise(r => setTimeout(r, 2000));
+      receipt = await window.ethereum.request({ method: 'eth_getTransactionReceipt', params: [txHash] });
+      attempts++;
+    }
+
+    if (receipt && receipt.status === '0x1') {
+      gozoBalance -= 10;
+      document.getElementById('balanceDisplay').textContent = gozoBalance.toLocaleString() + ' GOZO';
+      showToast('10 GOZO BURNED! RUN GOZO RUN!');
+      ensureAudio();
+      rResetGame();
+    } else { showToast('Transaction failed!'); }
+  } catch (err) {
+    if (err.code === 4001) showToast('Transaction cancelled!');
+    else showToast('Error: ' + (err.message || 'Unknown'));
+  } finally {
+    playBtn.disabled = false;
+    playBtn.textContent = 'PLAY';
+  }
+}
+
+// ===================== RUNNER DRAW =====================
+
+// Draw pixel Gozo for runner - uses existing drawPixelGozo + gozoAnim
+function rDrawPlayer() {
+  const p = rPlayer;
+  rCtx.save();
+
+  // Lean forward when running, backward when jumping
+  const lean = p.onGround ? -0.08 : (p.vy < 0 ? -0.18 : 0.12);
+  rCtx.translate(p.x, p.y - p.h / 2);
+  rCtx.rotate(lean);
+
+  // Duck squash
+  const scaleY = p.isDucking ? 0.6 : 1;
+  const scaleX = p.isDucking ? 1.3 : 1;
+  rCtx.scale(scaleX, scaleY);
+
+  // Speed lines / trail
+  if (runnerState === 'playing' && p.trail.length > 0) {
+    p.trail.forEach((t, i) => {
+      const alpha = (i / p.trail.length) * 0.35;
+      rCtx.globalAlpha = alpha;
+      drawPixelGozo(rCtx, 0, 0, p.w);
+    });
+    rCtx.globalAlpha = 1;
+  }
+
+  drawPixelGozo(rCtx, 0, 0, p.w);
+  rCtx.restore();
+
+  // Double jump glow ring
+  if (!p.onGround && p.jumpsLeft === 0) {
+    rCtx.save();
+    rCtx.globalAlpha = 0.4 + Math.sin(runnerFrame * 0.3) * 0.2;
+    rCtx.strokeStyle = '#FFD700';
+    rCtx.lineWidth = 3;
+    rCtx.beginPath();
+    rCtx.ellipse(p.x, p.y - p.h * 0.3, p.w * 0.8, p.h * 0.2, 0, 0, Math.PI * 2);
+    rCtx.stroke();
+    rCtx.restore();
+  }
+}
+
+function rDrawObstacle(o) {
+  rCtx.save();
+  if (o.type === 'box') {
+    // Crate with GOZO label
+    const grd = rCtx.createLinearGradient(o.x - o.w / 2, o.y - o.h, o.x + o.w / 2, o.y);
+    grd.addColorStop(0, '#C0392B');
+    grd.addColorStop(1, '#8B1A1A');
+    rCtx.fillStyle = grd;
+    rCtx.fillRect(o.x - o.w / 2, o.y - o.h, o.w, o.h);
+    rCtx.strokeStyle = '#FF6B35';
+    rCtx.lineWidth = 2;
+    rCtx.strokeRect(o.x - o.w / 2, o.y - o.h, o.w, o.h);
+    // X cross lines
+    rCtx.strokeStyle = 'rgba(255,107,53,0.4)';
+    rCtx.lineWidth = 1.5;
+    rCtx.beginPath();
+    rCtx.moveTo(o.x - o.w / 2 + 3, o.y - o.h + 3);
+    rCtx.lineTo(o.x + o.w / 2 - 3, o.y - 3);
+    rCtx.moveTo(o.x + o.w / 2 - 3, o.y - o.h + 3);
+    rCtx.lineTo(o.x - o.w / 2 + 3, o.y - 3);
+    rCtx.stroke();
+    rCtx.font = 'bold 8px Bangers, cursive';
+    rCtx.fillStyle = '#FFD700';
+    rCtx.textAlign = 'center';
+    rCtx.textBaseline = 'middle';
+    rCtx.fillText('!', o.x, o.y - o.h / 2);
+  } else if (o.type === 'spike') {
+    // Triangle spike
+    rCtx.fillStyle = '#888';
+    rCtx.beginPath();
+    rCtx.moveTo(o.x - o.w / 2, o.y);
+    rCtx.lineTo(o.x + o.w / 2, o.y);
+    rCtx.lineTo(o.x, o.y - o.h);
+    rCtx.closePath();
+    rCtx.fill();
+    rCtx.strokeStyle = '#BBB';
+    rCtx.lineWidth = 1.5;
+    rCtx.stroke();
+  } else if (o.type === 'tall') {
+    // Tall pillar - dark with glow
+    const grd2 = rCtx.createLinearGradient(o.x - o.w / 2, 0, o.x + o.w / 2, 0);
+    grd2.addColorStop(0, '#1a1a4a');
+    grd2.addColorStop(0.5, '#2a2a8a');
+    grd2.addColorStop(1, '#1a1a4a');
+    rCtx.fillStyle = grd2;
+    rCtx.fillRect(o.x - o.w / 2, o.y - o.h, o.w, o.h);
+    rCtx.strokeStyle = '#4466FF';
+    rCtx.lineWidth = 1.5;
+    rCtx.strokeRect(o.x - o.w / 2, o.y - o.h, o.w, o.h);
+    // Glowing top
+    rCtx.fillStyle = '#6688FF';
+    rCtx.fillRect(o.x - o.w / 2, o.y - o.h, o.w, 4);
+  } else if (o.type === 'hover') {
+    // Floating UFO-like disc
+    const pulse = 0.85 + Math.sin(runnerFrame * 0.12) * 0.15;
+    rCtx.save();
+    rCtx.translate(o.x, o.y - o.h / 2);
+    rCtx.scale(1, pulse);
+    // Glow
+    const radGrd = rCtx.createRadialGradient(0, 0, 0, 0, 0, o.w / 2);
+    radGrd.addColorStop(0, 'rgba(255,50,50,0.6)');
+    radGrd.addColorStop(1, 'rgba(255,50,50,0)');
+    rCtx.fillStyle = radGrd;
+    rCtx.beginPath();
+    rCtx.ellipse(0, 0, o.w / 2 + 8, o.h / 2 + 8, 0, 0, Math.PI * 2);
+    rCtx.fill();
+    // Body
+    rCtx.fillStyle = '#CC1111';
+    rCtx.beginPath();
+    rCtx.ellipse(0, 0, o.w / 2, o.h / 2, 0, 0, Math.PI * 2);
+    rCtx.fill();
+    rCtx.strokeStyle = '#FF4444';
+    rCtx.lineWidth = 2;
+    rCtx.stroke();
+    // Eye
+    rCtx.fillStyle = '#FF0000';
+    rCtx.beginPath();
+    rCtx.arc(0, -2, 5, 0, Math.PI * 2);
+    rCtx.fill();
+    rCtx.restore();
+    // Danger beam downward
+    const beamAlpha = 0.1 + Math.sin(runnerFrame * 0.15) * 0.08;
+    rCtx.globalAlpha = beamAlpha;
+    rCtx.fillStyle = '#FF4444';
+    rCtx.fillRect(o.x - 4, o.y, 8, R_GROUND - o.y);
+    rCtx.globalAlpha = 1;
+  }
+  rCtx.restore();
+}
+
+function rDrawCoin(c) {
+  if (c.collected) return;
+  const bob = Math.sin(runnerFrame * 0.08 + c.bob) * 5;
+  const x = c.x, y = c.y + bob;
+  rCtx.save();
+  // Outer glow
+  rCtx.shadowColor = '#FFD700';
+  rCtx.shadowBlur = 8;
+  // Coin body
+  rCtx.fillStyle = '#FFD700';
+  rCtx.beginPath();
+  rCtx.arc(x, y, 11, 0, Math.PI * 2);
+  rCtx.fill();
+  rCtx.strokeStyle = '#F5A800';
+  rCtx.lineWidth = 2;
+  rCtx.stroke();
+  rCtx.shadowBlur = 0;
+  // G letter
+  rCtx.fillStyle = '#8B6000';
+  rCtx.font = 'bold 10px Bangers, cursive';
+  rCtx.textAlign = 'center';
+  rCtx.textBaseline = 'middle';
+  rCtx.fillText('G', x, y);
+  rCtx.restore();
+}
+
+function rDrawBackground() {
+  // Sky gradient
+  const skyGrd = rCtx.createLinearGradient(0, 0, 0, R_GROUND);
+  skyGrd.addColorStop(0, '#0a1628');
+  skyGrd.addColorStop(0.5, '#0D3B5C');
+  skyGrd.addColorStop(1, '#1a5a3a');
+  rCtx.fillStyle = skyGrd;
+  rCtx.fillRect(0, 0, RW, RH);
+
+  // Stars (parallax slowest)
+  rCtx.fillStyle = 'rgba(255,255,255,0.6)';
+  const stars = [[30,40],[80,15],[140,60],[200,25],[280,50],[350,18],[420,45],[60,90],[170,80],[310,70],[450,30]];
+  stars.forEach(([sx, sy]) => {
+    const blink = 0.4 + Math.sin(runnerFrame * 0.05 + sx) * 0.3;
+    rCtx.globalAlpha = blink;
+    rCtx.beginPath();
+    rCtx.arc((sx - rGroundX * 0.05) % RW, sy, 1.5, 0, Math.PI * 2);
+    rCtx.fill();
+  });
+  rCtx.globalAlpha = 1;
+
+  // Far city buildings
+  const layer0 = rBgLayers[0];
+  rCtx.fillStyle = 'rgba(13,40,70,0.8)';
+  layer0.buildings.forEach(b => {
+    const bx = ((b.x - rGroundX * layer0.speed) % (RW + 300) + RW + 300) % (RW + 300) - 100;
+    rCtx.fillRect(bx, R_GROUND - b.h, b.w, b.h);
+    // Windows
+    rCtx.fillStyle = 'rgba(255,215,0,0.2)';
+    for (let wy = R_GROUND - b.h + 8; wy < R_GROUND - 8; wy += 14) {
+      for (let wx = bx + 5; wx < bx + b.w - 5; wx += 12) {
+        if (Math.random() > 0.4) rCtx.fillRect(wx, wy, 7, 8);
+      }
+    }
+    rCtx.fillStyle = 'rgba(13,40,70,0.8)';
+  });
+
+  // Mid hills
+  const layer1 = rBgLayers[1];
+  rCtx.fillStyle = 'rgba(10, 60, 30, 0.7)';
+  layer1.hills.forEach(h => {
+    const hx = ((h.x - rGroundX * layer1.speed) % (RW + 400) + RW + 400) % (RW + 400) - 100;
+    rCtx.beginPath();
+    rCtx.arc(hx, R_GROUND, h.r, Math.PI, 0);
+    rCtx.fill();
+  });
+
+  // Ground
+  const groundGrd = rCtx.createLinearGradient(0, R_GROUND, 0, RH);
+  groundGrd.addColorStop(0, '#2a6a2a');
+  groundGrd.addColorStop(0.15, '#1a4a1a');
+  groundGrd.addColorStop(1, '#0a2a0a');
+  rCtx.fillStyle = groundGrd;
+  rCtx.fillRect(0, R_GROUND, RW, RH - R_GROUND);
+
+  // Ground tiles
+  const tileW = 48;
+  rCtx.strokeStyle = 'rgba(100,200,100,0.2)';
+  rCtx.lineWidth = 1;
+  const offsetX = rGroundX % tileW;
+  for (let tx = -offsetX; tx < RW; tx += tileW) {
+    rCtx.beginPath();
+    rCtx.moveTo(tx, R_GROUND);
+    rCtx.lineTo(tx, R_GROUND + 6);
+    rCtx.stroke();
+  }
+  // Ground line highlight
+  rCtx.fillStyle = 'rgba(100,220,100,0.4)';
+  rCtx.fillRect(0, R_GROUND, RW, 2);
+}
+
+function rDrawHUD() {
+  // Score
+  rCtx.font = 'bold 42px Bangers, cursive';
+  rCtx.textAlign = 'center';
+  rCtx.fillStyle = 'rgba(0,0,0,0.3)';
+  rCtx.fillText(Math.floor(runnerScore), RW / 2 + 2, 55);
+  rCtx.fillStyle = '#FFD700';
+  rCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+  rCtx.lineWidth = 4;
+  rCtx.strokeText(Math.floor(runnerScore), RW / 2, 53);
+  rCtx.fillText(Math.floor(runnerScore), RW / 2, 53);
+
+  // Speed badge
+  const speedLevel = Math.min(Math.floor((runnerSpeed - 5) / 1.5) + 1, 6);
+  rCtx.font = 'bold 14px Bangers, cursive';
+  rCtx.textAlign = 'left';
+  rCtx.fillStyle = speedLevel >= 4 ? '#FF4444' : speedLevel >= 2 ? '#FF8800' : '#44EE44';
+  rCtx.fillText('⚡ x' + runnerSpeed.toFixed(1), 14, 30);
+
+  // Coin count
+  rCtx.textAlign = 'right';
+  rCtx.fillStyle = '#FFD700';
+  rCtx.fillText('🪙 ' + runnerCoins, RW - 14, 30);
+
+  // Jump indicator dots
+  for (let i = 0; i < 2; i++) {
+    rCtx.beginPath();
+    rCtx.arc(RW / 2 - 14 + i * 22, 68, 5, 0, Math.PI * 2);
+    rCtx.fillStyle = i < rPlayer.jumpsLeft ? '#FFD700' : 'rgba(255,215,0,0.2)';
+    rCtx.fill();
+  }
+}
+
+function rDrawIdleScreen() {
+  rCtx.fillStyle = 'rgba(0,0,0,0.55)';
+  rCtx.fillRect(0, 0, RW, RH);
+
+  // Logo
+  rCtx.font = 'bold 58px Bangers, cursive';
+  rCtx.textAlign = 'center';
+  rCtx.strokeStyle = '#C0392B';
+  rCtx.lineWidth = 5;
+  rCtx.strokeText('GOZO RUNNER', RW / 2, RH / 2 - 100);
+  rCtx.fillStyle = '#FFD700';
+  rCtx.fillText('GOZO RUNNER', RW / 2, RH / 2 - 100);
+
+  // Animated character
+  gozoAnim.isMoving = true;
+  gozoAnim.frame = Math.floor(runnerFrame / 8) % 4;
+  drawPixelGozo(rCtx, RW / 2, RH / 2 - 20, 60);
+
+  rCtx.font = '20px Nunito, sans-serif';
+  rCtx.fillStyle = 'rgba(255,255,255,0.7)';
+  rCtx.fillText('SPACE / TAP to start', RW / 2, RH / 2 + 60);
+  rCtx.font = '15px Nunito, sans-serif';
+  rCtx.fillStyle = 'rgba(255,215,0,0.6)';
+  rCtx.fillText('Double jump • Dodge obstacles • Collect coins', RW / 2, RH / 2 + 90);
+
+  if (runnerBest > 0) {
+    rCtx.font = 'bold 18px Bangers, cursive';
+    rCtx.fillStyle = '#FFD700';
+    rCtx.fillText('BEST: ' + Math.floor(runnerBest), RW / 2, RH / 2 + 125);
+  }
+}
+
+function rDrawDeadScreen() {
+  rCtx.fillStyle = 'rgba(0,0,0,0.7)';
+  rCtx.fillRect(0, 0, RW, RH);
+
+  rCtx.font = 'bold 50px Bangers, cursive';
+  rCtx.textAlign = 'center';
+  rCtx.strokeStyle = '#8B0000';
+  rCtx.lineWidth = 4;
+  rCtx.strokeText('GAME OVER', RW / 2, RH / 2 - 80);
+  rCtx.fillStyle = '#C0392B';
+  rCtx.fillText('GAME OVER', RW / 2, RH / 2 - 80);
+
+  rCtx.font = 'bold 34px Bangers, cursive';
+  rCtx.fillStyle = '#FFD700';
+  rCtx.fillText('Score: ' + Math.floor(runnerScore), RW / 2, RH / 2 - 20);
+
+  rCtx.font = '20px Nunito, sans-serif';
+  rCtx.fillStyle = 'rgba(255,255,255,0.7)';
+  rCtx.fillText('Coins: 🪙 ' + runnerCoins, RW / 2, RH / 2 + 20);
+
+  if (runnerScore >= runnerBest) {
+    rCtx.font = 'bold 20px Bangers, cursive';
+    rCtx.fillStyle = '#FFD700';
+    rCtx.fillText('🏆 NEW BEST!', RW / 2, RH / 2 + 58);
+  } else {
+    rCtx.font = '16px Nunito, sans-serif';
+    rCtx.fillStyle = 'rgba(255,255,255,0.5)';
+    rCtx.fillText('Best: ' + Math.floor(runnerBest), RW / 2, RH / 2 + 58);
+  }
+
+  rCtx.font = 'bold 20px Bangers, cursive';
+  rCtx.fillStyle = '#FFD700';
+  const blink = Math.floor(runnerFrame / 20) % 2 === 0;
+  if (blink) rCtx.fillText('SPACE / TAP to try again', RW / 2, RH / 2 + 100);
+}
+
+// ===================== RUNNER UPDATE =====================
+function rUpdate() {
+  runnerFrame++;
+
+  if (runnerState !== 'playing') return;
+
+  // Speed ramp: faster over time
+  runnerSpeed = 5 + Math.floor(runnerDist / 400) * 0.8;
+  runnerSpeed = Math.min(runnerSpeed, 16);
+  runnerDist += runnerSpeed;
+  runnerScore += runnerSpeed * 0.1;
+  rGroundX += runnerSpeed;
+
+  // Update gozoAnim for running
+  gozoAnim.isMoving = true;
+  gozoAnim.facingLeft = false;
+  if (runnerFrame % 6 === 0) gozoAnim.frame = (gozoAnim.frame + 1) % 4;
+
+  // Player physics
+  rPlayer.vy += R_GRAVITY;
+  rPlayer.y += rPlayer.vy;
+
+  // Ground snap
+  if (rPlayer.y >= R_GROUND) {
+    rPlayer.y = R_GROUND;
+    rPlayer.vy = 0;
+    if (!rPlayer.onGround) {
+      rSpawnParticles(rPlayer.x, R_GROUND, 'rgba(100,200,100,0.5)', 4);
+    }
+    rPlayer.onGround = true;
+    rPlayer.jumpsLeft = 2;
+  } else {
+    rPlayer.onGround = false;
+  }
+
+  // Trail
+  rPlayer.trail.push({ x: rPlayer.x, y: rPlayer.y });
+  if (rPlayer.trail.length > 5) rPlayer.trail.shift();
+
+  // Spawn obstacles
+  rObstacleTimer++;
+  // Minimum gap decreases as speed increases
+  const minGap = Math.max(45, 90 - Math.floor(runnerSpeed) * 3);
+  if (rObstacleTimer >= minGap) {
+    rSpawnObstacle();
+    rObstacleTimer = 0;
+    rObstacleInterval = minGap + Math.random() * 40;
+  }
+
+  // Spawn coins
+  rCoinTimer++;
+  if (rCoinTimer >= 60) {
+    rSpawnCoin();
+    rCoinTimer = 0;
+  }
+
+  // Move obstacles
+  rObstacles.forEach(o => { o.x -= runnerSpeed; });
+  rObstacles = rObstacles.filter(o => o.x > -80);
+
+  // Move coins
+  rCoinItems.forEach(c => { c.x -= runnerSpeed; });
+  rCoinItems = rCoinItems.filter(c => c.x > -30);
+
+  // Update particles
+  rParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.2; p.life -= 0.04;
+  });
+  rParticles = rParticles.filter(p => p.life > 0);
+
+  // Update HUD
+  document.getElementById('runnerScoreDisplay').textContent = Math.floor(runnerScore);
+  document.getElementById('runnerSpeedDisplay').textContent = runnerSpeed.toFixed(1) + 'x';
+  document.getElementById('runnerCoinsDisplay').textContent = runnerCoins;
+
+  // --- Collision vs obstacles ---
+  const pw = rPlayer.w * 0.55;
+  const ph = rPlayer.h * 0.8;
+  const px = rPlayer.x;
+  const py = rPlayer.y - rPlayer.h / 2;
+
+  for (const o of rObstacles) {
+    const ow = o.w * 0.8;
+    const ox = o.x;
+    const oy = o.y - o.h;
+    if (
+      px + pw / 2 > ox - ow / 2 &&
+      px - pw / 2 < ox + ow / 2 &&
+      py + ph > oy &&
+      py < oy + o.h
+    ) {
+      // Hit!
+      rSpawnParticles(px, py + ph / 2, '#FF4444', 20);
+      rSpawnParticles(px, py + ph / 2, '#FFD700', 10);
+      runnerState = 'dead';
+      if (runnerScore > runnerBest) runnerBest = runnerScore;
+      document.getElementById('runnerBestDisplay').textContent = Math.floor(runnerBest);
+      submitScore && submitScore(Math.floor(runnerScore));
+      playSound && playSound('die');
+      return;
+    }
+  }
+
+  // --- Coin collect ---
+  for (const c of rCoinItems) {
+    if (c.collected) continue;
+    const bob = Math.sin(runnerFrame * 0.08 + c.bob) * 5;
+    const cy = c.y + bob;
+    const dist = Math.hypot(c.x - px, cy - (rPlayer.y - rPlayer.h / 2));
+    if (dist < 22) {
+      c.collected = true;
+      runnerCoins++;
+      runnerScore += 10;
+      rSpawnParticles(c.x, cy, '#FFD700', 8);
+    }
+  }
+}
+
+// ===================== RUNNER DRAW LOOP =====================
+function rDraw() {
+  rDrawBackground();
+
+  // Draw coins (behind player)
+  rCoinItems.forEach(c => rDrawCoin(c));
+
+  // Draw obstacles
+  rObstacles.forEach(o => rDrawObstacle(o));
+
+  // Draw particles
+  rParticles.forEach(p => {
+    rCtx.save();
+    rCtx.globalAlpha = Math.max(0, p.life);
+    rCtx.fillStyle = p.color;
+    rCtx.beginPath();
+    rCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    rCtx.fill();
+    rCtx.restore();
+  });
+
+  // Draw player
+  if (runnerState === 'playing' || runnerState === 'dead') {
+    rDrawPlayer();
+  }
+
+  // HUD
+  if (runnerState === 'playing') rDrawHUD();
+
+  // Overlays
+  if (runnerState === 'idle') rDrawIdleScreen();
+  if (runnerState === 'dead') rDrawDeadScreen();
+}
+
+// ===================== RUNNER GAME LOOP =====================
+function runnerGameLoop() {
+  rUpdate();
+  rDraw();
+  requestAnimationFrame(runnerGameLoop);
+}
+
+// --- INPUT ---
+document.addEventListener('keydown', function(e) {
+  if (currentGame !== 'runner') return;
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+    rJump();
+    e.preventDefault();
+  }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+    rDuck(true);
+    e.preventDefault();
+  }
+});
+document.addEventListener('keyup', function(e) {
+  if (currentGame !== 'runner') return;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') rDuck(false);
+});
+
+runnerCanvas.addEventListener('click', function() {
+  rJump();
+});
+runnerCanvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  rJump();
+}, { passive: false });
+
+// Init and start loop
+rInitBg();
+requestAnimationFrame(runnerGameLoop);
 
 // Mobile touch controls for RPG
 rpgCanvas.addEventListener('click', function(e) {
