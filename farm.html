@@ -1168,6 +1168,25 @@ function showToast(msg) {
 }
 
 // ============= INIT =============
+// Auto-reconnect wallet if already connected in MetaMask
+if (window.ethereum) {
+  window.ethereum.request({ method: 'eth_accounts' }).then(accounts => {
+    if (accounts.length > 0) connectWallet();
+  });
+
+  // Listen for account changes (e.g. user switches wallet)
+  window.ethereum.on('accountsChanged', (accounts) => {
+    if (accounts.length > 0) {
+      connectWallet();
+    } else {
+      walletAddress = null;
+      isConnected = false;
+      document.getElementById('walletBtn').textContent = '🔗 CONNECT';
+      document.getElementById('walletBtn').classList.remove('connected');
+    }
+  });
+}
+
 // Init field in preview mode
 initPlots();
 </script>
