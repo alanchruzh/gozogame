@@ -1,8 +1,15 @@
 functionsDirectory = "/opt/build/repo/netlify/functions"
-functionsDirectoryOrigin = "config"
+functionsDirectoryOrigin = "config-v1"
+headersOrigin = "config"
+redirectsOrigin = "config"
 plugins = []
 headers = []
 redirects = []
+
+[functions]
+
+  [functions."*"]
+  node_bundler = "esbuild"
 
 [build]
 publish = "/opt/build/repo"
@@ -22,8 +29,3 @@ functions = "/opt/build/repo/netlify/functions"
     [build.processing.js]
 
   [build.services]
-
-[functions]
-
-  [functions."*"]
-  node_bundler = "esbuild"

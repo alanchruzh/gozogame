@@ -1496,6 +1496,199 @@ function drawPixelGozo(targetCtx, cx, cy, size) {
   targetCtx.restore();
 }
 
+// ===================== MONSTER PIXEL ART SPRITES =====================
+// Each monster has a 12x12 pixel art sprite matching its form
+
+const MONSTER_SPRITES = {
+  // Slime - a green blob with eyes
+  Slime: {
+    width: 12,
+    data: [
+      '............',
+      '....GGGG....',
+      '...GGGGGG...',
+      '..GGGGGGGG..',
+      '.GGgWGGgWGG.',
+      '.GGgBGGgBGG.',
+      '.GGGGGGGGGG.',
+      '.GGGGGGGGGG.',
+      '.GGGGmmGGGG.',
+      '..GGGGGGGG..',
+      '..gGGGGGGg..',
+      '............',
+    ],
+    palette: {
+      '.': null,
+      'G': '#44cc44',
+      'g': '#2a8a2a',
+      'W': '#FFFFFF',
+      'B': '#111111',
+      'm': '#2a8a2a',
+    }
+  },
+  // Goblin - a small humanoid with pointy ears and a weapon
+  Goblin: {
+    width: 12,
+    data: [
+      '..e..GG..e..',
+      '...GGGGGG...',
+      '..GGGGGGGG..',
+      '..GWbGGWbGG.',
+      '..GGGNGGGG..',
+      '..GGMMMMGG..',
+      '...GGGGGG...',
+      '..BBBBBBBB..',
+      '..BB.BB.BB..',
+      '..BB.BB.BB..',
+      '..bb..bb....',
+      '.sss........',
+    ],
+    palette: {
+      '.': null,
+      'G': '#aa8833',
+      'N': '#886622',
+      'W': '#FFFF88',
+      'b': '#333333',
+      'B': '#555522',
+      'M': '#663322',
+      'e': '#aa8833',
+      's': '#888888',
+    }
+  },
+  // Skeleton - a bony figure with a skull face
+  Skeleton: {
+    width: 12,
+    data: [
+      '...WWWWWW...',
+      '..WWWWWWWW..',
+      '..WBBWWBbW..',
+      '..WWWWWWWW..',
+      '..WW.WW.WW..',
+      '...WBBBW....',
+      '....WWWW....',
+      '..W.WWWW.W..',
+      '....WWWW....',
+      '...WW..WW...',
+      '...WW..WW...',
+      '..gg....gg..',
+    ],
+    palette: {
+      '.': null,
+      'W': '#cccccc',
+      'B': '#222222',
+      'b': '#222222',
+      'g': '#999999',
+    }
+  },
+  // Demon - a horned red creature with glowing eyes and wings
+  Demon: {
+    width: 12,
+    data: [
+      '.h........h.',
+      '.hh.RRRR.hh.',
+      '..RRRRRRRR..',
+      '..RYYRRyyR..',
+      '..RRRRRRRR..',
+      '..RRRmmRRR..',
+      'w..RRRRRR..w',
+      'ww.RRRRRR.ww',
+      'w..RRRRRR..w',
+      '...RR..RR...',
+      '...RR..RR...',
+      '..rr....rr..',
+    ],
+    palette: {
+      '.': null,
+      'R': '#cc3333',
+      'r': '#881111',
+      'h': '#441111',
+      'Y': '#FFFF00',
+      'y': '#FFFF00',
+      'm': '#881111',
+      'w': '#771111',
+    }
+  },
+  // Dragon - a large winged beast with fire breath
+  Dragon: {
+    width: 12,
+    data: [
+      'hh..OOOO....',
+      '..OOOOOOOO..',
+      '..OwwOOwwO..',
+      '..OBBOOBBO..',
+      '..OOOOOOOO..',
+      'W.OOmOOmOO.f',
+      'WW.OOOOOO.ff',
+      'W..OOOOOO.fy',
+      '...OO..OO...',
+      '..OOO..OOO..',
+      '..cc....cc..',
+      '............',
+    ],
+    palette: {
+      '.': null,
+      'O': '#ff6600',
+      'o': '#cc4400',
+      'h': '#cc4400',
+      'W': '#ff8800',
+      'w': '#FFFF44',
+      'B': '#111111',
+      'c': '#cc4400',
+      'm': '#cc4400',
+      'f': '#ff4400',
+      'y': '#FFFF00',
+    }
+  }
+};
+
+// Cache for monster sprites
+const monsterSpriteCache = {};
+
+function getMonsterSprite(name, targetSize) {
+  const key = name + '_' + targetSize;
+  if (monsterSpriteCache[key]) return monsterSpriteCache[key];
+
+  const monster = MONSTER_SPRITES[name];
+  if (!monster) return null;
+
+  const cols = monster.width;
+  const rows = monster.data.length;
+  const pixelSize = Math.max(1, Math.ceil(targetSize / cols));
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = cols * pixelSize;
+  offCanvas.height = rows * pixelSize;
+  const offCtx = offCanvas.getContext('2d');
+  offCtx.imageSmoothingEnabled = false;
+
+  for (let row = 0; row < rows; row++) {
+    const line = monster.data[row];
+    for (let col = 0; col < cols; col++) {
+      const ch = line[col] || '.';
+      const color = monster.palette[ch];
+      if (color) {
+        offCtx.fillStyle = color;
+        offCtx.fillRect(col * pixelSize, row * pixelSize, pixelSize, pixelSize);
+      }
+    }
+  }
+
+  monsterSpriteCache[key] = offCanvas;
+  return offCanvas;
+}
+
+function drawMonsterPixel(targetCtx, name, cx, cy, size) {
+  const sprite = getMonsterSprite(name, size);
+  if (!sprite) return false;
+  const monster = MONSTER_SPRITES[name];
+  const aspect = monster.data.length / monster.width;
+  const h = size * aspect;
+  targetCtx.save();
+  targetCtx.imageSmoothingEnabled = false;
+  targetCtx.drawImage(sprite, cx - size / 2, cy - h / 2, size, h);
+  targetCtx.restore();
+  return true;
+}
+
 // ===================== FLAPPY GOZO GAME - ENHANCED =====================
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -3869,7 +4062,7 @@ function rpgSpawnDeathParticles(tx, ty, color) {
 
 // --- DRAWING ---
 function rpgDraw() {
-  rpgCtx.fillStyle = '#0a0a1a';
+  rpgCtx.fillStyle = '#0a0a0f';
   rpgCtx.fillRect(0, 0, RPGW, RPGH);
 
   // Camera follows player
@@ -3900,20 +4093,20 @@ function rpgDraw() {
 
       const tile = rpgMap[y][x];
       if (tile === TILE_WALL) {
-        // Wall with slight variation
-        const shade = 30 + ((x * 7 + y * 13) % 15);
-        rpgCtx.fillStyle = 'rgb(' + shade + ',' + (shade + 5) + ',' + (shade + 15) + ')';
+        // Wall - dark bluish-black (#0D1B2A) with slight variation
+        const shade = ((x * 7 + y * 13) % 10);
+        rpgCtx.fillStyle = 'rgb(' + (13 + shade) + ',' + (27 + shade) + ',' + (42 + shade) + ')';
         rpgCtx.fillRect(sx, sy, RPG_TILE, RPG_TILE);
         // Wall border
-        rpgCtx.strokeStyle = 'rgba(60,60,80,0.4)';
+        rpgCtx.strokeStyle = 'rgba(20,40,60,0.5)';
         rpgCtx.strokeRect(sx, sy, RPG_TILE, RPG_TILE);
       } else {
-        // Floor tile
-        const shade = 20 + ((x + y) % 2) * 8;
-        rpgCtx.fillStyle = 'rgb(' + (shade + 5) + ',' + (shade + 10) + ',' + (shade + 20) + ')';
+        // Floor tile - dark grayish
+        const shade = ((x + y) % 2) * 6;
+        rpgCtx.fillStyle = 'rgb(' + (28 + shade) + ',' + (28 + shade) + ',' + (28 + shade) + ')';
         rpgCtx.fillRect(sx, sy, RPG_TILE, RPG_TILE);
         // Subtle grid
-        rpgCtx.strokeStyle = 'rgba(40,40,60,0.3)';
+        rpgCtx.strokeStyle = 'rgba(50,50,50,0.3)';
         rpgCtx.strokeRect(sx, sy, RPG_TILE, RPG_TILE);
       }
     }
@@ -3951,18 +4144,21 @@ function rpgDraw() {
     const sx = e.x * RPG_TILE - cx;
     const sy = e.y * RPG_TILE - cy;
 
-    // Enemy body
+    // Enemy body - pixel art
     const shakeX = e.stunTimer > 0 ? (Math.random() - 0.5) * 4 : 0;
-    rpgCtx.fillStyle = e.color;
-    rpgCtx.beginPath();
-    rpgCtx.arc(sx + RPG_TILE / 2 + shakeX, sy + RPG_TILE / 2, RPG_TILE / 2 - 3, 0, Math.PI * 2);
-    rpgCtx.fill();
-
-    rpgCtx.font = 'bold 16px monospace';
-    rpgCtx.textAlign = 'center';
-    rpgCtx.textBaseline = 'middle';
-    rpgCtx.fillStyle = '#fff';
-    rpgCtx.fillText(e.char, sx + RPG_TILE / 2 + shakeX, sy + RPG_TILE / 2);
+    const drawn = drawMonsterPixel(rpgCtx, e.name, sx + RPG_TILE / 2 + shakeX, sy + RPG_TILE / 2, RPG_TILE - 4);
+    if (!drawn) {
+      // Fallback: colored circle with letter
+      rpgCtx.fillStyle = e.color;
+      rpgCtx.beginPath();
+      rpgCtx.arc(sx + RPG_TILE / 2 + shakeX, sy + RPG_TILE / 2, RPG_TILE / 2 - 3, 0, Math.PI * 2);
+      rpgCtx.fill();
+      rpgCtx.font = 'bold 16px monospace';
+      rpgCtx.textAlign = 'center';
+      rpgCtx.textBaseline = 'middle';
+      rpgCtx.fillStyle = '#fff';
+      rpgCtx.fillText(e.char, sx + RPG_TILE / 2 + shakeX, sy + RPG_TILE / 2);
+    }
 
     // HP bar
     if (e.hp < e.maxHp) {
@@ -4139,7 +4335,7 @@ function rpgDrawMinimap() {
       if (!rpgFogOfWar[y] || !rpgFogOfWar[y][x]) continue;
       const tile = rpgMap[y][x];
       if (tile === TILE_FLOOR) {
-        rpgCtx.fillStyle = 'rgba(80,80,120,0.6)';
+        rpgCtx.fillStyle = 'rgba(50,50,50,0.6)';
         rpgCtx.fillRect(mmX + x * scaleX, mmY + y * scaleY, Math.max(1, scaleX), Math.max(1, scaleY));
       }
     }
