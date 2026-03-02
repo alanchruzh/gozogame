@@ -726,200 +726,262 @@ function updateParticles(dt){
 // DRAW GOZO (full character on canvas)
 // ═══════════════════════════════════════════
 // ── GOZO BACK VIEW (facing up / toward river) ──
-function drawGozoBack(ctx, walking, frame, isFishing, baitIdx){
+// ═══════════════════════════════════════════════════════════════
+//  PIXEL HOMIE SPRITE — replaces old smooth drawGozoCharacter
+//  Palette keys → CSS color
+// ═══════════════════════════════════════════════════════════════
+const PHPAL = {
+  _:null,
+  Y:'#F5C542', Yd:'#C89A20', Yl:'#FFDE70',
+  R:'#8B1A1A', Rd:'#5C0F0F',
+  B:'#1A2F50', Bl:'#2B4A7A', Bh:'#3D6099',
+  K:'#111111', W:'#FFFFFF',
+  E:'#1A8FFF', Ew:'#FFFFFF',
+  H:'#1A1A1A',
+  C:'#CCCCCC', Cd:'#888888',
+  T:'#F0EE3A', Ts:'#C8A500',
+};
+
+// Front facing (idle) — 11×18
+const PH_IDLE = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+  ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+  ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+  ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+  ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+  ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// Walk frame A
+const PH_WALK_A = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+  ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+  ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+  ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+  ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+  ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['Bl','Bl','Bl','Bl','Bl','_','Bl','Bl','Bl','Bl','_'],
+  ['B','Bl','B','_','_','_','_','Bl','B','_','_'],
+  ['_','Bl','_','_','_','_','_','B','Bl','_','_'],
+  ['_','Bl','_','_','_','_','Bl','Bl','_','_','_'],
+  ['_','K','K','_','_','_','K','K','_','_','_'],
+];
+
+// Walk frame B
+const PH_WALK_B = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+  ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+  ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+  ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+  ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+  ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','_','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','_','B','Bl','_','_','B','Bl','B','_','_'],
+  ['_','_','Bl','B','_','_','_','Bl','_','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','_','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// Fishing frame — arms raised
+const PH_FISH = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+  ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+  ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['T','T','T','Y','Y','Y','Y','Y','T','T','T'],
+  ['Y','Y','T','Y','Cd','Y','Cd','Y','T','Y','Y'],
+  ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+  ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// Back view (facing up toward river) — 11×18
+const PH_BACK = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','H','H','H','H','H','H','Y','_'],
+  ['_','Y','H','Y','Y','Y','Y','Y','H','Y','_'],
+  ['_','Yd','Y','Y','Y','Y','Y','Y','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['_','T','T','Yd','Yd','Yd','Yd','Yd','T','T','_'],
+  ['_','Yd','T','Yd','Yd','Yd','Yd','Yd','T','Yd','_'],
+  ['_','Yd','T','Yd','Yd','Yd','Yd','Yd','T','Yd','_'],
+  ['_','Yd','Ts','Yd','Yd','Yd','Yd','Yd','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// Back fishing — rod raised to right
+const PH_BACK_FISH = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','H','H','H','H','H','H','Y','_'],
+  ['_','Y','H','Y','Y','Y','Y','Y','H','Y','_'],
+  ['_','Yd','Y','Y','Y','Y','Y','Y','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['T','Y','T','Yd','Yd','Yd','Yd','Yd','T','T','T'],
+  ['Y','Y','T','Yd','Yd','Yd','Yd','Yd','T','Y','Y'],
+  ['_','Y','T','Yd','Yd','Yd','Yd','Yd','T','Y','_'],
+  ['_','Yd','Ts','Yd','Yd','Yd','Yd','Yd','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// ── Core sprite renderer ──────────────────────────────
+function phDrawSprite(ctx, sprite, px, py, ps, flipX){
+  const cols = sprite[0].length;
+  for(let r=0; r<sprite.length; r++){
+    for(let c=0; c<cols; c++){
+      const key = sprite[r][flipX ? cols-1-c : c];
+      if(!key || key==='_') continue;
+      const col = PHPAL[key]; if(!col) continue;
+      ctx.fillStyle = col;
+      ctx.fillRect(px + c*ps, py + r*ps, ps, ps);
+    }
+  }
+}
+
+// ── Rod drawing (reused from original, kept identical) ──
+function phDrawRod(ctx, by2, isFishing, baitIdx, isBack){
+  if(!isFishing) return;
   const bait = BAITS[baitIdx];
+  const hx0 = isBack ? -18 : 18;
+  const hy0 = by2 - 46;
+  const rodDeg = -50;
+  const rodRad = rodDeg * Math.PI / 180;
+  const rodLen = 90;
+  const rdx = Math.cos(rodRad);
+  const rdy = Math.sin(rodRad);
+  const htipX = hx0 + rdx * rodLen;
+  const htipY = hy0 + rdy * rodLen;
+
+  G.gz.rodTipLocal = { lx: htipX, ly: htipY };
+
+  function rodPt(t, hw){
+    const px = hx0 + rdx*rodLen*t, py = hy0 + rdy*rodLen*t;
+    const px2 = -rdy, py2 = rdx;
+    return [[px-px2*hw, py-py2*hw],[px+px2*hw, py+py2*hw]];
+  }
+
+  ctx.save();
+
+  // Cork handle
+  const h0=rodPt(0,4.5), h1=rodPt(0.15,4.2);
+  const cg=ctx.createLinearGradient(hx0,hy0,hx0+rdx*14,hy0+rdy*14);
+  cg.addColorStop(0,'#d4a866'); cg.addColorStop(0.5,'#f0c880'); cg.addColorStop(1,'#b8843a');
+  ctx.fillStyle=cg;
+  ctx.beginPath(); ctx.moveTo(h0[0][0],h0[0][1]); ctx.lineTo(h0[1][0],h0[1][1]);
+  ctx.lineTo(h1[1][0],h1[1][1]); ctx.lineTo(h1[0][0],h1[0][1]); ctx.closePath(); ctx.fill();
+
+  // Reel seat
+  const rs0=rodPt(0.14,4.8), rs1=rodPt(0.25,4.5);
+  ctx.fillStyle='#444';
+  ctx.beginPath(); ctx.moveTo(rs0[0][0],rs0[0][1]); ctx.lineTo(rs0[1][0],rs0[1][1]);
+  ctx.lineTo(rs1[1][0],rs1[1][1]); ctx.lineTo(rs1[0][0],rs1[0][1]); ctx.closePath(); ctx.fill();
+
+  // Reel
+  const rcx=hx0+rdx*rodLen*0.19, rcy=hy0+rdy*rodLen*0.19;
+  const perpX=-rdy, perpY=rdx;
+  const rx=rcx+perpX*7, ry=rcy+perpY*7;
+  ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRad,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#666'; ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRad,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#999'; ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRad,0,Math.PI*2); ctx.fill();
+
+  // Rod blank
+  for(let i=0;i<8;i++){
+    const t0=0.22+(i/8)*0.78, t1=0.22+((i+1)/8)*0.78;
+    const w0=3.5*(1-t0*0.85), w1=3.5*(1-t1*0.85);
+    const s0=rodPt(t0,w0), s1=rodPt(t1,w1);
+    ctx.fillStyle=bait.rodColor;
+    ctx.beginPath(); ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
+    ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]); ctx.closePath(); ctx.fill();
+  }
+
+  // Guides
+  [0.35,0.48,0.60,0.72,0.84,0.95].forEach((t,i)=>{
+    const gp=rodPt(t,0); const gw=Math.max(0.8,3.0-i*0.35);
+    ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
+    ctx.beginPath(); ctx.ellipse(gp[0][0],gp[0][1],gw,gw*0.5,rodRad,0,Math.PI*2); ctx.stroke();
+  });
+
+  ctx.restore();
+}
+
+// ── Main back view (facing up toward river) ──────────────
+function drawGozoBack(ctx, walking, frame, isFishing, baitIdx){
   const t = frame * 0.18;
-  const legSwing = walking ? Math.sin(t)*10 : 0;
-  const armSwing = walking ? Math.sin(t+Math.PI)*6 : 0;
   const bobY = walking ? Math.abs(Math.sin(t))*3 : 0;
-  const by2 = -bobY;
+  const ps = 4; // pixel size
+  // sprite offset: center sprite at origin (feet at 0,0)
+  const sprW = 11*ps, sprH = 18*ps;
+  const ox = -sprW/2, oy = -sprH + bobY*0.5;
 
   // Shadow
   ctx.save();
   ctx.globalAlpha=0.25; ctx.fillStyle='#000';
-  ctx.beginPath(); ctx.ellipse(0,2,22,5,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0,4,22,5,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // ── LEGS ──
-  ctx.save(); ctx.translate(-9,by2); ctx.rotate(legSwing*Math.PI/180);
-  ctx.fillStyle='#1e2d5a'; ctx.fillRect(-6,0,12,36);
-  // Back shading on jeans
-  ctx.fillStyle='rgba(0,0,0,0.1)'; ctx.fillRect(-5,2,10,32);
-  ctx.restore();
-  ctx.save(); ctx.translate(9,by2); ctx.rotate(-legSwing*Math.PI/180);
-  ctx.fillStyle='#1a2852'; ctx.fillRect(-6,0,12,36);
-  ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(-5,2,10,32);
-  ctx.restore();
+  const sprite = isFishing ? PH_BACK_FISH : PH_BACK;
+  phDrawSprite(ctx, sprite, ox, oy, ps, false);
 
-  // Belt
-  ctx.fillStyle='#0d1520'; ctx.fillRect(-16,by2-2,32,7);
-  ctx.fillStyle='#888'; ctx.fillRect(-3,by2-1,6,5);
-  // Wallet chain back
-  ctx.strokeStyle='rgba(192,192,192,0.5)'; ctx.lineWidth=1.5;
-  ctx.setLineDash([3,2]);
-  ctx.beginPath(); ctx.moveTo(8,by2+5); ctx.quadraticCurveTo(16,by2+20,12,36); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // ── BACK TORSO ──
-  // Back of yellow body (no necklace visible from back)
-  const backGrad = ctx.createLinearGradient(-16,-48,16,-4);
-  backGrad.addColorStop(0,'#e8b800');  // slightly darker (shadow side)
-  backGrad.addColorStop(0.4,'#FFD700');
-  backGrad.addColorStop(1,'#d4a000');
-  ctx.fillStyle = backGrad;
-  ctx.beginPath();
-  ctx.moveTo(-16,by2);
-  ctx.bezierCurveTo(-18,by2-18,-16,by2-40,-12,by2-48);
-  ctx.lineTo(12,by2-48);
-  ctx.bezierCurveTo(16,by2-40,18,by2-18,16,by2);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1; ctx.stroke();
-  // Spine shadow
-  ctx.strokeStyle='rgba(0,0,0,0.07)'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.moveTo(0,by2); ctx.lineTo(0,by2-46); ctx.stroke();
-  // Shoulder blades subtle
-  ctx.fillStyle='rgba(0,0,0,0.06)';
-  ctx.beginPath(); ctx.ellipse(-9,by2-32,7,5,0.3,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(9,by2-32,7,5,-0.3,0,Math.PI*2); ctx.fill();
-
-  // ── ARMS (back — arms hang behind) ──
-  ctx.save(); ctx.translate(-16,by2-42); ctx.rotate((armSwing-5)*Math.PI/180);
-  ctx.fillStyle='#e8b800';
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(-10,4,-14,20,-12,36);
-  ctx.bezierCurveTo(-6,38,0,36,2,34); ctx.bezierCurveTo(0,20,-2,6,0,0); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(-8,38,7,6,-0.2,0,Math.PI*2); ctx.fillStyle='#e8b800'; ctx.fill();
-  ctx.restore();
-
-  ctx.save(); ctx.translate(16,by2-42);
-  if(isFishing) ctx.rotate(-55*Math.PI/180);
-  else ctx.rotate((-armSwing+5)*Math.PI/180);
-  ctx.fillStyle='#e8b800';
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(10,4,14,20,12,36);
-  ctx.bezierCurveTo(6,38,0,36,-2,34); ctx.bezierCurveTo(0,20,2,6,0,0); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(8,38,7,6,0.2,0,Math.PI*2); ctx.fillStyle='#e8b800'; ctx.fill();
-  ctx.restore();
-
-  // ── FISHING ROD (back view) ──
-  if(isFishing){
-    const hx0=18, hy0=by2-46;
-    const rodDeg=-50, rodRad=rodDeg*Math.PI/180;
-    const rodLen=90;
-    const rdx=Math.cos(rodRad), rdy=Math.sin(rodRad);
-    const htipX=hx0+rdx*rodLen, htipY=hy0+rdy*rodLen;
-    G.gz.rodTipLocal={lx:htipX, ly:htipY};
-
-    ctx.save();
-    function rodPtB(t,hw){
-      const px=hx0+rdx*rodLen*t, py=hy0+rdy*rodLen*t;
-      const px2=-rdy, py2=rdx;
-      return [[px-px2*hw,py-py2*hw],[px+px2*hw,py+py2*hw]];
-    }
-    // Cork handle
-    const ch0=rodPtB(0,4.5), ch1=rodPtB(0.15,4.2);
-    ctx.fillStyle='#c8a060';
-    ctx.beginPath(); ctx.moveTo(ch0[0][0],ch0[0][1]); ctx.lineTo(ch0[1][0],ch0[1][1]);
-    ctx.lineTo(ch1[1][0],ch1[1][1]); ctx.lineTo(ch1[0][0],ch1[0][1]); ctx.closePath(); ctx.fill();
-    // Reel seat
-    const rs0=rodPtB(0.14,4.8), rs1=rodPtB(0.25,4.5);
-    ctx.fillStyle='#444';
-    ctx.beginPath(); ctx.moveTo(rs0[0][0],rs0[0][1]); ctx.lineTo(rs0[1][0],rs0[1][1]);
-    ctx.lineTo(rs1[1][0],rs1[1][1]); ctx.lineTo(rs1[0][0],rs1[0][1]); ctx.closePath(); ctx.fill();
-    // Reel
-    const rcx=hx0+rdx*rodLen*0.19, rcy=hy0+rdy*rodLen*0.19;
-    const perpX=-rdy, perpY=rdx;
-    const rx=rcx+perpX*7, ry=rcy+perpY*7;
-    ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRad,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#666'; ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRad,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#999'; ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRad,0,Math.PI*2); ctx.fill();
-    // Rod blank
-    for(let i=0;i<8;i++){
-      const t0=0.22+(i/8)*0.78, t1=0.22+((i+1)/8)*0.78;
-      const w0=3.5*(1-t0*0.85), w1=3.5*(1-t1*0.85);
-      const s0=rodPtB(t0,w0), s1=rodPtB(t1,w1);
-      ctx.fillStyle=bait.rodColor;
-      ctx.beginPath(); ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
-      ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]); ctx.closePath(); ctx.fill();
-    }
-    // Guides
-    [0.35,0.48,0.60,0.72,0.84,0.95].forEach((t,i)=>{
-      const gp=rodPtB(t,0); const gw=Math.max(0.8,3.0-i*0.35);
-      ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
-      ctx.beginPath(); ctx.ellipse(gp[0][0],gp[0][1],gw,gw*0.5,rodRad,0,Math.PI*2); ctx.stroke();
-    });
-    ctx.restore();
-  }
-
-  // ── NECK (back) ──
-  ctx.fillStyle='#e8b800'; ctx.fillRect(-6,by2-58,12,14);
-
-  // ── HEAD BACK ──
-  ctx.save(); ctx.translate(0,by2-58);
-
-  // Head shape from back (slightly narrower, no face details)
-  const hbGrad=ctx.createRadialGradient(0,-22,4,0,-22,28);
-  hbGrad.addColorStop(0,'#FFD700');
-  hbGrad.addColorStop(0.7,'#e8b800');
-  hbGrad.addColorStop(1,'#d0a000');
-  ctx.fillStyle=hbGrad;
-  ctx.beginPath(); ctx.ellipse(0,-22,26,28,0,0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
-
-  // Back of hair (full, dark — more visible from back)
-  ctx.fillStyle='#111';
-  ctx.beginPath();
-  ctx.moveTo(-22,-10);
-  ctx.bezierCurveTo(-28,-6,-26,4,-20,6);
-  ctx.bezierCurveTo(-14,4,-10,-2,-8,-8);
-  ctx.lineTo(8,-8);
-  ctx.bezierCurveTo(10,-2,14,4,20,6);
-  ctx.bezierCurveTo(26,4,28,-6,22,-10);
-  ctx.bezierCurveTo(18,-14,10,-16,0,-16);
-  ctx.bezierCurveTo(-10,-16,-18,-14,-22,-10);
-  ctx.closePath(); ctx.fill();
-
-  // Side hair tufts
-  ctx.beginPath(); ctx.moveTo(-26,-14); ctx.bezierCurveTo(-30,-8,-28,2,-24,4);
-  ctx.bezierCurveTo(-22,2,-23,-10,-20,-16); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(26,-14); ctx.bezierCurveTo(30,-8,28,2,24,4);
-  ctx.bezierCurveTo(22,2,23,-10,20,-16); ctx.closePath(); ctx.fill();
-
-  // RED CAP from back
-  ctx.fillStyle='#8B1A1A';
-  ctx.beginPath(); ctx.ellipse(0,-42,27,14,0,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(0,-42,27,Math.PI,0); ctx.fillStyle='#8B1A1A'; ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.5; ctx.stroke();
-  // Cap back — slightly darker
-  ctx.fillStyle='rgba(0,0,0,0.1)';
-  ctx.beginPath(); ctx.ellipse(0,-42,27,14,0,0,Math.PI*2); ctx.fill();
-  // Back brim (small, only edges visible)
-  ctx.fillStyle='#5a0e0e';
-  ctx.beginPath(); ctx.ellipse(0,-30,12,5,0,Math.PI*0.1,Math.PI*0.9); ctx.closePath(); ctx.fill();
-  // Strap at back of cap
-  ctx.fillStyle='#333';
-  ctx.fillRect(-8,-27,16,4);
-  ctx.fillStyle='#555'; ctx.fillRect(-2,-28,4,6);
-  // Button on top
-  ctx.fillStyle='#5a0e0e'; ctx.beginPath(); ctx.arc(0,-54,3,0,Math.PI*2); ctx.fill();
-
-  // Ear (back view — both ears visible)
-  ctx.restore();
-  ctx.save(); ctx.translate(0,by2-58);
-  ctx.fillStyle='#FFD700';
-  ctx.beginPath(); ctx.ellipse(-26,-22,7,9,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#d4a000'; ctx.beginPath(); ctx.ellipse(-26,-22,4,6,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#FFD700';
-  ctx.beginPath(); ctx.ellipse(26,-22,7,9,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#d4a000'; ctx.beginPath(); ctx.ellipse(26,-22,4,6,0,0,Math.PI*2); ctx.fill();
-
-  ctx.restore(); // head
+  // Rod drawn in local space
+  if(isFishing) phDrawRod(ctx, oy, true, baitIdx, true);
 }
 
+// ── Main front/side character ────────────────────────────
 function drawGozoCharacter(ctx, px, py, facing, dir, walking, frame, isFishing, baitIdx){
   ctx.save();
   ctx.translate(px, py);
-  ctx.scale(facing, 1); // facing=1 right, facing=-1 flips left
+  ctx.scale(facing, 1);
 
-  // ── BACK VIEW when facing up (toward river) ──
   if(dir === 'up'){
     drawGozoBack(ctx, walking, frame, isFishing, baitIdx);
     ctx.restore();
@@ -927,533 +989,33 @@ function drawGozoCharacter(ctx, px, py, facing, dir, walking, frame, isFishing, 
   }
 
   const t = frame * 0.18;
-  const legSwing = walking ? Math.sin(t)*10 : 0;
-  const armSwing = walking ? Math.sin(t+Math.PI)*6 : 0;
-  const bobY     = walking ? Math.abs(Math.sin(t))*3 : 0;
-
-  const S = 1.0; // scale
-  const by2 = -bobY; // body bob
+  const bobY = walking ? Math.abs(Math.sin(t))*3 : 0;
+  const ps = 4; // pixel size per cell
+  const sprW = 11*ps, sprH = 18*ps;
+  const ox = -sprW/2;
+  const oy = -sprH + bobY * 0.5;
 
   // Shadow
   ctx.save();
-  ctx.globalAlpha=0.25;
-  ctx.fillStyle='#000';
-  ctx.beginPath();ctx.ellipse(0,2,22,5,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=0.25; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(0,4,22,5,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // ── LEGS ──
-  // Left leg
-  ctx.save();
-  ctx.translate(-9,by2);
-  ctx.rotate(legSwing*Math.PI/180);
-  // Jeans
-  ctx.fillStyle='#1e2d5a';
-  ctx.fillRect(-6,0,12,36);
-  // Jean highlight
-  ctx.fillStyle='rgba(255,255,255,0.06)';
-  ctx.fillRect(-5,2,4,32);
+  // Choose sprite
+  let sprite;
+  if(isFishing)       sprite = PH_FISH;
+  else if(walking)    sprite = (Math.floor(frame/8)%2 === 0) ? PH_WALK_A : PH_WALK_B;
+  else                sprite = PH_IDLE;
+
+  phDrawSprite(ctx, sprite, ox, oy, ps, false);
+
+  // Rod
+  if(isFishing) phDrawRod(ctx, oy, true, baitIdx, false);
+
   ctx.restore();
-
-  // Right leg
-  ctx.save();
-  ctx.translate(9,by2);
-  ctx.rotate(-legSwing*Math.PI/180);
-  ctx.fillStyle='#1a2852';
-  ctx.fillRect(-6,0,12,36);
-  ctx.fillStyle='rgba(255,255,255,0.06)';
-  ctx.fillRect(3,2,4,32);
-  ctx.restore();
-
-  // Belt
-  ctx.fillStyle='#0d1520';
-  ctx.fillRect(-16,by2-2,32,7);
-  ctx.fillStyle='#bbb';
-  ctx.fillRect(-4,by2-1,8,5);
-
-  // Wallet chain
-  ctx.strokeStyle='rgba(192,192,192,0.7)';ctx.lineWidth=1.5;
-  ctx.setLineDash([3,2]);
-  ctx.beginPath();ctx.moveTo(8,by2+5);ctx.quadraticCurveTo(18,by2+22,14,36);ctx.stroke();
-  ctx.setLineDash([]);
-
-  // ── TORSO ──
-  ctx.save();
-  ctx.translate(0,by2);
-  // Body
-  const bodyGrad = ctx.createLinearGradient(-16,-48,16,-4);
-  bodyGrad.addColorStop(0,'#FFD700');
-  bodyGrad.addColorStop(0.5,'#FFE340');
-  bodyGrad.addColorStop(1,'#e8c000');
-  ctx.fillStyle=bodyGrad;
-  ctx.beginPath();
-  ctx.moveTo(-16,0);
-  ctx.bezierCurveTo(-18,-18,-16,-40,-12,-48);
-  ctx.lineTo(12,-48);
-  ctx.bezierCurveTo(16,-40,18,-18,16,0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.stroke();
-
-  // Body highlight
-  ctx.fillStyle='rgba(255,255,255,0.12)';
-  ctx.beginPath();ctx.ellipse(-5,-28,6,12,-0.2,0,Math.PI*2);ctx.fill();
-
-  // Silver necklace
-  ctx.strokeStyle='#d0d0d0';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(-14,-44);ctx.quadraticCurveTo(0,-36,14,-44);ctx.stroke();
-  ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.2;
-  ctx.beginPath();ctx.moveTo(-14,-44);ctx.quadraticCurveTo(0,-34,14,-44);ctx.stroke();
-  // Chain links
-  [[-10,-42],[-4,-39],[0,-38],[4,-39],[10,-42]].forEach(([cx,cy])=>{
-    ctx.beginPath();ctx.arc(cx,cy,1.8,0,Math.PI*2);
-    ctx.fillStyle='#ccc';ctx.fill();
-    ctx.strokeStyle='#aaa';ctx.lineWidth=0.6;ctx.stroke();
-  });
-  ctx.restore(); // body
-
-  // ── ARMS ──
-  const bait = BAITS[baitIdx];
-
-  // Left arm
-  ctx.save();
-  ctx.translate(-16,by2-42);
-  ctx.rotate((armSwing-5)*Math.PI/180);
-  ctx.fillStyle='#FFD700';
-  ctx.beginPath();
-  ctx.moveTo(0,0);ctx.bezierCurveTo(-10,4,-14,20,-12,36);
-  ctx.bezierCurveTo(-6,38,0,36,2,34);
-  ctx.bezierCurveTo(0,20,-2,6,0,0);
-  ctx.closePath();ctx.fill();
-  // Hand
-  ctx.beginPath();ctx.ellipse(-8,38,7,6,-0.2,0,Math.PI*2);
-  ctx.fillStyle='#FFD700';ctx.fill();
-  ctx.restore();
-
-  // Right arm (fishing or swing)
-  ctx.save();
-  ctx.translate(16,by2-42);
-  if(isFishing){
-    ctx.rotate(-55*Math.PI/180); // raised for casting
-  } else {
-    ctx.rotate((-armSwing+5)*Math.PI/180);
-  }
-  ctx.fillStyle='#FFD700';
-  ctx.beginPath();
-  ctx.moveTo(0,0);ctx.bezierCurveTo(10,4,14,20,12,36);
-  ctx.bezierCurveTo(6,38,0,36,-2,34);
-  ctx.bezierCurveTo(0,20,2,6,0,0);
-  ctx.closePath();ctx.fill();
-  // Hand
-  ctx.beginPath();ctx.ellipse(8,38,7,6,0.2,0,Math.PI*2);
-  ctx.fillStyle='#FFD700';ctx.fill();
-  ctx.restore();
-
-  // ── FISHING ROD ── drawn in local character space, rod raises up-forward
-  if(isFishing){
-    // All coords below are in LOCAL character space (origin = character feet)
-    // Hand holds rod at approximately right side, mid-body height
-    const hx0 = 18, hy0 = by2 - 46; // grip start (butt of rod at hand)
-
-    // Rod direction: up and forward (positive X = character's forward, negative Y = up)
-    // Angle from horizontal: 50 degrees upward
-    const rodDeg = -50; // degrees from +X axis, negative = upward
-    const rodRadians = rodDeg * Math.PI / 180;
-    const rodTotalLen = 90;
-
-    // Unit vector along rod
-    const rdx = Math.cos(rodRadians); // forward component
-    const rdy = Math.sin(rodRadians); // upward component (negative)
-
-    // Rod tip local position
-    const htipX = hx0 + rdx * rodTotalLen;
-    const htipY = hy0 + rdy * rodTotalLen;
-
-    // Store for line drawing (in local space, facing will be applied in render)
-    G.gz.rodTipLocal = { lx: htipX, ly: htipY };
-
-    ctx.save();
-
-    // Draw rod as thick tapered line using perpendicular offsets
-    function rodPoint(t, halfW) {
-      // t = 0..1 along rod, halfW = half-width at this point
-      const px = hx0 + rdx*rodTotalLen*t;
-      const py = hy0 + rdy*rodTotalLen*t;
-      // perpendicular to rod direction
-      const px2 = -rdy, py2 = rdx;
-      return [
-        [px - px2*halfW, py - py2*halfW],
-        [px + px2*halfW, py + py2*halfW]
-      ];
-    }
-
-    // ── CORK HANDLE (butt section) ──
-    const h0 = rodPoint(0,    4.5);
-    const h1 = rodPoint(0.15, 4.2);
-    const corkGrad = ctx.createLinearGradient(hx0,hy0, hx0+rdx*14,hy0+rdy*14);
-    corkGrad.addColorStop(0,'#d4a866');
-    corkGrad.addColorStop(0.5,'#f0c880');
-    corkGrad.addColorStop(1,'#b8843a');
-    ctx.fillStyle = corkGrad;
-    ctx.beginPath();
-    ctx.moveTo(h0[0][0],h0[0][1]); ctx.lineTo(h0[1][0],h0[1][1]);
-    ctx.lineTo(h1[1][0],h1[1][1]); ctx.lineTo(h1[0][0],h1[0][1]);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=0.7; ctx.stroke();
-
-    // ── REEL SEAT ──
-    const r0 = rodPoint(0.14, 4.8);
-    const r1 = rodPoint(0.25, 4.5);
-    ctx.fillStyle='#444';
-    ctx.beginPath();
-    ctx.moveTo(r0[0][0],r0[0][1]); ctx.lineTo(r0[1][0],r0[1][1]);
-    ctx.lineTo(r1[1][0],r1[1][1]); ctx.lineTo(r1[0][0],r1[0][1]);
-    ctx.closePath(); ctx.fill();
-
-    // Reel (spinning reel hanging below rod at ~18% along)
-    const reelCX = hx0 + rdx*rodTotalLen*0.19;
-    const reelCY = hy0 + rdy*rodTotalLen*0.19;
-    // Reel body (perpendicular to rod, pointing "down" relative to rod)
-    const perpX = -rdy, perpY = rdx; // perpendicular direction
-    const rx = reelCX + perpX*7;  // reel hangs on one side
-    const ry = reelCY + perpY*7;
-    ctx.fillStyle='#3a3a3a';
-    ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRadians,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#666';
-    ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRadians,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#999';
-    ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRadians,0,Math.PI*2); ctx.fill();
-    // Reel handle
-    ctx.strokeStyle='#bbb'; ctx.lineWidth=1.5;
-    ctx.beginPath();
-    ctx.moveTo(rx+perpX*4, ry+perpY*4);
-    ctx.lineTo(rx+perpX*4+rdx*6, ry+perpY*4+rdy*6);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(rx+perpX*4+rdx*6, ry+perpY*4+rdy*6, 2.5, 0, Math.PI*2);
-    ctx.fillStyle='#ccc'; ctx.fill();
-
-    // ── ROD BLANK (tapered, thick→thin) ──
-    const numSegs = 8;
-    for(let i=0; i<numSegs; i++){
-      const t0 = 0.22 + (i/numSegs)*0.78;
-      const t1 = 0.22 + ((i+1)/numSegs)*0.78;
-      const w0 = 3.5*(1-t0*0.85);
-      const w1 = 3.5*(1-t1*0.85);
-      const s0 = rodPoint(t0, w0);
-      const s1 = rodPoint(t1, w1);
-      // Gradient per segment
-      const px0=hx0+rdx*rodTotalLen*t0, py0=hy0+rdy*rodTotalLen*t0;
-      const px1=hx0+rdx*rodTotalLen*t1, py1=hy0+rdy*rodTotalLen*t1;
-      const sg = ctx.createLinearGradient(px0,py0,px1,py1);
-      sg.addColorStop(0, bait.rodColor);
-      sg.addColorStop(0.5, bait.rodColor+'cc');
-      sg.addColorStop(1, bait.rodColor);
-      ctx.fillStyle = sg;
-      ctx.beginPath();
-      ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
-      ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]);
-      ctx.closePath(); ctx.fill();
-    }
-    // Rod outline
-    const rButt = rodPoint(0.22, 3.4);
-    const rTip  = rodPoint(1.0,  0.6);
-    ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.8;
-    ctx.beginPath();
-    ctx.moveTo(rButt[0][0],rButt[0][1]);
-    ctx.lineTo(rTip[0][0], rTip[0][1]);
-    ctx.lineTo(rTip[1][0], rTip[1][1]);
-    ctx.lineTo(rButt[1][0],rButt[1][1]);
-    ctx.stroke();
-    // Highlight
-    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.8;
-    ctx.beginPath();
-    const hightP0 = rodPoint(0.25, -2.5); // inner edge
-    const hightP1 = rodPoint(0.95, -0.3);
-    ctx.moveTo(hightP0[0][0],hightP0[0][1]);
-    ctx.lineTo(hightP1[0][0],hightP1[0][1]);
-    ctx.stroke();
-
-    // ── GUIDE RINGS along rod ──
-    [0.35, 0.48, 0.60, 0.72, 0.84, 0.95].forEach((t,i)=>{
-      const gp = rodPoint(t, 0);
-      const gx = gp[0][0], gy = gp[0][1]; // center
-      const gw = Math.max(0.8, 3.0 - i*0.35);
-      ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
-      ctx.beginPath();
-      ctx.ellipse(gx,gy, gw, gw*0.5, rodRadians, 0, Math.PI*2);
-      ctx.stroke();
-    });
-
-    // ── TIP ──
-    ctx.beginPath();
-    ctx.arc(htipX, htipY, 1.5, 0, Math.PI*2);
-    ctx.fillStyle='#ddd'; ctx.fill();
-
-    ctx.restore();
-  }
-
-  // ── NECK ──
-  // Slightly wider neck, cleaner shape
-  const neckGrad=ctx.createLinearGradient(-7,by2-58,7,by2-58);
-  neckGrad.addColorStop(0,'#e8b800'); neckGrad.addColorStop(0.5,'#FFD700'); neckGrad.addColorStop(1,'#e0b000');
-  ctx.fillStyle=neckGrad;
-  ctx.beginPath();
-  ctx.moveTo(-7,by2-44); ctx.lineTo(7,by2-44);
-  ctx.lineTo(6,by2-58); ctx.lineTo(-6,by2-58);
-  ctx.closePath(); ctx.fill();
-
-  // ── HEAD ──
-  ctx.save();
-  ctx.translate(0,by2-58);
-
-  // ── EAR (draw behind head) ──
-  const earGrad=ctx.createRadialGradient(-25,-20,2,-25,-20,9);
-  earGrad.addColorStop(0,'#FFE040'); earGrad.addColorStop(1,'#d4a000');
-  ctx.fillStyle=earGrad;
-  ctx.beginPath(); ctx.ellipse(-27,-20,8,10,0.1,0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.15)'; ctx.lineWidth=1; ctx.stroke();
-  // Inner ear
-  ctx.fillStyle='#c89000';
-  ctx.beginPath(); ctx.ellipse(-27,-20,4.5,6.5,0.1,0,Math.PI*2); ctx.fill();
-  // Ear canal detail
-  ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(-28,-17); ctx.quadraticCurveTo(-30,-20,-28,-23); ctx.stroke();
-
-  // ── HEAD SHAPE — rounder, more appealing ──
-  // Slightly wider at cheeks, narrower chin = classic handsome anime face
-  const hGrad=ctx.createRadialGradient(-9,-26,3,0,-18,32);
-  hGrad.addColorStop(0,'#FFF080');   // bright top-left highlight
-  hGrad.addColorStop(0.35,'#FFE840');
-  hGrad.addColorStop(0.7,'#FFD700');
-  hGrad.addColorStop(1,'#e8b800');
-  ctx.fillStyle=hGrad;
-  ctx.beginPath();
-  ctx.moveTo(0,-50);                          // top center
-  ctx.bezierCurveTo(16,-50, 28,-40, 28,-24); // right top to cheek
-  ctx.bezierCurveTo(28,-10, 22,4,   8,10);   // cheek to chin right
-  ctx.bezierCurveTo(4,14,  -4,14,  -8,10);   // chin
-  ctx.bezierCurveTo(-22,4, -28,-10,-28,-24);  // chin to left cheek
-  ctx.bezierCurveTo(-28,-40,-16,-50, 0,-50);  // left top
-  ctx.closePath(); ctx.fill();
-  // Subtle outline
-  ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1.2; ctx.stroke();
-  // Side shadow for depth
-  ctx.fillStyle='rgba(180,120,0,0.08)';
-  ctx.beginPath(); ctx.ellipse(-20,-20,8,18,0.2,0,Math.PI*2); ctx.fill();
-
-  // ── HAIR — stylish, swept, cool ──
-  // Back hair (behind head — dark base)
-  ctx.fillStyle='#0d0d0d';
-  // Left side hair sweep
-  ctx.beginPath();
-  ctx.moveTo(-16,-48);
-  ctx.bezierCurveTo(-22,-46,-30,-36,-30,-20);
-  ctx.bezierCurveTo(-30,-8,-26,2,-22,6);
-  ctx.bezierCurveTo(-20,4,-22,-4,-20,-18);
-  ctx.bezierCurveTo(-18,-32,-14,-44,-12,-48);
-  ctx.closePath(); ctx.fill();
-  // Right side hair
-  ctx.beginPath();
-  ctx.moveTo(14,-48);
-  ctx.bezierCurveTo(20,-46,28,-36,28,-22);
-  ctx.bezierCurveTo(28,-10,24,0,20,4);
-  ctx.bezierCurveTo(18,2,20,-8,18,-20);
-  ctx.bezierCurveTo(16,-34,12,-44,10,-48);
-  ctx.closePath(); ctx.fill();
-  // Fringe — stylish swept bang peeking below cap, slightly swept to side
-  ctx.fillStyle='#111';
-  ctx.beginPath();
-  ctx.moveTo(-20,-36);
-  ctx.bezierCurveTo(-16,-42,-8,-44,0,-44);
-  ctx.bezierCurveTo(8,-44,16,-42,20,-38);
-  ctx.bezierCurveTo(14,-34,4,-32,-2,-32);
-  ctx.bezierCurveTo(-8,-32,-16,-34,-20,-36);
-  ctx.closePath(); ctx.fill();
-  // Individual hair strands (cool anime detail)
-  ctx.strokeStyle='#222'; ctx.lineWidth=1.5;
-  [[-18,-36,-22,-30],[-8,-32,-10,-26],[2,-32,0,-26],[12,-33,14,-27]].forEach(([x1,y1,x2,y2])=>{
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo((x1+x2)/2+2,y1+3,x2,y2); ctx.stroke();
-  });
-
-  // ── RED CAP — cleaner, more 3D ──
-  // Cap main dome
-  const capGrad=ctx.createRadialGradient(-8,-48,4,0,-44,28);
-  capGrad.addColorStop(0,'#c42020');   // brighter top
-  capGrad.addColorStop(0.5,'#991515');
-  capGrad.addColorStop(1,'#7a1010');
-  ctx.fillStyle=capGrad;
-  ctx.beginPath();
-  ctx.moveTo(-24,-32);
-  ctx.bezierCurveTo(-26,-44,-18,-58, 0,-58);
-  ctx.bezierCurveTo(18,-58, 26,-44, 24,-32);
-  ctx.bezierCurveTo(16,-28, -16,-28,-24,-32);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.2; ctx.stroke();
-  // Cap highlight sheen
-  ctx.fillStyle='rgba(255,100,100,0.2)';
-  ctx.beginPath(); ctx.ellipse(-7,-50,11,7,-0.4,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.08)';
-  ctx.beginPath(); ctx.ellipse(-4,-52,7,4,-0.3,0,Math.PI*2); ctx.fill();
-  // Cap brim — flat, protruding forward
-  const brimGrad=ctx.createLinearGradient(0,-34,0,-26);
-  brimGrad.addColorStop(0,'#7a1010'); brimGrad.addColorStop(1,'#5a0808');
-  ctx.fillStyle=brimGrad;
-  ctx.beginPath();
-  ctx.moveTo(-26,-30);
-  ctx.bezierCurveTo(-28,-26,-24,-22,0,-22);
-  ctx.bezierCurveTo(24,-22,28,-26,26,-30);
-  ctx.bezierCurveTo(20,-32,20,-32,0,-32);
-  ctx.bezierCurveTo(-20,-32,-20,-32,-26,-30);
-  ctx.closePath(); ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.moveTo(-26,-30); ctx.bezierCurveTo(-28,-26,-24,-22,0,-22); ctx.bezierCurveTo(24,-22,28,-26,26,-30); ctx.stroke();
-  // Brim underside shadow
-  ctx.fillStyle='rgba(0,0,0,0.15)';
-  ctx.beginPath(); ctx.ellipse(0,-26,24,4,0,0,Math.PI*2); ctx.fill();
-  // Button on top
-  ctx.fillStyle='#5a0e0e'; ctx.beginPath(); ctx.arc(0,-57,3.5,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(255,100,100,0.3)'; ctx.beginPath(); ctx.arc(-0.5,-58.5,1.5,0,Math.PI*2); ctx.fill();
-
-  // ── EYEBROWS — thick, slightly arched, cool/confident ──
-  ctx.save();
-  // Left brow — slightly angled down toward center (cool look)
-  ctx.strokeStyle='#111'; ctx.lineWidth=3.5; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-22,-18); ctx.bezierCurveTo(-16,-22,-12,-22,-8,-20); ctx.stroke();
-  // Right brow
-  ctx.beginPath(); ctx.moveTo(8,-20); ctx.bezierCurveTo(12,-22,16,-22,22,-18); ctx.stroke();
-  // Brow inner end — slightly thicker (fills in the arch)
-  ctx.lineWidth=2.5;
-  ctx.beginPath(); ctx.moveTo(-22,-18); ctx.lineTo(-20,-17); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(22,-18); ctx.lineTo(20,-17); ctx.stroke();
-  ctx.restore();
-
-  // ── EYES — large, gorgeous, anime-hero style ──
-  function drawHandsomeEye(ex, ey){
-    // Eye white — slightly almond/oval shape
-    ctx.save();
-    ctx.beginPath();
-    ctx.ellipse(ex, ey, 10, 11, 0, 0, Math.PI*2);
-    ctx.fillStyle='#f8f8ff'; ctx.fill();
-
-    // Limbal ring (dark outer iris ring — very attractive)
-    ctx.beginPath(); ctx.ellipse(ex, ey, 8.5, 9.5, 0, 0, Math.PI*2);
-    ctx.strokeStyle='#1a3060'; ctx.lineWidth=1.2; ctx.stroke();
-
-    // Iris — rich blue gradient
-    const irisG=ctx.createRadialGradient(ex-1.5,ey-2,1,ex,ey,8);
-    irisG.addColorStop(0,'#5a9ee8');   // light center
-    irisG.addColorStop(0.3,'#2c72d5'); // mid blue
-    irisG.addColorStop(0.7,'#1a50a8'); // deep blue
-    irisG.addColorStop(1,'#0f2e6b');   // dark edge
-    ctx.beginPath(); ctx.ellipse(ex, ey, 8, 9, 0, 0, Math.PI*2);
-    ctx.fillStyle=irisG; ctx.fill();
-
-    // Pupil — large, deep black
-    const pupilG=ctx.createRadialGradient(ex+0.5,ey-0.5,0.5,ex,ey,5.5);
-    pupilG.addColorStop(0,'#1a1a2e'); pupilG.addColorStop(1,'#000010');
-    ctx.beginPath(); ctx.ellipse(ex, ey, 5, 5.5, 0, 0, Math.PI*2);
-    ctx.fillStyle=pupilG; ctx.fill();
-
-    // Inner iris detail ring
-    ctx.strokeStyle='rgba(80,140,255,0.3)'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.ellipse(ex, ey, 6.5, 7, 0, 0, Math.PI*2); ctx.stroke();
-
-    // Primary catchlight — large, bright, makes eyes pop
-    ctx.fillStyle='rgba(255,255,255,0.95)';
-    ctx.beginPath(); ctx.ellipse(ex+3, ey-4, 3.2, 3.8, -0.4, 0, Math.PI*2); ctx.fill();
-    // Secondary small catchlight
-    ctx.fillStyle='rgba(255,255,255,0.7)';
-    ctx.beginPath(); ctx.arc(ex-3.5, ey+2, 1.5, 0, Math.PI*2); ctx.fill();
-    // Tiny sparkle
-    ctx.fillStyle='rgba(200,220,255,0.5)';
-    ctx.beginPath(); ctx.arc(ex+5, ey-2, 1, 0, Math.PI*2); ctx.fill();
-
-    // Upper eyelid line — thick, confident
-    ctx.strokeStyle='#0d0d0d'; ctx.lineWidth=2.5; ctx.lineCap='round';
-    ctx.beginPath();
-    ctx.moveTo(ex-10, ey+1);
-    ctx.bezierCurveTo(ex-8, ey-10, ex+2, ey-13, ex+10, ey-2);
-    ctx.stroke();
-    // Eyelash ticks on upper lid
-    ctx.lineWidth=1.5;
-    [[-9,ey-1,-11,ey-6],[-5,ey-9,-7,ey-14],[1,ey-11,0,ey-16],[7,ey-8,9,ey-13]].forEach(([x1,y1,x2,y2])=>{
-      ctx.beginPath(); ctx.moveTo(x1+ex-ex,y1); ctx.lineTo(x2+ex-ex,y2); ctx.stroke();
-    });
-
-    // Lower eyelid — soft, subtle
-    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(ex-9, ey+2);
-    ctx.bezierCurveTo(ex-4, ey+9, ex+4, ey+9, ex+9, ey+2);
-    ctx.stroke();
-
-    // Lower lash line subtle
-    ctx.strokeStyle='rgba(30,60,120,0.4)'; ctx.lineWidth=0.8;
-    ctx.beginPath(); ctx.ellipse(ex, ey+5, 7, 3, 0, 0, Math.PI); ctx.stroke();
-
-    ctx.restore();
-  }
-  drawHandsomeEye(-13, -16);
-  drawHandsomeEye(13, -16);
-
-  // ── NOSE — elegant, small, handsome ──
-  // Subtle nose bridge shadow
-  ctx.strokeStyle='rgba(160,100,0,0.18)'; ctx.lineWidth=1.2; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-2,-10); ctx.lineTo(-1,-4); ctx.stroke();
-  // Small elegant nostrils — just tiny curved lines
-  ctx.strokeStyle='rgba(120,80,0,0.35)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(-6,1); ctx.bezierCurveTo(-5,-1,-3,-1,-2,1); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(6,1); ctx.bezierCurveTo(5,-1,3,-1,2,1); ctx.stroke();
-  // Nose tip subtle highlight
-  ctx.fillStyle='rgba(255,240,150,0.25)';
-  ctx.beginPath(); ctx.ellipse(0,-1,4,2.5,0,0,Math.PI*2); ctx.fill();
-
-  // ── MOUTH — charming smile, not too big ──
-  // Warm confident smile — not a huge grin, more natural
-  ctx.save();
-  // Shadow behind lips
-  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=4; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-12,7); ctx.bezierCurveTo(-8,12,8,12,12,7); ctx.stroke();
-  // Upper lip line
-  ctx.strokeStyle='#8a5500'; ctx.lineWidth=1.8; ctx.lineCap='round';
-  ctx.beginPath();
-  ctx.moveTo(-11,7);
-  ctx.bezierCurveTo(-6,5,-2,4,0,4);
-  ctx.bezierCurveTo(2,4,6,5,11,7);
-  ctx.stroke();
-  // Smile curve
-  ctx.strokeStyle='#222'; ctx.lineWidth=2.2;
-  ctx.beginPath(); ctx.moveTo(-12,7); ctx.bezierCurveTo(-8,13,8,13,12,7); ctx.stroke();
-  // Teeth — clean, not over-detailed
-  ctx.fillStyle='#fff8f0';
-  ctx.beginPath();
-  ctx.moveTo(-10,7.5);
-  ctx.bezierCurveTo(-6,6,6,6,10,7.5);
-  ctx.bezierCurveTo(8,12,-8,12,-10,7.5);
-  ctx.closePath(); ctx.fill();
-  // Single tooth divider
-  ctx.strokeStyle='rgba(200,200,200,0.6)'; ctx.lineWidth=0.8;
-  ctx.beginPath(); ctx.moveTo(0,7); ctx.lineTo(0,12); ctx.stroke();
-  // Lip lower
-  ctx.strokeStyle='rgba(120,80,0,0.3)'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.moveTo(-10,12); ctx.bezierCurveTo(-5,14,5,14,10,12); ctx.stroke();
-  // Lip shine
-  ctx.fillStyle='rgba(255,240,180,0.3)';
-  ctx.beginPath(); ctx.ellipse(0,9,6,2,0,0,Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  // ── CHEEKS — subtle warmth ──
-  ctx.fillStyle='rgba(255,160,60,0.13)';
-  ctx.beginPath(); ctx.ellipse(-21,3,9,6,0.2,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(21,3,9,6,-0.2,0,Math.PI*2); ctx.fill();
-  // Cheek highlight
-  ctx.fillStyle='rgba(255,240,150,0.18)';
-  ctx.beginPath(); ctx.ellipse(-22,1,5,3,0.2,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(22,1,5,3,-0.2,0,Math.PI*2); ctx.fill();
-
-  ctx.restore(); // head
-  ctx.restore(); // whole character
 }
+
+
 
 // ═══════════════════════════════════════════
 // MAIN RENDER LOOP
