@@ -1727,5 +1727,228 @@ function parts(n, emojis, cx, cy){
 
 
 </script>
+
+<!-- 🎵 RELAXING NATURE MUSIC PLAYER -->
+<style>
+#music-player {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 9999;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255,255,255,0.45);
+  border-radius: 18px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 24px rgba(80,140,80,0.18);
+  font-family: 'Segoe UI', sans-serif;
+  min-width: 210px;
+  transition: all 0.3s;
+}
+#music-player .mp-icon { font-size: 22px; }
+#music-player .mp-info { flex:1; }
+#music-player .mp-title { font-size: 12px; font-weight: 700; color: #2d6a2d; letter-spacing:0.3px; }
+#music-player .mp-sub { font-size: 10px; color: #5a8a5a; }
+#music-player .mp-btn {
+  background: #4caf50;
+  border: none;
+  border-radius: 50%;
+  width: 34px; height: 34px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.4);
+  transition: background 0.2s, transform 0.1s;
+  color: white;
+}
+#music-player .mp-btn:hover { background: #388e3c; transform: scale(1.08); }
+#music-player .mp-vol {
+  width: 60px; accent-color: #4caf50; cursor: pointer;
+}
+#music-player .mp-eq {
+  display: flex; align-items: flex-end; gap: 2px; height: 18px;
+}
+#music-player .mp-eq span {
+  display: block; width: 3px; background: #4caf50; border-radius: 2px;
+  animation: eqBar 0.8s ease-in-out infinite alternate;
+}
+#music-player .mp-eq span:nth-child(1){height:6px; animation-delay:0s}
+#music-player .mp-eq span:nth-child(2){height:14px; animation-delay:0.15s}
+#music-player .mp-eq span:nth-child(3){height:10px; animation-delay:0.3s}
+#music-player .mp-eq span:nth-child(4){height:16px; animation-delay:0.1s}
+#music-player .mp-eq span:nth-child(5){height:8px; animation-delay:0.25s}
+#music-player .mp-eq.paused span { animation: none; height: 4px; }
+@keyframes eqBar { from{transform:scaleY(0.4)} to{transform:scaleY(1)} }
+</style>
+
+<div id="music-player">
+  <div class="mp-icon">🌿</div>
+  <div class="mp-info">
+    <div class="mp-title">Alam Relaksasi</div>
+    <div class="mp-sub" id="mp-track-name">Hujan & Hutan</div>
+  </div>
+  <div class="mp-eq paused" id="mp-eq">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <button class="mp-btn" id="mp-btn" onclick="toggleMusic()" title="Play/Pause">▶</button>
+  <input class="mp-vol" type="range" min="0" max="1" step="0.05" value="0.5" oninput="setVolume(this.value)" title="Volume">
+</div>
+
+<script>
+(function(){
+  // Generate relaxing nature sounds using Web Audio API
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let ctx, rainGain, forestGain, masterGain;
+  let sources = [];
+  let playing = false;
+
+  function createRain(ctx) {
+    const bufSize = ctx.sampleRate * 3;
+    const buf = ctx.createBuffer(2, bufSize, ctx.sampleRate);
+    for(let c=0; c<2; c++){
+      const d = buf.getChannelData(c);
+      for(let i=0; i<bufSize; i++) d[i] = (Math.random()*2-1);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+
+    // Filter for rain texture
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'bandpass';
+    lp.frequency.value = 1400;
+    lp.Q.value = 0.3;
+
+    const lp2 = ctx.createBiquadFilter();
+    lp2.type = 'lowpass';
+    lp2.frequency.value = 3500;
+
+    src.connect(lp);
+    lp.connect(lp2);
+    return {src, out: lp2};
+  }
+
+  function createForest(ctx) {
+    // Soft wind / ambient hum
+    const bufSize = ctx.sampleRate * 4;
+    const buf = ctx.createBuffer(2, bufSize, ctx.sampleRate);
+    for(let c=0; c<2; c++){
+      const d = buf.getChannelData(c);
+      for(let i=0; i<bufSize; i++) d[i] = (Math.random()*2-1)*0.3;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 300;
+
+    // LFO for wind sway
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 0.08;
+    lfoGain.gain.value = 150;
+    lfo.connect(lfoGain);
+    lfoGain.connect(lp.frequency);
+    lfo.start();
+
+    src.connect(lp);
+    return {src, out: lp, extra: lfo};
+  }
+
+  function addBirds(ctx, masterGain) {
+    // Periodic bird chirp tones
+    function chirp() {
+      if(!playing) return;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      const freq = 800 + Math.random()*1200;
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(0.06, ctx.currentTime+0.05);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime+0.3);
+      osc.connect(g);
+      g.connect(masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime+0.35);
+      // Repeat pattern: 2-3 quick chirps
+      const reps = Math.floor(Math.random()*3)+1;
+      for(let i=1;i<reps;i++){
+        setTimeout(()=>{
+          if(!playing) return;
+          const o2=ctx.createOscillator(), g2=ctx.createGain();
+          o2.frequency.value = freq*(0.9+Math.random()*0.2);
+          o2.type='sine';
+          g2.gain.setValueAtTime(0,ctx.currentTime);
+          g2.gain.linearRampToValueAtTime(0.05,ctx.currentTime+0.04);
+          g2.gain.linearRampToValueAtTime(0,ctx.currentTime+0.25);
+          o2.connect(g2); g2.connect(masterGain);
+          o2.start(); o2.stop(ctx.currentTime+0.3);
+        }, i*200+Math.random()*100);
+      }
+      // Next bird call
+      setTimeout(chirp, 3000+Math.random()*8000);
+    }
+    setTimeout(chirp, 1000+Math.random()*3000);
+  }
+
+  window.toggleMusic = function() {
+    if(!playing) {
+      startMusic();
+    } else {
+      stopMusic();
+    }
+  };
+
+  window.setVolume = function(v) {
+    if(masterGain) masterGain.gain.value = v;
+  };
+
+  function startMusic() {
+    ctx = new AudioCtx();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = document.querySelector('.mp-vol').value;
+    masterGain.connect(ctx.destination);
+
+    rainGain = ctx.createGain();
+    rainGain.gain.value = 0.18;
+    rainGain.connect(masterGain);
+
+    forestGain = ctx.createGain();
+    forestGain.gain.value = 0.55;
+    forestGain.connect(masterGain);
+
+    const rain = createRain(ctx);
+    rain.src.start();
+    rain.out.connect(rainGain);
+
+    const forest = createForest(ctx);
+    forest.src.start();
+    forest.out.connect(forestGain);
+
+    sources = [rain.src, forest.src, forest.extra];
+    addBirds(ctx, masterGain);
+
+    playing = true;
+    document.getElementById('mp-btn').textContent = '⏸';
+    document.getElementById('mp-eq').classList.remove('paused');
+  }
+
+  function stopMusic() {
+    sources.forEach(s=>{ try{s.stop()}catch(e){} });
+    sources = [];
+    if(ctx){ ctx.close(); ctx=null; }
+    playing = false;
+    document.getElementById('mp-btn').textContent = '▶';
+    document.getElementById('mp-eq').classList.add('paused');
+  }
+})();
+</script>
+
 </body>
 </html>
