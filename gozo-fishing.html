@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GOZO FISHING</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
+  overflow:hidden;height:100vh;width:100vw;user-select:none;}
+
+/* ── SCREENS ── */
+.screen{position:absolute;inset:0;display:none;}
+.screen.active{display:flex;}
+
+/* ── TITLE ── */
+#titleScreen{flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 55% 45%,#1a5c35 0%,#060f07 100%);gap:18px;}
+.tlogo{font-size:40px;color:#FFD700;text-shadow:5px 5px 0 #8B1A1A,9px 9px 0 #3a0808;
+  animation:logoBounce 2s ease-in-out infinite;}
+@keyframes logoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.tsub{font-size:10px;color:#FF8C00;letter-spacing:3px;}
+.tinfo{font-size:6px;color:#4a8a55;text-align:center;line-height:2.6;max-width:420px;}
+.startbtn{background:#FFD700;color:#0d3320;border:4px solid #FF8C00;padding:14px 42px;
+  font-family:'Press Start 2P';font-size:12px;cursor:pointer;box-shadow:5px 5px 0 #8B1A1A;
+  animation:pulse 1.5s ease-in-out infinite;transition:all .1s;}
+.startbtn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 #8B1A1A;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}}
+.keyhint{font-size:6px;color:#2a5a35;text-align:center;}
+
+/* ── GAME ── */
+#gameScreen{flex-direction:column;}
+.topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 14px;
+  display:flex;align-items:center;justify-content:space-between;height:48px;flex-shrink:0;}
+.tbrand{font-size:14px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;}
+.tstats{display:flex;gap:12px;}
+.stat{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,.07);
+  border:1px solid rgba(255,215,0,.2);padding:3px 9px;font-size:7px;color:#FFD700;}
+.tbtns{display:flex;gap:7px;}
+.hbtn{background:#1a5c35;border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P';
+  font-size:6px;padding:4px 8px;cursor:pointer;transition:all .1s;}
+.hbtn:hover{background:#FFD700;color:#0d3320;}
+
+/* ── WORLD CANVAS ── */
+#worldCanvas{display:block;flex:1;cursor:crosshair;}
+
+/* ── BOTTOM BAR ── */
+.botbar{background:#020804;border-top:3px solid #FFD700;padding:6px 14px;
+  display:flex;align-items:center;gap:10px;height:78px;flex-shrink:0;}
+.blabel{font-size:6px;color:#FFD700;white-space:nowrap;}
+.bslots{display:flex;gap:5px;}
+.bslot{width:54px;height:62px;border:2px solid rgba(255,215,0,.3);background:rgba(255,215,0,.04);
+  cursor:pointer;position:relative;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;transition:all .1s;}
+.bslot.sel{border-color:#FFD700;background:rgba(255,215,0,.14);box-shadow:0 0 10px rgba(255,215,0,.3);}
+.bslot:hover{border-color:#FF8C00;}
+.bslot .bi{font-size:20px;line-height:1;}
+.bslot .bn{font-size:5px;color:#FFD700;}
+.bslot .bc{position:absolute;top:2px;right:3px;font-size:6px;color:#FFD700;}
+.bslot.empty{opacity:.3;}
+.divid{width:2px;height:60px;background:rgba(255,215,0,.1);flex-shrink:0;}
+.msg{font-size:6px;color:#5a8a5a;flex:1;line-height:2;}
+.castbtn{background:#FFD700;color:#0d3320;border:3px solid #FF8C00;font-family:'Press Start 2P';
+  font-size:9px;padding:9px 20px;cursor:pointer;box-shadow:4px 4px 0 #8B1A1A;
+  white-space:nowrap;transition:all .1s;flex-shrink:0;}
+.castbtn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #8B1A1A;}
+.castbtn.waiting{background:#ff6600;color:#fff;border-color:#cc3300;
+  animation:waitp .55s ease-in-out infinite;}
+@keyframes waitp{0%,100%{box-shadow:4px 4px 0 #8B1A1A}50%{box-shadow:4px 4px 18px #ff6600}}
+.castbtn:disabled{opacity:.5;cursor:not-allowed;transform:none;animation:none;}
+.movekeys{font-size:5px;color:#2a4a2a;text-align:center;line-height:2;}
+
+/* ── CATCH POPUP ── */
+#catchPopup{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;
+  align-items:center;justify-content:center;z-index:200;}
+#catchPopup.show{display:flex;}
+.cpop{background:#0a2014;border:4px solid #FFD700;box-shadow:8px 8px 0 #FF8C00,14px 14px 0 #8B1A1A;
+  padding:26px 34px;text-align:center;min-width:310px;
+  animation:popIn .35s cubic-bezier(.175,.885,.32,1.275);}
+@keyframes popIn{0%{transform:scale(.3) rotate(-8deg)}100%{transform:scale(1) rotate(0)}}
+.cplabel{font-size:7px;color:#FF8C00;margin-bottom:8px;}
+.cpicon{font-size:52px;margin:6px 0;animation:wigf .5s ease-in-out infinite alternate;}
+@keyframes wigf{0%{transform:rotate(-6deg) scale(1)}100%{transform:rotate(6deg) scale(1.05)}}
+.cpname{font-size:12px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;margin:7px 0;}
+.cprar{font-size:7px;margin:3px 0;}
+.cpinfo{font-size:6px;color:#666;margin:5px 0;}
+.cpgold{font-size:9px;color:#FFD700;margin:7px 0;}
+.r-common{color:#aaa;}.r-uncommon{color:#4caf50;}.r-rare{color:#42a5f5;}
+.r-epic{color:#ab47bc;}.r-legendary{color:#ffa726;animation:lglow 1s ease-in-out infinite;}
+@keyframes lglow{0%,100%{text-shadow:0 0 10px #ffa726}50%{text-shadow:0 0 26px #ffd700}}
+.cpclose{margin-top:14px;background:#FFD700;color:#0d3320;border:3px solid #FF8C00;
+  font-family:'Press Start 2P';font-size:8px;padding:9px 26px;cursor:pointer;}
+
+/* ── MODALS ── */
+#shopModal,#invModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;
+  align-items:center;justify-content:center;z-index:200;}
+#shopModal.show,#invModal.show{display:flex;}
+.mbox{background:#0a2014;border:4px solid #FFD700;box-shadow:6px 6px 0 #FF8C00;
+  padding:20px;width:520px;max-height:80vh;overflow-y:auto;}
+.mtitle{font-size:12px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;text-align:center;margin-bottom:16px;}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.sitem{background:rgba(255,215,0,.04);border:2px solid rgba(255,215,0,.18);
+  padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.sicon{font-size:24px;}.sname{font-size:6px;color:#FFD700;}
+.sdesc{font-size:5px;color:#555;text-align:center;line-height:1.7;}
+.sprice{font-size:6px;color:#FFD700;}
+.sbuy{background:#FFD700;color:#0d3320;border:2px solid #FF8C00;
+  font-family:'Press Start 2P';font-size:6px;padding:4px 10px;cursor:pointer;}
+.sbuy:hover{background:#FF8C00;}
+.mclose{display:block;margin:14px auto 0;background:transparent;color:#444;
+  border:2px solid #222;font-family:'Press Start 2P';font-size:7px;padding:7px 18px;cursor:pointer;}
+.invgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.iitem{background:rgba(255,255,255,.03);border:2px solid rgba(255,215,0,.08);
+  padding:5px 3px;text-align:center;}
+.iitem .iicon{font-size:17px;}
+.iitem .iname{font-size:4px;color:#FFD700;margin-top:2px;}
+.iitem .icount{font-size:4px;color:#333;}
+
+/* ── NOTIF ── */
+.notif{position:fixed;top:58px;right:10px;background:#0e2a18;border:2px solid #FFD700;
+  padding:7px 12px;font-size:7px;color:#FFD700;z-index:300;
+  transform:translateX(200%);transition:transform .3s;pointer-events:none;}
+.notif.show{transform:translateX(0);}
+
+.prog{margin-left:4px;}
+.plabel{font-size:5px;color:#3a5a3a;}
+.pbar{width:80px;height:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.15);margin-top:3px;}
+.pfill{height:100%;background:#FFD700;transition:width .5s;}
+</style>
+</head>
+<body>
+
+<!-- TITLE SCREEN -->
+<div id="titleScreen" class="screen active">
+  <div class="tlogo">🎣 GOZO FISHING</div>
+  <div class="tsub">RIVER ADVENTURE</div>
+  <canvas id="titleGozo" width="160" height="220" style="image-rendering:pixelated;
+    filter:drop-shadow(0 12px 28px rgba(0,0,0,.8))"></canvas>
+  <div class="tinfo">
+    50 FRESHWATER FISH · 5 BAIT TYPES · EARN GOLD<br>
+    🎮 WASD / ARROW KEYS TO MOVE GOZO<br>
+    SPACE / CLICK CAST BUTTON TO FISH
+  </div>
+  <button class="startbtn" onclick="startGame()">▶ START FISHING</button>
+  <div class="keyhint">← → move · ↑ ↓ move · SPACE = cast / reel</div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen">
+  <div class="topbar">
+    <div class="tbrand">🎣 GOZO FISHING</div>
+    <div class="tstats">
+      <div class="stat">🪙 <span id="goldD">0</span> GOLD</div>
+      <div class="stat">🐟 <span id="catchD">0</span> CAUGHT</div>
+      <div class="prog">
+        <div class="plabel" id="progLbl">0/50 SPECIES</div>
+        <div class="pbar"><div class="pfill" id="progF" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="tbtns">
+      <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
+      <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
+      <button class="hbtn" onclick="goTitle()">🏠 MENU</button>
+    </div>
+  </div>
+
+  <canvas id="worldCanvas"></canvas>
+
+  <div class="botbar">
+    <div class="blabel">BAIT:</div>
+    <div class="bslots" id="bSlots"></div>
+    <div class="divid"></div>
+    <div class="msg" id="msg">Use WASD / arrows to move. Walk to river edge, then CAST!</div>
+    <button class="castbtn" id="castBtn" onclick="handleCast()">🎣 CAST</button>
+    <div class="movekeys">WASD<br>MOVE</div>
+  </div>
+</div>
+
+<!-- CATCH POPUP -->
+<div id="catchPopup">
+  <div class="cpop">
+    <div class="cplabel">✨ FISH CAUGHT! ✨</div>
+    <div class="cpicon" id="cpIcon">🐟</div>
+    <div class="cpname" id="cpName">Golden Carp</div>
+    <div class="cprar" id="cpRar">★ Common</div>
+    <div class="cpinfo" id="cpInfo">Weight: 1.2 kg · Length: 25 cm</div>
+    <div class="cpgold" id="cpGold">+10 🪙 GOLD</div>
+    <button class="cpclose" onclick="closeCatch()">✓ AWESOME!</button>
+  </div>
+</div>
+
+<!-- SHOP MODAL -->
+<div id="shopModal">
+  <div class="mbox">
+    <div class="mtitle">🏪 BAIT SHOP</div>
+    <div class="sgrid" id="sgrid"></div>
+    <div style="margin-top:10px;font-size:5px;color:#2a4a2a;text-align:center">Higher power bait = better rarity chances</div>
+    <button class="mclose" onclick="closeShop()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- INVENTORY MODAL -->
+<div id="invModal">
+  <div class="mbox">
+    <div class="mtitle">🎒 FISH COLLECTION</div>
+    <div style="font-size:6px;color:#3a5a3a;text-align:center;margin-bottom:10px" id="invSub">0/50 discovered</div>
+    <div class="invgrid" id="invGrid"></div>
+    <button class="mclose" onclick="closeInv()">✕ CLOSE</button>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+const BAITS=[
+  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  price:5,  pw:1,
+   rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
+  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',price:15, pw:2,
+   rodColor:'#5a3a10',lineColor:'rgba(180,200,150,.8)',tipColor:'#adb'},
+  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',price:30,pw:3,
+   rodColor:'#2a4a7a',lineColor:'rgba(150,200,255,.85)',tipColor:'#7be'},
+  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',price:50, pw:4,
+   rodColor:'#1a1a1a',lineColor:'rgba(220,220,100,.9)',tipColor:'#ff0'},
+  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',price:100,pw:5,
+   rodColor:'#7a5a00',lineColor:'rgba(255,215,0,.95)',tipColor:'#ffd700'},
+];
+const RARITY=['Common','Uncommon','Rare','Epic','Legendary'];
+const RCSS=['r-common','r-uncommon','r-rare','r-epic','r-legendary'];
+const RCOL=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+const FISH=[
+  {id:0,n:'Golden Carp',       i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,40], g:10},
+  {id:1,n:'Catfish',           i:'🐟',r:0,mp:1,w:[.5,5],  l:[20,60], g:12},
+  {id:2,n:'Tilapia',           i:'🐟',r:0,mp:1,w:[.2,2],  l:[10,30], g:9},
+  {id:3,n:'Nile Perch',        i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,35], g:9},
+  {id:4,n:'Snakehead',         i:'🐠',r:0,mp:1,w:[.4,4],  l:[20,50], g:11},
+  {id:5,n:'Rasbora',           i:'🐟',r:0,mp:1,w:[.1,1],  l:[5,15],  g:7},
+  {id:6,n:'Climbing Perch',    i:'🐟',r:0,mp:1,w:[.2,2],  l:[10,22], g:8},
+  {id:7,n:'Gourami',           i:'🐟',r:0,mp:1,w:[.1,1.5],l:[8,20],  g:7},
+  {id:8,n:'Puntius Barb',      i:'🐠',r:0,mp:1,w:[.2,2],  l:[10,25], g:8},
+  {id:9,n:'Walking Catfish',   i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,35], g:9},
+  {id:10,n:'Tawes',            i:'🐠',r:1,mp:1,w:[.5,5],  l:[20,50], g:20},
+  {id:11,n:'Bream',            i:'🐠',r:1,mp:1,w:[.4,4],  l:[18,45], g:18},
+  {id:12,n:'Kissing Gourami',  i:'🐠',r:1,mp:2,w:[.3,3],  l:[15,30], g:22},
+  {id:13,n:'Giant Gourami',    i:'🐠',r:1,mp:2,w:[1,8],   l:[25,60], g:25},
+  {id:14,n:'River Catfish',    i:'🐠',r:1,mp:2,w:[.5,6],  l:[22,55], g:23},
+  {id:15,n:'Silver Carp',      i:'🐠',r:1,mp:1,w:[.5,8],  l:[20,60], g:19},
+  {id:16,n:'Hampala Barb',     i:'🐠',r:1,mp:2,w:[.3,4],  l:[15,40], g:21},
+  {id:17,n:'Striped Catfish',  i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,50], g:20},
+  {id:18,n:'Tinfoil Barb',     i:'🐠',r:1,mp:2,w:[.4,4],  l:[18,40], g:19},
+  {id:19,n:'Red Oscar',        i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,45], g:22},
+  {id:20,n:'Goldfish',         i:'🐡',r:2,mp:2,w:[.2,2],  l:[10,25], g:40},
+  {id:21,n:'River Eel',        i:'🐡',r:2,mp:2,w:[.5,10], l:[30,100],g:45},
+  {id:22,n:'Bala Shark',       i:'🐡',r:2,mp:2,w:[.3,3],  l:[15,35], g:38},
+  {id:23,n:'Royal Knifefish',  i:'🐡',r:2,mp:3,w:[1,15],  l:[40,100],g:50},
+  {id:24,n:'Giant Wallago',    i:'🐡',r:2,mp:3,w:[2,20],  l:[50,120],g:55},
+  {id:25,n:'Asian Arowana',    i:'🐡',r:2,mp:3,w:[1,8],   l:[40,90], g:60},
+  {id:26,n:'Ropefish',         i:'🐡',r:2,mp:3,w:[.5,5],  l:[25,60], g:48},
+  {id:27,n:'Mahseer',          i:'🐡',r:2,mp:2,w:[1,10],  l:[30,80], g:42},
+  {id:28,n:'Tor Barb',         i:'🐡',r:2,mp:3,w:[1,12],  l:[35,90], g:52},
+  {id:29,n:'Tinfoil Shark',    i:'🐡',r:2,mp:3,w:[.5,6],  l:[25,65], g:44},
+  {id:30,n:'Semah Barb',       i:'✨',r:3,mp:3,w:[2,25],  l:[50,130],g:80},
+  {id:31,n:'Giant Mahseer',    i:'✨',r:3,mp:3,w:[3,30],  l:[55,140],g:90},
+  {id:32,n:'Giant Snakehead',  i:'✨',r:3,mp:3,w:[2,20],  l:[45,120],g:85},
+  {id:33,n:'Giant Pangasius',  i:'✨',r:3,mp:4,w:[5,40],  l:[70,150],g:100},
+  {id:34,n:'Jelawat',          i:'✨',r:3,mp:4,w:[3,25],  l:[55,130],g:88},
+  {id:35,n:'Glass Catfish',    i:'✨',r:3,mp:4,w:[.1,.5], l:[10,20], g:75},
+  {id:36,n:'Clown Knifefish',  i:'✨',r:3,mp:3,w:[1,12],  l:[35,90], g:78},
+  {id:37,n:'Giant Prawn',      i:'✨',r:3,mp:4,w:[1,8],   l:[30,80], g:92},
+  {id:38,n:'Ringau Bass',      i:'✨',r:3,mp:4,w:[2,18],  l:[45,115],g:86},
+  {id:39,n:'Toman King',       i:'✨',r:3,mp:3,w:[1,10],  l:[32,85], g:80},
+  {id:40,n:'Arapaima Gigas',   i:'🌟',r:4,mp:5,w:[50,200],l:[150,300],g:500},
+  {id:41,n:'Mekong Giant Cat', i:'🌟',r:4,mp:5,w:[100,300],l:[200,400],g:600},
+  {id:42,n:'Freshwater Ray',   i:'🌟',r:4,mp:5,w:[30,150],l:[80,200], g:400},
+  {id:43,n:'River King',       i:'🌟',r:4,mp:5,w:[25,120],l:[100,220],g:350},
+  {id:44,n:'Golden Dragon',    i:'🌟',r:4,mp:5,w:[15,80], l:[90,200], g:450},
+  {id:45,n:'Rainbow Arowana',  i:'🌟',r:4,mp:5,w:[10,60], l:[70,180], g:380},
+  {id:46,n:'Crystal Fish',     i:'🌟',r:4,mp:5,w:[5,40],  l:[60,160], g:320},
+  {id:47,n:'Ghost Knifefish',  i:'🌟',r:4,mp:5,w:[8,50],  l:[65,170], g:360},
+  {id:48,n:'Golden God Fish',  i:'🌟',r:4,mp:5,w:[20,100],l:[100,230],g:480},
+  {id:49,n:'Ancient Leviathan',i:'🌟',r:4,mp:5,w:[40,180],l:[130,280],g:550},
+];
+
+// ═══════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════
+let G={
+  gold:0, bait:[10,0,0,0,0], sel:0,
+  caught:{}, total:0,
+  casting:false, waiting:false, timer:null,
+  // Gozo
+  gz:{x:200, y:0, vx:0, vy:0, facing:1, // 1=right,-1=left
+      dir:'down', // 'up','down','left','right' - last movement direction
+      walking:false, walkFrame:0, walkTimer:0,
+      isFishing:false, atWater:false},
+  // Camera / world
+  camX:0,
+  // Bobber
+  bob:{active:false, x:0, y:0, alert:false, phase:0},
+  // World particles (river current)
+  particles:[],
+  // Time
+  t:0,
+};
+
+// Keys
+const keys={};
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='Space'){e.preventDefault();handleCast();}
+  if(e.code==='ArrowLeft'||e.code==='ArrowRight'||
+     e.code==='ArrowUp'  ||e.code==='ArrowDown' ||
+     e.code==='KeyW'     ||e.code==='KeyS'       ||
+     e.code==='KeyA'     ||e.code==='KeyD') e.preventDefault();
+});
+document.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+// ═══════════════════════════════════════════
+// CANVAS SETUP
+// ═══════════════════════════════════════════
+let canvas, ctx, W, H;
+// World layout constants (recalculated on resize)
+let SKY_H, FAR_BANK_Y, FAR_BANK_H, RIVER_Y, RIVER_H, GROUND_Y;
+const WORLD_W = 2400; // scrollable world width
+
+function resizeCanvas(){
+  canvas = document.getElementById('worldCanvas');
+  const gs = document.getElementById('gameScreen');
+  W = gs.clientWidth;
+  H = gs.clientHeight - 48 - 78; // minus topbar and botbar
+  canvas.width = W;
+  canvas.height = H;
+  ctx = canvas.getContext('2d');
+  SKY_H    = Math.round(H * 0.14);
+  FAR_BANK_Y = SKY_H;
+  FAR_BANK_H = Math.round(H * 0.09);
+  RIVER_Y  = FAR_BANK_Y + FAR_BANK_H;
+  RIVER_H  = Math.round(H * 0.38);
+  GROUND_Y = RIVER_Y + RIVER_H;
+  // Set gozo start y
+  G.gz.y = GROUND_Y + 2;
+}
+
+// ═══════════════════════════════════════════
+// TREE GENERATOR (anime-style: mango, banyan)
+// ═══════════════════════════════════════════
+let treeCache = null;
+function buildTrees(){
+  treeCache = [];
+  // Far bank trees (mango & banyan mix)
+  const farPositions = [];
+  for(let x=80;x<WORLD_W-60;x+=110+Math.floor(Math.random()*80)) farPositions.push(x);
+  farPositions.forEach(x=>{
+    const type = Math.random()<0.5?'mango':'banyan';
+    treeCache.push({x, y: FAR_BANK_Y + FAR_BANK_H, type, scale: 0.55+Math.random()*0.3, layer:'far'});
+  });
+  // Near bank trees (ground level, behind gozo)
+  const nearPositions = [40,250,500,750,1050,1300,1600,1850,2100];
+  nearPositions.forEach(x=>{
+    const type = Math.random()<0.55?'mango':'banyan';
+    treeCache.push({x, y: GROUND_Y, type, scale: 0.75+Math.random()*0.4, layer:'near'});
+  });
+}
+
+function drawMango(ctx, x, y, scale, t){
+  const s = scale;
+  ctx.save();
+  ctx.translate(x, y);
+  // Trunk
+  ctx.fillStyle='#5a3010';
+  ctx.beginPath();
+  ctx.moveTo(-6*s,0); ctx.lineTo(6*s,0);
+  ctx.lineTo(5*s,-45*s); ctx.lineTo(-5*s,-45*s);
+  ctx.closePath(); ctx.fill();
+  // Trunk detail lines
+  ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1.5*s;
+  ctx.beginPath();ctx.moveTo(-2*s,0);ctx.lineTo(-3*s,-44*s);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(3*s,0);ctx.lineTo(2*s,-44*s);ctx.stroke();
+
+  // Main branches
+  ctx.strokeStyle='#4a2808';ctx.lineWidth=4*s;
+  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.quadraticCurveTo(-20*s,-52*s,-30*s,-48*s);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.quadraticCurveTo(18*s,-52*s,28*s,-46*s);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.lineTo(0,-58*s);ctx.stroke();
+
+  // Wind sway offset
+  const sway = Math.sin(t*0.8 + x*0.01)*2*s;
+
+  // 3 overlapping foliage blobs (anime style: bold outline, flat color)
+  const foliageClusters=[
+    {cx:-24*s,cy:-58*s,rx:28*s,ry:22*s},
+    {cx:0,    cy:-72*s,rx:32*s,ry:26*s},
+    {cx:24*s, cy:-58*s,rx:26*s,ry:20*s},
+    {cx:-8*s, cy:-55*s,rx:18*s,ry:16*s},
+    {cx:10*s, cy:-65*s,rx:16*s,ry:14*s},
+  ];
+  // Shadow layer
+  foliageClusters.forEach(c=>{
+    ctx.beginPath();
+    ctx.ellipse(c.cx+sway+2*s,c.cy+4*s,c.rx,c.ry,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,40,0,0.22)';ctx.fill();
+  });
+  // Dark green back layer
+  foliageClusters.forEach(c=>{
+    ctx.beginPath();
+    ctx.ellipse(c.cx+sway,c.cy,c.rx,c.ry,0,0,Math.PI*2);
+    ctx.fillStyle='#1a6b1a';ctx.fill();
+    ctx.strokeStyle='#0d3d0d';ctx.lineWidth=1.8*s;ctx.stroke();
+  });
+  // Mid green
+  foliageClusters.forEach((c,i)=>{
+    if(i%2===0){
+      ctx.beginPath();
+      ctx.ellipse(c.cx+sway-2*s,c.cy-3*s,c.rx*0.78,c.ry*0.72,0,0,Math.PI*2);
+      ctx.fillStyle='#2d8c2d';ctx.fill();
+    }
+  });
+  // Light top highlight (anime sheen)
+  foliageClusters.forEach((c,i)=>{
+    if(i===1||i===0){
+      ctx.beginPath();
+      ctx.ellipse(c.cx+sway-4*s,c.cy-6*s,c.rx*0.5,c.ry*0.42,-0.3,0,Math.PI*2);
+      ctx.fillStyle='rgba(120,200,80,0.35)';ctx.fill();
+    }
+  });
+  // Manga-style outline on top foliage
+  ctx.strokeStyle='#0a2a0a';ctx.lineWidth=2.5*s;
+  ctx.beginPath();
+  ctx.ellipse(sway,   -70*s, 32*s,26*s,0,0,Math.PI*2);
+  ctx.stroke();
+
+  // Mango fruits (small orange ovals)
+  if(scale>0.6){
+    [[-18,-52],[10,-56],[-4,-48],[20,-50]].forEach(([fx,fy])=>{
+      ctx.beginPath();
+      ctx.ellipse(fx*s+sway,fy*s,4*s,5*s,-0.3,0,Math.PI*2);
+      ctx.fillStyle='#e8921a';ctx.fill();
+      ctx.strokeStyle='#a05010';ctx.lineWidth=1*s;ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+
+function drawBanyan(ctx, x, y, scale, t){
+  const s=scale;
+  ctx.save();
+  ctx.translate(x,y);
+  const sway=Math.sin(t*0.6+x*0.008)*3*s;
+
+  // Aerial roots (characteristic of banyan)
+  const rootPairs=[[-30,-40,-18,0],[12,-35,22,0],[-50,-25,-38,0],[35,-22,45,0],[-15,-30,-8,0]];
+  ctx.strokeStyle='rgba(80,45,10,0.7)';ctx.lineWidth=2*s;
+  rootPairs.forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();
+    ctx.moveTo(x1*s+sway*0.3,y1*s);
+    ctx.quadraticCurveTo((x1+x2)/2*s+sway*0.5,(y1+y2)/2*s-10*s,x2*s,y2);
+    ctx.stroke();
+  });
+
+  // Main trunk (wide, gnarled)
+  ctx.fillStyle='#6b4010';
+  ctx.beginPath();
+  ctx.moveTo(-10*s,0);ctx.bezierCurveTo(-12*s,-20*s,-8*s,-35*s,0,-48*s);
+  ctx.bezierCurveTo(8*s,-35*s,12*s,-20*s,10*s,0);
+  ctx.closePath();ctx.fill();
+  // Bark texture
+  ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1.5*s;
+  ctx.beginPath();ctx.moveTo(-5*s,0);ctx.bezierCurveTo(-7*s,-20*s,-4*s,-38*s,0,-48*s);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(5*s,0);ctx.bezierCurveTo(7*s,-20*s,4*s,-38*s,0,-48*s);ctx.stroke();
+
+  // Branches spreading wide
+  const branches=[
+    [0,-48,-45*s,-38*s],
+    [0,-48, 45*s,-38*s],
+    [0,-48,  0, -68*s],
+    [0,-48,-22*s,-62*s],
+    [0,-48, 22*s,-62*s],
+    [-10,-38,-38*s,-52*s],
+    [10,-38, 38*s,-52*s],
+  ];
+  ctx.strokeStyle='#5a3510';ctx.lineWidth=3*s;
+  branches.forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();
+    ctx.moveTo(x1*s,y1*s);
+    ctx.quadraticCurveTo((x1+x2/s)*0.5*s+sway,(y1+y2/s)*0.5*s,x2,y2);
+    ctx.stroke();
+  });
+
+  // Large flat canopy layers (banyan style)
+  const canopyLayers=[
+    {cx:0,cy:-60*s,rx:52*s,ry:18*s},
+    {cx:-12*s,cy:-50*s,rx:48*s,ry:15*s},
+    {cx:10*s,cy:-70*s,rx:40*s,ry:16*s},
+    {cx:-24*s,cy:-42*s,rx:32*s,ry:14*s},
+    {cx:24*s,cy:-44*s,rx:30*s,ry:13*s},
+    {cx:0,cy:-78*s,rx:28*s,ry:13*s},
+  ];
+  // Shadow
+  canopyLayers.forEach(c=>{
+    ctx.beginPath();
+    ctx.ellipse(c.cx+sway+3*s,c.cy+6*s,c.rx,c.ry*0.7,0,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,25,0,0.18)';ctx.fill();
+  });
+  // Dark base
+  canopyLayers.forEach(c=>{
+    ctx.beginPath();
+    ctx.ellipse(c.cx+sway,c.cy,c.rx,c.ry,0,0,Math.PI*2);
+    ctx.fillStyle='#134a13';ctx.fill();
+    ctx.strokeStyle='#0a2a0a';ctx.lineWidth=2*s;ctx.stroke();
+  });
+  // Mid tone
+  canopyLayers.forEach((c,i)=>{
+    if(i<4){
+      ctx.beginPath();
+      ctx.ellipse(c.cx+sway-3*s,c.cy-4*s,c.rx*0.72,c.ry*0.65,0,0,Math.PI*2);
+      ctx.fillStyle='#1e7a1e';ctx.fill();
+    }
+  });
+  // Highlight
+  ctx.beginPath();
+  ctx.ellipse(sway-5*s,-64*s,22*s,10*s,-0.2,0,Math.PI*2);
+  ctx.fillStyle='rgba(80,180,60,0.28)';ctx.fill();
+
+  // Hanging vine lines (characteristic banyan detail)
+  for(let v=-30;v<=30;v+=12){
+    const vx=(v+sway/2)*s;
+    ctx.strokeStyle='rgba(80,120,40,0.4)';ctx.lineWidth=1*s;
+    ctx.beginPath();
+    ctx.moveTo(vx,-55*s);
+    ctx.quadraticCurveTo(vx+3*s,-35*s,vx+1*s,-10*s);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+// RIVER PARTICLES (current effect: top→bottom)
+// ═══════════════════════════════════════════
+function initParticles(){
+  G.particles=[];
+  for(let i=0;i<80;i++){
+    G.particles.push(newParticle(true));
+  }
+}
+function newParticle(randomY=false){
+  return {
+    x: -G.camX + Math.random()*W,
+    y: RIVER_Y + (randomY ? Math.random()*RIVER_H : -8),
+    vy: 18+Math.random()*28,  // downward flow
+    vx: (Math.random()-.5)*6, // slight horizontal drift
+    len: 8+Math.random()*18,
+    alpha: 0.06+Math.random()*0.14,
+    w: .8+Math.random()*1.2,
+    life: 1,
+  };
+}
+function updateParticles(dt){
+  G.particles.forEach(p=>{
+    p.y += p.vy*dt;
+    p.x += p.vx*dt;
+    if(p.y > RIVER_Y+RIVER_H+10){
+      Object.assign(p, newParticle(false));
+      p.x = -G.camX + Math.random()*W;
+    }
+  });
+  // spawn extras if needed
+  while(G.particles.length<80) G.particles.push(newParticle(true));
+}
+
+// ═══════════════════════════════════════════
+// DRAW GOZO (full character on canvas)
+// ═══════════════════════════════════════════
+// ── GOZO BACK VIEW (facing up / toward river) ──
+function drawGozoBack(ctx, walking, frame, isFishing, baitIdx){
+  const bait = BAITS[baitIdx];
+  const t = frame * 0.18;
+  const legSwing = walking ? Math.sin(t)*10 : 0;
+  const armSwing = walking ? Math.sin(t+Math.PI)*6 : 0;
+  const bobY = walking ? Math.abs(Math.sin(t))*3 : 0;
+  const by2 = -bobY;
+
+  // Shadow
+  ctx.save();
+  ctx.globalAlpha=0.25; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(0,2,22,5,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── LEGS ──
+  ctx.save(); ctx.translate(-9,by2); ctx.rotate(legSwing*Math.PI/180);
+  ctx.fillStyle='#1e2d5a'; ctx.fillRect(-6,0,12,36);
+  // Back shading on jeans
+  ctx.fillStyle='rgba(0,0,0,0.1)'; ctx.fillRect(-5,2,10,32);
+  ctx.restore();
+  ctx.save(); ctx.translate(9,by2); ctx.rotate(-legSwing*Math.PI/180);
+  ctx.fillStyle='#1a2852'; ctx.fillRect(-6,0,12,36);
+  ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(-5,2,10,32);
+  ctx.restore();
+
+  // Belt
+  ctx.fillStyle='#0d1520'; ctx.fillRect(-16,by2-2,32,7);
+  ctx.fillStyle='#888'; ctx.fillRect(-3,by2-1,6,5);
+  // Wallet chain back
+  ctx.strokeStyle='rgba(192,192,192,0.5)'; ctx.lineWidth=1.5;
+  ctx.setLineDash([3,2]);
+  ctx.beginPath(); ctx.moveTo(8,by2+5); ctx.quadraticCurveTo(16,by2+20,12,36); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── BACK TORSO ──
+  // Back of yellow body (no necklace visible from back)
+  const backGrad = ctx.createLinearGradient(-16,-48,16,-4);
+  backGrad.addColorStop(0,'#e8b800');  // slightly darker (shadow side)
+  backGrad.addColorStop(0.4,'#FFD700');
+  backGrad.addColorStop(1,'#d4a000');
+  ctx.fillStyle = backGrad;
+  ctx.beginPath();
+  ctx.moveTo(-16,by2);
+  ctx.bezierCurveTo(-18,by2-18,-16,by2-40,-12,by2-48);
+  ctx.lineTo(12,by2-48);
+  ctx.bezierCurveTo(16,by2-40,18,by2-18,16,by2);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1; ctx.stroke();
+  // Spine shadow
+  ctx.strokeStyle='rgba(0,0,0,0.07)'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(0,by2); ctx.lineTo(0,by2-46); ctx.stroke();
+  // Shoulder blades subtle
+  ctx.fillStyle='rgba(0,0,0,0.06)';
+  ctx.beginPath(); ctx.ellipse(-9,by2-32,7,5,0.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(9,by2-32,7,5,-0.3,0,Math.PI*2); ctx.fill();
+
+  // ── ARMS (back — arms hang behind) ──
+  ctx.save(); ctx.translate(-16,by2-42); ctx.rotate((armSwing-5)*Math.PI/180);
+  ctx.fillStyle='#e8b800';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(-10,4,-14,20,-12,36);
+  ctx.bezierCurveTo(-6,38,0,36,2,34); ctx.bezierCurveTo(0,20,-2,6,0,0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-8,38,7,6,-0.2,0,Math.PI*2); ctx.fillStyle='#e8b800'; ctx.fill();
+  ctx.restore();
+
+  ctx.save(); ctx.translate(16,by2-42);
+  if(isFishing) ctx.rotate(-55*Math.PI/180);
+  else ctx.rotate((-armSwing+5)*Math.PI/180);
+  ctx.fillStyle='#e8b800';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.bezierCurveTo(10,4,14,20,12,36);
+  ctx.bezierCurveTo(6,38,0,36,-2,34); ctx.bezierCurveTo(0,20,2,6,0,0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(8,38,7,6,0.2,0,Math.PI*2); ctx.fillStyle='#e8b800'; ctx.fill();
+  ctx.restore();
+
+  // ── FISHING ROD (back view) ──
+  if(isFishing){
+    const hx0=18, hy0=by2-46;
+    const rodDeg=-50, rodRad=rodDeg*Math.PI/180;
+    const rodLen=90;
+    const rdx=Math.cos(rodRad), rdy=Math.sin(rodRad);
+    const htipX=hx0+rdx*rodLen, htipY=hy0+rdy*rodLen;
+    G.gz.rodTipLocal={lx:htipX, ly:htipY};
+
+    ctx.save();
+    function rodPtB(t,hw){
+      const px=hx0+rdx*rodLen*t, py=hy0+rdy*rodLen*t;
+      const px2=-rdy, py2=rdx;
+      return [[px-px2*hw,py-py2*hw],[px+px2*hw,py+py2*hw]];
+    }
+    // Cork handle
+    const ch0=rodPtB(0,4.5), ch1=rodPtB(0.15,4.2);
+    ctx.fillStyle='#c8a060';
+    ctx.beginPath(); ctx.moveTo(ch0[0][0],ch0[0][1]); ctx.lineTo(ch0[1][0],ch0[1][1]);
+    ctx.lineTo(ch1[1][0],ch1[1][1]); ctx.lineTo(ch1[0][0],ch1[0][1]); ctx.closePath(); ctx.fill();
+    // Reel seat
+    const rs0=rodPtB(0.14,4.8), rs1=rodPtB(0.25,4.5);
+    ctx.fillStyle='#444';
+    ctx.beginPath(); ctx.moveTo(rs0[0][0],rs0[0][1]); ctx.lineTo(rs0[1][0],rs0[1][1]);
+    ctx.lineTo(rs1[1][0],rs1[1][1]); ctx.lineTo(rs1[0][0],rs1[0][1]); ctx.closePath(); ctx.fill();
+    // Reel
+    const rcx=hx0+rdx*rodLen*0.19, rcy=hy0+rdy*rodLen*0.19;
+    const perpX=-rdy, perpY=rdx;
+    const rx=rcx+perpX*7, ry=rcy+perpY*7;
+    ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRad,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#666'; ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRad,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#999'; ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRad,0,Math.PI*2); ctx.fill();
+    // Rod blank
+    for(let i=0;i<8;i++){
+      const t0=0.22+(i/8)*0.78, t1=0.22+((i+1)/8)*0.78;
+      const w0=3.5*(1-t0*0.85), w1=3.5*(1-t1*0.85);
+      const s0=rodPtB(t0,w0), s1=rodPtB(t1,w1);
+      ctx.fillStyle=bait.rodColor;
+      ctx.beginPath(); ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
+      ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]); ctx.closePath(); ctx.fill();
+    }
+    // Guides
+    [0.35,0.48,0.60,0.72,0.84,0.95].forEach((t,i)=>{
+      const gp=rodPtB(t,0); const gw=Math.max(0.8,3.0-i*0.35);
+      ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
+      ctx.beginPath(); ctx.ellipse(gp[0][0],gp[0][1],gw,gw*0.5,rodRad,0,Math.PI*2); ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── NECK (back) ──
+  ctx.fillStyle='#e8b800'; ctx.fillRect(-6,by2-58,12,14);
+
+  // ── HEAD BACK ──
+  ctx.save(); ctx.translate(0,by2-58);
+
+  // Head shape from back (slightly narrower, no face details)
+  const hbGrad=ctx.createRadialGradient(0,-22,4,0,-22,28);
+  hbGrad.addColorStop(0,'#FFD700');
+  hbGrad.addColorStop(0.7,'#e8b800');
+  hbGrad.addColorStop(1,'#d0a000');
+  ctx.fillStyle=hbGrad;
+  ctx.beginPath(); ctx.ellipse(0,-22,26,28,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.1)'; ctx.lineWidth=1; ctx.stroke();
+
+  // Back of hair (full, dark — more visible from back)
+  ctx.fillStyle='#111';
+  ctx.beginPath();
+  ctx.moveTo(-22,-10);
+  ctx.bezierCurveTo(-28,-6,-26,4,-20,6);
+  ctx.bezierCurveTo(-14,4,-10,-2,-8,-8);
+  ctx.lineTo(8,-8);
+  ctx.bezierCurveTo(10,-2,14,4,20,6);
+  ctx.bezierCurveTo(26,4,28,-6,22,-10);
+  ctx.bezierCurveTo(18,-14,10,-16,0,-16);
+  ctx.bezierCurveTo(-10,-16,-18,-14,-22,-10);
+  ctx.closePath(); ctx.fill();
+
+  // Side hair tufts
+  ctx.beginPath(); ctx.moveTo(-26,-14); ctx.bezierCurveTo(-30,-8,-28,2,-24,4);
+  ctx.bezierCurveTo(-22,2,-23,-10,-20,-16); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(26,-14); ctx.bezierCurveTo(30,-8,28,2,24,4);
+  ctx.bezierCurveTo(22,2,23,-10,20,-16); ctx.closePath(); ctx.fill();
+
+  // RED CAP from back
+  ctx.fillStyle='#8B1A1A';
+  ctx.beginPath(); ctx.ellipse(0,-42,27,14,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(0,-42,27,Math.PI,0); ctx.fillStyle='#8B1A1A'; ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.5; ctx.stroke();
+  // Cap back — slightly darker
+  ctx.fillStyle='rgba(0,0,0,0.1)';
+  ctx.beginPath(); ctx.ellipse(0,-42,27,14,0,0,Math.PI*2); ctx.fill();
+  // Back brim (small, only edges visible)
+  ctx.fillStyle='#5a0e0e';
+  ctx.beginPath(); ctx.ellipse(0,-30,12,5,0,Math.PI*0.1,Math.PI*0.9); ctx.closePath(); ctx.fill();
+  // Strap at back of cap
+  ctx.fillStyle='#333';
+  ctx.fillRect(-8,-27,16,4);
+  ctx.fillStyle='#555'; ctx.fillRect(-2,-28,4,6);
+  // Button on top
+  ctx.fillStyle='#5a0e0e'; ctx.beginPath(); ctx.arc(0,-54,3,0,Math.PI*2); ctx.fill();
+
+  // Ear (back view — both ears visible)
+  ctx.restore();
+  ctx.save(); ctx.translate(0,by2-58);
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath(); ctx.ellipse(-26,-22,7,9,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d4a000'; ctx.beginPath(); ctx.ellipse(-26,-22,4,6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath(); ctx.ellipse(26,-22,7,9,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#d4a000'; ctx.beginPath(); ctx.ellipse(26,-22,4,6,0,0,Math.PI*2); ctx.fill();
+
+  ctx.restore(); // head
+}
+
+function drawGozoCharacter(ctx, px, py, facing, dir, walking, frame, isFishing, baitIdx){
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.scale(facing, 1); // facing=1 right, facing=-1 flips left
+
+  // ── BACK VIEW when facing up (toward river) ──
+  if(dir === 'up'){
+    drawGozoBack(ctx, walking, frame, isFishing, baitIdx);
+    ctx.restore();
+    return;
+  }
+
+  const t = frame * 0.18;
+  const legSwing = walking ? Math.sin(t)*10 : 0;
+  const armSwing = walking ? Math.sin(t+Math.PI)*6 : 0;
+  const bobY     = walking ? Math.abs(Math.sin(t))*3 : 0;
+
+  const S = 1.0; // scale
+  const by2 = -bobY; // body bob
+
+  // Shadow
+  ctx.save();
+  ctx.globalAlpha=0.25;
+  ctx.fillStyle='#000';
+  ctx.beginPath();ctx.ellipse(0,2,22,5,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  // ── LEGS ──
+  // Left leg
+  ctx.save();
+  ctx.translate(-9,by2);
+  ctx.rotate(legSwing*Math.PI/180);
+  // Jeans
+  ctx.fillStyle='#1e2d5a';
+  ctx.fillRect(-6,0,12,36);
+  // Jean highlight
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  ctx.fillRect(-5,2,4,32);
+  ctx.restore();
+
+  // Right leg
+  ctx.save();
+  ctx.translate(9,by2);
+  ctx.rotate(-legSwing*Math.PI/180);
+  ctx.fillStyle='#1a2852';
+  ctx.fillRect(-6,0,12,36);
+  ctx.fillStyle='rgba(255,255,255,0.06)';
+  ctx.fillRect(3,2,4,32);
+  ctx.restore();
+
+  // Belt
+  ctx.fillStyle='#0d1520';
+  ctx.fillRect(-16,by2-2,32,7);
+  ctx.fillStyle='#bbb';
+  ctx.fillRect(-4,by2-1,8,5);
+
+  // Wallet chain
+  ctx.strokeStyle='rgba(192,192,192,0.7)';ctx.lineWidth=1.5;
+  ctx.setLineDash([3,2]);
+  ctx.beginPath();ctx.moveTo(8,by2+5);ctx.quadraticCurveTo(18,by2+22,14,36);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── TORSO ──
+  ctx.save();
+  ctx.translate(0,by2);
+  // Body
+  const bodyGrad = ctx.createLinearGradient(-16,-48,16,-4);
+  bodyGrad.addColorStop(0,'#FFD700');
+  bodyGrad.addColorStop(0.5,'#FFE340');
+  bodyGrad.addColorStop(1,'#e8c000');
+  ctx.fillStyle=bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(-16,0);
+  ctx.bezierCurveTo(-18,-18,-16,-40,-12,-48);
+  ctx.lineTo(12,-48);
+  ctx.bezierCurveTo(16,-40,18,-18,16,0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=1;ctx.stroke();
+
+  // Body highlight
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath();ctx.ellipse(-5,-28,6,12,-0.2,0,Math.PI*2);ctx.fill();
+
+  // Silver necklace
+  ctx.strokeStyle='#d0d0d0';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-14,-44);ctx.quadraticCurveTo(0,-36,14,-44);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(-14,-44);ctx.quadraticCurveTo(0,-34,14,-44);ctx.stroke();
+  // Chain links
+  [[-10,-42],[-4,-39],[0,-38],[4,-39],[10,-42]].forEach(([cx,cy])=>{
+    ctx.beginPath();ctx.arc(cx,cy,1.8,0,Math.PI*2);
+    ctx.fillStyle='#ccc';ctx.fill();
+    ctx.strokeStyle='#aaa';ctx.lineWidth=0.6;ctx.stroke();
+  });
+  ctx.restore(); // body
+
+  // ── ARMS ──
+  const bait = BAITS[baitIdx];
+
+  // Left arm
+  ctx.save();
+  ctx.translate(-16,by2-42);
+  ctx.rotate((armSwing-5)*Math.PI/180);
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath();
+  ctx.moveTo(0,0);ctx.bezierCurveTo(-10,4,-14,20,-12,36);
+  ctx.bezierCurveTo(-6,38,0,36,2,34);
+  ctx.bezierCurveTo(0,20,-2,6,0,0);
+  ctx.closePath();ctx.fill();
+  // Hand
+  ctx.beginPath();ctx.ellipse(-8,38,7,6,-0.2,0,Math.PI*2);
+  ctx.fillStyle='#FFD700';ctx.fill();
+  ctx.restore();
+
+  // Right arm (fishing or swing)
+  ctx.save();
+  ctx.translate(16,by2-42);
+  if(isFishing){
+    ctx.rotate(-55*Math.PI/180); // raised for casting
+  } else {
+    ctx.rotate((-armSwing+5)*Math.PI/180);
+  }
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath();
+  ctx.moveTo(0,0);ctx.bezierCurveTo(10,4,14,20,12,36);
+  ctx.bezierCurveTo(6,38,0,36,-2,34);
+  ctx.bezierCurveTo(0,20,2,6,0,0);
+  ctx.closePath();ctx.fill();
+  // Hand
+  ctx.beginPath();ctx.ellipse(8,38,7,6,0.2,0,Math.PI*2);
+  ctx.fillStyle='#FFD700';ctx.fill();
+  ctx.restore();
+
+  // ── FISHING ROD ── drawn in local character space, rod raises up-forward
+  if(isFishing){
+    // All coords below are in LOCAL character space (origin = character feet)
+    // Hand holds rod at approximately right side, mid-body height
+    const hx0 = 18, hy0 = by2 - 46; // grip start (butt of rod at hand)
+
+    // Rod direction: up and forward (positive X = character's forward, negative Y = up)
+    // Angle from horizontal: 50 degrees upward
+    const rodDeg = -50; // degrees from +X axis, negative = upward
+    const rodRadians = rodDeg * Math.PI / 180;
+    const rodTotalLen = 90;
+
+    // Unit vector along rod
+    const rdx = Math.cos(rodRadians); // forward component
+    const rdy = Math.sin(rodRadians); // upward component (negative)
+
+    // Rod tip local position
+    const htipX = hx0 + rdx * rodTotalLen;
+    const htipY = hy0 + rdy * rodTotalLen;
+
+    // Store for line drawing (in local space, facing will be applied in render)
+    G.gz.rodTipLocal = { lx: htipX, ly: htipY };
+
+    ctx.save();
+
+    // Draw rod as thick tapered line using perpendicular offsets
+    function rodPoint(t, halfW) {
+      // t = 0..1 along rod, halfW = half-width at this point
+      const px = hx0 + rdx*rodTotalLen*t;
+      const py = hy0 + rdy*rodTotalLen*t;
+      // perpendicular to rod direction
+      const px2 = -rdy, py2 = rdx;
+      return [
+        [px - px2*halfW, py - py2*halfW],
+        [px + px2*halfW, py + py2*halfW]
+      ];
+    }
+
+    // ── CORK HANDLE (butt section) ──
+    const h0 = rodPoint(0,    4.5);
+    const h1 = rodPoint(0.15, 4.2);
+    const corkGrad = ctx.createLinearGradient(hx0,hy0, hx0+rdx*14,hy0+rdy*14);
+    corkGrad.addColorStop(0,'#d4a866');
+    corkGrad.addColorStop(0.5,'#f0c880');
+    corkGrad.addColorStop(1,'#b8843a');
+    ctx.fillStyle = corkGrad;
+    ctx.beginPath();
+    ctx.moveTo(h0[0][0],h0[0][1]); ctx.lineTo(h0[1][0],h0[1][1]);
+    ctx.lineTo(h1[1][0],h1[1][1]); ctx.lineTo(h1[0][0],h1[0][1]);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=0.7; ctx.stroke();
+
+    // ── REEL SEAT ──
+    const r0 = rodPoint(0.14, 4.8);
+    const r1 = rodPoint(0.25, 4.5);
+    ctx.fillStyle='#444';
+    ctx.beginPath();
+    ctx.moveTo(r0[0][0],r0[0][1]); ctx.lineTo(r0[1][0],r0[1][1]);
+    ctx.lineTo(r1[1][0],r1[1][1]); ctx.lineTo(r1[0][0],r1[0][1]);
+    ctx.closePath(); ctx.fill();
+
+    // Reel (spinning reel hanging below rod at ~18% along)
+    const reelCX = hx0 + rdx*rodTotalLen*0.19;
+    const reelCY = hy0 + rdy*rodTotalLen*0.19;
+    // Reel body (perpendicular to rod, pointing "down" relative to rod)
+    const perpX = -rdy, perpY = rdx; // perpendicular direction
+    const rx = reelCX + perpX*7;  // reel hangs on one side
+    const ry = reelCY + perpY*7;
+    ctx.fillStyle='#3a3a3a';
+    ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRadians,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#666';
+    ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRadians,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#999';
+    ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRadians,0,Math.PI*2); ctx.fill();
+    // Reel handle
+    ctx.strokeStyle='#bbb'; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(rx+perpX*4, ry+perpY*4);
+    ctx.lineTo(rx+perpX*4+rdx*6, ry+perpY*4+rdy*6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(rx+perpX*4+rdx*6, ry+perpY*4+rdy*6, 2.5, 0, Math.PI*2);
+    ctx.fillStyle='#ccc'; ctx.fill();
+
+    // ── ROD BLANK (tapered, thick→thin) ──
+    const numSegs = 8;
+    for(let i=0; i<numSegs; i++){
+      const t0 = 0.22 + (i/numSegs)*0.78;
+      const t1 = 0.22 + ((i+1)/numSegs)*0.78;
+      const w0 = 3.5*(1-t0*0.85);
+      const w1 = 3.5*(1-t1*0.85);
+      const s0 = rodPoint(t0, w0);
+      const s1 = rodPoint(t1, w1);
+      // Gradient per segment
+      const px0=hx0+rdx*rodTotalLen*t0, py0=hy0+rdy*rodTotalLen*t0;
+      const px1=hx0+rdx*rodTotalLen*t1, py1=hy0+rdy*rodTotalLen*t1;
+      const sg = ctx.createLinearGradient(px0,py0,px1,py1);
+      sg.addColorStop(0, bait.rodColor);
+      sg.addColorStop(0.5, bait.rodColor+'cc');
+      sg.addColorStop(1, bait.rodColor);
+      ctx.fillStyle = sg;
+      ctx.beginPath();
+      ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
+      ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]);
+      ctx.closePath(); ctx.fill();
+    }
+    // Rod outline
+    const rButt = rodPoint(0.22, 3.4);
+    const rTip  = rodPoint(1.0,  0.6);
+    ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.8;
+    ctx.beginPath();
+    ctx.moveTo(rButt[0][0],rButt[0][1]);
+    ctx.lineTo(rTip[0][0], rTip[0][1]);
+    ctx.lineTo(rTip[1][0], rTip[1][1]);
+    ctx.lineTo(rButt[1][0],rButt[1][1]);
+    ctx.stroke();
+    // Highlight
+    ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.8;
+    ctx.beginPath();
+    const hightP0 = rodPoint(0.25, -2.5); // inner edge
+    const hightP1 = rodPoint(0.95, -0.3);
+    ctx.moveTo(hightP0[0][0],hightP0[0][1]);
+    ctx.lineTo(hightP1[0][0],hightP1[0][1]);
+    ctx.stroke();
+
+    // ── GUIDE RINGS along rod ──
+    [0.35, 0.48, 0.60, 0.72, 0.84, 0.95].forEach((t,i)=>{
+      const gp = rodPoint(t, 0);
+      const gx = gp[0][0], gy = gp[0][1]; // center
+      const gw = Math.max(0.8, 3.0 - i*0.35);
+      ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
+      ctx.beginPath();
+      ctx.ellipse(gx,gy, gw, gw*0.5, rodRadians, 0, Math.PI*2);
+      ctx.stroke();
+    });
+
+    // ── TIP ──
+    ctx.beginPath();
+    ctx.arc(htipX, htipY, 1.5, 0, Math.PI*2);
+    ctx.fillStyle='#ddd'; ctx.fill();
+
+    ctx.restore();
+  }
+
+  // ── NECK ──
+  // Slightly wider neck, cleaner shape
+  const neckGrad=ctx.createLinearGradient(-7,by2-58,7,by2-58);
+  neckGrad.addColorStop(0,'#e8b800'); neckGrad.addColorStop(0.5,'#FFD700'); neckGrad.addColorStop(1,'#e0b000');
+  ctx.fillStyle=neckGrad;
+  ctx.beginPath();
+  ctx.moveTo(-7,by2-44); ctx.lineTo(7,by2-44);
+  ctx.lineTo(6,by2-58); ctx.lineTo(-6,by2-58);
+  ctx.closePath(); ctx.fill();
+
+  // ── HEAD ──
+  ctx.save();
+  ctx.translate(0,by2-58);
+
+  // ── EAR (draw behind head) ──
+  const earGrad=ctx.createRadialGradient(-25,-20,2,-25,-20,9);
+  earGrad.addColorStop(0,'#FFE040'); earGrad.addColorStop(1,'#d4a000');
+  ctx.fillStyle=earGrad;
+  ctx.beginPath(); ctx.ellipse(-27,-20,8,10,0.1,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.15)'; ctx.lineWidth=1; ctx.stroke();
+  // Inner ear
+  ctx.fillStyle='#c89000';
+  ctx.beginPath(); ctx.ellipse(-27,-20,4.5,6.5,0.1,0,Math.PI*2); ctx.fill();
+  // Ear canal detail
+  ctx.strokeStyle='rgba(0,0,0,0.18)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(-28,-17); ctx.quadraticCurveTo(-30,-20,-28,-23); ctx.stroke();
+
+  // ── HEAD SHAPE — rounder, more appealing ──
+  // Slightly wider at cheeks, narrower chin = classic handsome anime face
+  const hGrad=ctx.createRadialGradient(-9,-26,3,0,-18,32);
+  hGrad.addColorStop(0,'#FFF080');   // bright top-left highlight
+  hGrad.addColorStop(0.35,'#FFE840');
+  hGrad.addColorStop(0.7,'#FFD700');
+  hGrad.addColorStop(1,'#e8b800');
+  ctx.fillStyle=hGrad;
+  ctx.beginPath();
+  ctx.moveTo(0,-50);                          // top center
+  ctx.bezierCurveTo(16,-50, 28,-40, 28,-24); // right top to cheek
+  ctx.bezierCurveTo(28,-10, 22,4,   8,10);   // cheek to chin right
+  ctx.bezierCurveTo(4,14,  -4,14,  -8,10);   // chin
+  ctx.bezierCurveTo(-22,4, -28,-10,-28,-24);  // chin to left cheek
+  ctx.bezierCurveTo(-28,-40,-16,-50, 0,-50);  // left top
+  ctx.closePath(); ctx.fill();
+  // Subtle outline
+  ctx.strokeStyle='rgba(0,0,0,0.12)'; ctx.lineWidth=1.2; ctx.stroke();
+  // Side shadow for depth
+  ctx.fillStyle='rgba(180,120,0,0.08)';
+  ctx.beginPath(); ctx.ellipse(-20,-20,8,18,0.2,0,Math.PI*2); ctx.fill();
+
+  // ── HAIR — stylish, swept, cool ──
+  // Back hair (behind head — dark base)
+  ctx.fillStyle='#0d0d0d';
+  // Left side hair sweep
+  ctx.beginPath();
+  ctx.moveTo(-16,-48);
+  ctx.bezierCurveTo(-22,-46,-30,-36,-30,-20);
+  ctx.bezierCurveTo(-30,-8,-26,2,-22,6);
+  ctx.bezierCurveTo(-20,4,-22,-4,-20,-18);
+  ctx.bezierCurveTo(-18,-32,-14,-44,-12,-48);
+  ctx.closePath(); ctx.fill();
+  // Right side hair
+  ctx.beginPath();
+  ctx.moveTo(14,-48);
+  ctx.bezierCurveTo(20,-46,28,-36,28,-22);
+  ctx.bezierCurveTo(28,-10,24,0,20,4);
+  ctx.bezierCurveTo(18,2,20,-8,18,-20);
+  ctx.bezierCurveTo(16,-34,12,-44,10,-48);
+  ctx.closePath(); ctx.fill();
+  // Fringe — stylish swept bang peeking below cap, slightly swept to side
+  ctx.fillStyle='#111';
+  ctx.beginPath();
+  ctx.moveTo(-20,-36);
+  ctx.bezierCurveTo(-16,-42,-8,-44,0,-44);
+  ctx.bezierCurveTo(8,-44,16,-42,20,-38);
+  ctx.bezierCurveTo(14,-34,4,-32,-2,-32);
+  ctx.bezierCurveTo(-8,-32,-16,-34,-20,-36);
+  ctx.closePath(); ctx.fill();
+  // Individual hair strands (cool anime detail)
+  ctx.strokeStyle='#222'; ctx.lineWidth=1.5;
+  [[-18,-36,-22,-30],[-8,-32,-10,-26],[2,-32,0,-26],[12,-33,14,-27]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo((x1+x2)/2+2,y1+3,x2,y2); ctx.stroke();
+  });
+
+  // ── RED CAP — cleaner, more 3D ──
+  // Cap main dome
+  const capGrad=ctx.createRadialGradient(-8,-48,4,0,-44,28);
+  capGrad.addColorStop(0,'#c42020');   // brighter top
+  capGrad.addColorStop(0.5,'#991515');
+  capGrad.addColorStop(1,'#7a1010');
+  ctx.fillStyle=capGrad;
+  ctx.beginPath();
+  ctx.moveTo(-24,-32);
+  ctx.bezierCurveTo(-26,-44,-18,-58, 0,-58);
+  ctx.bezierCurveTo(18,-58, 26,-44, 24,-32);
+  ctx.bezierCurveTo(16,-28, -16,-28,-24,-32);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=1.2; ctx.stroke();
+  // Cap highlight sheen
+  ctx.fillStyle='rgba(255,100,100,0.2)';
+  ctx.beginPath(); ctx.ellipse(-7,-50,11,7,-0.4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.08)';
+  ctx.beginPath(); ctx.ellipse(-4,-52,7,4,-0.3,0,Math.PI*2); ctx.fill();
+  // Cap brim — flat, protruding forward
+  const brimGrad=ctx.createLinearGradient(0,-34,0,-26);
+  brimGrad.addColorStop(0,'#7a1010'); brimGrad.addColorStop(1,'#5a0808');
+  ctx.fillStyle=brimGrad;
+  ctx.beginPath();
+  ctx.moveTo(-26,-30);
+  ctx.bezierCurveTo(-28,-26,-24,-22,0,-22);
+  ctx.bezierCurveTo(24,-22,28,-26,26,-30);
+  ctx.bezierCurveTo(20,-32,20,-32,0,-32);
+  ctx.bezierCurveTo(-20,-32,-20,-32,-26,-30);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.25)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(-26,-30); ctx.bezierCurveTo(-28,-26,-24,-22,0,-22); ctx.bezierCurveTo(24,-22,28,-26,26,-30); ctx.stroke();
+  // Brim underside shadow
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(0,-26,24,4,0,0,Math.PI*2); ctx.fill();
+  // Button on top
+  ctx.fillStyle='#5a0e0e'; ctx.beginPath(); ctx.arc(0,-57,3.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,100,100,0.3)'; ctx.beginPath(); ctx.arc(-0.5,-58.5,1.5,0,Math.PI*2); ctx.fill();
+
+  // ── EYEBROWS — thick, slightly arched, cool/confident ──
+  ctx.save();
+  // Left brow — slightly angled down toward center (cool look)
+  ctx.strokeStyle='#111'; ctx.lineWidth=3.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-22,-18); ctx.bezierCurveTo(-16,-22,-12,-22,-8,-20); ctx.stroke();
+  // Right brow
+  ctx.beginPath(); ctx.moveTo(8,-20); ctx.bezierCurveTo(12,-22,16,-22,22,-18); ctx.stroke();
+  // Brow inner end — slightly thicker (fills in the arch)
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(-22,-18); ctx.lineTo(-20,-17); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(22,-18); ctx.lineTo(20,-17); ctx.stroke();
+  ctx.restore();
+
+  // ── EYES — large, gorgeous, anime-hero style ──
+  function drawHandsomeEye(ex, ey){
+    // Eye white — slightly almond/oval shape
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(ex, ey, 10, 11, 0, 0, Math.PI*2);
+    ctx.fillStyle='#f8f8ff'; ctx.fill();
+
+    // Limbal ring (dark outer iris ring — very attractive)
+    ctx.beginPath(); ctx.ellipse(ex, ey, 8.5, 9.5, 0, 0, Math.PI*2);
+    ctx.strokeStyle='#1a3060'; ctx.lineWidth=1.2; ctx.stroke();
+
+    // Iris — rich blue gradient
+    const irisG=ctx.createRadialGradient(ex-1.5,ey-2,1,ex,ey,8);
+    irisG.addColorStop(0,'#5a9ee8');   // light center
+    irisG.addColorStop(0.3,'#2c72d5'); // mid blue
+    irisG.addColorStop(0.7,'#1a50a8'); // deep blue
+    irisG.addColorStop(1,'#0f2e6b');   // dark edge
+    ctx.beginPath(); ctx.ellipse(ex, ey, 8, 9, 0, 0, Math.PI*2);
+    ctx.fillStyle=irisG; ctx.fill();
+
+    // Pupil — large, deep black
+    const pupilG=ctx.createRadialGradient(ex+0.5,ey-0.5,0.5,ex,ey,5.5);
+    pupilG.addColorStop(0,'#1a1a2e'); pupilG.addColorStop(1,'#000010');
+    ctx.beginPath(); ctx.ellipse(ex, ey, 5, 5.5, 0, 0, Math.PI*2);
+    ctx.fillStyle=pupilG; ctx.fill();
+
+    // Inner iris detail ring
+    ctx.strokeStyle='rgba(80,140,255,0.3)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(ex, ey, 6.5, 7, 0, 0, Math.PI*2); ctx.stroke();
+
+    // Primary catchlight — large, bright, makes eyes pop
+    ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.ellipse(ex+3, ey-4, 3.2, 3.8, -0.4, 0, Math.PI*2); ctx.fill();
+    // Secondary small catchlight
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.beginPath(); ctx.arc(ex-3.5, ey+2, 1.5, 0, Math.PI*2); ctx.fill();
+    // Tiny sparkle
+    ctx.fillStyle='rgba(200,220,255,0.5)';
+    ctx.beginPath(); ctx.arc(ex+5, ey-2, 1, 0, Math.PI*2); ctx.fill();
+
+    // Upper eyelid line — thick, confident
+    ctx.strokeStyle='#0d0d0d'; ctx.lineWidth=2.5; ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(ex-10, ey+1);
+    ctx.bezierCurveTo(ex-8, ey-10, ex+2, ey-13, ex+10, ey-2);
+    ctx.stroke();
+    // Eyelash ticks on upper lid
+    ctx.lineWidth=1.5;
+    [[-9,ey-1,-11,ey-6],[-5,ey-9,-7,ey-14],[1,ey-11,0,ey-16],[7,ey-8,9,ey-13]].forEach(([x1,y1,x2,y2])=>{
+      ctx.beginPath(); ctx.moveTo(x1+ex-ex,y1); ctx.lineTo(x2+ex-ex,y2); ctx.stroke();
+    });
+
+    // Lower eyelid — soft, subtle
+    ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(ex-9, ey+2);
+    ctx.bezierCurveTo(ex-4, ey+9, ex+4, ey+9, ex+9, ey+2);
+    ctx.stroke();
+
+    // Lower lash line subtle
+    ctx.strokeStyle='rgba(30,60,120,0.4)'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.ellipse(ex, ey+5, 7, 3, 0, 0, Math.PI); ctx.stroke();
+
+    ctx.restore();
+  }
+  drawHandsomeEye(-13, -16);
+  drawHandsomeEye(13, -16);
+
+  // ── NOSE — elegant, small, handsome ──
+  // Subtle nose bridge shadow
+  ctx.strokeStyle='rgba(160,100,0,0.18)'; ctx.lineWidth=1.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-2,-10); ctx.lineTo(-1,-4); ctx.stroke();
+  // Small elegant nostrils — just tiny curved lines
+  ctx.strokeStyle='rgba(120,80,0,0.35)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(-6,1); ctx.bezierCurveTo(-5,-1,-3,-1,-2,1); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6,1); ctx.bezierCurveTo(5,-1,3,-1,2,1); ctx.stroke();
+  // Nose tip subtle highlight
+  ctx.fillStyle='rgba(255,240,150,0.25)';
+  ctx.beginPath(); ctx.ellipse(0,-1,4,2.5,0,0,Math.PI*2); ctx.fill();
+
+  // ── MOUTH — charming smile, not too big ──
+  // Warm confident smile — not a huge grin, more natural
+  ctx.save();
+  // Shadow behind lips
+  ctx.strokeStyle='rgba(0,0,0,0.2)'; ctx.lineWidth=4; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-12,7); ctx.bezierCurveTo(-8,12,8,12,12,7); ctx.stroke();
+  // Upper lip line
+  ctx.strokeStyle='#8a5500'; ctx.lineWidth=1.8; ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(-11,7);
+  ctx.bezierCurveTo(-6,5,-2,4,0,4);
+  ctx.bezierCurveTo(2,4,6,5,11,7);
+  ctx.stroke();
+  // Smile curve
+  ctx.strokeStyle='#222'; ctx.lineWidth=2.2;
+  ctx.beginPath(); ctx.moveTo(-12,7); ctx.bezierCurveTo(-8,13,8,13,12,7); ctx.stroke();
+  // Teeth — clean, not over-detailed
+  ctx.fillStyle='#fff8f0';
+  ctx.beginPath();
+  ctx.moveTo(-10,7.5);
+  ctx.bezierCurveTo(-6,6,6,6,10,7.5);
+  ctx.bezierCurveTo(8,12,-8,12,-10,7.5);
+  ctx.closePath(); ctx.fill();
+  // Single tooth divider
+  ctx.strokeStyle='rgba(200,200,200,0.6)'; ctx.lineWidth=0.8;
+  ctx.beginPath(); ctx.moveTo(0,7); ctx.lineTo(0,12); ctx.stroke();
+  // Lip lower
+  ctx.strokeStyle='rgba(120,80,0,0.3)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(-10,12); ctx.bezierCurveTo(-5,14,5,14,10,12); ctx.stroke();
+  // Lip shine
+  ctx.fillStyle='rgba(255,240,180,0.3)';
+  ctx.beginPath(); ctx.ellipse(0,9,6,2,0,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // ── CHEEKS — subtle warmth ──
+  ctx.fillStyle='rgba(255,160,60,0.13)';
+  ctx.beginPath(); ctx.ellipse(-21,3,9,6,0.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(21,3,9,6,-0.2,0,Math.PI*2); ctx.fill();
+  // Cheek highlight
+  ctx.fillStyle='rgba(255,240,150,0.18)';
+  ctx.beginPath(); ctx.ellipse(-22,1,5,3,0.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(22,1,5,3,-0.2,0,Math.PI*2); ctx.fill();
+
+  ctx.restore(); // head
+  ctx.restore(); // whole character
+}
+
+// ═══════════════════════════════════════════
+// MAIN RENDER LOOP
+// ═══════════════════════════════════════════
+let lastTime=0;
+function gameLoop(ts){
+  const dt=Math.min((ts-lastTime)/1000, 0.05);
+  lastTime=ts;
+  G.t+=dt;
+
+  if(!document.getElementById('gameScreen').classList.contains('active')){
+    requestAnimationFrame(gameLoop);return;
+  }
+
+  update(dt);
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+function update(dt){
+  const gz=G.gz;
+  const speed=140;
+  let moving=false;
+
+  if(!G.casting && !G.waiting){
+    // Horizontal movement — sets facing and dir
+    if(keys['ArrowLeft']||keys['KeyA']){gz.vx=-speed;gz.facing=-1;gz.dir='left';moving=true;}
+    else if(keys['ArrowRight']||keys['KeyD']){gz.vx=speed;gz.facing=1;gz.dir='right';moving=true;}
+    else gz.vx=0;
+
+    // Vertical movement — sets dir but NOT horizontal facing
+    if(keys['ArrowUp']||keys['KeyW']){gz.vy=-speed;gz.dir='up';moving=true;}
+    else if(keys['ArrowDown']||keys['KeyS']){gz.vy=speed;gz.dir='down';moving=true;}
+    else gz.vy=0;
+  } else {
+    gz.vx=0;gz.vy=0;
+  }
+
+  gz.walking=moving;
+  if(moving){
+    gz.walkFrame+=dt*60;
+  }
+  // When fishing, gozo always faces toward the river (forward direction)
+  // Keep last horizontal facing, just ensure it stays set
+
+  // Apply movement
+  gz.x+=gz.vx*dt;
+  gz.y+=gz.vy*dt;
+
+  // Clamp world bounds
+  gz.x=Math.max(30,Math.min(WORLD_W-30,gz.x));
+
+  // Vertical: clamp between just above river and bottom of screen
+  const minY=GROUND_Y+4;
+  const maxY=H-2;
+  gz.y=Math.max(minY,Math.min(maxY,gz.y));
+
+  // Check if gozo is at river edge
+  gz.atWater=(gz.y<=GROUND_Y+12);
+  gz.isFishing=G.casting||G.waiting;
+
+  // Camera follow
+  const targetCam=gz.x - W/3;
+  G.camX=Math.max(0,Math.min(WORLD_W-W,targetCam));
+
+  // Update particles
+  updateParticles(dt);
+
+  // Update bobber animation
+  if(G.bob.active){
+    G.bob.phase+=dt*3;
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,W,H);
+
+  const cx=Math.round(G.camX);
+
+  // ── SKY ──
+  const skyGrad=ctx.createLinearGradient(0,0,0,SKY_H);
+  skyGrad.addColorStop(0,'#071208');
+  skyGrad.addColorStop(1,'#1a5c35');
+  ctx.fillStyle=skyGrad;
+  ctx.fillRect(0,0,W,SKY_H);
+
+  // Stars/moon glow
+  ctx.fillStyle='rgba(255,220,120,0.25)';
+  ctx.beginPath();ctx.arc(W-80-cx*0.02,18,28,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,230,150,0.5)';
+  ctx.beginPath();ctx.arc(W-80-cx*0.02,16,10,0,Math.PI*2);ctx.fill();
+
+  // Clouds
+  [[100,12,90,20],[280,8,130,24],[550,14,100,20],[820,10,110,22],[1200,12,95,18]].forEach(([wx,wy,cw,ch])=>{
+    const sx=wx-cx*0.15;
+    if(sx>-150&&sx<W+150){
+      ctx.fillStyle='rgba(255,255,255,0.07)';
+      ctx.beginPath();ctx.ellipse(sx,wy,cw/2,ch/2,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(sx+cw*0.25,wy-ch*0.2,cw*0.35,ch*0.5,0,0,Math.PI*2);ctx.fill();
+    }
+  });
+
+  // ── FAR BANK ──
+  const fbGrad=ctx.createLinearGradient(0,FAR_BANK_Y,0,FAR_BANK_Y+FAR_BANK_H);
+  fbGrad.addColorStop(0,'#2d8a4e');fbGrad.addColorStop(1,'#1a5c35');
+  ctx.fillStyle=fbGrad;
+  ctx.fillRect(0,FAR_BANK_Y,W,FAR_BANK_H);
+
+  // Far bank trees (parallax)
+  if(treeCache){
+    treeCache.filter(t=>t.layer==='far').forEach(t=>{
+      const sx=t.x-cx*0.4;
+      if(sx>-150&&sx<W+150){
+        if(t.type==='mango') drawMango(ctx,sx,t.y,t.scale,G.t);
+        else drawBanyan(ctx,sx,t.y,t.scale,G.t);
+      }
+    });
+  }
+
+  // ── RIVER ──
+  const riverGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+RIVER_H);
+  riverGrad.addColorStop(0,'#1d6fa8');
+  riverGrad.addColorStop(0.4,'#0e4a7a');
+  riverGrad.addColorStop(1,'#071e3d');
+  ctx.fillStyle=riverGrad;
+  ctx.fillRect(0,RIVER_Y,W,RIVER_H);
+
+  // River surface shimmer
+  const surfGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+32);
+  surfGrad.addColorStop(0,'rgba(100,181,246,0.42)');
+  surfGrad.addColorStop(1,'transparent');
+  ctx.fillStyle=surfGrad;
+  ctx.fillRect(0,RIVER_Y,W,32);
+
+  // ── RIVER CURRENT PARTICLES ──
+  G.particles.forEach(p=>{
+    const sx=p.x-cx+cx*0; // particles scroll with camera
+    // re-map: particles stored in world coords?  Actually stored relative to view for simplicity
+    const vsx = p.x; // already in screen space, just scrolling slightly
+    if(vsx<-20||vsx>W+20) return;
+    ctx.save();
+    ctx.globalAlpha=p.alpha;
+    ctx.strokeStyle='rgba(180,220,255,1)';
+    ctx.lineWidth=p.w;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + p.vx*0.08, p.y - p.len);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // Horizontal wave shimmer lines
+  for(let i=0;i<5;i++){
+    const wy=RIVER_Y+20+i*36;
+    const wAnim=Math.sin(G.t*1.2+i*0.7)*12;
+    ctx.save();
+    ctx.globalAlpha=0.07+Math.sin(G.t*0.8+i)*0.03;
+    ctx.strokeStyle='rgba(160,200,255,1)';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    for(let wx=0;wx<W;wx+=4){
+      const wave=Math.sin((wx+G.t*40+i*60)*0.04)*4+Math.sin((wx+G.t*25)*0.08)*2;
+      if(wx===0) ctx.moveTo(wx,wy+wave+wAnim);
+      else ctx.lineTo(wx,wy+wave+wAnim);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── WATER EDGE ──
+  const edgeGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+8);
+  edgeGrad.addColorStop(0,'#2d8a4e');edgeGrad.addColorStop(1,'#1d6fa8');
+  ctx.fillStyle=edgeGrad;
+  ctx.fillRect(0,RIVER_Y,W,7);
+
+  // ── GROUND (near bank) ──
+  const groundGrad=ctx.createLinearGradient(0,GROUND_Y,0,H);
+  groundGrad.addColorStop(0,'#1f6b3c');
+  groundGrad.addColorStop(0.3,'#175530');
+  groundGrad.addColorStop(1,'#0c3018');
+  ctx.fillStyle=groundGrad;
+  ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
+
+  // Ground top edge
+  ctx.strokeStyle='#2d8a4e';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();
+
+  // Grass blades
+  ctx.save();
+  for(let gx=0;gx<WORLD_W;gx+=16){
+    const sx=gx-cx;
+    if(sx<-20||sx>W+20) continue;
+    const gh=8+Math.sin(gx*0.3)*6+4;
+    const sway=Math.sin(G.t*1.2+gx*0.04)*2.5;
+    const baseAlpha=0.6+Math.sin(gx*0.17)*0.25;
+    ctx.globalAlpha=baseAlpha;
+    ctx.strokeStyle='#2d9a50';ctx.lineWidth=1.8;
+    ctx.beginPath();ctx.moveTo(sx,GROUND_Y);ctx.quadraticCurveTo(sx+sway,GROUND_Y-gh/2,sx+sway*1.5,GROUND_Y-gh);ctx.stroke();
+  }
+  ctx.restore();
+
+  // Rocks
+  [[180,4,26,15],[310,2,20,12],[560,3,32,18],[800,1,22,13],[1100,4,28,16],[1450,2,18,11],[1700,3,24,14],[2000,1,30,17]].forEach(([wx,rb,rw,rh])=>{
+    const sx=wx-cx;
+    if(sx<-50||sx>W+50) return;
+    const rg=ctx.createRadialGradient(sx-rw*.2,GROUND_Y-rb-rh*.3,2,sx,GROUND_Y-rb-rh*.5,rw);
+    rg.addColorStop(0,'#5a7a5a');rg.addColorStop(1,'#2a4a2a');
+    ctx.fillStyle=rg;
+    ctx.beginPath();ctx.ellipse(sx,GROUND_Y-rb,rw/2,rh/2,-.2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1;ctx.stroke();
+  });
+
+  // Near-bank trees (behind gozo)
+  if(treeCache){
+    const gzScreenX=G.gz.x-cx;
+    treeCache.filter(t=>t.layer==='near').forEach(t=>{
+      const sx=t.x-cx;
+      if(sx<-200||sx>W+200) return;
+      // Only draw trees that are not right on gozo
+      ctx.save();
+      // Depth based slight scale
+      if(t.type==='mango') drawMango(ctx,sx,t.y,t.scale,G.t);
+      else drawBanyan(ctx,sx,t.y,t.scale,G.t);
+      ctx.restore();
+    });
+  }
+
+  // ── GOZO CHARACTER ──
+  const gzScreenX=Math.round(G.gz.x-cx);
+  const gzScreenY=Math.round(G.gz.y);
+  drawGozoCharacter(ctx, gzScreenX, gzScreenY, G.gz.facing, G.gz.dir,
+    G.gz.walking, G.gz.walkFrame, G.gz.isFishing, G.sel);
+
+  // ── FISHING LINE & BOBBER ──
+  if(G.casting||G.waiting){
+    const bait=BAITS[G.sel];
+    const gzsx = Math.round(G.gz.x - cx);
+    const gzsy = Math.round(G.gz.y);
+
+    // Rod tip: calculated same way as in drawGozoCharacter
+    // Hand: (18, -46) local. Rod angle -50deg, length 90
+    const _rDeg = -50;
+    const _rRad = _rDeg * Math.PI / 180;
+    const _rLen = 90;
+    const _hx0 = 18, _hy0 = -46; // hand local coords
+    const _rdx = Math.cos(_rRad);
+    const _rdy = Math.sin(_rRad);
+    const tipLX = _hx0 + _rdx * _rLen; // local X of tip
+    const tipLY = _hy0 + _rdy * _rLen; // local Y of tip
+
+    // Apply character facing (scale X by facing) + translate to screen
+    const rodTipSX = gzsx + tipLX * G.gz.facing;
+    const rodTipSY = gzsy + tipLY;
+
+    // Bobber screen pos with gentle bob animation
+    const bsx = G.bob.x;
+    const bsy = G.bob.y + Math.sin(G.bob.phase)*4;
+
+    // Draw fishing line: catenary curve, sags with gravity
+    ctx.save();
+    ctx.strokeStyle=bait.lineColor; ctx.lineWidth=1.2;
+    ctx.shadowBlur=3; ctx.shadowColor=bait.tipColor;
+    const dx = bsx - rodTipSX;
+    const dy = bsy - rodTipSY;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    // Control point: midpoint + sag downward proportional to horizontal distance
+    const cpx = rodTipSX + dx*0.5;
+    const cpy = rodTipSY + dy*0.5 + Math.abs(dx)*0.2 + dist*0.12;
+    ctx.beginPath();
+    ctx.moveTo(rodTipSX, rodTipSY);
+    ctx.quadraticCurveTo(cpx, cpy, bsx, bsy);
+    ctx.stroke();
+    ctx.restore();
+
+    // Bobber
+    if(G.bob.alert){
+      const pulse=Math.abs(Math.sin(G.t*12));
+      ctx.save();
+      ctx.shadowBlur=18;ctx.shadowColor='#ffcc00';
+      ctx.fillStyle=`rgb(255,${200+pulse*55},0)`;
+      ctx.beginPath();ctx.arc(bsx,bsy,8,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+      ctx.restore();
+    } else {
+      // Top red, bottom white bobber
+      ctx.save();
+      // Red top
+      ctx.fillStyle='#cc2222';
+      ctx.beginPath();ctx.arc(bsx,bsy,7,Math.PI,0);ctx.closePath();ctx.fill();
+      // White bottom
+      ctx.fillStyle='#eee';
+      ctx.beginPath();ctx.arc(bsx,bsy,7,0,Math.PI);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(bsx,bsy,7,0,Math.PI*2);ctx.stroke();
+      // Center line
+      ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(bsx-7,bsy);ctx.lineTo(bsx+7,bsy);ctx.stroke();
+      // Stick
+      ctx.strokeStyle='#888';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(bsx,bsy);ctx.lineTo(bsx,bsy+12);ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // ── WATER INDICATOR ──
+  if(G.gz.atWater && !G.casting && !G.waiting){
+    ctx.save();
+    ctx.fillStyle='rgba(255,215,0,0.9)';
+    ctx.font='7px "Press Start 2P"';
+    ctx.textAlign='center';
+    const gzsx=G.gz.x-cx;
+    ctx.fillText('AT RIVER! PRESS CAST',gzsx,GROUND_Y-8);
+    ctx.restore();
+  }
+
+  // ── MINI MAP ──
+  const mmW=100,mmH=18;
+  const mmX=W-mmW-8,mmY=8;
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.5)';
+  ctx.fillRect(mmX,mmY,mmW,mmH);
+  ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=1;
+  ctx.strokeRect(mmX,mmY,mmW,mmH);
+  // gozo dot
+  const gzMmX=mmX+(G.gz.x/WORLD_W)*mmW;
+  ctx.fillStyle='#FFD700';
+  ctx.beginPath();ctx.arc(gzMmX,mmY+mmH/2,3,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════
+// GAME LOGIC
+// ═══════════════════════════════════════════
+function handleCast(){
+  const modalOpen=document.getElementById('shopModal').classList.contains('show')||
+                  document.getElementById('invModal').classList.contains('show')||
+                  document.getElementById('catchPopup').classList.contains('show');
+  if(modalOpen) return;
+
+  if(G.waiting){reel();return;}
+  if(G.casting) return;
+  if(G.bait[G.sel]<=0){notify('❌ No bait! Buy more at shop.');return;}
+
+  // Check if near water
+  // Actually allow casting from anywhere but notify if not at water
+  if(!G.gz.atWater){
+    notify('🚶 Walk closer to the river edge!');
+    setMsg('Walk up to the river edge first (↑ key)!');
+    return;
+  }
+
+  G.bait[G.sel]--;renderBaits();doCast();
+}
+
+function doCast(){
+  G.casting=true;
+  const btn=document.getElementById('castBtn');
+  btn.textContent='⏳ Casting...';btn.disabled=true;
+
+  // When fishing, gozo faces right (toward river ahead) - keep current facing
+  // Bobber lands in river
+  const cx=G.camX;
+  const gzsx=G.gz.x-cx;
+  // Cast forward in direction gozo is facing
+  const bx=gzsx + G.gz.facing*(80+Math.random()*120);
+  const by=RIVER_Y + 30 + Math.random()*(RIVER_H*0.5);
+
+  G.bob={active:true, x: Math.max(20,Math.min(W-20,bx)), y:by, alert:false, phase:0};
+
+  setMsg('🎣 Line in water! Waiting for a bite...');
+
+  setTimeout(()=>{
+    G.casting=false;G.waiting=true;
+    btn.textContent='🎣 REEL IN!';btn.disabled=false;btn.className='castbtn';
+    G.timer=setTimeout(triggerBite, 1500+Math.random()*5000);
+  },700);
+}
+
+function triggerBite(){
+  if(!G.waiting) return;
+  G.bob.alert=true;
+  setMsg('⚡ BITE! Press REEL IN NOW!');
+  document.getElementById('castBtn').className='castbtn waiting';
+  G.timer=setTimeout(()=>{if(G.waiting)missed();},2200);
+}
+function missed(){G.waiting=false;resetRod();setMsg('😞 Fish got away! Try again.');notify('The fish escaped!');}
+function reel(){
+  if(!G.waiting)return;G.waiting=false;clearTimeout(G.timer);resetRod();
+  const fish=rollFish(BAITS[G.sel].pw);
+  if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
+  G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;G.gold+=fish.g;
+  updateHUD();showCatch(fish);
+}
+function rollFish(pw){
+  const el=FISH.filter(f=>f.mp<=pw);
+  const w=[Math.max(15,50-(pw-1)*9),25,15+(pw-1)*3,8+(pw-1)*2,2+(pw-1)*1.5];
+  const tot=w.reduce((a,b)=>a+b,0);
+  let roll=Math.random()*tot,cum=0,rar=0;
+  for(let i=0;i<w.length;i++){cum+=w[i];if(roll<=cum){rar=i;break;}}
+  let pool=el.filter(f=>f.r===rar);
+  if(!pool.length)pool=el.filter(f=>f.r===0);
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function resetRod(){
+  G.bob.active=false;G.casting=false;G.waiting=false;
+  const btn=document.getElementById('castBtn');
+  btn.textContent='🎣 CAST';btn.disabled=false;btn.className='castbtn';
+}
+function showCatch(f){
+  const rnd=(a,b)=>(Math.random()*(b-a)+a).toFixed(1);
+  document.getElementById('cpIcon').textContent=f.i;
+  document.getElementById('cpName').textContent=f.n;
+  document.getElementById('cpRar').textContent='★ '+RARITY[f.r];
+  document.getElementById('cpRar').className='cprar '+RCSS[f.r];
+  document.getElementById('cpInfo').textContent=`Weight: ${rnd(f.w[0],f.w[1])} kg · Length: ${Math.round(rnd(f.l[0],f.l[1]))} cm`;
+  document.getElementById('cpGold').textContent=`+${f.g} 🪙 GOLD`;
+  document.getElementById('catchPopup').classList.add('show');
+}
+function closeCatch(){document.getElementById('catchPopup').classList.remove('show');setMsg('Select bait and cast!');}
+
+// ═══════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════
+function renderBaits(){
+  const el=document.getElementById('bSlots');el.innerHTML='';
+  BAITS.forEach((b,i)=>{
+    const c=G.bait[i];
+    const d=document.createElement('div');
+    d.className='bslot'+(i===G.sel?' sel':'')+(c===0?' empty':'');
+    d.innerHTML=`<div class="bc">${c}</div><div class="bi">${b.icon}</div><div class="bn">${b.name}</div>`;
+    d.onclick=()=>{
+      if(G.casting||G.waiting)return;
+      G.sel=i;renderBaits();
+      setMsg(`Bait: ${b.icon} ${b.name} — ${b.desc}`);
+    };
+    el.appendChild(d);
+  });
+}
+function updateHUD(){
+  document.getElementById('goldD').textContent=G.gold;
+  document.getElementById('catchD').textContent=G.total;
+  const u=Object.keys(G.caught).length;
+  document.getElementById('progLbl').textContent=`${u}/50 SPECIES`;
+  document.getElementById('progF').style.width=`${(u/50)*100}%`;
+}
+function openShop(){
+  const g=document.getElementById('sgrid');g.innerHTML='';
+  BAITS.forEach((b,i)=>{
+    const d=document.createElement('div');d.className='sitem';
+    d.innerHTML=`<div class="sicon">${b.icon}</div><div class="sname">${b.name}</div>
+      <div class="sdesc">${b.desc}</div><div class="sprice">🪙 ${b.price} GOLD / 10 pcs</div>
+      <button class="sbuy" onclick="buyBait(${i})">BUY 10</button>`;
+    g.appendChild(d);
+  });
+  document.getElementById('shopModal').classList.add('show');
+}
+function closeShop(){document.getElementById('shopModal').classList.remove('show');}
+function buyBait(i){
+  const cost=BAITS[i].price*10;
+  if(G.gold<cost){notify(`❌ Need ${cost} 🪙 gold!`);return;}
+  G.gold-=cost;G.bait[i]+=10;updateHUD();renderBaits();notify(`✅ 10x ${BAITS[i].icon} ${BAITS[i].name} bought!`);
+}
+function openInv(){
+  const u=Object.keys(G.caught).length;
+  document.getElementById('invSub').textContent=`${u}/50 species discovered`;
+  const g=document.getElementById('invGrid');g.innerHTML='';
+  FISH.forEach(f=>{
+    const cnt=G.caught[f.id]||0;
+    const d=document.createElement('div');d.className='iitem';
+    d.style.borderColor=cnt>0?RCOL[f.r]:'rgba(255,255,255,0.05)';
+    d.innerHTML=`<div class="iicon" style="opacity:${cnt>0?1:.18}">${cnt>0?f.i:'❓'}</div>
+      <div class="iname" style="color:${cnt>0?RCOL[f.r]:'#1a2a1a'}">${cnt>0?f.n:'???'}</div>
+      <div class="icount">${cnt>0?'x'+cnt:''}</div>`;
+    g.appendChild(d);
+  });
+  document.getElementById('invModal').classList.add('show');
+}
+function closeInv(){document.getElementById('invModal').classList.remove('show');}
+function setMsg(t){document.getElementById('msg').textContent=t;}
+let nt;
+function notify(t){
+  const e=document.getElementById('notif');e.textContent=t;e.classList.add('show');
+  clearTimeout(nt);nt=setTimeout(()=>e.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════════
+// TITLE GOZO PREVIEW
+// ═══════════════════════════════════════════
+function drawTitleGozo(){
+  const c=document.getElementById('titleGozo');
+  const x=c.getContext('2d');
+  x.clearRect(0,0,160,220);
+  // Use our drawGozoCharacter function on a temp canvas scale
+  x.save();
+  x.scale(1.1,1.1);
+  drawGozoCharacter(x,72,195,1,false,0,false,0);
+  x.restore();
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function startGame(){
+  document.getElementById('titleScreen').classList.remove('active');
+  document.getElementById('gameScreen').classList.add('active');
+  resizeCanvas();
+  buildTrees();
+  initParticles();
+  renderBaits();
+  updateHUD();
+  G.gz.x=220;
+  G.gz.y=GROUND_Y+20;
+  setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
+  notify('🎁 Starter bonus: 10 Free Earthworms!');
+  requestAnimationFrame(t=>{lastTime=t;gameLoop(t);});
+}
+function goTitle(){
+  resetRod();
+  document.getElementById('gameScreen').classList.remove('active');
+  document.getElementById('titleScreen').classList.add('active');
+}
+
+window.addEventListener('resize',()=>{
+  if(document.getElementById('gameScreen').classList.contains('active')){
+    resizeCanvas();buildTrees();initParticles();
+  }
+});
+['shopModal','invModal','catchPopup'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+});
+
+// Draw title preview on load
+window.addEventListener('load',()=>{
+  // Need to init canvas sizes first for title
+  const c=document.getElementById('titleGozo');
+  const x=c.getContext('2d');
+  // Setup minimal canvas context to draw gozo
+  canvas=c;ctx=x;W=160;H=220;
+  SKY_H=30;FAR_BANK_Y=30;FAR_BANK_H=20;RIVER_Y=50;RIVER_H=60;GROUND_Y=110;
+  drawGozoCharacter(x,80,205,1,false,0,false,0);
+});
+</script>
+</body>
+</html>
