@@ -1139,16 +1139,16 @@ function gozoDoAction(fid, pid, action) {
 // Random grow time: 60s - 120s (1-2 minutes)
 function randGrow(){ return (60 + Math.floor(Math.random()*60)) * 1000; }
 const CROPS = {
-  tomat:      {name:'Tomato',      emoji:'🍅', gs:'🌿', grow:randGrow(), unlockAt:0,   price:5},
-  cabe:       {name:'Chili',       emoji:'🌶️', gs:'🌱', grow:randGrow(), unlockAt:5,   price:8},
-  jagung:     {name:'Corn',        emoji:'🌽', gs:'🌾', grow:randGrow(), unlockAt:8,   price:10},
-  terong:     {name:'Eggplant',    emoji:'🍆', gs:'🌿', grow:randGrow(), unlockAt:12,  price:14},
-  wortel:     {name:'Carrot',      emoji:'🥕', gs:'🌿', grow:randGrow(), unlockAt:20,  price:18},
-  labu:       {name:'Pumpkin',     emoji:'🎃', gs:'🍃', grow:randGrow(), unlockAt:30,  price:25},
-  stroberi:   {name:'Strawberry',  emoji:'🍓', gs:'🌱', grow:randGrow(), unlockAt:40,  price:35},
-  melon:      {name:'Melon',       emoji:'🍈', gs:'🍀', grow:randGrow(), unlockAt:55,  price:50},
-  bawangPutih:{name:'Garlic',      emoji:'🧄', gs:'🌱', grow:randGrow(), unlockAt:70,  price:65},
-  kacang:     {name:'Soybean',     emoji:'🫘', gs:'🌿', grow:randGrow(), unlockAt:90,  price:80},
+  tomat:      {name:'Tomato',      emoji:'🍅', gs:'🌿', grow:randGrow(), unlockAt:0,   price:5,  seedCost:3},
+  cabe:       {name:'Chili',       emoji:'🌶️', gs:'🌱', grow:randGrow(), unlockAt:5,   price:8,  seedCost:5},
+  jagung:     {name:'Corn',        emoji:'🌽', gs:'🌾', grow:randGrow(), unlockAt:8,   price:10, seedCost:7},
+  terong:     {name:'Eggplant',    emoji:'🍆', gs:'🌿', grow:randGrow(), unlockAt:12,  price:14, seedCost:10},
+  wortel:     {name:'Carrot',      emoji:'🥕', gs:'🌿', grow:randGrow(), unlockAt:20,  price:18, seedCost:13},
+  labu:       {name:'Pumpkin',     emoji:'🎃', gs:'🍃', grow:randGrow(), unlockAt:30,  price:25, seedCost:18},
+  stroberi:   {name:'Strawberry',  emoji:'🍓', gs:'🌱', grow:randGrow(), unlockAt:40,  price:35, seedCost:25},
+  melon:      {name:'Melon',       emoji:'🍈', gs:'🍀', grow:randGrow(), unlockAt:55,  price:50, seedCost:36},
+  bawangPutih:{name:'Garlic',      emoji:'🧄', gs:'🌱', grow:randGrow(), unlockAt:70,  price:65, seedCost:47},
+  kacang:     {name:'Soybean',     emoji:'🫘', gs:'🌿', grow:randGrow(), unlockAt:90,  price:80, seedCost:58},
 };
 const CROP_KEYS = ['tomat','cabe','jagung','terong','wortel','labu','stroberi','melon','bawangPutih','kacang'];
 
@@ -1578,6 +1578,7 @@ function renderSeedShop(){
     const inv = inventory[key] || 0;
     const unlocked = totalHarvested >= c.unlockAt;
     if(!unlocked) return; // Hide locked crops
+    const canAfford = gold >= c.seedCost;
     const div = document.createElement('div');
     div.className = 'seed-item' + (selectedSeed === key ? ' selected' : '');
     div.innerHTML = `
@@ -1587,7 +1588,10 @@ function renderSeedShop(){
         <div class="si-time">⏱ ${fmtTime(c.grow)}</div>
         ${inv > 0 ? `<div class="si-inv">x${inv} in bag ✓</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
       </div>
-      <div class="si-count">${inv}</div>`;
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;margin-left:auto">
+        <div class="si-count">${inv}</div>
+        <button onclick="buySeed('${key}');event.stopPropagation();" style="font-family:var(--font);font-size:0.22rem;background:${canAfford?'#2a6a2a':'#3a3a3a'};color:${canAfford?'#afffaf':'#666'};border:2px solid ${canAfford?'#5adf5a':'#555'};border-radius:4px;padding:2px 5px;cursor:${canAfford?'pointer':'not-allowed'};white-space:nowrap;text-shadow:1px 1px 0 #000" title="Buy 1 seed for ${c.seedCost}🪙">🪙${c.seedCost}</button>
+      </div>`;
     div.onclick = () => { selectedSeed = key; selectTool('hoe'); renderSeedShop(); say('buy'); };
     el.appendChild(div);
   });
@@ -1629,6 +1633,19 @@ function sellCrop(key, qty){
   renderHarvestList();
   saveGame();
   showGoldFloat('+' + earned + '🪙');
+}
+
+function buySeed(key){
+  const c = CROPS[key];
+  if(gold < c.seedCost){ showToast('🪙 NOT ENOUGH GOLD! Need ' + c.seedCost + '🪙'); return; }
+  gold -= c.seedCost;
+  inventory[key] = (inventory[key] || 0) + 1;
+  sfx('coin');
+  updateGoldUI();
+  renderSeedShop();
+  saveGame();
+  showGoldFloat('-' + c.seedCost + '🪙');
+  showToast('🌱 BOUGHT 1 ' + c.name.toUpperCase() + ' SEED!');
 }
 
 function updateGoldUI(){
