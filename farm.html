@@ -1484,8 +1484,7 @@ function plantCrop(fid, pid){
   refreshPlot(fid, pid);
   renderSeedShop();
   say('plant'); sfx('plant'); partsPlot(fid, pid, ['🌱','✨']); gozoDoAction(fid,pid,'plant');
-  showToast('🪣 SELECT WATER TOOL & water the crop!');
-  selectTool('water');
+  showToast('🌱 PLANTED! Siram tanamanmu ya!');
   saveState();
 }
 
