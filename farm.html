@@ -296,7 +296,7 @@ header{
       <h3 style="color:#80c8f0;border-color:#3a6aaa">💧 WATER BUCKET</h3>
       <div class="water-info">
         <div>Charges: <span id="waterChargesBig" style="color:var(--yellow)">10</span> / 10</div>
-        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">Free refill every 5 minutes</div>
+        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">Free refill every 1 minute</div>
       </div>
     </div>
 
@@ -1178,7 +1178,7 @@ CROP_KEYS.forEach(k=>{inventory[k]=0; harvestBasket[k]=0;});
 
 // Water
 const WATER_MAX = 10;
-const WATER_REGEN_MS = 300000; // 5 minutes
+const WATER_REGEN_MS = 60000; // 1 minute
 let waterCharges = WATER_MAX;
 let lastRefillTime = 0;
 let waterRegenTimer = null;
@@ -1193,7 +1193,7 @@ function updateWaterUI(){
   if(el2) el2.textContent = waterCharges;
   if(selectedTool === 'water'){
     const b = document.getElementById('bubble');
-    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 5 minutes.';
+    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 1 minute.';
   }
   const btn = document.getElementById('toolWater');
   if(btn) btn.style.borderColor = waterCharges === 0 ? '#f05050' : '';
@@ -1454,7 +1454,7 @@ function handleClick(fid, pid){
   } else if(selectedTool === 'water'){
     if(p.state === 'planted' && !p.watered){
       if(waterCharges <= 0){
-        showToast('🪣 NO WATER! Refills in 5 minutes.');
+        showToast('🪣 NO WATER! Refills in 1 minute.');
         return;
       }
       p.watered = true;
@@ -1634,7 +1634,7 @@ function selectTool(t){
   const tips = {
     hoe: 'HOE soil → click tilled to plant! ⛏️',
     sickle: 'Harvest glowing crops! 🔪',
-    water: waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 5 minutes.'
+    water: waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 1 minute.'
   };
   const el = document.getElementById('bubble'); if(el) el.textContent = tips[t];
 }
