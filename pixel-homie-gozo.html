@@ -512,7 +512,7 @@
       </div>
       <div class="hdr-monad">
         <span class="hdr-monad-dot"></span>
-        MONAD TESTNET
+        MONAD MAINNET
       </div>
     </div>
 
@@ -554,10 +554,10 @@
 // ══════════════════════════════════════════════════════
 const GOZO_ADDRESS   = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
 const BURN_ADDRESS   = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x279F'; // 10143 = Monad Testnet
-const MONAD_CHAIN_ID_DEC = 10143;
+const MONAD_CHAIN_ID = '0x8F'; // 143 = Monad Mainnet
+const MONAD_CHAIN_ID_DEC = 143;
 const BURN_AMOUNT_WEI = '10000000000000000000'; // 10 * 10^18
-const EXPLORER_URL   = 'https://testnet.monadexplorer.com/tx/';
+const EXPLORER_URL   = 'https://monadvision.com/tx/';
 
 // Minimal ERC20 ABI — only what we need
 const ERC20_ABI = [
@@ -804,10 +804,10 @@ async function ensureMonadNetwork() {
           method: 'wallet_addEthereumChain',
           params: [{
             chainId: MONAD_CHAIN_ID,
-            chainName: 'Monad Testnet',
+            chainName: 'Monad Mainnet',
             nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-            rpcUrls: ['https://testnet-rpc.monad.xyz'],
-            blockExplorerUrls: ['https://testnet.monadexplorer.com'],
+            rpcUrls: ['https://rpc.monad.xyz'],
+            blockExplorerUrls: ['https://monadvision.com'],
           }],
         });
       } else throw switchErr;
