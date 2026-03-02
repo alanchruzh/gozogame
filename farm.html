@@ -406,7 +406,7 @@ header{
 // ═══════════════════════════════════════════════════
 const GOZO_TOKEN = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
 const DEAD_ADDR  = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x279F'; // 10143 decimal (Monad testnet)
+const MONAD_CHAIN_ID = '0x8F'; // 143 decimal (Monad Mainnet)
 const BURN_AMOUNT_WEI = '0x' + (BigInt('10000000000000000000')).toString(16); // 10 * 10^18
 
 // ERC20 transfer(address,uint256) selector = 0xa9059cbb
@@ -431,10 +431,10 @@ async function connectWallet(){
       if(sw.code === 4902){
         await window.ethereum.request({method:'wallet_addEthereumChain', params:[{
           chainId: MONAD_CHAIN_ID,
-          chainName: 'Monad Testnet',
+          chainName: 'Monad',
           nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
-          rpcUrls:['https://testnet-rpc.monad.xyz'],
-          blockExplorerUrls:['https://testnet.monadexplorer.com']
+          rpcUrls:['https://rpc.monad.xyz'],
+          blockExplorerUrls:['https://monadscan.com']
         }]});
       }
     }
@@ -1788,12 +1788,12 @@ function parts(n, emojis, cx, cy){
 
 
 // ═══════════════════════════════════════════════════════════════════
-// ⛓️  BLOCKCHAIN SAVE — Monad Testnet (menggunakan ethers.js v6)
+// ⛓️  BLOCKCHAIN SAVE — Monad Mainnet (menggunakan ethers.js v6)
 // Contract: GozoFarmSave.sol
 // ═══════════════════════════════════════════════════════════════════
 
-// ⚠️  GANTI dengan alamat contract setelah deploy di Monad Testnet!
-const SAVE_CONTRACT = '0x0000000000000000000000000000000000000000';
+// ⚠️  GANTI dengan alamat contract setelah deploy di Monad Mainnet!
+const SAVE_CONTRACT = '0xCd6E0De2FD3aE0fFad201025241103556Af4B9c1';
 
 // ABI lengkap untuk contract GozoFarmSave
 const SAVE_CONTRACT_ABI = [
@@ -1911,7 +1911,7 @@ async function saveToChain(){
   }
   if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
     setChainStatus('⚠️ Contract belum di-deploy! Lihat GozoFarmSave.sol','#ffaa40');
-    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
+    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Mainnet terlebih dahulu!');
     return;
   }
 
@@ -1998,7 +1998,7 @@ async function loadFromChain(){
   }
   if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
     setChainStatus('⚠️ Contract belum di-deploy!','#ffaa40');
-    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
+    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Mainnet terlebih dahulu!');
     return;
   }
 
