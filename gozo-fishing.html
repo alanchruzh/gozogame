@@ -517,176 +517,217 @@ function buildTrees(){
   });
 }
 
-function drawMango(ctx, x, y, scale, t){
-  const s = scale;
+// ═══════════════════════════════════════════════════════════
+//  PIXEL ART TREES  (Stardew-valley style)
+// ═══════════════════════════════════════════════════════════
+
+// Stardew-style green tree (image 1 / image 3 — round canopy, apple fruits)
+function drawPixelTree(ctx, x, y, scale, t, variant){
+  const s  = scale;
+  const sw = Math.sin(t*0.7 + x*0.009) * 1.6 * s; // gentle sway
   ctx.save();
   ctx.translate(x, y);
-  // Trunk
-  ctx.fillStyle='#5a3010';
-  ctx.beginPath();
-  ctx.moveTo(-6*s,0); ctx.lineTo(6*s,0);
-  ctx.lineTo(5*s,-45*s); ctx.lineTo(-5*s,-45*s);
-  ctx.closePath(); ctx.fill();
-  // Trunk detail lines
-  ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1.5*s;
-  ctx.beginPath();ctx.moveTo(-2*s,0);ctx.lineTo(-3*s,-44*s);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(3*s,0);ctx.lineTo(2*s,-44*s);ctx.stroke();
 
-  // Main branches
-  ctx.strokeStyle='#4a2808';ctx.lineWidth=4*s;
-  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.quadraticCurveTo(-20*s,-52*s,-30*s,-48*s);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.quadraticCurveTo(18*s,-52*s,28*s,-46*s);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(0,-44*s);ctx.lineTo(0,-58*s);ctx.stroke();
+  // ── Roots / ground patch ──
+  ctx.fillStyle='#8B5C1A';
+  ctx.fillRect(-8*s, -6*s, 16*s, 6*s);
+  ctx.fillStyle='#6B3E0F';
+  ctx.fillRect(-6*s, -4*s, 12*s, 4*s);
 
-  // Wind sway offset
-  const sway = Math.sin(t*0.8 + x*0.01)*2*s;
+  // ── Trunk ──
+  // Dark bark base
+  ctx.fillStyle='#7A4010';
+  ctx.fillRect(-5*s, -42*s, 10*s, 38*s);
+  // Left bark shade
+  ctx.fillStyle='#5A2D08';
+  ctx.fillRect(-5*s, -42*s, 3*s, 38*s);
+  // Bark highlight right
+  ctx.fillStyle='#9B5520';
+  ctx.fillRect(2*s, -40*s, 2*s, 34*s);
+  // Bark detail pixels
+  ctx.fillStyle='#6A3810';
+  [[-3,-36,2,3],[2,-28,2,3],[-2,-18,2,2]].forEach(([bx,by,bw,bh])=>{
+    ctx.fillRect(bx*s, by*s, bw*s, bh*s);
+  });
 
-  // 3 overlapping foliage blobs (anime style: bold outline, flat color)
-  const foliageClusters=[
-    {cx:-24*s,cy:-58*s,rx:28*s,ry:22*s},
-    {cx:0,    cy:-72*s,rx:32*s,ry:26*s},
-    {cx:24*s, cy:-58*s,rx:26*s,ry:20*s},
-    {cx:-8*s, cy:-55*s,rx:18*s,ry:16*s},
-    {cx:10*s, cy:-65*s,rx:16*s,ry:14*s},
-  ];
-  // Shadow layer
-  foliageClusters.forEach(c=>{
-    ctx.beginPath();
-    ctx.ellipse(c.cx+sway+2*s,c.cy+4*s,c.rx,c.ry,0,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,40,0,0.22)';ctx.fill();
-  });
-  // Dark green back layer
-  foliageClusters.forEach(c=>{
-    ctx.beginPath();
-    ctx.ellipse(c.cx+sway,c.cy,c.rx,c.ry,0,0,Math.PI*2);
-    ctx.fillStyle='#1a6b1a';ctx.fill();
-    ctx.strokeStyle='#0d3d0d';ctx.lineWidth=1.8*s;ctx.stroke();
-  });
-  // Mid green
-  foliageClusters.forEach((c,i)=>{
-    if(i%2===0){
-      ctx.beginPath();
-      ctx.ellipse(c.cx+sway-2*s,c.cy-3*s,c.rx*0.78,c.ry*0.72,0,0,Math.PI*2);
-      ctx.fillStyle='#2d8c2d';ctx.fill();
-    }
-  });
-  // Light top highlight (anime sheen)
-  foliageClusters.forEach((c,i)=>{
-    if(i===1||i===0){
-      ctx.beginPath();
-      ctx.ellipse(c.cx+sway-4*s,c.cy-6*s,c.rx*0.5,c.ry*0.42,-0.3,0,Math.PI*2);
-      ctx.fillStyle='rgba(120,200,80,0.35)';ctx.fill();
-    }
-  });
-  // Manga-style outline on top foliage
-  ctx.strokeStyle='#0a2a0a';ctx.lineWidth=2.5*s;
-  ctx.beginPath();
-  ctx.ellipse(sway,   -70*s, 32*s,26*s,0,0,Math.PI*2);
-  ctx.stroke();
+  // ── Branches ──
+  ctx.fillStyle='#6B3E10';
+  // Left branch
+  ctx.fillRect(-20*s+sw, -52*s, 16*s, 4*s);
+  ctx.fillRect(-22*s+sw, -56*s, 6*s, 4*s);
+  // Right branch
+  ctx.fillRect(4*s+sw*0.5, -48*s, 18*s, 4*s);
+  ctx.fillRect(18*s+sw*0.5, -52*s, 4*s, 4*s);
 
-  // Mango fruits (small orange ovals)
-  if(scale>0.6){
-    [[-18,-52],[10,-56],[-4,-48],[20,-50]].forEach(([fx,fy])=>{
-      ctx.beginPath();
-      ctx.ellipse(fx*s+sway,fy*s,4*s,5*s,-0.3,0,Math.PI*2);
-      ctx.fillStyle='#e8921a';ctx.fill();
-      ctx.strokeStyle='#a05010';ctx.lineWidth=1*s;ctx.stroke();
+  // ── Canopy — layered pixel blobs ──
+  // Shadow / dark base
+  const darkGreen = '#2A7A10';
+  const midGreen  = '#3AAA18';
+  const brightGreen = variant===1 ? '#7AE030' : '#58D020';
+  const highlightGreen = variant===1 ? '#A0F050' : '#80E840';
+  const accentGreen = '#1E5C0A';
+
+  // Dark back layer
+  ctx.fillStyle=accentGreen;
+  roundBlob(ctx, sw-2*s, -82*s, 40*s, 32*s);
+  roundBlob(ctx, -28*s+sw, -68*s, 28*s, 22*s);
+  roundBlob(ctx, 28*s+sw*0.8, -66*s, 26*s, 20*s);
+
+  // Mid layer
+  ctx.fillStyle=darkGreen;
+  roundBlob(ctx, sw, -86*s, 38*s, 30*s);
+  roundBlob(ctx, -22*s+sw, -72*s, 30*s, 24*s);
+  roundBlob(ctx, 24*s+sw*0.8, -70*s, 28*s, 22*s);
+  roundBlob(ctx, sw-10*s, -70*s, 22*s, 18*s);
+
+  // Bright mid
+  ctx.fillStyle=midGreen;
+  roundBlob(ctx, sw-4*s, -90*s, 34*s, 26*s);
+  roundBlob(ctx, -16*s+sw, -76*s, 24*s, 18*s);
+  roundBlob(ctx, 18*s+sw, -74*s, 22*s, 17*s);
+
+  // Bright top highlight (Stardew cross/star shapes)
+  ctx.fillStyle=brightGreen;
+  roundBlob(ctx, sw-6*s, -92*s, 26*s, 20*s);
+  // Plus/cross detail pixels
+  for(let i=0;i<6;i++){
+    const bx = (Math.sin(i*1.1)*22)*s + sw;
+    const by = (-88 - Math.cos(i*1.3)*18)*s;
+    ctx.fillRect(bx-3*s, by-3*s, 6*s, 6*s);
+    ctx.fillRect(bx-5*s, by-1*s, 10*s, 2*s);
+  }
+
+  // Specular top highlight
+  ctx.fillStyle=highlightGreen;
+  roundBlob(ctx, sw-10*s, -96*s, 14*s, 10*s);
+
+  // ── Apples / fruits (variant 2 = apple tree) ──
+  if(variant===2){
+    [[-18,-72],[8,-68],[-6,-62],[20,-74],[-26,-60]].forEach(([fx,fy],i)=>{
+      const ax=fx*s+sw, ay=fy*s;
+      ctx.fillStyle='#CC2222';
+      ctx.fillRect(ax-3*s, ay-4*s, 6*s, 6*s);
+      ctx.fillRect(ax-2*s, ay-5*s, 4*s, 2*s);
+      ctx.fillRect(ax-1*s, ay-6*s, 2*s, 2*s);
+      ctx.fillStyle='#FF4444';
+      ctx.fillRect(ax-2*s, ay-4*s, 2*s, 2*s);
     });
   }
+
   ctx.restore();
 }
 
-function drawBanyan(ctx, x, y, scale, t){
-  const s=scale;
+// Autumn orange tree (image 2 — wide spreading, orange/gold canopy)
+function drawAutumnTree(ctx, x, y, scale, t){
+  const s  = scale * 1.1;
+  const sw = Math.sin(t*0.6 + x*0.008) * 2 * s;
   ctx.save();
-  ctx.translate(x,y);
-  const sway=Math.sin(t*0.6+x*0.008)*3*s;
+  ctx.translate(x, y);
 
-  // Aerial roots (characteristic of banyan)
-  const rootPairs=[[-30,-40,-18,0],[12,-35,22,0],[-50,-25,-38,0],[35,-22,45,0],[-15,-30,-8,0]];
-  ctx.strokeStyle='rgba(80,45,10,0.7)';ctx.lineWidth=2*s;
-  rootPairs.forEach(([x1,y1,x2,y2])=>{
-    ctx.beginPath();
-    ctx.moveTo(x1*s+sway*0.3,y1*s);
-    ctx.quadraticCurveTo((x1+x2)/2*s+sway*0.5,(y1+y2)/2*s-10*s,x2*s,y2);
-    ctx.stroke();
-  });
+  // ── Ground roots ──
+  ctx.fillStyle='#7A4A18';
+  ctx.fillRect(-14*s,-8*s,28*s,8*s);
+  ctx.fillStyle='#5A3208';
+  ctx.fillRect(-12*s,-6*s,24*s,6*s);
 
-  // Main trunk (wide, gnarled)
-  ctx.fillStyle='#6b4010';
-  ctx.beginPath();
-  ctx.moveTo(-10*s,0);ctx.bezierCurveTo(-12*s,-20*s,-8*s,-35*s,0,-48*s);
-  ctx.bezierCurveTo(8*s,-35*s,12*s,-20*s,10*s,0);
-  ctx.closePath();ctx.fill();
-  // Bark texture
-  ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1.5*s;
-  ctx.beginPath();ctx.moveTo(-5*s,0);ctx.bezierCurveTo(-7*s,-20*s,-4*s,-38*s,0,-48*s);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(5*s,0);ctx.bezierCurveTo(7*s,-20*s,4*s,-38*s,0,-48*s);ctx.stroke();
+  // ── Gnarled trunk ──
+  ctx.fillStyle='#6B3E10';
+  // Main trunk
+  ctx.fillRect(-7*s,-50*s,14*s,50*s);
+  ctx.fillStyle='#4A2808';
+  ctx.fillRect(-7*s,-50*s,4*s,50*s);
+  ctx.fillStyle='#8B5520';
+  ctx.fillRect(4*s,-48*s,3*s,44*s);
 
-  // Branches spreading wide
-  const branches=[
-    [0,-48,-45*s,-38*s],
-    [0,-48, 45*s,-38*s],
-    [0,-48,  0, -68*s],
-    [0,-48,-22*s,-62*s],
-    [0,-48, 22*s,-62*s],
-    [-10,-38,-38*s,-52*s],
-    [10,-38, 38*s,-52*s],
-  ];
-  ctx.strokeStyle='#5a3510';ctx.lineWidth=3*s;
-  branches.forEach(([x1,y1,x2,y2])=>{
-    ctx.beginPath();
-    ctx.moveTo(x1*s,y1*s);
-    ctx.quadraticCurveTo((x1+x2/s)*0.5*s+sway,(y1+y2/s)*0.5*s,x2,y2);
-    ctx.stroke();
-  });
+  // Left trunk fork
+  ctx.fillStyle='#6B3E10';
+  ctx.fillRect(-22*s+sw,-70*s,18*s,5*s);
+  ctx.fillRect(-24*s+sw,-74*s,8*s,5*s);
+  ctx.fillRect(-22*s+sw,-78*s,10*s,5*s);
+  // Right trunk fork
+  ctx.fillRect(6*s+sw*0.7,-64*s,20*s,5*s);
+  ctx.fillRect(22*s+sw*0.7,-68*s,8*s,5*s);
 
-  // Large flat canopy layers (banyan style)
-  const canopyLayers=[
-    {cx:0,cy:-60*s,rx:52*s,ry:18*s},
-    {cx:-12*s,cy:-50*s,rx:48*s,ry:15*s},
-    {cx:10*s,cy:-70*s,rx:40*s,ry:16*s},
-    {cx:-24*s,cy:-42*s,rx:32*s,ry:14*s},
-    {cx:24*s,cy:-44*s,rx:30*s,ry:13*s},
-    {cx:0,cy:-78*s,rx:28*s,ry:13*s},
-  ];
-  // Shadow
-  canopyLayers.forEach(c=>{
-    ctx.beginPath();
-    ctx.ellipse(c.cx+sway+3*s,c.cy+6*s,c.rx,c.ry*0.7,0,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,25,0,0.18)';ctx.fill();
-  });
+  // ── Autumn canopy — orange/gold layers ──
+  const colors=['#7A2A00','#C05010','#E07020','#F09030','#FFB840','#FFD060'];
+
   // Dark base
-  canopyLayers.forEach(c=>{
-    ctx.beginPath();
-    ctx.ellipse(c.cx+sway,c.cy,c.rx,c.ry,0,0,Math.PI*2);
-    ctx.fillStyle='#134a13';ctx.fill();
-    ctx.strokeStyle='#0a2a0a';ctx.lineWidth=2*s;ctx.stroke();
-  });
-  // Mid tone
-  canopyLayers.forEach((c,i)=>{
-    if(i<4){
-      ctx.beginPath();
-      ctx.ellipse(c.cx+sway-3*s,c.cy-4*s,c.rx*0.72,c.ry*0.65,0,0,Math.PI*2);
-      ctx.fillStyle='#1e7a1e';ctx.fill();
-    }
-  });
-  // Highlight
-  ctx.beginPath();
-  ctx.ellipse(sway-5*s,-64*s,22*s,10*s,-0.2,0,Math.PI*2);
-  ctx.fillStyle='rgba(80,180,60,0.28)';ctx.fill();
+  ctx.fillStyle=colors[0];
+  roundBlob(ctx, sw-4*s,-92*s,50*s,36*s);
+  roundBlob(ctx,-36*s+sw,-78*s,34*s,26*s);
+  roundBlob(ctx, 36*s+sw,-76*s,30*s,24*s);
 
-  // Hanging vine lines (characteristic banyan detail)
-  for(let v=-30;v<=30;v+=12){
-    const vx=(v+sway/2)*s;
-    ctx.strokeStyle='rgba(80,120,40,0.4)';ctx.lineWidth=1*s;
-    ctx.beginPath();
-    ctx.moveTo(vx,-55*s);
-    ctx.quadraticCurveTo(vx+3*s,-35*s,vx+1*s,-10*s);
-    ctx.stroke();
+  ctx.fillStyle=colors[1];
+  roundBlob(ctx, sw,-96*s,46*s,34*s);
+  roundBlob(ctx,-28*s+sw,-82*s,32*s,24*s);
+  roundBlob(ctx, 30*s+sw,-80*s,28*s,22*s);
+  roundBlob(ctx, sw-16*s,-82*s,22*s,18*s);
+  roundBlob(ctx, sw+18*s,-84*s,24*s,18*s);
+
+  ctx.fillStyle=colors[2];
+  roundBlob(ctx, sw-6*s,-100*s,40*s,30*s);
+  roundBlob(ctx,-20*s+sw,-86*s,26*s,20*s);
+  roundBlob(ctx, 22*s+sw,-84*s,24*s,19*s);
+
+  ctx.fillStyle=colors[3];
+  roundBlob(ctx, sw-8*s,-104*s,32*s,24*s);
+  roundBlob(ctx,-10*s+sw,-90*s,20*s,16*s);
+  roundBlob(ctx, 14*s+sw,-88*s,18*s,15*s);
+
+  // Bright highlights
+  ctx.fillStyle=colors[4];
+  roundBlob(ctx, sw-10*s,-108*s,22*s,16*s);
+  for(let i=0;i<5;i++){
+    const bx=(Math.sin(i*1.4)*28)*s+sw;
+    const by=(-100-Math.cos(i*1.2)*22)*s;
+    ctx.fillRect(bx-4*s,by-4*s,8*s,8*s);
+    ctx.fillRect(bx-6*s,by-2*s,12*s,4*s);
   }
+  ctx.fillStyle=colors[5];
+  roundBlob(ctx, sw-12*s,-112*s,14*s,10*s);
+
+  // Falling leaves
+  for(let i=0;i<5;i++){
+    const lx=(Math.sin(t*0.8+i*1.8)*40+i*15-20)*s + sw;
+    const ly=(-30-((t*20+i*30)%80))*s;
+    const leafRot=Math.sin(t*2+i)*0.5;
+    ctx.save();
+    ctx.translate(lx, ly);
+    ctx.rotate(leafRot);
+    ctx.fillStyle=i%2===0?'#E07020':'#FFB840';
+    ctx.fillRect(-3*s,-3*s,6*s,6*s);
+    ctx.restore();
+  }
+
   ctx.restore();
 }
+
+// Helper: draw a pixel-rounded blob (no canvas arc — pure rect for pixel look)
+function roundBlob(ctx, cx, cy, rw, rh){
+  // Approximate a rounded ellipse with stacked pixel rects
+  const steps = 6;
+  for(let i=0;i<steps;i++){
+    const ratio = i/(steps-1);
+    const w = rw * Math.sin(ratio*Math.PI);
+    const yOff = cy - rh + ratio*rh*2;
+    ctx.fillRect(cx - w, yOff - rh*0.15, w*2, rh*0.35);
+  }
+}
+
+// Wrapper: choose tree type based on hash of x position
+function drawMango(ctx, x, y, scale, t){
+  const v = Math.abs(Math.floor(x*0.1)) % 3;
+  if(v===0) drawPixelTree(ctx,x,y,scale,t,1);
+  else if(v===1) drawPixelTree(ctx,x,y,scale,t,2);
+  else drawAutumnTree(ctx,x,y,scale,t);
+}
+function drawBanyan(ctx, x, y, scale, t){
+  const v = Math.abs(Math.floor(x*0.13+1)) % 3;
+  if(v===0) drawAutumnTree(ctx,x,y,scale,t);
+  else if(v===1) drawPixelTree(ctx,x,y,scale,t,1);
+  else drawPixelTree(ctx,x,y,scale,t,2);
+}
+
 
 // ═══════════════════════════════════════════
 // RIVER PARTICLES (current effect: top→bottom)
@@ -889,65 +930,88 @@ function phDrawSprite(ctx, sprite, px, py, ps, flipX){
 }
 
 // ── Rod drawing (reused from original, kept identical) ──
-function phDrawRod(ctx, by2, isFishing, baitIdx, isBack){
+function phDrawRod(ctx, sprOY, isFishing, baitIdx, isBack){
+  // sprOY = top-left Y of sprite in local space (feet=0, so sprOY = -sprH = -72)
+  // Sprite: 11 cols × 18 rows, ps=4 → sprW=44, sprH=72, ox=-22
+  // Right hand grip = col 9, row 8 → local x = -22 + 9*4 = 14, y = sprOY + 8*4 + 2 = sprOY+34
+  // Back/left  grip = col 1, row 8 → local x = -22 + 1*4 = -18, y = sprOY+34
   if(!isFishing) return;
   const bait = BAITS[baitIdx];
-  const hx0 = isBack ? -18 : 18;
-  const hy0 = by2 - 46;
-  const rodDeg = -50;
+  const ps = 4;
+  const ox = -(11*ps)/2; // -22
+
+  // Hand position on sprite
+  const hCol  = isBack ? 1 : 9;
+  const hx0   = ox + hCol*ps + ps/2;          // centre of that pixel column
+  const hy0   = sprOY + 8*ps + ps/2;          // centre of row 8
+
+  // Rod length scaled to ~1.3× sprite height (72*1.3 ≈ 94 → use 50 for compact look)
+  const rodLen = 46;
+  // Angle: raise up-right for front, up-left for back
+  const rodDeg = isBack ? -130 : -50;
   const rodRad = rodDeg * Math.PI / 180;
-  const rodLen = 90;
   const rdx = Math.cos(rodRad);
   const rdy = Math.sin(rodRad);
+
   const htipX = hx0 + rdx * rodLen;
   const htipY = hy0 + rdy * rodLen;
-
   G.gz.rodTipLocal = { lx: htipX, ly: htipY };
 
   function rodPt(t, hw){
-    const px = hx0 + rdx*rodLen*t, py = hy0 + rdy*rodLen*t;
-    const px2 = -rdy, py2 = rdx;
-    return [[px-px2*hw, py-py2*hw],[px+px2*hw, py+py2*hw]];
+    const px = hx0 + rdx*rodLen*t;
+    const py = hy0 + rdy*rodLen*t;
+    const px2 = -rdy;
+    return [[px-px2*hw, py+rdx*hw],[px+px2*hw, py-rdx*hw]];
   }
 
   ctx.save();
 
-  // Cork handle
-  const h0=rodPt(0,4.5), h1=rodPt(0.15,4.2);
-  const cg=ctx.createLinearGradient(hx0,hy0,hx0+rdx*14,hy0+rdy*14);
+  // ── Cork handle ──
+  const h0=rodPt(0,2.0), h1=rodPt(0.14,1.8);
+  const cg=ctx.createLinearGradient(hx0,hy0, hx0+rdx*7, hy0+rdy*7);
   cg.addColorStop(0,'#d4a866'); cg.addColorStop(0.5,'#f0c880'); cg.addColorStop(1,'#b8843a');
   ctx.fillStyle=cg;
-  ctx.beginPath(); ctx.moveTo(h0[0][0],h0[0][1]); ctx.lineTo(h0[1][0],h0[1][1]);
-  ctx.lineTo(h1[1][0],h1[1][1]); ctx.lineTo(h1[0][0],h1[0][1]); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(h0[0][0],h0[0][1]); ctx.lineTo(h0[1][0],h0[1][1]);
+  ctx.lineTo(h1[1][0],h1[1][1]); ctx.lineTo(h1[0][0],h1[0][1]);
+  ctx.closePath(); ctx.fill();
 
-  // Reel seat
-  const rs0=rodPt(0.14,4.8), rs1=rodPt(0.25,4.5);
+  // ── Reel seat ──
+  const rs0=rodPt(0.13,2.2), rs1=rodPt(0.26,2.0);
   ctx.fillStyle='#444';
-  ctx.beginPath(); ctx.moveTo(rs0[0][0],rs0[0][1]); ctx.lineTo(rs0[1][0],rs0[1][1]);
-  ctx.lineTo(rs1[1][0],rs1[1][1]); ctx.lineTo(rs1[0][0],rs1[0][1]); ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(rs0[0][0],rs0[0][1]); ctx.lineTo(rs0[1][0],rs0[1][1]);
+  ctx.lineTo(rs1[1][0],rs1[1][1]); ctx.lineTo(rs1[0][0],rs1[0][1]);
+  ctx.closePath(); ctx.fill();
 
-  // Reel
-  const rcx=hx0+rdx*rodLen*0.19, rcy=hy0+rdy*rodLen*0.19;
-  const perpX=-rdy, perpY=rdx;
-  const rx=rcx+perpX*7, ry=rcy+perpY*7;
-  ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.ellipse(rx,ry,8,5.5,rodRad,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#666'; ctx.beginPath(); ctx.ellipse(rx,ry,5.5,3.5,rodRad,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#999'; ctx.beginPath(); ctx.ellipse(rx,ry,2.5,1.8,rodRad,0,Math.PI*2); ctx.fill();
+  // ── Reel ──
+  const rcx = hx0+rdx*rodLen*0.20;
+  const rcy = hy0+rdy*rodLen*0.20;
+  const perpX = -rdy, perpY = rdx;
+  const reelSide = isBack ? -1 : 1;
+  const rx = rcx + perpX*3.5*reelSide;
+  const ry = rcy + perpY*3.5*reelSide;
+  ctx.fillStyle='#3a3a3a'; ctx.beginPath(); ctx.ellipse(rx,ry,4.5,3,rodRad,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#666';    ctx.beginPath(); ctx.ellipse(rx,ry,3,2,rodRad,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#aaa';    ctx.beginPath(); ctx.ellipse(rx,ry,1.2,0.8,rodRad,0,Math.PI*2); ctx.fill();
 
-  // Rod blank
-  for(let i=0;i<8;i++){
-    const t0=0.22+(i/8)*0.78, t1=0.22+((i+1)/8)*0.78;
-    const w0=3.5*(1-t0*0.85), w1=3.5*(1-t1*0.85);
+  // ── Rod blank — 6 tapered segments ──
+  for(let i=0;i<6;i++){
+    const t0=0.24+(i/6)*0.76, t1=0.24+((i+1)/6)*0.76;
+    const w0=1.6*(1-t0*0.82), w1=1.6*(1-t1*0.82);
     const s0=rodPt(t0,w0), s1=rodPt(t1,w1);
     ctx.fillStyle=bait.rodColor;
-    ctx.beginPath(); ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
-    ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s0[0][0],s0[0][1]); ctx.lineTo(s0[1][0],s0[1][1]);
+    ctx.lineTo(s1[1][0],s1[1][1]); ctx.lineTo(s1[0][0],s1[0][1]);
+    ctx.closePath(); ctx.fill();
   }
 
-  // Guides
-  [0.35,0.48,0.60,0.72,0.84,0.95].forEach((t,i)=>{
-    const gp=rodPt(t,0); const gw=Math.max(0.8,3.0-i*0.35);
-    ctx.strokeStyle='#ccc'; ctx.lineWidth=1.3;
+  // ── 3 guides ──
+  [0.42, 0.65, 0.88].forEach((t,i)=>{
+    const gp=rodPt(t,0);
+    const gw=Math.max(0.4, 1.4-i*0.3);
+    ctx.strokeStyle='#ccc'; ctx.lineWidth=0.7;
     ctx.beginPath(); ctx.ellipse(gp[0][0],gp[0][1],gw,gw*0.5,rodRad,0,Math.PI*2); ctx.stroke();
   });
 
@@ -1095,126 +1159,248 @@ function render(){
 
   const cx=Math.round(G.camX);
 
-  // ── SKY ──
-  const skyGrad=ctx.createLinearGradient(0,0,0,SKY_H);
-  skyGrad.addColorStop(0,'#071208');
-  skyGrad.addColorStop(1,'#1a5c35');
+  // ── SKY — bright cyan-blue like reference image 4/5 ──
+  const skyGrad=ctx.createLinearGradient(0,0,0,SKY_H+FAR_BANK_H);
+  skyGrad.addColorStop(0,'#5EC8E8');
+  skyGrad.addColorStop(0.6,'#7DDAF0');
+  skyGrad.addColorStop(1,'#A8EAD8');
   ctx.fillStyle=skyGrad;
-  ctx.fillRect(0,0,W,SKY_H);
+  ctx.fillRect(0,0,W,SKY_H+FAR_BANK_H);
 
-  // Stars/moon glow
-  ctx.fillStyle='rgba(255,220,120,0.25)';
-  ctx.beginPath();ctx.arc(W-80-cx*0.02,18,28,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='rgba(255,230,150,0.5)';
-  ctx.beginPath();ctx.arc(W-80-cx*0.02,16,10,0,Math.PI*2);ctx.fill();
-
-  // Clouds
-  [[100,12,90,20],[280,8,130,24],[550,14,100,20],[820,10,110,22],[1200,12,95,18]].forEach(([wx,wy,cw,ch])=>{
-    const sx=wx-cx*0.15;
-    if(sx>-150&&sx<W+150){
-      ctx.fillStyle='rgba(255,255,255,0.07)';
-      ctx.beginPath();ctx.ellipse(sx,wy,cw/2,ch/2,0,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.ellipse(sx+cw*0.25,wy-ch*0.2,cw*0.35,ch*0.5,0,0,Math.PI*2);ctx.fill();
-    }
+  // Fluffy pixel clouds (Stardew style)
+  [[80,8,110,30],[300,6,150,36],[580,10,120,28],[880,7,130,32],[1250,9,100,26]].forEach(([wx,wy,cw,ch])=>{
+    const sx=wx-cx*0.12;
+    if(sx<-180||sx>W+180) return;
+    // Cloud shadow
+    ctx.fillStyle='rgba(180,220,240,0.4)';
+    ctx.fillRect(sx-cw/2+4, wy-ch/2+6, cw, ch*0.5);
+    // Cloud white body — pixel rectangles stacked
+    ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.fillRect(sx-cw/2,   wy,        cw,   ch*0.4);
+    ctx.fillRect(sx-cw*0.4, wy-ch*0.5, cw*0.8, ch*0.6);
+    ctx.fillRect(sx-cw*0.2, wy-ch*0.9, cw*0.5, ch*0.5);
+    ctx.fillRect(sx+cw*0.1, wy-ch*0.6, cw*0.35, ch*0.4);
+    ctx.fillStyle='rgba(200,235,255,0.7)';
+    ctx.fillRect(sx-cw*0.45,wy-ch*0.3, cw*0.3, ch*0.35);
   });
 
-  // ── FAR BANK ──
-  const fbGrad=ctx.createLinearGradient(0,FAR_BANK_Y,0,FAR_BANK_Y+FAR_BANK_H);
-  fbGrad.addColorStop(0,'#2d8a4e');fbGrad.addColorStop(1,'#1a5c35');
-  ctx.fillStyle=fbGrad;
-  ctx.fillRect(0,FAR_BANK_Y,W,FAR_BANK_H);
+  // ── FAR BANK (distant tree-line hill) ──
+  // Dark green hill silhouette
+  ctx.fillStyle='#1E7A3A';
+  ctx.fillRect(0, FAR_BANK_Y, W, FAR_BANK_H);
+  // Lighter top strip
+  ctx.fillStyle='#28A050';
+  ctx.fillRect(0, FAR_BANK_Y, W, 4);
+  // Darker bottom strip  
+  ctx.fillStyle='#145228';
+  ctx.fillRect(0, FAR_BANK_Y+FAR_BANK_H-4, W, 4);
 
-  // Far bank trees (parallax)
+  // Far bank trees (parallax — smaller, bluer for depth)
   if(treeCache){
-    treeCache.filter(t=>t.layer==='far').forEach(t=>{
-      const sx=t.x-cx*0.4;
+    treeCache.filter(tr=>tr.layer==='far').forEach(tr=>{
+      ctx.save();
+      ctx.globalAlpha=0.75;
+      const sx=tr.x-cx*0.35;
       if(sx>-150&&sx<W+150){
-        if(t.type==='mango') drawMango(ctx,sx,t.y,t.scale,G.t);
-        else drawBanyan(ctx,sx,t.y,t.scale,G.t);
+        if(tr.type==='mango') drawMango(ctx,sx,tr.y,tr.scale*0.7,G.t);
+        else drawBanyan(ctx,sx,tr.y,tr.scale*0.7,G.t);
       }
+      ctx.restore();
     });
   }
 
-  // ── RIVER ──
+  // ── RIVER — vibrant blue with pixel shimmer (ref image 4) ──
+  // Base river color
   const riverGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+RIVER_H);
-  riverGrad.addColorStop(0,'#1d6fa8');
-  riverGrad.addColorStop(0.4,'#0e4a7a');
-  riverGrad.addColorStop(1,'#071e3d');
+  riverGrad.addColorStop(0,'#3898C8');
+  riverGrad.addColorStop(0.3,'#2070A8');
+  riverGrad.addColorStop(0.7,'#164E80');
+  riverGrad.addColorStop(1,'#0E3460');
   ctx.fillStyle=riverGrad;
   ctx.fillRect(0,RIVER_Y,W,RIVER_H);
 
-  // River surface shimmer
-  const surfGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+32);
-  surfGrad.addColorStop(0,'rgba(100,181,246,0.42)');
-  surfGrad.addColorStop(1,'transparent');
-  ctx.fillStyle=surfGrad;
-  ctx.fillRect(0,RIVER_Y,W,32);
+  // Sky reflection band near top of river
+  const reflGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+RIVER_H*0.35);
+  reflGrad.addColorStop(0,'rgba(94,200,232,0.45)');
+  reflGrad.addColorStop(1,'rgba(94,200,232,0)');
+  ctx.fillStyle=reflGrad;
+  ctx.fillRect(0,RIVER_Y,W,RIVER_H*0.35);
 
-  // ── RIVER CURRENT PARTICLES ──
-  G.particles.forEach(p=>{
-    const sx=p.x-cx+cx*0; // particles scroll with camera
-    // re-map: particles stored in world coords?  Actually stored relative to view for simplicity
-    const vsx = p.x; // already in screen space, just scrolling slightly
-    if(vsx<-20||vsx>W+20) return;
+  // Pixel-style horizontal wave lines
+  for(let i=0;i<8;i++){
+    const wy  = RIVER_Y + 12 + i*(RIVER_H/8);
+    const spd = 30 + i*8;
+    const amp = 3 + Math.sin(i)*1.5;
     ctx.save();
-    ctx.globalAlpha=p.alpha;
-    ctx.strokeStyle='rgba(180,220,255,1)';
-    ctx.lineWidth=p.w;
+    ctx.globalAlpha = 0.12 + Math.sin(G.t*0.6+i*0.8)*0.04;
+    ctx.strokeStyle = i<3 ? 'rgba(140,210,255,1)' : 'rgba(80,160,220,1)';
+    ctx.lineWidth = i<3 ? 2 : 1.5;
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x + p.vx*0.08, p.y - p.len);
-    ctx.stroke();
-    ctx.restore();
-  });
-
-  // Horizontal wave shimmer lines
-  for(let i=0;i<5;i++){
-    const wy=RIVER_Y+20+i*36;
-    const wAnim=Math.sin(G.t*1.2+i*0.7)*12;
-    ctx.save();
-    ctx.globalAlpha=0.07+Math.sin(G.t*0.8+i)*0.03;
-    ctx.strokeStyle='rgba(160,200,255,1)';
-    ctx.lineWidth=1.5;
-    ctx.beginPath();
-    for(let wx=0;wx<W;wx+=4){
-      const wave=Math.sin((wx+G.t*40+i*60)*0.04)*4+Math.sin((wx+G.t*25)*0.08)*2;
-      if(wx===0) ctx.moveTo(wx,wy+wave+wAnim);
-      else ctx.lineTo(wx,wy+wave+wAnim);
+    for(let wx=0;wx<W;wx+=3){
+      const wave=Math.sin((wx-cx*0.05+G.t*spd)*0.035)*amp
+                +Math.sin((wx+G.t*18)*0.07)*1.5;
+      if(wx===0) ctx.moveTo(wx, wy+wave);
+      else ctx.lineTo(wx, wy+wave);
     }
     ctx.stroke();
     ctx.restore();
   }
 
-  // ── WATER EDGE ──
-  const edgeGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+8);
-  edgeGrad.addColorStop(0,'#2d8a4e');edgeGrad.addColorStop(1,'#1d6fa8');
-  ctx.fillStyle=edgeGrad;
-  ctx.fillRect(0,RIVER_Y,W,7);
+  // Pixel sparkle glints on water surface
+  for(let g=0;g<6;g++){
+    const gx=((cx*0.08+g*180+G.t*18)%(W+100))-50;
+    const gy=RIVER_Y+10+g*12;
+    const gA=Math.abs(Math.sin(G.t*2.5+g*1.1));
+    ctx.save();
+    ctx.globalAlpha=gA*0.6;
+    ctx.fillStyle='rgba(200,240,255,1)';
+    ctx.fillRect(gx-3,gy-1,6,2);
+    ctx.fillRect(gx-1,gy-3,2,6);
+    ctx.restore();
+  }
 
-  // ── GROUND (near bank) ──
+  // River current particles (keep existing)
+  G.particles.forEach(p=>{
+    if(p.x<-20||p.x>W+20) return;
+    ctx.save();
+    ctx.globalAlpha=p.alpha*0.7;
+    ctx.strokeStyle='rgba(160,220,255,1)';
+    ctx.lineWidth=p.w;
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y);
+    ctx.lineTo(p.x+p.vx*0.06,p.y-p.len*0.8);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // ── BRIDGE over river (ref image 4) ──
+  const bridgeWorldX = WORLD_W * 0.55;
+  const bsx = bridgeWorldX - cx;
+  if(bsx > -200 && bsx < W+200){
+    const bW=110, bY=RIVER_Y+8, bH=10;
+    // Bridge shadow in water
+    ctx.save();
+    ctx.globalAlpha=0.18;
+    ctx.fillStyle='#000';
+    ctx.fillRect(bsx-bW/2, bY+12, bW, bH*2);
+    ctx.restore();
+    // Stone arch left pier
+    ctx.fillStyle='#8B7050';
+    ctx.fillRect(bsx-bW/2-8, bY, 14, RIVER_H*0.6);
+    ctx.fillStyle='#7A5E3E';
+    ctx.fillRect(bsx-bW/2-6, bY+2, 4, RIVER_H*0.55);
+    // Stone arch right pier
+    ctx.fillStyle='#8B7050';
+    ctx.fillRect(bsx+bW/2-6, bY, 14, RIVER_H*0.6);
+    ctx.fillStyle='#7A5E3E';
+    ctx.fillRect(bsx+bW/2+2, bY+2, 4, RIVER_H*0.55);
+    // Bridge deck
+    ctx.fillStyle='#A08860';
+    ctx.fillRect(bsx-bW/2-2, bY-bH, bW+4, bH);
+    ctx.fillStyle='#B89870';
+    ctx.fillRect(bsx-bW/2, bY-bH, bW, 4);
+    // Rail posts
+    ctx.fillStyle='#C0A070';
+    for(let p=0;p<7;p++){
+      const px=bsx-bW/2+8+p*14;
+      ctx.fillRect(px-2, bY-bH-14, 4, 14);
+      // Rail cap
+      ctx.fillStyle='#D4B880';
+      ctx.fillRect(px-3, bY-bH-16, 6, 3);
+      ctx.fillStyle='#C0A070';
+    }
+    // Top railing bar
+    ctx.fillStyle='#D4B880';
+    ctx.fillRect(bsx-bW/2, bY-bH-14, bW, 3);
+  }
+
+  // ── WATER EDGE (bank transition) ──
+  ctx.fillStyle='#2A7840';
+  ctx.fillRect(0,RIVER_Y,W,5);
+  ctx.fillStyle='#3A9850';
+  ctx.fillRect(0,RIVER_Y,W,2);
+
+  // ── GROUND — lush green like ref image 5 ──
+  // Base ground fill — bright layered greens
   const groundGrad=ctx.createLinearGradient(0,GROUND_Y,0,H);
-  groundGrad.addColorStop(0,'#1f6b3c');
-  groundGrad.addColorStop(0.3,'#175530');
-  groundGrad.addColorStop(1,'#0c3018');
+  groundGrad.addColorStop(0,'#4AAA28');
+  groundGrad.addColorStop(0.15,'#3A9020');
+  groundGrad.addColorStop(0.5,'#287818');
+  groundGrad.addColorStop(1,'#1A5010');
   ctx.fillStyle=groundGrad;
   ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
 
-  // Ground top edge
-  ctx.strokeStyle='#2d8a4e';ctx.lineWidth=3;
-  ctx.beginPath();ctx.moveTo(0,GROUND_Y);ctx.lineTo(W,GROUND_Y);ctx.stroke();
+  // Ground highlight strip at top
+  ctx.fillStyle='#5CC030';
+  ctx.fillRect(0,GROUND_Y,W,3);
+  ctx.fillStyle='#70D840';
+  ctx.fillRect(0,GROUND_Y,W,1);
 
-  // Grass blades
+  // ── TALL GRASS (ref image 5 — layered, varied heights) ──
   ctx.save();
-  for(let gx=0;gx<WORLD_W;gx+=16){
+  // Back layer — darker, smaller
+  for(let gx=4;gx<WORLD_W;gx+=10){
+    const sx=gx-cx;
+    if(sx<-30||sx>W+30) continue;
+    const seed = gx*137.508;
+    const h  = 10 + ((seed*0.37)%14);
+    const sw = Math.sin(G.t*0.9 + gx*0.035)*2.5;
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle='#1A6010';
+    ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.moveTo(sx, GROUND_Y+2);
+    ctx.bezierCurveTo(sx+sw*0.4,GROUND_Y-h*0.4, sx+sw*0.8,GROUND_Y-h*0.7, sx+sw,GROUND_Y-h);
+    ctx.stroke();
+  }
+  // Mid layer — medium green
+  for(let gx=0;gx<WORLD_W;gx+=7){
     const sx=gx-cx;
     if(sx<-20||sx>W+20) continue;
-    const gh=8+Math.sin(gx*0.3)*6+4;
-    const sway=Math.sin(G.t*1.2+gx*0.04)*2.5;
-    const baseAlpha=0.6+Math.sin(gx*0.17)*0.25;
-    ctx.globalAlpha=baseAlpha;
-    ctx.strokeStyle='#2d9a50';ctx.lineWidth=1.8;
-    ctx.beginPath();ctx.moveTo(sx,GROUND_Y);ctx.quadraticCurveTo(sx+sway,GROUND_Y-gh/2,sx+sway*1.5,GROUND_Y-gh);ctx.stroke();
+    const seed=(gx+50)*97.3;
+    const h=14+((seed*0.41)%20);
+    const sw=Math.sin(G.t*1.1+gx*0.04)*3;
+    ctx.globalAlpha=0.75;
+    ctx.strokeStyle='#2E8818';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(sx,GROUND_Y+1);
+    ctx.bezierCurveTo(sx+sw*0.3,GROUND_Y-h*0.35,sx+sw*0.7,GROUND_Y-h*0.65,sx+sw,GROUND_Y-h);
+    ctx.stroke();
   }
+  // Front layer — bright green, tallest
+  for(let gx=2;gx<WORLD_W;gx+=8){
+    const sx=gx-cx;
+    if(sx<-20||sx>W+20) continue;
+    const seed=(gx+13)*211.7;
+    const h=18+((seed*0.53)%26);
+    const sw=Math.sin(G.t*1.3+gx*0.045)*4;
+    ctx.globalAlpha=0.9;
+    // Vary color: bright lime to medium green
+    const bright=((seed*0.29)%3)|0;
+    ctx.strokeStyle=['#4ABE28','#58D030','#38A018'][bright];
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(sx,GROUND_Y);
+    ctx.bezierCurveTo(sx+sw*0.3,GROUND_Y-h*0.4,sx+sw*0.7,GROUND_Y-h*0.7,sx+sw,GROUND_Y-h);
+    ctx.stroke();
+    // Blade tip — slightly brighter
+    ctx.strokeStyle='rgba(140,240,80,0.5)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(sx+sw*0.8,GROUND_Y-h*0.8);
+    ctx.lineTo(sx+sw,GROUND_Y-h);
+    ctx.stroke();
+  }
+  // Dark accent grass clumps at base
+  for(let gx=0;gx<WORLD_W;gx+=22){
+    const sx=gx-cx;
+    if(sx<-20||sx>W+20) continue;
+    ctx.globalAlpha=0.6;
+    ctx.fillStyle='#1E6014';
+    ctx.fillRect(sx-3,GROUND_Y-2,6,4);
+  }
+  ctx.globalAlpha=1;
   ctx.restore();
 
   // Rocks
@@ -1255,16 +1441,21 @@ function render(){
     const gzsx = Math.round(G.gz.x - cx);
     const gzsy = Math.round(G.gz.y);
 
-    // Rod tip: calculated same way as in drawGozoCharacter
-    // Hand: (18, -46) local. Rod angle -50deg, length 90
-    const _rDeg = -50;
+    // Rod tip — must exactly mirror phDrawRod logic
+    // Sprite: 11×18, ps=4, ox=-22, sprH=72, sprOY=-72 (no bob when fishing)
+    const _ps=4, _ox=-(11*_ps)/2; // -22
+    const _sprOY = -18*_ps;       // -72  (feet at y=0, top of sprite)
+    const _isBack = G.gz.dir === 'up';
+    const _hCol = _isBack ? 1 : 9;
+    const _hx0  = _ox + _hCol*_ps + _ps/2;
+    const _hy0  = _sprOY + 8*_ps + _ps/2;  // row 8 centre
+    const _rLen = 46;
+    const _rDeg = _isBack ? -130 : -50;
     const _rRad = _rDeg * Math.PI / 180;
-    const _rLen = 90;
-    const _hx0 = 18, _hy0 = -46; // hand local coords
-    const _rdx = Math.cos(_rRad);
-    const _rdy = Math.sin(_rRad);
-    const tipLX = _hx0 + _rdx * _rLen; // local X of tip
-    const tipLY = _hy0 + _rdy * _rLen; // local Y of tip
+    const _rdx  = Math.cos(_rRad);
+    const _rdy  = Math.sin(_rRad);
+    const tipLX = _hx0 + _rdx * _rLen;
+    const tipLY = _hy0 + _rdy * _rLen;
 
     // Apply character facing (scale X by facing) + translate to screen
     const rodTipSX = gzsx + tipLX * G.gz.facing;
@@ -1294,28 +1485,25 @@ function render(){
     if(G.bob.alert){
       const pulse=Math.abs(Math.sin(G.t*12));
       ctx.save();
-      ctx.shadowBlur=18;ctx.shadowColor='#ffcc00';
-      ctx.fillStyle=`rgb(255,${200+pulse*55},0)`;
-      ctx.beginPath();ctx.arc(bsx,bsy,8,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();
+      ctx.shadowBlur=10;ctx.shadowColor='#ffcc00';
+      ctx.fillStyle=`rgb(255,${200+Math.round(pulse*55)},0)`;
+      ctx.beginPath();ctx.arc(bsx,bsy,5,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle='white';ctx.lineWidth=1.2;ctx.stroke();
       ctx.restore();
     } else {
-      // Top red, bottom white bobber
+      // Pixel-art bobber — small, crisp
       ctx.save();
-      // Red top
+      const _br=4;
       ctx.fillStyle='#cc2222';
-      ctx.beginPath();ctx.arc(bsx,bsy,7,Math.PI,0);ctx.closePath();ctx.fill();
-      // White bottom
-      ctx.fillStyle='#eee';
-      ctx.beginPath();ctx.arc(bsx,bsy,7,0,Math.PI);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.arc(bsx,bsy,7,0,Math.PI*2);ctx.stroke();
-      // Center line
-      ctx.strokeStyle='rgba(0,0,0,0.4)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(bsx-7,bsy);ctx.lineTo(bsx+7,bsy);ctx.stroke();
-      // Stick
-      ctx.strokeStyle='#888';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(bsx,bsy);ctx.lineTo(bsx,bsy+12);ctx.stroke();
+      ctx.beginPath();ctx.arc(bsx,bsy,_br,Math.PI,0);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#eeeeee';
+      ctx.beginPath();ctx.arc(bsx,bsy,_br,0,Math.PI);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.arc(bsx,bsy,_br,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=0.8;
+      ctx.beginPath();ctx.moveTo(bsx-_br,bsy);ctx.lineTo(bsx+_br,bsy);ctx.stroke();
+      ctx.strokeStyle='#777';ctx.lineWidth=1.2;
+      ctx.beginPath();ctx.moveTo(bsx,bsy+_br);ctx.lineTo(bsx,bsy+_br+6);ctx.stroke();
       ctx.restore();
     }
   }
