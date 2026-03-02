@@ -141,19 +141,19 @@ header{
 .seed-item.selected{background:#1e3a1e;border-color:var(--yellow)}
 .si-emoji{font-size:1.2rem}
 .si-info{flex:1;min-width:0}
-.si-name{font-size:0.3rem;color:#e0f0e0;text-shadow:1px 1px 0 #000}
-.si-time{font-size:0.22rem;color:#8ab88a;text-shadow:1px 1px 0 #000}
-.si-inv{font-size:0.22rem;color:var(--yellow);text-shadow:1px 1px 0 #000}
-.si-count{font-size:0.26rem;color:#a0c870;background:#0e200e;border:2px solid #3a6a3a;padding:2px 6px;text-shadow:1px 1px 0 #000}
+.si-name{font-size:0.42rem;color:#e0f0e0;text-shadow:1px 1px 0 #000}
+.si-time{font-size:0.32rem;color:#8ab88a;text-shadow:1px 1px 0 #000}
+.si-inv{font-size:0.32rem;color:var(--yellow);text-shadow:1px 1px 0 #000}
+.si-count{font-size:0.38rem;color:#a0c870;background:#0e200e;border:2px solid #3a6a3a;padding:2px 6px;text-shadow:1px 1px 0 #000}
 
 /* WATER */
-.water-info{font-size:0.28rem;color:#a0d0f0;text-shadow:1px 1px 0 #000;margin-bottom:6px;line-height:1.8}
+.water-info{font-size:0.38rem;color:#a0d0f0;text-shadow:1px 1px 0 #000;margin-bottom:6px;line-height:1.8}
 
 /* HARVEST */
 .h-item{display:flex;align-items:center;gap:5px;margin-bottom:4px;padding:3px}
 .h-emoji{font-size:1rem}
-.h-name{font-size:0.26rem;color:#c0e8c0;text-shadow:1px 1px 0 #000;flex:1}
-.h-count{font-size:0.3rem;color:var(--yellow);text-shadow:1px 1px 0 #000;min-width:20px;text-align:center}
+.h-name{font-size:0.36rem;color:#c0e8c0;text-shadow:1px 1px 0 #000;flex:1}
+.h-count{font-size:0.4rem;color:var(--yellow);text-shadow:1px 1px 0 #000;min-width:20px;text-align:center}
 
 /* OVERLAY */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:flex;align-items:center;justify-content:center}
@@ -1802,6 +1802,25 @@ function parts(n, emojis, cx, cy){
 #music-player .mp-vol {
   width: 60px; accent-color: #4caf50; cursor: pointer;
 }
+#music-toggle-btn {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 10000;
+  background: rgba(255,255,255,0.18);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255,255,255,0.45);
+  border-radius: 50%;
+  width: 40px; height: 40px;
+  cursor: pointer;
+  font-size: 18px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 24px rgba(80,140,80,0.18);
+  transition: all 0.3s;
+}
+#music-toggle-btn:hover { background: rgba(76,175,80,0.3); }
 #music-player .mp-eq {
   display: flex; align-items: flex-end; gap: 2px; height: 18px;
 }
@@ -1819,6 +1838,7 @@ function parts(n, emojis, cx, cy){
 </style>
 
 <div id="music-player">
+  <button class="mp-hide-btn" onclick="hideMusicPlayer()" title="Sembunyikan" style="background:none;border:none;cursor:pointer;font-size:14px;color:#5a8a5a;padding:0 2px;line-height:1;align-self:flex-start;margin-top:-2px;">✕</button>
   <div class="mp-icon">🌿</div>
   <div class="mp-info">
     <div class="mp-title">Calming Melody</div>
@@ -1830,6 +1850,7 @@ function parts(n, emojis, cx, cy){
   <button class="mp-btn" id="mp-btn" onclick="toggleMusic()" title="Play/Pause">▶</button>
   <input class="mp-vol" type="range" min="0" max="1" step="0.05" value="0.5" oninput="setVolume(this.value)" title="Volume">
 </div>
+<button id="music-toggle-btn" onclick="showMusicPlayer()" title="Tampilkan Musik">🎵</button>
 
 <script>
 (function(){
@@ -1901,6 +1922,15 @@ function parts(n, emojis, cx, cy){
   window.toggleMusic = function() {
     if (!playing) startMusic();
     else stopMusic();
+  }
+  window.hideMusicPlayer = function() {
+    document.getElementById('music-player').style.display = 'none';
+    const btn = document.getElementById('music-toggle-btn');
+    btn.style.display = 'flex';
+  }
+  window.showMusicPlayer = function() {
+    document.getElementById('music-player').style.display = 'flex';
+    document.getElementById('music-toggle-btn').style.display = 'none';
   };
 
   window.setVolume = function(v) {
