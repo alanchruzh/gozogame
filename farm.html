@@ -651,7 +651,12 @@ function startWaterRegen(){
 // CHAIN / MON HELPERS
 // ═══════════════════════════════════════════════
 function monToHex(mon){
-  return '0x'+(BigInt(Math.round(mon*1e9))*BigInt(1e9)).toString(16);
+  // Convert MON to wei safely without floating point errors
+  // e.g. 1.25 MON -> 1250000000000000000 wei
+  const [intPart, fracPart=''] = mon.toString().split('.');
+  const frac18 = (fracPart + '000000000000000000').slice(0,18);
+  const wei = BigInt(intPart) * BigInt('1000000000000000000') + BigInt(frac18);
+  return '0x' + wei.toString(16);
 }
 // ═══════════════════════════════════════════════
 // CONTRACT CALL HELPERS
