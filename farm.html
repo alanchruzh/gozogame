@@ -535,9 +535,7 @@ header{
 // ═══════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════
-const TREASURY        = '0x1B3C51b7d12D06F5e1581B26A67047F4e19871ba';
-const FARM_CONTRACT   = '0xD94aEaf32B90F2a432Cea2f86413Ce6347785A9e';
-const STORAGE_CONTRACT = '0x8896249693F3D1c9911358550F6f95BDfB0410EE';
+const FARM_CONTRACT = '0x8e80e3c4f2c2ecF501a7779002964f03BB33E17C'; // ← isi setelah deploy GozoFarm.sol
 const CHAIN_ID  = '0x8F'; // 143 Monad
 const CHAIN = {
   chainId:CHAIN_ID, chainName:'Monad',
@@ -620,7 +618,7 @@ function updateWaterUI(){
 
 async function buyWaterRefill(){
   if(monBalance<WATER_COST){showToast(`❌ NEED ${WATER_COST} MON FOR WATER REFILL!`);return;}
-  const ok=await callContract(encBuyWater(), WATER_COST, 'Buy water refill (10 uses)');
+  const ok=await farmTx(encBuyWaterAndSave(seedArr()), WATER_COST, 'Buy water refill');
   if(ok){
     waterCharges+=WATER_PER_REFILL;
     lastRefillTime=Date.now();
@@ -628,7 +626,6 @@ async function buyWaterRefill(){
     showToast('💧 +10 WATER CHARGES! Go water your crops!');
     sfx('plant');
     saveState();
-    saveInventory(); // save to chain
     startWaterRegen();
   }
 }
@@ -659,51 +656,96 @@ function monToHex(mon){
   return '0x' + wei.toString(16);
 }
 // ═══════════════════════════════════════════════
-// CONTRACT CALL HELPERS
+// CONTRACT ENCODERS — GozoFarm.sol (combined)
 // ═══════════════════════════════════════════════
-// Function selectors (keccak256 of signature, first 4 bytes)
-const SEL_BUY_SEED    = '0x7a696e67'; // buySeed(uint8)
-const SEL_BUY_WATER   = '0x9b8e05f2'; // buyWater()
-const SEL_SELL_BATCH  = '0xf47c84c5'; // sellHarvestBatch(uint8[],uint256[])
+const CROP_TO_INT = {tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
+const INT_TO_CROP = {0:'tomat',1:'cabe',2:'bawangMerah',3:'bawangPutih',4:'wortel'};
+const STATE_TO_INT = {empty:0,tilled:1,planted:2,ready:3,closed:4};
+const INT_TO_STATE = {0:'empty',1:'tilled',2:'planted',3:'ready',4:'closed'};
 
-function encBuySeed(cropKey) {
-  // buySeed(uint8 cropKey)
-  return '0x' +
-    '8db94e2a' + // keccak256("buySeed(uint8)").slice(0,4)
-    cropKey.toString(16).padStart(64,'0');
+function p32(v){ return BigInt(v).toString(16).padStart(64,'0'); }
+function seedArr(){ return CROP_KEYS.map(k=>Math.min(255,inventory[k]||0)); }
+function harvArr(){ return CROP_KEYS.map(k=>Math.min(255,harvest[k]||0)); }
+function encArr5(arr){ return arr.map(v=>p32(v)).join(''); }
+
+// buySeedAndSave(uint8 cropKey, uint8[5] seedInv, uint8[5] harvestInv)
+function encBuySeedAndSave(ck, sInv, hInv){
+  return '0xbba902b0' + p32(ck) + sInv.map(v=>p32(v)).join('') + hInv.map(v=>p32(v)).join('');
 }
-function encBuyWater() {
-  return '0xd6e7deb6'; // keccak256("buyWater()").slice(0,4)
+
+// buyWaterAndSave(uint8[5] seedInv)
+function encBuyWaterAndSave(sInv){
+  return '0xa430bc34' + sInv.map(v=>p32(v)).join('');
 }
-function encSellBatch(cropKeys, qtys) {
-  // sellHarvestBatch(uint8[],uint256[])
-  // ABI encode: selector + offset1 + offset2 + len1 + ...keys + len2 + ...qtys
+
+// plantAndSave(uint8 fid, uint8 pid, uint8 cropKey, uint8 state, bool watered, uint64 plantedAt, uint16 water, uint8[5] seedInv)
+function encPlantAndSave(fid, pid, ck, state, watered, plantedAt, water, sInv){
+  return '0x19a328a0' +
+    p32(fid) + p32(pid) + p32(ck) + p32(state) +
+    p32(watered?1:0) + p32(plantedAt) + p32(water) +
+    sInv.map(v=>p32(v)).join('');
+}
+
+// harvestAndSell(uint8[] cropKeys, uint256[] qtys, uint8 fieldId, uint8 plotId, uint8[5] harvestInv)
+function encHarvestAndSell(cropKeys, qtys, fid, pid, hInv){
   const n = cropKeys.length;
-  const sel = 'f97c47fa'; // keccak256("sellHarvestBatch(uint8[],uint256[])").slice(0,4)
-  const off1 = (64).toString(16).padStart(64,'0');           // offset to keys array = 0x40
-  const off2 = (64 + 32 + n*32).toString(16).padStart(64,'0'); // offset to qtys array
-  const lenN = n.toString(16).padStart(64,'0');
-  const keysHex = cropKeys.map(k=>k.toString(16).padStart(64,'0')).join('');
-  const qtysHex = qtys.map(q=>BigInt(q).toString(16).padStart(64,'0')).join('');
-  return '0x' + sel + off1 + off2 + lenN + keysHex + lenN + qtysHex;
+  // ABI: sel + offset_ck(32) + offset_qtys(32) + fid(32) + pid(32) + hInv(5x32)
+  //      + len_ck(32) + ck_data + len_qtys(32) + qtys_data
+  const fixedSize = 2 + 5; // 2 dynamic offsets + fid + pid + 5 harvestInv = fixed part words
+  const off_ck   = (7 * 32).toString(16).padStart(64,'0');   // after: off1,off2,fid,pid,h0,h1,h2,h3,h4
+  const off_qtys = ((7 + 1 + n) * 32).toString(16).padStart(64,'0');
+  return '0x767c25b6' +
+    off_ck + off_qtys +
+    p32(fid) + p32(pid) +
+    hInv.map(v=>p32(v)).join('') +
+    p32(n) + cropKeys.map(v=>p32(v)).join('') +
+    p32(n) + qtys.map(v=>p32(v)).join('');
 }
 
-async function callContract(data, value_mon, label) {
+// unlockFieldAndSave(uint8 fieldId)
+function encUnlockField(fid){
+  return '0xce62aaa7' + p32(fid);
+}
+
+// loadPlayer(address)
+function encLoadPlayer(addr){
+  return '0xe22fbe47' + addr.slice(2).toLowerCase().padStart(64,'0');
+}
+
+// loadField(address, uint8)
+function encLoadField(addr, fid){
+  return '0x40311e07' + addr.slice(2).toLowerCase().padStart(64,'0') + p32(fid);
+}
+
+// eth_call helper
+async function ethCall(data){
+  if(!FARM_CONTRACT) return null;
+  try{
+    return await window.ethereum.request({
+      method:'eth_call',
+      params:[{to:FARM_CONTRACT, data},'latest']
+    });
+  }catch(e){ return null; }
+}
+
+// Send tx to farm contract
+async function farmTx(data, value_mon, label){
   if(txPending){showToast('⏳ TX IN PROGRESS!');return false;}
+  if(value_mon>0 && monBalance<value_mon){showToast(`❌ NEED ${value_mon} MON!`);return false;}
   txPending=true;
   setTx('pending',`⏳ ${label}...`);
   try{
     const hash=await window.ethereum.request({
       method:'eth_sendTransaction',
       params:[{
-        from: walletAddress,
-        to:   FARM_CONTRACT,
-        data: data,
-        value: value_mon > 0 ? monToHex(value_mon) : '0x0',
-        gas: '0x30D40', // 200000 gas - cukup untuk contract logic + forward MON
+        from:walletAddress,
+        to:FARM_CONTRACT,
+        data,
+        value: value_mon>0 ? monToHex(value_mon) : '0x0',
+        gas:'0x493E0' // 300000
       }]
     });
-    setTx('pending','⏳ Confirming on-chain...');
+    setTx('pending','⏳ Confirming...');
     await waitReceipt(hash);
     setTx('success',`✅ ${label} done!`);
     setTimeout(()=>setTx('',''),3000);
@@ -711,7 +753,7 @@ async function callContract(data, value_mon, label) {
     await fetchBalance();
     return true;
   }catch(e){
-    const m=e.code===4001?'CANCELLED':(e.message?.slice(0,32)||'ERROR');
+    const m=e.code===4001?'CANCELLED':(e.message?.slice(0,40)||'ERROR');
     setTx('error',`❌ ${m}`);
     setTimeout(()=>setTx('',''),4000);
     txPending=false;
@@ -719,280 +761,85 @@ async function callContract(data, value_mon, label) {
   }
 }
 
-async function sendMON(to, amount, label){
-  if(txPending){showToast('⏳ TX IN PROGRESS!');return false;}
-  if(amount>0 && monBalance<amount){showToast(`❌ NEED ${amount} MON!`);return false;}
-  txPending=true;
-  setTx('pending',`⏳ ${label}...`);
+// ─── LOAD from chain ───
+async function loadFromChain(){
+  if(!FARM_CONTRACT||!walletAddress) return false;
+  setTx('pending','⏳ Loading from blockchain...');
   try{
-    const hash=await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{from:walletAddress,to,value:monToHex(amount),gas:'0x30D40'}]
-    });
-    setTx('pending','⏳ Confirming on-chain...');
-    await waitReceipt(hash);
-    setTx('success',`✅ ${label} done!`);
-    setTimeout(()=>setTx('',''),3000);
-    txPending=false;
-    await fetchBalance();
-    return true;
-  }catch(e){
-    const m=e.code===4001?'CANCELLED':(e.message?.slice(0,32)||'ERROR');
-    setTx('error',`❌ ${m}`);
-    setTimeout(()=>setTx('',''),4000);
-    txPending=false;
-    return false;
-  }
-}
-async function waitReceipt(hash,max=40){
-  for(let i=0;i<max;i++){
-    await new Promise(r=>setTimeout(r,2000));
-    try{
-      const r=await window.ethereum.request({method:'eth_getTransactionReceipt',params:[hash]});
-      if(r&&r.blockNumber) return r;
-    }catch(_){}
-  }
-  return null;
-}
-async function fetchBalance(){
-  if(!walletAddress) return;
-  try{
-    const raw=await window.ethereum.request({method:'eth_getBalance',params:[walletAddress,'latest']});
-    monBalance=parseInt(raw,16)/1e18;
-  }catch{monBalance=0;}
-  document.getElementById('balHud').textContent=monBalance.toFixed(4)+' MON';
-  renderSeedShop();
-}
-function setTx(type,msg){
-  const el=document.getElementById('txStatus');
-  el.className='tx-strip'+(type?' show '+type:'');
-  el.textContent=msg;
-}
+    const raw = await ethCall(encLoadPlayer(walletAddress));
+    if(!raw||raw==='0x'||raw.length<10){setTx('','');return false;}
+    const hex = raw.slice(2);
+    const exists = parseInt(hex.slice(0,64),16);
+    if(!exists){setTx('','');return false;}
 
+    // bool[10] unlocked — 10 x 32 bytes at offset 32
+    const unlocked=[];
+    for(let i=0;i<10;i++) unlocked.push(parseInt(hex.slice(64+i*64,64+i*64+64),16)===1);
 
-// ═══════════════════════════════════════════════
-// STORAGE CONTRACT — On-chain progress save/load
-// ═══════════════════════════════════════════════
+    // uint8[5] seedInv at offset 64+10*64=704
+    const sStart=64+10*64;
+    const sInv=[];
+    for(let i=0;i<5;i++) sInv.push(parseInt(hex.slice(sStart+i*64,sStart+i*64+64),16));
 
-// Crop key mapping: JS key -> contract uint8 (1-based, 0=empty)
-const CROP_TO_INT = {tomat:1,cabe:2,bawangMerah:3,bawangPutih:4,wortel:5};
-const INT_TO_CROP = {1:'tomat',2:'cabe',3:'bawangMerah',4:'bawangPutih',5:'wortel'};
+    // uint8[5] harvestInv at sStart+5*64
+    const hStart=sStart+5*64;
+    const hInv=[];
+    for(let i=0;i<5;i++) hInv.push(parseInt(hex.slice(hStart+i*64,hStart+i*64+64),16));
 
-// State mapping: JS string -> uint8
-const STATE_TO_INT = {empty:0,tilled:1,planted:2,ready:3,closed:4};
-const INT_TO_STATE = {0:'empty',1:'tilled',2:'planted',3:'ready',4:'closed'};
+    // uint16 waterCharges
+    const wStart=hStart+5*64;
+    const wCharges=parseInt(hex.slice(wStart,wStart+64),16);
 
-function pad32(val) { return val.toString(16).padStart(64,'0'); }
-function padBool(b) { return (b?1:0).toString(16).padStart(64,'0'); }
+    // Apply
+    CROP_KEYS.forEach((k,i)=>{inventory[k]=sInv[i]||0;harvest[k]=hInv[i]||0;});
+    waterCharges=wCharges;
+    FIELD_DEFS.forEach((f,i)=>initField(f.id,unlocked[i]||false));
 
-// eth_call helper (read from contract)
-async function ethCall(to, data) {
-  try {
-    const res = await window.ethereum.request({
-      method: 'eth_call',
-      params: [{ to, data }, 'latest']
-    });
-    return res;
-  } catch(e) { return null; }
-}
-
-// Encode loadBasic(address)
-function encLoadBasic(addr) {
-  return '0x57cad9ca' + addr.slice(2).toLowerCase().padStart(64,'0');
-}
-
-// Encode loadField(address, uint8 fieldId)  
-function encLoadField(addr, fieldId) {
-  return '0x40311e07' +
-    addr.slice(2).toLowerCase().padStart(64,'0') +
-    fieldId.toString(16).padStart(64,'0');
-}
-
-// Encode updatePlot(uint8 fid, uint8 pid, uint8 cropKey, uint8 state, bool watered, uint64 plantedAt)
-function encUpdatePlot(fid, pid, cropKey, state, watered, plantedAt) {
-  return '0x78e928bb' +
-    fid.toString(16).padStart(64,'0') +
-    pid.toString(16).padStart(64,'0') +
-    cropKey.toString(16).padStart(64,'0') +
-    state.toString(16).padStart(64,'0') +
-    (watered?1:0).toString(16).padStart(64,'0') +
-    BigInt(plantedAt||0).toString(16).padStart(64,'0');
-}
-
-// Encode updateInventory(uint8[5] seedInv, uint8[5] harvestInv, uint16 water)
-function encUpdateInventory(seedInv, harvestInv, water) {
-  const seedHex  = seedInv.map(v=>v.toString(16).padStart(64,'0')).join('');
-  const harvHex  = harvestInv.map(v=>v.toString(16).padStart(64,'0')).join('');
-  const waterHex = water.toString(16).padStart(64,'0');
-  return '0xe12ff0dd' + seedHex + harvHex + waterHex;
-}
-
-// Encode unlockField(uint8 fieldId)
-function encUnlockField(fid) {
-  return '0xf16f9c0a' + fid.toString(16).padStart(64,'0');
-}
-
-// Send to storage contract (no value needed)
-async function storageTx(data, label) {
-  if (!STORAGE_CONTRACT) return true; // skip if not deployed yet
-  try {
-    const hash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: walletAddress, to: STORAGE_CONTRACT, data, gas: '0x493E0' }]
-    });
-    // Don't wait for receipt — fire and forget (player can continue)
-    console.log(`[Storage] ${label} tx:`, hash);
-    return true;
-  } catch(e) {
-    console.warn(`[Storage] ${label} failed:`, e.message);
-    return false;
-  }
-}
-
-// ─── LOAD from chain ───────────────────────────
-async function loadFromChain() {
-  if (!STORAGE_CONTRACT || !walletAddress) return false;
-  setTx('pending', '⏳ Loading progress from blockchain...');
-  try {
-    // 1. Load basic data
-    const raw = await ethCall(STORAGE_CONTRACT, encLoadBasic(walletAddress));
-    if (!raw || raw === '0x') { setTx('',''); return false; }
-
-    // Decode: exists(bool) + unlockedFields(bool[10]) + seedInv(uint8[5]) + harvestInv(uint8[5]) + water(uint16) + lastSave(uint64)
-    // Each is 32 bytes in ABI encoding
-    const exists = parseInt(raw.slice(2,66), 16);
-    if (!exists) { setTx('',''); return false; }
-
-    // unlockedFields: 10 x 32 bytes starting at offset 32
-    const unlocked = [];
-    for (let i = 0; i < 10; i++) {
-      unlocked.push(parseInt(raw.slice(66 + i*64, 66 + i*64 + 64), 16) === 1);
-    }
-    // seedInv: 5 x 32 bytes
-    const seedInv = [];
-    const seedStart = 66 + 10*64;
-    for (let i = 0; i < 5; i++) {
-      seedInv.push(parseInt(raw.slice(seedStart + i*64, seedStart + i*64 + 64), 16));
-    }
-    // harvestInv: 5 x 32 bytes
-    const harvStart = seedStart + 5*64;
-    const harvestInv = [];
-    for (let i = 0; i < 5; i++) {
-      harvestInv.push(parseInt(raw.slice(harvStart + i*64, harvStart + i*64 + 64), 16));
-    }
-    // water charges
-    const waterStart = harvStart + 5*64;
-    const wCharges = parseInt(raw.slice(waterStart, waterStart+64), 16);
-
-    // 2. Apply basic data
-    CROP_KEYS.forEach((k,i) => {
-      inventory[k] = seedInv[i] || 0;
-      harvest[k]   = harvestInv[i] || 0;
-    });
-    waterCharges = wCharges;
-
-    // 3. Init fields with unlock status
-    FIELD_DEFS.forEach((f,i) => initField(f.id, unlocked[i] || false));
-
-    // 4. Load plots for each unlocked field
-    for (let fid = 0; fid < 10; fid++) {
-      if (!unlocked[fid]) continue;
-      const fraw = await ethCall(STORAGE_CONTRACT, encLoadField(walletAddress, fid));
-      if (!fraw || fraw === '0x' || fraw.length < 10) continue;
-
-      // Decode dynamic arrays: cropKeys[], states[], watered[], plantedAts[]
-      // ABI: offset(32) offset(32) offset(32) offset(32) len data...
-      try {
-        const hex = fraw.slice(2);
-        // offsets
-        const off0 = parseInt(hex.slice(0,64),16)*2;
-        const off1 = parseInt(hex.slice(64,128),16)*2;
-        const off2 = parseInt(hex.slice(128,192),16)*2;
-        const off3 = parseInt(hex.slice(192,256),16)*2;
-
-        const len = parseInt(hex.slice(off0, off0+64),16);
-        if (len === 0) continue;
-
-        const cropKeys_  = [];
-        const states_    = [];
-        const watered_   = [];
-        const plantedAts_= [];
-
-        for (let pi = 0; pi < len; pi++) {
-          cropKeys_.push(parseInt(hex.slice(off0+64+pi*64, off0+64+pi*64+64),16));
-          states_.push(parseInt(hex.slice(off1+64+pi*64, off1+64+pi*64+64),16));
-          watered_.push(parseInt(hex.slice(off2+64+pi*64, off2+64+pi*64+64),16)===1);
-          plantedAts_.push(parseInt(hex.slice(off3+64+pi*64, off3+64+pi*64+64),16));
-        }
-
-        // Apply to fieldData
-        const fd = fieldData[fid];
-        if (!fd) continue;
-        for (let pi = 0; pi < len; pi++) {
-          if (!fd.plots[pi]) continue;
-          const p = fd.plots[pi];
-          const ck = cropKeys_[pi];
-          p.plant    = INT_TO_CROP[ck] || null;
-          p.state    = INT_TO_STATE[states_[pi]] || 'empty';
-          p.watered  = watered_[pi];
-          p.plantedAt= plantedAts_[pi] * 1000 || null; // contract stores seconds, JS needs ms
-
-          // Resume timer if planted & watered
-          if (p.state === 'planted' && p.watered && p.plantedAt && p.plant) {
-            const growMs = CROPS[p.plant].grow;
-            const left   = (p.plantedAt + growMs) - Date.now();
-            if (left <= 0) { p.state = 'ready'; }
-            else { startGrowTimer(fid, pi, left); }
+    // Load plots per unlocked field
+    for(let fid=0;fid<10;fid++){
+      if(!unlocked[fid]) continue;
+      const fraw=await ethCall(encLoadField(walletAddress,fid));
+      if(!fraw||fraw==='0x') continue;
+      try{
+        const fhex=fraw.slice(2);
+        const o0=parseInt(fhex.slice(0,64),16)*2;
+        const o1=parseInt(fhex.slice(64,128),16)*2;
+        const o2=parseInt(fhex.slice(128,192),16)*2;
+        const o3=parseInt(fhex.slice(192,256),16)*2;
+        const len=parseInt(fhex.slice(o0,o0+64),16);
+        if(!len) continue;
+        const fd=fieldData[fid]; if(!fd) continue;
+        for(let pi=0;pi<len;pi++){
+          if(!fd.plots[pi]) continue;
+          const p=fd.plots[pi];
+          const ck=parseInt(fhex.slice(o0+64+pi*64,o0+64+pi*64+64),16);
+          p.plant    = INT_TO_CROP[ck]||null;
+          p.state    = INT_TO_STATE[parseInt(fhex.slice(o1+64+pi*64,o1+64+pi*64+64),16)]||'empty';
+          p.watered  = parseInt(fhex.slice(o2+64+pi*64,o2+64+pi*64+64),16)===1;
+          const pts  = parseInt(fhex.slice(o3+64+pi*64,o3+64+pi*64+64),16);
+          p.plantedAt= pts>0 ? pts*1000 : null;
+          if(p.state==='planted'&&p.watered&&p.plantedAt&&p.plant){
+            const left=(p.plantedAt+CROPS[p.plant].grow)-Date.now();
+            if(left<=0){p.state='ready';}
+            else{startGrowTimer(fid,pi,left);}
           }
         }
-      } catch(e) { console.warn('Field decode error:', fid, e); }
+      }catch(e){console.warn('Field decode err',fid,e);}
     }
-
-    renderAllFields();
-    renderHarvestList();
-    renderSeedShop();
-    updateWaterUI();
-    setTx('success', '✅ Progress loaded from blockchain!');
-    setTimeout(() => setTx('',''), 3000);
+    renderAllFields();renderHarvestList();renderSeedShop();updateWaterUI();
+    setTx('success','✅ Progress loaded!');
+    setTimeout(()=>setTx('',''),3000);
     showToast('✅ PROGRESS LOADED FROM CHAIN!');
     return true;
-
-  } catch(e) {
-    console.warn('[Storage] Load failed:', e);
-    setTx('','');
-    return false;
+  }catch(e){
+    console.warn('loadFromChain err',e);
+    setTx('','');return false;
   }
-}
-
-// ─── SAVE helpers (fire & forget) ──────────────
-
-// Called after planting/watering/harvesting a plot
-function saveplot(fid, pid) {
-  if (!STORAGE_CONTRACT) return;
-  const p = fieldData[fid]?.plots[pid];
-  if (!p) return;
-  const ck    = CROP_TO_INT[p.plant] || 0;
-  const state = STATE_TO_INT[p.state] || 0;
-  const pts   = p.plantedAt ? Math.floor(p.plantedAt/1000) : 0;
-  storageTx(encUpdatePlot(fid, pid, ck, state, p.watered||false, pts), `updatePlot f${fid}p${pid}`);
-}
-
-// Called after buying seed/water/selling harvest
-function saveInventory() {
-  if (!STORAGE_CONTRACT) return;
-  const seedArr    = CROP_KEYS.map(k => Math.min(255, inventory[k]||0));
-  const harvestArr = CROP_KEYS.map(k => Math.min(255, harvest[k]||0));
-  storageTx(encUpdateInventory(seedArr, harvestArr, Math.min(65535, waterCharges)), 'updateInventory');
-}
-
-// Called after unlocking a field
-function saveUnlockField(fid) {
-  if (!STORAGE_CONTRACT) return;
-  storageTx(encUnlockField(fid), `unlockField ${fid}`);
 }
 
 // ═══════════════════════════════════════════════
 // WALLET
+
 // ═══════════════════════════════════════════════
 async function connectWallet(){
   if(!window.ethereum){showToast('⚠️ INSTALL METAMASK!');return;}
@@ -1121,14 +968,13 @@ async function unlockField(fid){
   if(fid>0&&!fieldData[fid-1]?.unlocked){showToast('🔒 UNLOCK PREVIOUS FIELD FIRST!');return;}
   if(monBalance<cfg.cost){showToast(`❌ NEED ${cfg.cost} MON!`);return;}
 
-  const ok=await sendMON(TREASURY,cfg.cost,`Unlock ${cfg.name} (${cfg.cost} MON)`);
+  const ok=await farmTx(encUnlockField(fid), cfg.cost, `Unlock ${cfg.name}`);
   if(ok){
     initField(fid,true);
     renderAllFields();
     saveState();
     showToast(`🏡 ${cfg.name} UNLOCKED! ${cfg.cols*cfg.rows} plots ready!`);
     sfx('coin');
-    saveUnlockField(fid); // save to chain
     parts(null,['🏡','⭐','✨','💜'],window.innerWidth/2,window.innerHeight*0.5);
   }
 }
@@ -1258,7 +1104,10 @@ function handleClick(fid,pid){
       refreshPlot(fid,pid);
       say('water');sfx('plant');partsPlot(fid,pid,['💧','🌊','✨']);
       saveState();
-      saveplot(fid, pid); // save to chain
+      // Save watered plot to chain
+      const _pts=Math.floor(p.plantedAt/1000);
+      const _ck=CROP_TO_INT[p.plant]||0;
+      farmTx(encPlantAndSave(fid,pid,_ck,2,true,_pts,waterCharges,seedArr()),0,`Water plot`);
       showToast('💧 CROP WATERED! Growing now...');
     } else if(p.state==='planted'&&p.watered){
       showToast('✅ ALREADY WATERED!');
@@ -1276,15 +1125,16 @@ async function buySeed(cropKey){
   const c=CROPS[cropKey];
   selectedSeed=cropKey;
   renderSeedShop();
-  const cropKeyMap={tomat:0,cabe:1,bawangMerah:2,bawangPutih:3,wortel:4};
-  const ck=cropKeyMap[cropKey];
-  const ok=await callContract(encBuySeed(ck), c.buy, `Buy ${c.name} seed`);
+  const ck=CROP_TO_INT[cropKey];
+  // Increment locally first to encode correct post-buy inventory
+  const newInv=CROP_KEYS.map(k=>Math.min(255,(inventory[k]||0)+(k===cropKey?1:0)));
+  const hInv=harvArr();
+  const ok=await farmTx(encBuySeedAndSave(ck,newInv,hInv), c.buy, `Buy ${c.name} seed`);
   if(ok){
     inventory[cropKey]++;
     renderSeedShop();
     showToast(`🌱 ${c.name.toUpperCase()} SEED BOUGHT!`);
     sfx('plant');say('buy');saveState();
-    saveInventory(); // save to chain
   }
 }
 
@@ -1300,11 +1150,12 @@ function plantCrop(fid,pid){
   refreshPlot(fid,pid);
   renderSeedShop();
   say('plant');sfx('plant');partsPlot(fid,pid,['🌱','✨']);
-  // Don't start timer yet — need water first!
   showToast('🪣 SELECT WATER TOOL & water the crop!');
   selectTool('water');
   saveState();
-  saveplot(fid, pid); // save to chain
+  // Save plot to chain (planted, not watered yet)
+  const _sInv=seedArr();
+  farmTx(encPlantAndSave(fid,pid,CROP_TO_INT[selectedSeed]||0,2,false,0,waterCharges,_sInv),0,`Plant plot`);
 }
 
 function startGrowTimer(fid,pid,remainMs){
@@ -1342,6 +1193,7 @@ function fmtTime(ms){
 function doHarvest(fid,pid){
   const p=fieldData[fid].plots[pid];
   const c=CROPS[p.plant];
+  const plantKey=p.plant;
   harvest[p.plant]++;
   const tk=`${fid}_${pid}`;
   if(timers[tk]){clearInterval(timers[tk]);delete timers[tk];}
@@ -1350,8 +1202,9 @@ function doHarvest(fid,pid){
   partsPlot(fid,pid,[c.emoji,'✨','⭐','💫']);
   setTimeout(()=>{p.state='tilled';p.plant=null;p.plantedAt=null;refreshPlot(fid,pid);},500);
   updateHarvestUI();say('harvest');sfx('harvest');saveState();
-  saveplot(fid, pid); // save plot to chain (now empty/tilled)
-  saveInventory();    // save harvest inventory to chain
+  // Fire & forget — save harvest to chain (no sell yet, just record)
+  const _hInv=harvArr();
+  farmTx(encPlantAndSave(fid,pid,0,1,false,0,waterCharges,seedArr()),0,'Save harvest');
 }
 
 // ═══════════════════════════════════════════════
