@@ -308,6 +308,16 @@ header{
       <div id="harvestList"></div>
     </div>
 
+    <!-- BLOCKCHAIN SAVE -->
+    <div class="sb-card" id="chainSaveCard" style="border-color:#7b61ff">
+      <h3>&#x26D3;&#xFE0F; BLOCKCHAIN SAVE</h3>
+      <div style="font-size:0.24rem;color:#b0a0e0;text-shadow:1px 1px 0 #000;margin-bottom:8px;line-height:1.6">Simpan progress secara <span style="color:#c0a0ff">permanen</span> di Monad!</div>
+      <button id="saveChainBtn" onclick="saveToChain()" style="font-family:var(--font);font-size:0.3rem;width:100%;background:#2a1a5a;color:#c0a0ff;border:3px solid #7b61ff;padding:8px 0;cursor:pointer;box-shadow:3px 3px 0 #000;margin-bottom:6px;transition:all 0.08s" onmouseover="this.style.background='#3a2a7a'" onmouseout="this.style.background='#2a1a5a'">&#x26D3;&#xFE0F; SAVE TO CHAIN</button>
+      <button id="loadChainBtn" onclick="loadFromChain()" style="font-family:var(--font);font-size:0.26rem;width:100%;background:#1a2a1a;color:#80ff80;border:3px solid #3a8a3a;padding:6px 0;cursor:pointer;box-shadow:3px 3px 0 #000;margin-bottom:8px;transition:all 0.08s" onmouseover="this.style.background='#2a3a2a'" onmouseout="this.style.background='#1a2a1a'">&#x1F4E5; LOAD FROM CHAIN</button>
+      <div id="chainSaveStatus" style="font-size:0.22rem;color:#8a8aaa;text-shadow:1px 1px 0 #000;min-height:16px;line-height:1.5"></div>
+      <div id="chainSaveMeta" style="font-size:0.2rem;color:#6a6a8a;text-shadow:1px 1px 0 #000;margin-top:4px"></div>
+    </div>
+
     <!-- Unlock Fields -->
     <div class="sb-card">
       <h3>🏡 FIELDS</h3>
@@ -1775,6 +1785,232 @@ function parts(n, emojis, cx, cy){
     else{const r=document.createElement('div');r.className='fr';f.appendChild(r)}
   }
 })();
+
+
+// ═══════════════════════════════════════════════════════════════════
+// ⛓️  BLOCKCHAIN SAVE — Monad Testnet
+// Contract: GozoFarmSave.sol
+// ═══════════════════════════════════════════════════════════════════
+
+// ⚠️  GANTI dengan alamat contract setelah deploy di Monad Testnet!
+const SAVE_CONTRACT = '0x34e0A0Ecf3777d671be0Ada27D67a13312f94A8C';
+
+// ─── 4-byte selectors (dari keccak256 ABI encoding) ───────────────
+// saveGame(string,uint32,uint256) → 0x... (dihitung saat deploy)
+// Untuk testnet, gunakan selector yang benar setelah deploy
+// Ini placeholder — akan diupdate setelah contract di-deploy
+const SEL_SAVE_GAME = '0x57d5a84c'; // placeholder
+const SEL_HAS_SAVE  = '0x4a72e8f0'; // placeholder
+const SEL_LOAD_GAME = '0x3a1a0b8c'; // placeholder
+
+// ─── ABI Encoding Helpers ─────────────────────────────────────────
+function encUint256(n){ return BigInt(n).toString(16).padStart(64,'0'); }
+function encUint32(n) { return BigInt(n).toString(16).padStart(64,'0'); }
+function encAddress(a){ return a.replace('0x','').toLowerCase().padStart(64,'0'); }
+
+function encodeSaveGame(jsonData, harvestedCount, goldAmt){
+  const enc = new TextEncoder();
+  const bytes = enc.encode(jsonData);
+  const len = bytes.length;
+  const padded = Math.ceil(len / 32) * 32;
+  const strBuf = new Uint8Array(padded);
+  strBuf.set(bytes);
+  const offset = 3 * 32; // 3 params, string is first (dynamic)
+  let hex = SEL_SAVE_GAME.slice(2);
+  hex += encUint256(offset);
+  hex += encUint32(harvestedCount);
+  hex += encUint256(goldAmt);
+  hex += encUint256(len);
+  for(let i = 0; i < strBuf.length; i++) hex += strBuf[i].toString(16).padStart(2,'0');
+  return '0x' + hex;
+}
+
+function encodeHasSave(addr){
+  return SEL_HAS_SAVE + encAddress(addr);
+}
+
+function encodeLoadGame(addr){
+  return SEL_LOAD_GAME + encAddress(addr);
+}
+
+function decodeBoolean(hex){
+  const val = hex.replace('0x','');
+  return parseInt(val.slice(-1), 16) !== 0;
+}
+
+function decodeLoadGameReturn(hex){
+  try {
+    const data = hex.replace('0x','');
+    const offset0 = parseInt(data.slice(0, 64), 16) * 2;
+    const strLen  = parseInt(data.slice(offset0, offset0 + 64), 16);
+    const strHex  = data.slice(offset0 + 64, offset0 + 64 + strLen * 2);
+    const byteArr = new Uint8Array(strLen);
+    for(let i = 0; i < strLen; i++) byteArr[i] = parseInt(strHex.slice(i*2, i*2+2), 16);
+    const jsonData = new TextDecoder().decode(byteArr);
+    const metaOffset = parseInt(data.slice(64, 128), 16) * 2;
+    const savedAt        = parseInt(data.slice(metaOffset,       metaOffset+64),  16);
+    const totalHarv      = parseInt(data.slice(metaOffset+64,    metaOffset+128), 16);
+    const goldVal        = parseInt(data.slice(metaOffset+128,   metaOffset+192), 16);
+    const saveCount      = parseInt(data.slice(metaOffset+192,   metaOffset+256), 16);
+    return { jsonData, savedAt, totalHarvested: totalHarv, gold: goldVal, saveCount };
+  } catch(e){ console.error('decodeLoadGameReturn:', e); return null; }
+}
+
+// ─── UI Helpers ───────────────────────────────────────────────────
+function setChainStatus(msg, color='#8a8aaa'){
+  const el = document.getElementById('chainSaveStatus');
+  if(el){ el.textContent = msg; el.style.color = color; }
+}
+function setChainMeta(msg){
+  const el = document.getElementById('chainSaveMeta');
+  if(el) el.textContent = msg;
+}
+function setChainBtnState(busy){
+  const btn  = document.getElementById('saveChainBtn');
+  const lbtn = document.getElementById('loadChainBtn');
+  if(btn)  { btn.disabled  = busy; btn.style.opacity  = busy ? '0.5' : '1'; }
+  if(lbtn) { lbtn.disabled = busy; lbtn.style.opacity = busy ? '0.5' : '1'; }
+}
+
+// ─── SAVE TO CHAIN ────────────────────────────────────────────────
+async function saveToChain(){
+  if(!walletAddress){ setChainStatus('❌ Connect wallet dulu!','#ff6060'); showToast('❌ Connect wallet terlebih dahulu!'); return; }
+  if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
+    setChainStatus('⚠️ Contract belum di-deploy! Lihat GozoFarmSave.sol','#ffaa40');
+    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
+    return;
+  }
+  setChainBtnState(true);
+  setChainStatus('⏳ Menyiapkan data save...','#c0a0ff');
+  try {
+    const saveData = buildSaveData();
+    const jsonData = JSON.stringify(saveData);
+    if(jsonData.length > 65536) throw new Error('Data terlalu besar! Max 64KB');
+    setChainStatus('⏳ Kirim transaksi ke MetaMask...','#c0a0ff');
+    const calldata = encodeSaveGame(jsonData, totalHarvested, gold);
+    let gasEstimate = '0x30D40';
+    try {
+      const est = await window.ethereum.request({ method:'eth_estimateGas', params:[{from:walletAddress, to:SAVE_CONTRACT, data:calldata}] });
+      gasEstimate = '0x' + Math.floor(parseInt(est,16)*1.2).toString(16);
+    } catch(e){}
+    const txHash = await window.ethereum.request({
+      method:'eth_sendTransaction',
+      params:[{ from:walletAddress, to:SAVE_CONTRACT, data:calldata, gas:gasEstimate }]
+    });
+    setChainStatus('⏳ Menunggu konfirmasi...','#c0a0ff');
+    showToast('⏳ Tx dikirim! Menunggu konfirmasi...');
+    const receipt = await waitForTx(txHash);
+    const shortHash = txHash.slice(0,10)+'...'+txHash.slice(-6);
+    setChainStatus('✅ Tersimpan di blockchain!','#60ff80');
+    setChainMeta('Tx: '+shortHash+' | Blok #'+parseInt(receipt.blockNumber,16));
+    showToast('✅ GAME TERSIMPAN DI BLOCKCHAIN!');
+    localStorage.setItem('gozofarm_chain_save', JSON.stringify({ txHash, savedAt:Date.now(), blockNumber:parseInt(receipt.blockNumber,16), totalHarvested, gold }));
+  } catch(e){
+    setChainStatus('❌ '+(e.message||'Transaksi gagal').slice(0,60),'#ff6060');
+    showToast('❌ Gagal save: '+(e.message||'').slice(0,40));
+    console.error('saveToChain error:',e);
+  } finally { setChainBtnState(false); }
+}
+
+// ─── LOAD FROM CHAIN ──────────────────────────────────────────────
+async function loadFromChain(){
+  if(!walletAddress){ setChainStatus('❌ Connect wallet dulu!','#ff6060'); showToast('❌ Connect wallet terlebih dahulu!'); return; }
+  if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
+    setChainStatus('⚠️ Contract belum di-deploy!','#ffaa40');
+    showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
+    return;
+  }
+  setChainBtnState(true);
+  setChainStatus('⏳ Mengecek save di blockchain...','#80c8f0');
+  try {
+    const hasSaveResult = await window.ethereum.request({ method:'eth_call', params:[{to:SAVE_CONTRACT, data:encodeHasSave(walletAddress)},'latest'] });
+    if(!decodeBoolean(hasSaveResult)){
+      setChainStatus('ℹ️ Belum ada save untuk wallet ini.','#8080aa');
+      showToast('ℹ️ Belum ada save di blockchain!');
+      setChainBtnState(false);
+      return;
+    }
+    setChainStatus('⏳ Mengambil data save...','#80c8f0');
+    const loadResult = await window.ethereum.request({ method:'eth_call', params:[{from:walletAddress, to:SAVE_CONTRACT, data:encodeLoadGame(walletAddress)},'latest'] });
+    const decoded = decodeLoadGameReturn(loadResult);
+    if(!decoded||!decoded.jsonData) throw new Error('Gagal decode data blockchain');
+    const saveData = JSON.parse(decoded.jsonData);
+    const d = new Date(decoded.savedAt*1000).toLocaleString('id-ID');
+    const ok = window.confirm(
+      '📥 Save ditemukan di blockchain!\n\n'+
+      '🌾 Total panen: '+decoded.totalHarvested+'\n'+
+      '🪙 Gold: '+decoded.gold+'\n'+
+      '🕐 Disimpan: '+d+'\n\n'+
+      'Load data ini? (Progress lokal akan tertimpa!)'
+    );
+    if(!ok){ setChainStatus('❌ Load dibatalkan.','#888888'); setChainBtnState(false); return; }
+    applySaveData(saveData);
+    setChainStatus('✅ Data berhasil dimuat!','#60ff80');
+    setChainMeta('Disimpan: '+new Date(decoded.savedAt*1000).toLocaleDateString('id-ID')+' | Save ke-'+decoded.saveCount);
+    showToast('✅ GAME DIMUAT DARI BLOCKCHAIN!');
+  } catch(e){
+    setChainStatus('❌ '+(e.message||'Gagal memuat').slice(0,60),'#ff6060');
+    showToast('❌ Gagal load: '+(e.message||'').slice(0,40));
+    console.error('loadFromChain error:',e);
+  } finally { setChainBtnState(false); }
+}
+
+// ─── Build / Apply Save State ─────────────────────────────────────
+function buildSaveData(){
+  const data = {
+    version:'gozofarm_v3_chain', savedAt:Date.now(),
+    unlocked: FIELD_DEFS.map(f => fieldData[f.id]?.unlocked||false),
+    plots:{}, harvestBasket, inventory, waterCharges, lastRefillTime, totalHarvested, gold
+  };
+  FIELD_DEFS.forEach(f => {
+    const fd = fieldData[f.id]; if(!fd?.unlocked) return;
+    fd.plots.forEach((p,i) => {
+      if(p.state==='planted'||p.state==='ready')
+        data.plots[`${f.id}_${i}`]={state:p.state,plant:p.plant,plantedAt:p.plantedAt,watered:p.watered||false};
+    });
+  });
+  return data;
+}
+
+function applySaveData(data){
+  FIELD_DEFS.forEach((f,i) => initField(f.id, data.unlocked?.[i]||false));
+  if(data.plots){
+    Object.entries(data.plots).forEach(([key,pd]) => {
+      const [fid,pid] = key.split('_').map(Number);
+      const fd = fieldData[fid]; if(!fd?.unlocked||!fd.plots[pid]) return;
+      const p = fd.plots[pid];
+      p.plant=pd.plant; p.plantedAt=pd.plantedAt; p.watered=pd.watered||false;
+      if(pd.state==='ready'){ p.state='ready'; }
+      else if(pd.state==='planted'){
+        const left = pd.plantedAt ? (pd.plantedAt+CROPS[pd.plant].grow)-Date.now() : 0;
+        p.state = left>0 ? 'planted' : 'ready';
+        if(left>0) startGrowTimer(fid,pid,left);
+      }
+    });
+  }
+  if(data.harvestBasket) harvestBasket=data.harvestBasket;
+  if(typeof data.gold==='number') gold=data.gold;
+  if(data.inventory) inventory=data.inventory;
+  if(typeof data.waterCharges==='number') waterCharges=data.waterCharges;
+  if(data.lastRefillTime) lastRefillTime=data.lastRefillTime;
+  if(typeof data.totalHarvested==='number') totalHarvested=data.totalHarvested;
+  saveState();
+  renderAllFields(); renderSeedShop(); renderHarvestList();
+  updateGoldUI(); updateWaterUI(); updateScoreUI();
+}
+
+function updateChainSaveMeta(){
+  const saved = localStorage.getItem('gozofarm_chain_save');
+  if(!saved) return;
+  try {
+    const meta = JSON.parse(saved);
+    setChainMeta('Terakhir save: '+new Date(meta.savedAt).toLocaleString('id-ID')+' | Blok #'+meta.blockNumber);
+    setChainStatus('✅ Ada chain save sebelumnya','#60ff80');
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', updateChainSaveMeta);
+
 
 
 </script>
