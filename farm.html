@@ -1788,72 +1788,91 @@ function parts(n, emojis, cx, cy){
 
 
 // ═══════════════════════════════════════════════════════════════════
-// ⛓️  BLOCKCHAIN SAVE — Monad Testnet
+// ⛓️  BLOCKCHAIN SAVE — Monad Testnet (menggunakan ethers.js v6)
 // Contract: GozoFarmSave.sol
 // ═══════════════════════════════════════════════════════════════════
 
 // ⚠️  GANTI dengan alamat contract setelah deploy di Monad Testnet!
-const SAVE_CONTRACT = '0x34e0A0Ecf3777d671be0Ada27D67a13312f94A8C';
+const SAVE_CONTRACT = '0x0000000000000000000000000000000000000000';
 
-// ─── 4-byte selectors (dari keccak256 ABI encoding) ───────────────
-// saveGame(string,uint32,uint256) → 0x... (dihitung saat deploy)
-// Untuk testnet, gunakan selector yang benar setelah deploy
-// Ini placeholder — akan diupdate setelah contract di-deploy
-const SEL_SAVE_GAME = '0x57d5a84c'; // placeholder
-const SEL_HAS_SAVE  = '0x4a72e8f0'; // placeholder
-const SEL_LOAD_GAME = '0x3a1a0b8c'; // placeholder
+// ABI lengkap untuk contract GozoFarmSave
+const SAVE_CONTRACT_ABI = [
+  {
+    "name": "saveGame",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {"name": "jsonData",        "type": "string"},
+      {"name": "totalHarvested",  "type": "uint32"},
+      {"name": "gold",            "type": "uint256"}
+    ],
+    "outputs": []
+  },
+  {
+    "name": "loadGame",
+    "type": "function",
+    "stateMutability": "nonpayable",
+    "inputs": [{"name": "player", "type": "address"}],
+    "outputs": [
+      {"name": "jsonData", "type": "string"},
+      {
+        "name": "meta", "type": "tuple",
+        "components": [
+          {"name": "savedAt",        "type": "uint256"},
+          {"name": "totalHarvested", "type": "uint32"},
+          {"name": "gold",           "type": "uint256"},
+          {"name": "saveCount",      "type": "uint32"},
+          {"name": "exists",         "type": "bool"}
+        ]
+      }
+    ]
+  },
+  {
+    "name": "hasSave",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [{"name": "player", "type": "address"}],
+    "outputs": [{"name": "", "type": "bool"}]
+  },
+  {
+    "name": "getSaveMeta",
+    "type": "function",
+    "stateMutability": "view",
+    "inputs": [{"name": "player", "type": "address"}],
+    "outputs": [{
+      "name": "", "type": "tuple",
+      "components": [
+        {"name": "savedAt",        "type": "uint256"},
+        {"name": "totalHarvested", "type": "uint32"},
+        {"name": "gold",           "type": "uint256"},
+        {"name": "saveCount",      "type": "uint32"},
+        {"name": "exists",         "type": "bool"}
+      ]
+    }]
+  },
+  {
+    "name": "GameSaved",
+    "type": "event",
+    "inputs": [
+      {"name": "player",         "type": "address", "indexed": true},
+      {"name": "timestamp",      "type": "uint256", "indexed": false},
+      {"name": "totalHarvested", "type": "uint32",  "indexed": false},
+      {"name": "gold",           "type": "uint256", "indexed": false}
+    ]
+  }
+];
 
-// ─── ABI Encoding Helpers ─────────────────────────────────────────
-function encUint256(n){ return BigInt(n).toString(16).padStart(64,'0'); }
-function encUint32(n) { return BigInt(n).toString(16).padStart(64,'0'); }
-function encAddress(a){ return a.replace('0x','').toLowerCase().padStart(64,'0'); }
-
-function encodeSaveGame(jsonData, harvestedCount, goldAmt){
-  const enc = new TextEncoder();
-  const bytes = enc.encode(jsonData);
-  const len = bytes.length;
-  const padded = Math.ceil(len / 32) * 32;
-  const strBuf = new Uint8Array(padded);
-  strBuf.set(bytes);
-  const offset = 3 * 32; // 3 params, string is first (dynamic)
-  let hex = SEL_SAVE_GAME.slice(2);
-  hex += encUint256(offset);
-  hex += encUint32(harvestedCount);
-  hex += encUint256(goldAmt);
-  hex += encUint256(len);
-  for(let i = 0; i < strBuf.length; i++) hex += strBuf[i].toString(16).padStart(2,'0');
-  return '0x' + hex;
-}
-
-function encodeHasSave(addr){
-  return SEL_HAS_SAVE + encAddress(addr);
-}
-
-function encodeLoadGame(addr){
-  return SEL_LOAD_GAME + encAddress(addr);
-}
-
-function decodeBoolean(hex){
-  const val = hex.replace('0x','');
-  return parseInt(val.slice(-1), 16) !== 0;
-}
-
-function decodeLoadGameReturn(hex){
-  try {
-    const data = hex.replace('0x','');
-    const offset0 = parseInt(data.slice(0, 64), 16) * 2;
-    const strLen  = parseInt(data.slice(offset0, offset0 + 64), 16);
-    const strHex  = data.slice(offset0 + 64, offset0 + 64 + strLen * 2);
-    const byteArr = new Uint8Array(strLen);
-    for(let i = 0; i < strLen; i++) byteArr[i] = parseInt(strHex.slice(i*2, i*2+2), 16);
-    const jsonData = new TextDecoder().decode(byteArr);
-    const metaOffset = parseInt(data.slice(64, 128), 16) * 2;
-    const savedAt        = parseInt(data.slice(metaOffset,       metaOffset+64),  16);
-    const totalHarv      = parseInt(data.slice(metaOffset+64,    metaOffset+128), 16);
-    const goldVal        = parseInt(data.slice(metaOffset+128,   metaOffset+192), 16);
-    const saveCount      = parseInt(data.slice(metaOffset+192,   metaOffset+256), 16);
-    return { jsonData, savedAt, totalHarvested: totalHarv, gold: goldVal, saveCount };
-  } catch(e){ console.error('decodeLoadGameReturn:', e); return null; }
+// ─── Load ethers.js v6 jika belum tersedia ────────────────────────
+let _ethersReady = false;
+async function ensureEthers(){
+  if(typeof ethers !== 'undefined'){ _ethersReady = true; return; }
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.umd.min.js';
+    s.onload = () => { _ethersReady = true; resolve(); };
+    s.onerror = () => reject(new Error('Gagal load ethers.js — cek koneksi internet'));
+    document.head.appendChild(s);
+  });
 }
 
 // ─── UI Helpers ───────────────────────────────────────────────────
@@ -1872,87 +1891,175 @@ function setChainBtnState(busy){
   if(lbtn) { lbtn.disabled = busy; lbtn.style.opacity = busy ? '0.5' : '1'; }
 }
 
+// ─── Dapatkan contract instance (ethers.js) ───────────────────────
+async function getContract(withSigner = false){
+  await ensureEthers();
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  if(withSigner){
+    const signer = await provider.getSigner();
+    return new ethers.Contract(SAVE_CONTRACT, SAVE_CONTRACT_ABI, signer);
+  }
+  return new ethers.Contract(SAVE_CONTRACT, SAVE_CONTRACT_ABI, provider);
+}
+
 // ─── SAVE TO CHAIN ────────────────────────────────────────────────
 async function saveToChain(){
-  if(!walletAddress){ setChainStatus('❌ Connect wallet dulu!','#ff6060'); showToast('❌ Connect wallet terlebih dahulu!'); return; }
+  if(!walletAddress){
+    setChainStatus('❌ Connect wallet dulu!','#ff6060');
+    showToast('❌ Connect wallet terlebih dahulu!');
+    return;
+  }
   if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
     setChainStatus('⚠️ Contract belum di-deploy! Lihat GozoFarmSave.sol','#ffaa40');
     showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
     return;
   }
+
   setChainBtnState(true);
-  setChainStatus('⏳ Menyiapkan data save...','#c0a0ff');
+  setChainStatus('⏳ Menyiapkan data & memuat ethers.js...','#c0a0ff');
+
   try {
-    const saveData = buildSaveData();
-    const jsonData = JSON.stringify(saveData);
-    if(jsonData.length > 65536) throw new Error('Data terlalu besar! Max 64KB');
-    setChainStatus('⏳ Kirim transaksi ke MetaMask...','#c0a0ff');
-    const calldata = encodeSaveGame(jsonData, totalHarvested, gold);
-    let gasEstimate = '0x30D40';
+    // Kumpulkan game state
+    const saveData  = buildSaveData();
+    const jsonData  = JSON.stringify(saveData);
+    const byteSize  = new TextEncoder().encode(jsonData).length;
+
+    if(byteSize > 65536) throw new Error(`Data terlalu besar! (${byteSize} bytes, max 64KB)`);
+
+    setChainStatus('⏳ Estimasi gas & kirim ke MetaMask...','#c0a0ff');
+
+    // Dapatkan contract dengan signer
+    const contract = await getContract(true);
+
+    // Estimasi gas dulu
+    let gasLimit;
     try {
-      const est = await window.ethereum.request({ method:'eth_estimateGas', params:[{from:walletAddress, to:SAVE_CONTRACT, data:calldata}] });
-      gasEstimate = '0x' + Math.floor(parseInt(est,16)*1.2).toString(16);
-    } catch(e){}
-    const txHash = await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{ from:walletAddress, to:SAVE_CONTRACT, data:calldata, gas:gasEstimate }]
-    });
-    setChainStatus('⏳ Menunggu konfirmasi...','#c0a0ff');
+      const estimated = await contract.saveGame.estimateGas(
+        jsonData,
+        totalHarvested,
+        BigInt(gold)
+      );
+      // Tambah 30% buffer untuk aman
+      gasLimit = estimated * 130n / 100n;
+      console.log(`Gas estimated: ${estimated}, with buffer: ${gasLimit}`);
+    } catch(e){
+      console.warn('Gas estimate gagal, pakai default 500k:', e);
+      gasLimit = 500000n;
+    }
+
+    // Kirim transaksi dengan gas yang sudah dihitung
+    const tx = await contract.saveGame(
+      jsonData,
+      totalHarvested,
+      BigInt(gold),
+      { gasLimit }
+    );
+
+    setChainStatus('⏳ Menunggu konfirmasi blok...','#c0a0ff');
     showToast('⏳ Tx dikirim! Menunggu konfirmasi...');
-    const receipt = await waitForTx(txHash);
-    const shortHash = txHash.slice(0,10)+'...'+txHash.slice(-6);
+
+    // Tunggu 1 konfirmasi
+    const receipt = await tx.wait(1);
+
+    if(receipt.status !== 1) throw new Error('Transaksi di-revert oleh contract!');
+
+    const shortHash = tx.hash.slice(0,10)+'...'+tx.hash.slice(-6);
     setChainStatus('✅ Tersimpan di blockchain!','#60ff80');
-    setChainMeta('Tx: '+shortHash+' | Blok #'+parseInt(receipt.blockNumber,16));
+    setChainMeta(`Tx: ${shortHash} | Blok #${receipt.blockNumber} | Gas: ${receipt.gasUsed.toString()}`);
     showToast('✅ GAME TERSIMPAN DI BLOCKCHAIN!');
-    localStorage.setItem('gozofarm_chain_save', JSON.stringify({ txHash, savedAt:Date.now(), blockNumber:parseInt(receipt.blockNumber,16), totalHarvested, gold }));
+
+    // Simpan metadata lokal
+    localStorage.setItem('gozofarm_chain_save', JSON.stringify({
+      txHash: tx.hash,
+      savedAt: Date.now(),
+      blockNumber: receipt.blockNumber,
+      totalHarvested,
+      gold
+    }));
+
   } catch(e){
-    setChainStatus('❌ '+(e.message||'Transaksi gagal').slice(0,60),'#ff6060');
-    showToast('❌ Gagal save: '+(e.message||'').slice(0,40));
-    console.error('saveToChain error:',e);
-  } finally { setChainBtnState(false); }
+    let errMsg = e.reason || e.shortMessage || e.message || 'Transaksi gagal';
+    // Bersihkan pesan error yang terlalu panjang
+    if(errMsg.length > 80) errMsg = errMsg.slice(0,80) + '...';
+    setChainStatus('❌ ' + errMsg, '#ff6060');
+    showToast('❌ Gagal save: ' + errMsg.slice(0,50));
+    console.error('saveToChain error:', e);
+  } finally {
+    setChainBtnState(false);
+  }
 }
 
 // ─── LOAD FROM CHAIN ──────────────────────────────────────────────
 async function loadFromChain(){
-  if(!walletAddress){ setChainStatus('❌ Connect wallet dulu!','#ff6060'); showToast('❌ Connect wallet terlebih dahulu!'); return; }
+  if(!walletAddress){
+    setChainStatus('❌ Connect wallet dulu!','#ff6060');
+    showToast('❌ Connect wallet terlebih dahulu!');
+    return;
+  }
   if(SAVE_CONTRACT === '0x0000000000000000000000000000000000000000'){
     setChainStatus('⚠️ Contract belum di-deploy!','#ffaa40');
     showToast('⚠️ Deploy GozoFarmSave.sol ke Monad Testnet terlebih dahulu!');
     return;
   }
+
   setChainBtnState(true);
   setChainStatus('⏳ Mengecek save di blockchain...','#80c8f0');
+
   try {
-    const hasSaveResult = await window.ethereum.request({ method:'eth_call', params:[{to:SAVE_CONTRACT, data:encodeHasSave(walletAddress)},'latest'] });
-    if(!decodeBoolean(hasSaveResult)){
+    await ensureEthers();
+    const contract = await getContract(false); // read-only, pakai provider
+
+    // Cek apakah ada save (view function, gratis)
+    const hasSaveResult = await contract.hasSave(walletAddress);
+    if(!hasSaveResult){
       setChainStatus('ℹ️ Belum ada save untuk wallet ini.','#8080aa');
       showToast('ℹ️ Belum ada save di blockchain!');
       setChainBtnState(false);
       return;
     }
-    setChainStatus('⏳ Mengambil data save...','#80c8f0');
-    const loadResult = await window.ethereum.request({ method:'eth_call', params:[{from:walletAddress, to:SAVE_CONTRACT, data:encodeLoadGame(walletAddress)},'latest'] });
-    const decoded = decodeLoadGameReturn(loadResult);
-    if(!decoded||!decoded.jsonData) throw new Error('Gagal decode data blockchain');
-    const saveData = JSON.parse(decoded.jsonData);
-    const d = new Date(decoded.savedAt*1000).toLocaleString('id-ID');
+
+    // Ambil metadata dulu (view function, gratis)
+    setChainStatus('⏳ Mengambil metadata...','#80c8f0');
+    const meta = await contract.getSaveMeta(walletAddress);
+
+    const savedDate = new Date(Number(meta.savedAt) * 1000).toLocaleString('id-ID');
     const ok = window.confirm(
-      '📥 Save ditemukan di blockchain!\n\n'+
-      '🌾 Total panen: '+decoded.totalHarvested+'\n'+
-      '🪙 Gold: '+decoded.gold+'\n'+
-      '🕐 Disimpan: '+d+'\n\n'+
+      '📥 Save ditemukan di blockchain!\n\n' +
+      '🌾 Total panen: ' + meta.totalHarvested.toString() + '\n' +
+      '🪙 Gold: ' + meta.gold.toString() + '\n' +
+      '🕐 Disimpan: ' + savedDate + '\n' +
+      '💾 Save ke-' + meta.saveCount.toString() + '\n\n' +
       'Load data ini? (Progress lokal akan tertimpa!)'
     );
-    if(!ok){ setChainStatus('❌ Load dibatalkan.','#888888'); setChainBtnState(false); return; }
+
+    if(!ok){
+      setChainStatus('❌ Load dibatalkan.','#888888');
+      setChainBtnState(false);
+      return;
+    }
+
+    // Load data lengkap — loadGame adalah nonpayable, pakai staticCall untuk baca
+    setChainStatus('⏳ Mengambil data save penuh...','#80c8f0');
+    const [jsonData] = await contract.loadGame.staticCall(walletAddress);
+
+    if(!jsonData) throw new Error('Data kosong dari blockchain');
+
+    const saveData = JSON.parse(jsonData);
     applySaveData(saveData);
-    setChainStatus('✅ Data berhasil dimuat!','#60ff80');
-    setChainMeta('Disimpan: '+new Date(decoded.savedAt*1000).toLocaleDateString('id-ID')+' | Save ke-'+decoded.saveCount);
+
+    setChainStatus('✅ Data berhasil dimuat dari blockchain!','#60ff80');
+    setChainMeta(`Disimpan: ${new Date(Number(meta.savedAt)*1000).toLocaleDateString('id-ID')} | Save ke-${meta.saveCount}`);
     showToast('✅ GAME DIMUAT DARI BLOCKCHAIN!');
+
   } catch(e){
-    setChainStatus('❌ '+(e.message||'Gagal memuat').slice(0,60),'#ff6060');
-    showToast('❌ Gagal load: '+(e.message||'').slice(0,40));
-    console.error('loadFromChain error:',e);
-  } finally { setChainBtnState(false); }
+    let errMsg = e.reason || e.shortMessage || e.message || 'Gagal memuat';
+    if(errMsg.length > 80) errMsg = errMsg.slice(0,80) + '...';
+    setChainStatus('❌ ' + errMsg,'#ff6060');
+    showToast('❌ Gagal load: ' + errMsg.slice(0,50));
+    console.error('loadFromChain error:', e);
+  } finally {
+    setChainBtnState(false);
+  }
 }
 
 // ─── Build / Apply Save State ─────────────────────────────────────
@@ -1966,7 +2073,7 @@ function buildSaveData(){
     const fd = fieldData[f.id]; if(!fd?.unlocked) return;
     fd.plots.forEach((p,i) => {
       if(p.state==='planted'||p.state==='ready')
-        data.plots[`${f.id}_${i}`]={state:p.state,plant:p.plant,plantedAt:p.plantedAt,watered:p.watered||false};
+        data.plots[`${f.id}_${i}`] = {state:p.state, plant:p.plant, plantedAt:p.plantedAt, watered:p.watered||false};
     });
   });
   return data;
