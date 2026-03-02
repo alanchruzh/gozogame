@@ -700,6 +700,7 @@ async function callContract(data, value_mon, label) {
         to:   FARM_CONTRACT,
         data: data,
         value: value_mon > 0 ? monToHex(value_mon) : '0x0',
+        gas: '0x30D40', // 200000 gas - cukup untuk contract logic + forward MON
       }]
     });
     setTx('pending','⏳ Confirming on-chain...');
@@ -726,7 +727,7 @@ async function sendMON(to, amount, label){
   try{
     const hash=await window.ethereum.request({
       method:'eth_sendTransaction',
-      params:[{from:walletAddress,to,value:monToHex(amount),gas:'0x5208'}]
+      params:[{from:walletAddress,to,value:monToHex(amount),gas:'0x30D40'}]
     });
     setTx('pending','⏳ Confirming on-chain...');
     await waitReceipt(hash);
