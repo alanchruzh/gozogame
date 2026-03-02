@@ -296,7 +296,7 @@ header{
       <h3 style="color:#80c8f0;border-color:#3a6aaa">💧 WATER BUCKET</h3>
       <div class="water-info">
         <div>Charges: <span id="waterChargesBig" style="color:var(--yellow)">10</span> / 10</div>
-        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">Free refill every 1 minute</div>
+        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">+1 air setiap detik</div>
       </div>
     </div>
 
@@ -1193,25 +1193,21 @@ function updateWaterUI(){
   if(el2) el2.textContent = waterCharges;
   if(selectedTool === 'water'){
     const b = document.getElementById('bubble');
-    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 1 minute.';
+    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Mengisi otomatis....';
   }
   const btn = document.getElementById('toolWater');
   if(btn) btn.style.borderColor = waterCharges === 0 ? '#f05050' : '';
 }
 
 function startWaterRegen(){
-  if(waterRegenTimer) clearTimeout(waterRegenTimer);
-  const nextRegen = lastRefillTime + WATER_REGEN_MS - Date.now();
-  if(nextRegen <= 0){ return; }
-  waterRegenTimer = setTimeout(()=>{
-    waterCharges = WATER_MAX;
-    lastRefillTime = Date.now();
-    updateWaterUI();
-    showToast('💧 FREE WATER REFILL! +10 charges!');
-    sfx('plant');
-    saveState();
-    startWaterRegen();
-  }, nextRegen);
+  if(waterRegenTimer) clearInterval(waterRegenTimer);
+  waterRegenTimer = setInterval(()=>{
+    if(waterCharges < WATER_MAX){
+      waterCharges++;
+      updateWaterUI();
+      saveState();
+    }
+  }, 1000);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1454,7 +1450,7 @@ function handleClick(fid, pid){
   } else if(selectedTool === 'water'){
     if(p.state === 'planted' && !p.watered){
       if(waterCharges <= 0){
-        showToast('🪣 NO WATER! Refills in 1 minute.');
+        showToast('🪣 NO WATER! Mengisi otomatis....');
         return;
       }
       p.watered = true;
@@ -1634,7 +1630,7 @@ function selectTool(t){
   const tips = {
     hoe: 'HOE soil → click tilled to plant! ⛏️',
     sickle: 'Harvest glowing crops! 🔪',
-    water: waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refills in 1 minute.'
+    water: waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Mengisi otomatis....'
   };
   const el = document.getElementById('bubble'); if(el) el.textContent = tips[t];
 }
