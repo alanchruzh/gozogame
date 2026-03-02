@@ -748,71 +748,133 @@ async function handleMainBtn() {
 }
 
 async function connectWallet() {
+  // Detect wallet — support MetaMask, Rabby, and any injected provider
   const eth = window.ethereum;
   if (!eth) {
-    setStatus('⚠ NO WALLET DETECTED. INSTALL METAMASK OR RABBY.', 'err');
+    setStatus('⚠ WALLET TIDAK DITEMUKAN. INSTALL METAMASK ATAU RABBY.', 'err');
+    setBtn('CONNECT WALLET', false);
+    setStep(1, 'error');
     return;
   }
+
   setBtn('CONNECTING...', true);
-  setStep(1,'active');
-  setStatus('REQUESTING WALLET ACCESS...');
+  setStep(1, 'active');
+  setStatus('MEMINTA AKSES WALLET...');
+
+  // Step 1: Request accounts
+  let accounts;
   try {
-    const accounts = await eth.request({ method: 'eth_requestAccounts' });
-    walletAddr = accounts[0];
-    provider = eth;
-
-    // Show address
-    const shortAddr = walletAddr.slice(0,6)+'…'+walletAddr.slice(-4);
-    document.getElementById('walletAddr').textContent = walletAddr;
-    document.getElementById('walletAddr').classList.add('show');
-    document.getElementById('gameWalletBadge').textContent = shortAddr;
-
-    setStep(1,'done');
-    setStatus('WALLET CONNECTED!', 'ok');
-
-    // Check/switch network
-    await ensureMonadNetwork();
-
-    // Fetch balance
-    await updateBalance();
-
-    flowStep = 1;
-    setBtn('APPROVE 10 GOZO →');
-    setStep(2,'');
-
+    accounts = await eth.request({ method: 'eth_requestAccounts' });
   } catch(e) {
-    setStep(1,'error');
-    setStatus('CONNECTION REJECTED.', 'err');
+    setStep(1, 'error');
+    if (e.code === 4001) {
+      setStatus('DITOLAK OLEH USER. COBA LAGI.', 'err');
+    } else if (e.code === -32002) {
+      setStatus('PERMINTAAN SUDAH PENDING — CEK POPUP WALLET KAMU.', 'err');
+    } else {
+      setStatus('GAGAL CONNECT: ' + (e.message || 'Unknown error').slice(0,50), 'err');
+    }
     setBtn('CONNECT WALLET', false);
-    console.error(e);
+    showRetry(true);
+    console.error('eth_requestAccounts error:', e);
+    return;
   }
+
+  if (!accounts || accounts.length === 0) {
+    setStep(1, 'error');
+    setStatus('TIDAK ADA AKUN TERDETEKSI.', 'err');
+    setBtn('CONNECT WALLET', false);
+    return;
+  }
+
+  walletAddr = accounts[0];
+  provider = eth;
+
+  // Show address
+  const shortAddr = walletAddr.slice(0,6) + '…' + walletAddr.slice(-4);
+  const addrEl = document.getElementById('walletAddr');
+  if (addrEl) { addrEl.textContent = walletAddr; addrEl.classList.add('show'); }
+  const badgeEl = document.getElementById('gameWalletBadge');
+  if (badgeEl) badgeEl.textContent = shortAddr;
+
+  setStep(1, 'done');
+  setStatus('WALLET TERHUBUNG! MENGECEK JARINGAN...', 'ok');
+
+  // Step 2: Ensure Monad Mainnet
+  try {
+    await ensureMonadNetwork();
+  } catch(e) {
+    setStep(1, 'error');
+    if (e.code === 4001) {
+      setStatus('SWITCH JARINGAN DITOLAK. SWITCH KE MONAD MAINNET MANUAL.', 'err');
+    } else {
+      setStatus('GAGAL SWITCH JARINGAN: ' + (e.message || '').slice(0,50), 'err');
+    }
+    setBtn('CONNECT WALLET', false);
+    showRetry(true);
+    console.error('ensureMonadNetwork error:', e);
+    return;
+  }
+
+  // Step 3: Fetch balance (non-blocking — don't fail if RPC slow)
+  try {
+    await updateBalance();
+  } catch(e) {
+    console.warn('Balance fetch failed (non-critical):', e);
+    document.getElementById('balanceVal').textContent = '—';
+  }
+
+  flowStep = 1;
+  setBtn('APPROVE 10 GOZO →');
+  setStep(2, '');
+  setStatus('CONNECTED! KLIK APPROVE UNTUK LANJUT.', 'ok');
+  showRetry(false);
 }
 
 async function ensureMonadNetwork() {
   const chainId = await provider.request({ method: 'eth_chainId' });
-  if (chainId.toLowerCase() !== MONAD_CHAIN_ID.toLowerCase()) {
-    setStatus('SWITCHING TO MONAD NETWORK...');
-    try {
+  const targetId = MONAD_CHAIN_ID.toLowerCase();
+
+  if (chainId.toLowerCase() === targetId) {
+    // Already on Monad
+    document.getElementById('netBadge').className = 'net-badge';
+    document.getElementById('netName').textContent = 'MONAD';
+    return;
+  }
+
+  setStatus('SWITCHING KE MONAD MAINNET...');
+
+  // Try switching first
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: MONAD_CHAIN_ID }],
+    });
+  } catch(switchErr) {
+    // 4902 = chain not added yet, add it
+    if (switchErr.code === 4902 || switchErr.code === -32603) {
+      setStatus('MENAMBAHKAN MONAD MAINNET KE WALLET...');
       await provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: MONAD_CHAIN_ID }],
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: MONAD_CHAIN_ID,
+          chainName: 'Monad Mainnet',
+          nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+          rpcUrls: ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz'],
+          blockExplorerUrls: ['https://monadvision.com', 'https://monadscan.com'],
+        }],
       });
-    } catch(switchErr) {
-      if (switchErr.code === 4902) {
-        // Add network
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: MONAD_CHAIN_ID,
-            chainName: 'Monad Mainnet',
-            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-            rpcUrls: ['https://rpc.monad.xyz'],
-            blockExplorerUrls: ['https://monadvision.com'],
-          }],
-        });
-      } else throw switchErr;
+    } else {
+      throw switchErr;
     }
   }
+
+  // Verify we actually switched
+  const newChainId = await provider.request({ method: 'eth_chainId' });
+  if (newChainId.toLowerCase() !== targetId) {
+    throw new Error('Masih di jaringan yang salah setelah switch.');
+  }
+
   document.getElementById('netBadge').className = 'net-badge';
   document.getElementById('netName').textContent = 'MONAD';
 }
@@ -870,20 +932,43 @@ async function doApprove() {
     setStep(3,'');
 
   } catch(e) {
-    setStep(2,'error');
-    const msg = e.code === 4001 ? 'APPROVAL REJECTED BY USER.' : 'APPROVAL FAILED: ' + (e.message||'').slice(0,40);
+    setStep(2, 'error');
+    let msg;
+    if (e.code === 4001)   msg = 'APPROVE DITOLAK USER.';
+    else if (e.code === -32002) msg = 'PERMINTAAN PENDING — CEK POPUP WALLET.';
+    else msg = 'APPROVE GAGAL: ' + (e.message || '').slice(0, 50);
     setStatus(msg, 'err');
     setBtn('APPROVE 10 GOZO →', false);
     showRetry(true);
-    console.error(e);
+    console.error('doApprove error:', e);
   }
 }
 
 async function retryApprove() {
   showRetry(false);
-  setStep(2,'');
-  if (flowStep === 1) doApprove();
-  else if (flowStep === 2) doBurn();
+  burning = false;
+  if (flowStep === 0 || !walletAddr) {
+    // Haven't connected yet — restart from scratch
+    walletAddr = null;
+    provider = null;
+    setStep(1, '');
+    setStep(2, '');
+    setStep(3, '');
+    setBtn('CONNECT WALLET', false);
+    setStatus('CONNECT YOUR WALLET TO START');
+    return;
+  }
+  if (flowStep === 1) {
+    setStep(2, '');
+    setBtn('APPROVE 10 GOZO →', false);
+    setStatus('SIAP APPROVE — KLIK TOMBOL DI BAWAH.', 'ok');
+    doApprove();
+  } else if (flowStep === 2) {
+    setStep(3, '');
+    setBtn('🔥 BURN 10 GOZO & PLAY!', false);
+    setStatus('SIAP BURN — KLIK TOMBOL DI BAWAH.', 'ok');
+    doBurn();
+  }
 }
 
 async function doBurn() {
@@ -943,12 +1028,16 @@ async function doBurn() {
 
   } catch(e) {
     burning = false;
-    setStep(3,'error');
-    const msg = e.code === 4001 ? 'BURN REJECTED BY USER.' : 'BURN FAILED: '+(e.message||'').slice(0,40);
+    setStep(3, 'error');
+    let msg;
+    if (e.code === 4001)   msg = 'BURN DITOLAK USER.';
+    else if (e.code === -32002) msg = 'PERMINTAAN PENDING — CEK POPUP WALLET.';
+    else if (e.code === -32603) msg = 'INTERNAL ERROR — COBA LAGI.';
+    else msg = 'BURN GAGAL: ' + (e.message || '').slice(0, 50);
     setStatus(msg, 'err');
     setBtn('🔥 BURN 10 GOZO & PLAY!', false);
     showRetry(true);
-    console.error(e);
+    console.error('doBurn error:', e);
   }
 }
 
