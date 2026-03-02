@@ -1,1 +1,1377 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Homie — Powered by $GOZO</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
+  :root {
+    --gold: #F5C542;
+    --gold2: #FFE066;
+    --dark: #0a0c10;
+    --panel: #12161e;
+    --border: #2a2f3a;
+    --red: #ff4444;
+    --green: #44ff88;
+    --blue: #1A8FFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  /* ── PARTICLES BG ── */
+  #particles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+  /* ── SCREENS ── */
+  .screen {
+    position: relative;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .screen.active { display: flex; }
+
+  /* ── GATE SCREEN ── */
+  #gate {
+    gap: 0;
+  }
+
+  .gate-logo {
+    font-size: 0.55rem;
+    color: var(--gold);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px var(--gold);
+    margin-bottom: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .gate-title {
+    font-size: 1.4rem;
+    color: #fff;
+    text-shadow: 0 0 30px var(--gold);
+    margin-bottom: 6px;
+  }
+  .gate-sub {
+    font-size: 0.4rem;
+    color: #888;
+    letter-spacing: 2px;
+    margin-bottom: 28px;
+  }
+
+  /* Character preview on gate */
+  #previewCanvas {
+    image-rendering: pixelated;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 16px #F5C54266);
+  }
+
+  .gate-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px 28px;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .gate-panel-title {
+    font-size: 0.45rem;
+    color: var(--gold);
+    letter-spacing: 2px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.35rem;
+    letter-spacing: 1px;
+  }
+  .info-row .label { color: #666; }
+  .info-row .val   { color: #ccc; }
+  .info-row .val.highlight { color: var(--gold); }
+
+  .wallet-address {
+    font-size: 0.3rem;
+    color: #555;
+    text-align: center;
+    word-break: break-all;
+    padding: 8px;
+    background: #0a0c10;
+    border: 1px solid #1a1f2a;
+    border-radius: 1px;
+    display: none;
+  }
+  .wallet-address.show { display: block; }
+
+  /* Steps */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.32rem;
+    color: #555;
+    letter-spacing: 1px;
+    padding: 8px 10px;
+    border: 1px solid #1a1f2a;
+    border-radius: 1px;
+    transition: all 0.3s;
+  }
+  .step.active   { color: var(--gold); border-color: #3a3010; background: #1a1500; }
+  .step.done     { color: var(--green); border-color: #0a2a1a; background: #051208; }
+  .step.error    { color: var(--red);  border-color: #2a0a0a; background: #120505; }
+  .step-icon     { font-size: 0.6rem; min-width: 18px; text-align: center; }
+  .step-text     { flex: 1; }
+  .step-status   { font-size: 0.55rem; }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.45rem;
+    letter-spacing: 2px;
+    padding: 14px 20px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.15s;
+    border-radius: 1px;
+  }
+  .btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.08);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .btn:hover::after { opacity: 1; }
+  .btn:active { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 4px 0 #8B7000, 0 0 20px #F5C54244;
+  }
+  .btn-primary:hover { box-shadow: 0 4px 0 #8B7000, 0 0 30px #F5C54266; }
+  .btn-primary:disabled { background: #333; color: #555; box-shadow: none; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+  }
+
+  .btn-danger {
+    background: #8B0000;
+    color: #fff;
+    box-shadow: 0 4px 0 #3a0000, 0 0 20px #ff000022;
+  }
+
+  /* TX link */
+  .tx-link {
+    font-size: 0.28rem;
+    color: #555;
+    text-align: center;
+    text-decoration: none;
+    letter-spacing: 1px;
+    display: none;
+    word-break: break-all;
+  }
+  .tx-link.show { display: block; color: var(--blue); }
+  .tx-link:hover { color: var(--gold2); }
+
+  /* Status message */
+  .status-msg {
+    font-size: 0.32rem;
+    text-align: center;
+    min-height: 16px;
+    color: #666;
+    letter-spacing: 1px;
+    animation: blink 1s step-end infinite;
+  }
+  .status-msg.ok  { color: var(--green); animation: none; }
+  .status-msg.err { color: var(--red);   animation: none; }
+
+  /* ── GAME SCREEN ── */
+  #game { gap: 0; padding: 0; justify-content: flex-start; background: #080b10; }
+
+  /* Top header bar */
+  .game-topbar {
+    width: 100%;
+    max-width: 512px;
+    background: linear-gradient(90deg, #0a0d14 0%, #12161e 50%, #0a0d14 100%);
+    border-bottom: 2px solid #F5C54233;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .game-topbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);
+    pointer-events: none;
+  }
+  .game-topbar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--gold) 50%, transparent 100%);
+    opacity: 0.4;
+  }
+
+  /* Left: wallet info */
+  .hdr-left { display: flex; flex-direction: column; gap: 5px; z-index: 1; min-width: 130px; }
+  .hdr-wallet { display: flex; align-items: center; gap: 6px; }
+  .hdr-wallet-dot { width: 5px; height: 5px; background: #44ff88; border-radius: 50%; box-shadow: 0 0 5px #44ff88; flex-shrink:0; animation: pulse 2s ease infinite; }
+  .hdr-wallet-addr { font-size: 0.26rem; color: #666; letter-spacing: 1px; }
+  .hdr-gozo-bal { display: flex; align-items: center; gap: 5px; font-size: 0.24rem; color: #444; letter-spacing: 1px; }
+  .hdr-gozo-bal .fire { font-size: 0.35rem; }
+  .hdr-gozo-bal .amt { color: var(--gold); font-size: 0.3rem; }
+  .hdr-monad { display: flex; align-items: center; gap: 4px; font-size: 0.21rem; color: #5c3; letter-spacing: 1px; margin-top: 1px; }
+  .hdr-monad-dot { width: 4px; height: 4px; background: #5c3; border-radius: 50%; box-shadow: 0 0 4px #5c3; animation: pulse 1.5s ease infinite; }
+
+  /* Center: logo */
+  .hdr-center {
+    position: absolute;
+    left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .hdr-logo {
+    font-size: 0.6rem;
+    color: var(--gold);
+    text-shadow: 0 0 16px #F5C54299, 0 0 32px #F5C54244;
+    letter-spacing: 4px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .hdr-tagline {
+    font-size: 0.2rem;
+    color: #F5C54244;
+    letter-spacing: 3px;
+    white-space: nowrap;
+  }
+
+  /* Right: score + lives */
+  .hdr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; z-index: 1; min-width: 130px; }
+  .hdr-score-label { font-size: 0.22rem; color: #444; letter-spacing: 2px; }
+  .hdr-score-val { font-size: 0.5rem; color: var(--gold); text-shadow: 0 0 10px #F5C54266; letter-spacing: 2px; line-height: 1; }
+  .hdr-lives { display: flex; gap: 3px; align-items: center; }
+  .heart-on  { color: #ff4466; font-size: 0.55rem; line-height: 1; text-shadow: 0 0 8px #ff446699; }
+  .heart-off { color: #2a2030; font-size: 0.55rem; line-height: 1; }
+
+  /* Canvas */
+  canvas#c {
+    border-left: 2px solid #1a1f2a;
+    border-right: 2px solid #1a1f2a;
+    border-bottom: none;
+    box-shadow: 0 8px 40px #000c, 0 0 60px #F5C54211;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    display: block;
+    width: 512px;
+    max-width: 100%;
+  }
+
+  /* Footer */
+  .game-footer {
+    width: 512px;
+    max-width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.24rem;
+    color: #2a2f3a;
+    letter-spacing: 1px;
+    padding: 7px 16px;
+    background: #0a0c10;
+    border: 2px solid #1a1f2a;
+    border-top: 1px solid #1a1f2a;
+    box-sizing: border-box;
+  }
+  .game-footer kbd {
+    color: #F5C54277;
+    background: #12161e;
+    padding: 2px 5px;
+    border-radius: 1px;
+    font-family: inherit;
+    font-size: 0.22rem;
+    border: 1px solid #2a2f3a;
+  }
+  .footer-contract { font-size: 0.2rem; color: #1e2230; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+  }
+  @keyframes blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes burnFloat {
+    0%   { transform: translateY(0) scale(1);  opacity: 1; }
+    100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+  }
+
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+
+  /* Floating burn notification */
+  .burn-notify {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 0.7rem;
+    color: var(--gold);
+    text-shadow: 0 0 20px var(--gold);
+    z-index: 999;
+    pointer-events: none;
+    animation: burnFloat 2s ease forwards;
+    white-space: nowrap;
+  }
+
+  /* Network badge */
+  .net-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.28rem;
+    color: #6c3;
+    letter-spacing: 1px;
+  }
+  .net-dot {
+    width: 6px; height: 6px;
+    background: #6c3;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #6c3;
+    animation: pulse 1.5s ease infinite;
+  }
+  .net-badge.wrong { color: var(--red); }
+  .net-badge.wrong .net-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* Progress bar for burn */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #1a1f2a;
+    border-radius: 2px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar.show { display: block; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold2));
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px var(--gold);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+
+<!-- ══════════════════════════════════════════
+     GATE SCREEN
+══════════════════════════════════════════ -->
+<div id="gate" class="screen active">
+  <div class="gate-logo">⬡ MONAD CHAIN</div>
+  <div class="gate-title">PIXEL HOMIE</div>
+  <div class="gate-sub">BURN 10 $GOZO TO PLAY</div>
+
+  <canvas id="previewCanvas" width="66" height="108"></canvas>
+
+  <div class="gate-panel fade-in">
+    <div class="gate-panel-title">🔥 GAME ENTRY — 10 $GOZO</div>
+
+    <div class="info-row">
+      <span class="label">TOKEN</span>
+      <span class="val highlight">$GOZO</span>
+    </div>
+    <div class="info-row">
+      <span class="label">CONTRACT</span>
+      <span class="val" style="font-size:0.28rem;color:#555">0xc655…7777</span>
+    </div>
+    <div class="info-row">
+      <span class="label">NETWORK</span>
+      <span id="netBadge" class="net-badge wrong">
+        <span class="net-dot"></span>
+        <span id="netName">NOT CONNECTED</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="label">BALANCE</span>
+      <span id="balanceVal" class="val">—</span>
+    </div>
+
+    <div id="walletAddr" class="wallet-address"></div>
+
+    <div class="steps" id="stepsContainer">
+      <div class="step" id="step1">
+        <span class="step-icon">🔌</span>
+        <span class="step-text">Connect Wallet</span>
+        <span class="step-status" id="s1icon">○</span>
+      </div>
+      <div class="step" id="step2">
+        <span class="step-icon">✅</span>
+        <span class="step-text">Approve 10 GOZO</span>
+        <span class="step-status" id="s2icon">○</span>
+      </div>
+      <div class="step" id="step3">
+        <span class="step-icon">🔥</span>
+        <span class="step-text">Burn 10 GOZO</span>
+        <span class="step-status" id="s3icon">○</span>
+      </div>
+    </div>
+
+    <div class="progress-bar" id="progressBar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <div class="status-msg" id="statusMsg">CONNECT YOUR WALLET TO START</div>
+
+    <a id="txLink" class="tx-link" target="_blank" rel="noopener noreferrer">
+      VIEW TX ON EXPLORER ↗
+    </a>
+
+    <button id="mainBtn" class="btn btn-primary" onclick="handleMainBtn()">
+      CONNECT WALLET
+    </button>
+    <button id="retryBtn" class="btn btn-secondary" onclick="retryApprove()" style="display:none;font-size:0.35rem;padding:10px">
+      ↺ RETRY
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME SCREEN
+══════════════════════════════════════════ -->
+<div id="game" class="screen">
+
+  <!-- ── TOP HEADER BAR ── -->
+  <div class="game-topbar">
+
+    <!-- Left: wallet + balance -->
+    <div class="hdr-left">
+      <div class="hdr-wallet">
+        <span class="hdr-wallet-dot"></span>
+        <span id="hdrWalletAddr" class="hdr-wallet-addr">0x…</span>
+      </div>
+      <div class="hdr-gozo-bal">
+        <span class="fire">🔥</span>
+        <span id="hdrGozoBal" class="amt">—</span>
+        <span>$GOZO</span>
+      </div>
+      <div class="hdr-monad">
+        <span class="hdr-monad-dot"></span>
+        MONAD TESTNET
+      </div>
+    </div>
+
+    <!-- Center: game logo -->
+    <div class="hdr-center">
+      <div class="hdr-logo">PIXEL HOMIE</div>
+      <div class="hdr-tagline">BURN 2 PLAY • $GOZO</div>
+    </div>
+
+    <!-- Right: score + lives -->
+    <div class="hdr-right">
+      <div>
+        <div class="hdr-score-label">SCORE</div>
+        <div id="hdrScore" class="hdr-score-val">0</div>
+      </div>
+      <div class="hdr-lives" id="hdrLives">
+        <span class="heart-on">♥</span>
+        <span class="heart-on">♥</span>
+        <span class="heart-on">♥</span>
+      </div>
+    </div>
+
+  </div>
+
+  <canvas id="c" width="512" height="288"></canvas>
+
+  <div class="game-footer">
+    <span><kbd>← →</kbd> GERAK</span>
+    <span><kbd>↑</kbd> / <kbd>SPC</kbd> LOMPAT</span>
+    <span><kbd>Z</kbd> SERANG</span>
+    <span class="footer-contract">CA: 0xc655…7777</span>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  WEB3 CONFIG
+// ══════════════════════════════════════════════════════
+const GOZO_ADDRESS   = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const BURN_ADDRESS   = '0x000000000000000000000000000000000000dEaD';
+const MONAD_CHAIN_ID = '0x279F'; // 10143 = Monad Testnet
+const MONAD_CHAIN_ID_DEC = 10143;
+const BURN_AMOUNT_WEI = '10000000000000000000'; // 10 * 10^18
+const EXPLORER_URL   = 'https://testnet.monadexplorer.com/tx/';
+
+// Minimal ERC20 ABI — only what we need
+const ERC20_ABI = [
+  // balanceOf
+  { name:'balanceOf', type:'function', stateMutability:'view',
+    inputs:[{name:'account',type:'address'}],
+    outputs:[{name:'',type:'uint256'}] },
+  // allowance
+  { name:'allowance', type:'function', stateMutability:'view',
+    inputs:[{name:'owner',type:'address'},{name:'spender',type:'address'}],
+    outputs:[{name:'',type:'uint256'}] },
+  // approve
+  { name:'approve', type:'function', stateMutability:'nonpayable',
+    inputs:[{name:'spender',type:'address'},{name:'amount',type:'uint256'}],
+    outputs:[{name:'',type:'bool'}] },
+  // transfer (used for burn → send to dead address)
+  { name:'transfer', type:'function', stateMutability:'nonpayable',
+    inputs:[{name:'to',type:'address'},{name:'amount',type:'uint256'}],
+    outputs:[{name:'',type:'bool'}] },
+];
+
+// ── ABI encode helpers (no ethers dependency) ──────────
+function hexPad(hex, bytes=32) {
+  return hex.replace('0x','').padStart(bytes*2,'0');
+}
+function encodeCall(sig, ...params) {
+  // keccak4 selector from signature string
+  const selector = keccak4(sig);
+  return '0x' + selector + params.join('');
+}
+
+// Tiny keccak256 selector (first 4 bytes) using browser's SubtleCrypto
+// We pre-compute them since SubtleCrypto is async and we need sync calls
+// selectors pre-computed:
+const SEL = {
+  balanceOf : 'balanceOf(address)',          // 0x70a08231
+  allowance : 'allowance(address,address)',  // 0xdd62ed3e
+  approve   : 'approve(address,uint256)',    // 0x095ea7b3
+  transfer  : 'transfer(address,uint256)',   // 0xa9059cbb
+};
+
+// We'll use eth_call with raw hex encoding
+function abiEncodeAddr(addr) {
+  return hexPad(addr.toLowerCase().replace('0x',''), 32);
+}
+function abiEncodeUint(val) {
+  // val is a BigInt or string
+  return BigInt(val).toString(16).padStart(64,'0');
+}
+
+// Function selectors (keccak256 first 4 bytes) — pre-computed
+const FN = {
+  balanceOf : '70a08231',
+  allowance : 'dd62ed3e',
+  approve   : '095ea7b3',
+  transfer  : 'a9059cbb',
+};
+
+// ── State ──────────────────────────────────────────────
+let walletAddr = null;
+let provider   = null; // window.ethereum
+let flowStep   = 0; // 0=idle, 1=connected, 2=approved, 3=burned
+let burning    = false;
+
+// ── UI helpers ─────────────────────────────────────────
+function setStatus(msg, type='') {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (type ? ' '+type : '');
+}
+function setStep(n, state) { // state: active|done|error|''
+  const el = document.getElementById('step'+n);
+  el.className = 'step ' + state;
+  const icons = { active:'⟳', done:'✓', error:'✗', '':'○' };
+  document.getElementById('s'+n+'icon').textContent = icons[state] || '○';
+  if (state === 'active') document.getElementById('s'+n+'icon').classList.add('spin');
+  else document.getElementById('s'+n+'icon').classList.remove('spin');
+}
+function setProgress(pct) {
+  document.getElementById('progressBar').classList.add('show');
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+function showTx(hash) {
+  const el = document.getElementById('txLink');
+  el.href = EXPLORER_URL + hash;
+  el.classList.add('show');
+}
+function setBtn(text, disabled=false) {
+  const b = document.getElementById('mainBtn');
+  b.textContent = text;
+  b.disabled = disabled;
+}
+function showRetry(show) {
+  document.getElementById('retryBtn').style.display = show ? 'block' : 'none';
+}
+
+// ── Particles canvas ───────────────────────────────────
+(function initParticles() {
+  const pc = document.getElementById('particles');
+  const px = pc.getContext('2d');
+  pc.width  = window.innerWidth;
+  pc.height = window.innerHeight;
+  const pts = Array.from({length:60}, () => ({
+    x: Math.random()*pc.width,
+    y: Math.random()*pc.height,
+    r: Math.random()*1.5 + 0.3,
+    vy: -(Math.random()*0.3 + 0.1),
+    a: Math.random(),
+  }));
+  function drawParticles() {
+    px.clearRect(0,0,pc.width,pc.height);
+    pts.forEach(p => {
+      p.y += p.vy;
+      p.a += 0.005;
+      if (p.y < 0) { p.y = pc.height; p.x = Math.random()*pc.width; }
+      px.fillStyle = `rgba(245,197,66,${Math.sin(p.a)*0.3+0.1})`;
+      px.beginPath();
+      px.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      px.fill();
+    });
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+})();
+
+// ── Preview character on gate ──────────────────────────
+(function drawPreview() {
+  const pc = document.getElementById('previewCanvas');
+  const px = pc.getContext('2d');
+  px.imageSmoothingEnabled = false;
+  const S2 = 6;
+  const colors = {
+    _:null, Y:'#F5C542', Yd:'#C89A20', R:'#8B1A1A', Rd:'#5C0F0F',
+    K:'#111', W:'#FFF', E:'#1A8FFF', Ew:'#FFF', H:'#1A1A1A',
+    C:'#CCC', Cd:'#888', T:'#F0EE3A', Ts:'#C8A500',
+    B:'#1A2F50', Bl:'#2B4A7A',
+  };
+  const sprite = [
+    ['_','_','_','R','R','R','R','R','_','_','_'],
+    ['_','_','R','R','R','R','R','R','R','_','_'],
+    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+    ['_','_','C','C','C','C','C','C','C','_','_'],
+    ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+    ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+    ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+    ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+    ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+    ['_','K','K','_','_','_','_','K','K','_','_'],
+  ];
+  // idle bob animation
+  let tick = 0;
+  function animPreview() {
+    px.clearRect(0,0,pc.width,pc.height);
+    const bob = Math.sin(tick*0.05) * 2;
+    sprite.forEach((row,r) => row.forEach((key,c) => {
+      if (!key||key==='_') return;
+      const col = colors[key];
+      if (!col) return;
+      px.fillStyle = col;
+      px.fillRect(c*S2, r*S2+bob, S2, S2);
+    }));
+    // glow
+    px.fillStyle = 'rgba(245,197,66,0.08)';
+    px.beginPath();
+    px.ellipse(33, 112+bob, 22, 6, 0, 0, Math.PI*2);
+    px.fill();
+    tick++;
+    requestAnimationFrame(animPreview);
+  }
+  animPreview();
+})();
+
+// ══════════════════════════════════════════════════════
+//  WALLET FLOW
+// ══════════════════════════════════════════════════════
+async function handleMainBtn() {
+  if (!walletAddr)       return connectWallet();
+  if (flowStep === 1)    return doApprove();
+  if (flowStep === 2)    return doBurn();
+}
+
+async function connectWallet() {
+  const eth = window.ethereum;
+  if (!eth) {
+    setStatus('⚠ NO WALLET DETECTED. INSTALL METAMASK OR RABBY.', 'err');
+    return;
+  }
+  setBtn('CONNECTING...', true);
+  setStep(1,'active');
+  setStatus('REQUESTING WALLET ACCESS...');
+  try {
+    const accounts = await eth.request({ method: 'eth_requestAccounts' });
+    walletAddr = accounts[0];
+    provider = eth;
+
+    // Show address
+    const shortAddr = walletAddr.slice(0,6)+'…'+walletAddr.slice(-4);
+    document.getElementById('walletAddr').textContent = walletAddr;
+    document.getElementById('walletAddr').classList.add('show');
+    document.getElementById('gameWalletBadge').textContent = shortAddr;
+
+    setStep(1,'done');
+    setStatus('WALLET CONNECTED!', 'ok');
+
+    // Check/switch network
+    await ensureMonadNetwork();
+
+    // Fetch balance
+    await updateBalance();
+
+    flowStep = 1;
+    setBtn('APPROVE 10 GOZO →');
+    setStep(2,'');
+
+  } catch(e) {
+    setStep(1,'error');
+    setStatus('CONNECTION REJECTED.', 'err');
+    setBtn('CONNECT WALLET', false);
+    console.error(e);
+  }
+}
+
+async function ensureMonadNetwork() {
+  const chainId = await provider.request({ method: 'eth_chainId' });
+  if (chainId.toLowerCase() !== MONAD_CHAIN_ID.toLowerCase()) {
+    setStatus('SWITCHING TO MONAD NETWORK...');
+    try {
+      await provider.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: MONAD_CHAIN_ID }],
+      });
+    } catch(switchErr) {
+      if (switchErr.code === 4902) {
+        // Add network
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: MONAD_CHAIN_ID,
+            chainName: 'Monad Testnet',
+            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+            rpcUrls: ['https://testnet-rpc.monad.xyz'],
+            blockExplorerUrls: ['https://testnet.monadexplorer.com'],
+          }],
+        });
+      } else throw switchErr;
+    }
+  }
+  document.getElementById('netBadge').className = 'net-badge';
+  document.getElementById('netName').textContent = 'MONAD';
+}
+
+async function updateBalance() {
+  try {
+    const data = '0x' + FN.balanceOf + abiEncodeAddr(walletAddr);
+    const res = await provider.request({
+      method: 'eth_call',
+      params: [{ to: GOZO_ADDRESS, data }, 'latest'],
+    });
+    const bal = BigInt(res);
+    const formatted = (Number(bal) / 1e18).toFixed(2);
+    document.getElementById('balanceVal').textContent = formatted + ' GOZO';
+    document.getElementById('balanceVal').className = 'val highlight';
+    return bal;
+  } catch(e) {
+    document.getElementById('balanceVal').textContent = 'ERROR';
+    return 0n;
+  }
+}
+
+async function doApprove() {
+  setBtn('APPROVING...', true);
+  setStep(2,'active');
+  setStatus('WAITING FOR APPROVAL SIGNATURE...');
+  setProgress(10);
+  showRetry(false);
+  try {
+    // Encode approve(BURN_ADDRESS, BURN_AMOUNT)
+    const data = '0x' + FN.approve
+      + abiEncodeAddr(BURN_ADDRESS)
+      + abiEncodeUint(BURN_AMOUNT_WEI);
+
+    const txHash = await provider.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddr,
+        to: GOZO_ADDRESS,
+        data,
+      }],
+    });
+
+    setStatus('APPROVE TX SENT — WAITING CONFIRMATION...');
+    setProgress(40);
+    showTx(txHash);
+
+    await waitForTx(txHash);
+
+    setStep(2,'done');
+    setProgress(60);
+    setStatus('APPROVED! NOW BURN THE GOZO 🔥', 'ok');
+    flowStep = 2;
+    setBtn('🔥 BURN 10 GOZO & PLAY!');
+    setStep(3,'');
+
+  } catch(e) {
+    setStep(2,'error');
+    const msg = e.code === 4001 ? 'APPROVAL REJECTED BY USER.' : 'APPROVAL FAILED: ' + (e.message||'').slice(0,40);
+    setStatus(msg, 'err');
+    setBtn('APPROVE 10 GOZO →', false);
+    showRetry(true);
+    console.error(e);
+  }
+}
+
+async function retryApprove() {
+  showRetry(false);
+  setStep(2,'');
+  if (flowStep === 1) doApprove();
+  else if (flowStep === 2) doBurn();
+}
+
+async function doBurn() {
+  if (burning) return;
+  burning = true;
+  setBtn('BURNING...', true);
+  setStep(3,'active');
+  setStatus('CONFIRM BURN TRANSACTION IN WALLET...');
+  setProgress(65);
+  showRetry(false);
+
+  // Check balance first
+  const bal = await updateBalance();
+  if (bal < BigInt(BURN_AMOUNT_WEI)) {
+    setStep(3,'error');
+    setStatus('INSUFFICIENT GOZO BALANCE!', 'err');
+    setBtn('🔥 BURN 10 GOZO & PLAY!', false);
+    burning = false;
+    showRetry(false);
+    return;
+  }
+
+  try {
+    // Burn = transfer to dead address
+    const data = '0x' + FN.transfer
+      + abiEncodeAddr(BURN_ADDRESS)
+      + abiEncodeUint(BURN_AMOUNT_WEI);
+
+    const txHash = await provider.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddr,
+        to: GOZO_ADDRESS,
+        data,
+      }],
+    });
+
+    setStatus('BURN TX SENT — WAITING CONFIRMATION...');
+    setProgress(80);
+    showTx(txHash);
+
+    await waitForTx(txHash);
+
+    setStep(3,'done');
+    setProgress(100);
+    setStatus('🔥 10 GOZO BURNED! LAUNCHING GAME...', 'ok');
+
+    // Show burn notification
+    const notify = document.createElement('div');
+    notify.className = 'burn-notify';
+    notify.textContent = '🔥 -10 $GOZO 🔥';
+    document.body.appendChild(notify);
+    setTimeout(() => notify.remove(), 2000);
+
+    await sleep(1500);
+    launchGame();
+
+  } catch(e) {
+    burning = false;
+    setStep(3,'error');
+    const msg = e.code === 4001 ? 'BURN REJECTED BY USER.' : 'BURN FAILED: '+(e.message||'').slice(0,40);
+    setStatus(msg, 'err');
+    setBtn('🔥 BURN 10 GOZO & PLAY!', false);
+    showRetry(true);
+    console.error(e);
+  }
+}
+
+// Poll for tx receipt
+async function waitForTx(hash, maxAttempts=60, interval=2000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await sleep(interval);
+    try {
+      const receipt = await provider.request({
+        method: 'eth_getTransactionReceipt',
+        params: [hash],
+      });
+      if (receipt && receipt.status) {
+        if (receipt.status === '0x1') return receipt;
+        if (receipt.status === '0x0') throw new Error('Transaction reverted');
+      }
+    } catch(e) { if (e.message !== 'Transaction reverted') continue; else throw e; }
+  }
+  throw new Error('TX timeout');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Account / Chain change listeners ──────────────────
+if (window.ethereum) {
+  window.ethereum.on('accountsChanged', accs => {
+    if (accs.length === 0) { location.reload(); }
+    else { walletAddr = accs[0]; updateBalance(); }
+  });
+  window.ethereum.on('chainChanged', () => { location.reload(); });
+}
+
+// ══════════════════════════════════════════════════════
+//  LAUNCH GAME
+// ══════════════════════════════════════════════════════
+function launchGame() {
+  document.getElementById('gate').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+  // Fill header wallet info
+  if (walletAddr) {
+    const short = walletAddr.slice(0,6)+'…'+walletAddr.slice(-4);
+    const el = document.getElementById('hdrWalletAddr');
+    if (el) el.textContent = short;
+  }
+  // Fetch and show GOZO balance in header
+  (async () => {
+    try {
+      const data = '0x' + FN.balanceOf + abiEncodeAddr(walletAddr);
+      const res = await provider.request({ method:'eth_call', params:[{to:GOZO_ADDRESS,data},'latest'] });
+      const bal = (Number(BigInt(res)) / 1e18).toFixed(1);
+      const balEl = document.getElementById('hdrGozoBal');
+      if (balEl) balEl.textContent = bal;
+    } catch(e) {}
+  })();
+  initGame();
+}
+
+// ══════════════════════════════════════════════════════
+//  GAME ENGINE
+// ══════════════════════════════════════════════════════
+function initGame() {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const S = 3;
+  const P = {
+    _:null, Y:'#F5C542', Yd:'#C89A20', Yl:'#FFDE70',
+    R:'#8B1A1A', Rd:'#5C0F0F',
+    B:'#1A2F50', Bl:'#2B4A7A',
+    K:'#111111', W:'#FFFFFF',
+    E:'#1A8FFF', Ew:'#FFFFFF',
+    H:'#1A1A1A', C:'#CCCCCC', Cd:'#888888',
+    T:'#F0EE3A', Ts:'#C8A500',
+  };
+
+  const IDLE = [
+    ['_','_','_','R','R','R','R','R','_','_','_'],
+    ['_','_','R','R','R','R','R','R','R','_','_'],
+    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+    ['_','_','C','C','C','C','C','C','C','_','_'],
+    ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+    ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+    ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+    ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
+    ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+    ['_','K','K','_','_','_','_','K','K','_','_'],
+  ];
+  const WALK_A = [
+    ['_','_','_','R','R','R','R','R','_','_','_'],
+    ['_','_','R','R','R','R','R','R','R','_','_'],
+    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+    ['_','_','C','C','C','C','C','C','C','_','_'],
+    ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+    ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['Bl','Bl','Bl','Bl','Bl','_','Bl','Bl','Bl','Bl','_'],
+    ['B','Bl','B','_','_','_','_','Bl','B','_','_'],
+    ['_','Bl','_','_','_','_','_','B','Bl','_','_'],
+    ['_','Bl','_','_','_','_','Bl','Bl','_','_','_'],
+    ['_','K','K','_','_','_','K','K','_','_','_'],
+  ];
+  const WALK_B = [
+    ['_','_','_','R','R','R','R','R','_','_','_'],
+    ['_','_','R','R','R','R','R','R','R','_','_'],
+    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+    ['_','_','C','C','C','C','C','C','C','_','_'],
+    ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
+    ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
+    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['_','Bl','Bl','Bl','_','Bl','Bl','Bl','Bl','Bl','_'],
+    ['_','_','B','Bl','_','_','B','Bl','B','_','_'],
+    ['_','_','Bl','B','_','_','_','Bl','_','_','_'],
+    ['_','Bl','Bl','_','_','_','_','Bl','_','_','_'],
+    ['_','K','K','_','_','_','_','K','K','_','_'],
+  ];
+  const JUMP = [
+    ['_','_','_','R','R','R','R','R','_','_','_'],
+    ['_','_','R','R','R','R','R','R','R','_','_'],
+    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+    ['_','_','C','C','C','C','C','C','C','_','_'],
+    ['T','T','T','Y','Y','Y','Y','Y','T','T','T'],
+    ['Y','Y','T','Y','Cd','Y','Cd','Y','T','Y','Y'],
+    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
+    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+    ['_','K','K','Bl','_','_','Bl','K','K','_','_'],
+    ['_','_','_','K','_','_','K','_','_','_','_'],
+  ];
+
+  function drawSprite(sprite, px, py, flip) {
+    const cols = sprite[0].length;
+    for (let r=0; r<sprite.length; r++) {
+      for (let c=0; c<cols; c++) {
+        const key = sprite[r][flip ? cols-1-c : c];
+        if (!key||key==='_') continue;
+        const col = P[key]; if (!col) continue;
+        ctx.fillStyle = col;
+        ctx.fillRect(px+c*S, py+r*S, S, S);
+      }
+    }
+  }
+
+  const GROUND_Y = 230;
+  const CW = 11*S, CH = 18*S;
+  const GRAVITY = 0.35, JUMP_V = -8.5, SPEED = 2.2;
+
+  const platforms = [
+    {x:0,   y:GROUND_Y, w:512, h:58},
+    {x:100, y:180, w:80, h:16},
+    {x:260, y:148, w:80, h:16},
+    {x:390, y:168, w:90, h:16},
+    {x:30,  y:155, w:70, h:16},
+  ];
+
+  let player = {
+    x:60, y:GROUND_Y-CH,
+    vx:0, vy:0,
+    grounded:false, facing:1,
+    frame:0, frameTick:0,
+    state:'idle', attackTick:0,
+  };
+
+  let score=0, lives=3, gameTick=0;
+
+  let coins=[];
+  function spawnCoins() {
+    coins=[];
+    [[130,160],[165,160],[200,150],[280,128],[310,128],[340,128],
+     [410,148],[440,148],[50,135],[75,135],
+     [200,210],[280,210],[350,210],[420,210],[100,210]].forEach(([x,y]) => {
+      coins.push({x,y,collected:false,t:Math.random()*6.28});
+    });
+  }
+  spawnCoins();
+
+  let enemies=[
+    {x:300,y:GROUND_Y-CH,vx:-0.8,alive:true,frame:0,tick:0},
+    {x:180,y:180-CH,vx:0.7,alive:true,frame:0,tick:0,plat:1},
+  ];
+
+  const keys={};
+  window.addEventListener('keydown',e=>{keys[e.code]=true;});
+  window.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+  function collideRect(ax,ay,aw,ah,bx,by,bw,bh){
+    return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+  }
+
+  function updateHUD() {
+    // Update top header
+    const scoreEl = document.getElementById('hdrScore');
+    if (scoreEl) scoreEl.textContent = score;
+    const livesEl = document.getElementById('hdrLives');
+    if (livesEl) {
+      livesEl.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const h = document.createElement('span');
+        h.className = i < lives ? 'heart-on' : 'heart-off';
+        h.textContent = '♥';
+        livesEl.appendChild(h);
+      }
+    }
+    // also update the old gameScore for footer (hidden now but safe)
+    const gs = document.getElementById('gameScore');
+    if (gs) gs.textContent = `SCORE: ${score}`;
+  }
+
+  // Slime sprites
+  const SLIME_A=[
+    ['_','_','K','K','K','K','K','K','K','_','_'],
+    ['_','K','G','G','G','G','G','G','G','K','_'],
+    ['K','G','W','K','G','G','G','K','W','G','K'],
+    ['K','G','W','K','G','G','G','K','W','G','K'],
+    ['K','G','G','G','G','G','G','G','G','G','K'],
+    ['K','G','G','G','G','K','G','G','G','G','K'],
+    ['_','K','G','G','G','G','G','G','G','K','_'],
+    ['_','_','K','G','K','_','_','K','G','K','_'],
+    ['_','_','K','K','_','_','_','_','K','K','_'],
+  ];
+  const SLIME_B=[
+    ['_','_','_','_','_','_','_','_','_','_','_'],
+    ['_','K','K','K','K','K','K','K','K','K','_'],
+    ['K','G','G','G','G','G','G','G','G','G','K'],
+    ['K','G','W','K','G','G','G','K','W','G','K'],
+    ['K','G','W','K','G','G','G','K','W','G','K'],
+    ['K','G','G','G','G','G','G','G','G','G','K'],
+    ['K','G','G','G','G','K','G','G','G','G','K'],
+    ['_','K','K','G','G','G','G','G','K','K','_'],
+    ['_','_','_','K','K','K','K','K','_','_','_'],
+  ];
+  const SP={_:null,K:'#111',G:'#5DBB63',W:'#fff'};
+  function drawSlime(sprite,px,py){
+    for(let r=0;r<sprite.length;r++) for(let c=0;c<sprite[r].length;c++){
+      const k=sprite[r][c]; if(!k||k==='_') continue;
+      ctx.fillStyle=SP[k]; ctx.fillRect(px+c*S,py+r*S,S,S);
+    }
+  }
+
+  function drawCoin(cx,cy,t){
+    const bob=Math.sin(t)*2;
+    const cs=['_','_','Y','Y','Y','_','_',
+              '_','Y','Yl','Yl','Y','Y','_',
+              'Y','Yl','Y','Y','Y','Yl','Y',
+              'Y','Y','Yl','Y','Yl','Y','Y',
+              'Y','Yl','Y','Y','Y','Yl','Y',
+              '_','Y','Y','Y','Y','Y','_',
+              '_','_','Y','Y','Y','_','_'];
+    for(let r=0;r<7;r++) for(let c=0;c<7;c++){
+      const k=cs[r*7+c]; if(k==='_') continue;
+      ctx.fillStyle=P[k];
+      ctx.fillRect(cx-10+c*3, cy-10+r*3+bob, 3,3);
+    }
+  }
+
+  function drawBG(){
+    const g=ctx.createLinearGradient(0,0,0,GROUND_Y);
+    g.addColorStop(0,'#0d1f3c'); g.addColorStop(1,'#1a4a7a');
+    ctx.fillStyle=g; ctx.fillRect(0,0,512,GROUND_Y);
+
+    // Stars
+    ctx.fillStyle='#ffffff22';
+    for(let i=0;i<40;i++){
+      const sx=(i*137)%512, sy=(i*89)%180;
+      ctx.fillRect(sx,sy,1,1);
+    }
+
+    // Moon
+    ctx.fillStyle='#FFF8DC';
+    ctx.beginPath(); ctx.arc(440,38,18,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0d1f3c';
+    ctx.beginPath(); ctx.arc(448,34,16,0,Math.PI*2); ctx.fill();
+
+    // Trees
+    for(let tx=10;tx<510;tx+=48){
+      const th=35+(tx*7%20);
+      ctx.fillStyle='#0a1a0a';
+      ctx.fillRect(tx,GROUND_Y-th,18,th);
+      ctx.fillStyle='#122a12';
+      ctx.fillRect(tx-5,GROUND_Y-th-10,28,16);
+      ctx.fillRect(tx-1,GROUND_Y-th-22,20,13);
+      ctx.fillRect(tx+3,GROUND_Y-th-32,12,12);
+    }
+
+    // GOZO badge in sky
+    ctx.fillStyle='rgba(245,197,66,0.12)';
+    ctx.font='bold 9px "Courier New"';
+    ctx.fillText('$GOZO', 8, 240);
+  }
+
+  function drawPlatforms(){
+    for(const p of platforms){
+      ctx.fillStyle='#4a2810'; ctx.fillRect(p.x,p.y+4,p.w,p.h-4);
+      for(let gx=p.x;gx<p.x+p.w;gx+=3){
+        ctx.fillStyle='#5a7a32'; ctx.fillRect(gx,p.y,3,3+(gx*13%3));
+      }
+      ctx.fillStyle='#7aaf44'; ctx.fillRect(p.x,p.y,p.w,3);
+      ctx.fillStyle='#2a1508'; ctx.fillRect(p.x,p.y+p.h-2,p.w,2);
+    }
+  }
+
+  function update(){
+    gameTick++;
+    player.vx=0;
+    if(keys['ArrowLeft']||keys['KeyA']){player.vx=-SPEED;player.facing=-1;}
+    if(keys['ArrowRight']||keys['KeyD']){player.vx=SPEED;player.facing=1;}
+    if((keys['Space']||keys['ArrowUp']||keys['KeyW'])&&player.grounded){
+      player.vy=JUMP_V; player.grounded=false;
+    }
+    if(keys['KeyZ']&&player.attackTick<=0) player.attackTick=18;
+
+    player.vy+=GRAVITY;
+    player.x+=player.vx; player.y+=player.vy;
+    player.grounded=false;
+
+    for(const p of platforms){
+      const prevB=player.y+CH-player.vy;
+      if(player.x+CW>p.x && player.x<p.x+p.w &&
+         player.y+CH>=p.y && prevB<=p.y+2 && player.vy>=0){
+        player.y=p.y-CH; player.vy=0; player.grounded=true;
+      }
+    }
+    player.x=Math.max(0,Math.min(512-CW,player.x));
+    if(player.y>320){lives=Math.max(0,lives-1);player.x=60;player.y=GROUND_Y-CH;player.vy=0;updateHUD();}
+
+    if(player.attackTick>0){player.attackTick--;player.state='attack';}
+    else if(!player.grounded){player.state='jump';}
+    else if(player.vx!==0){player.state='walk';}
+    else{player.state='idle';}
+
+    player.frameTick++;
+    if(player.frameTick>9){player.frameTick=0;player.frame=1-player.frame;}
+
+    const pcx=player.x+CW/2, pcy=player.y+CH/2;
+    for(const coin of coins){
+      if(!coin.collected && Math.abs(pcx-coin.x)<14 && Math.abs(pcy-coin.y)<14){
+        coin.collected=true; score+=10; updateHUD();
+      }
+    }
+    if(coins.every(c=>c.collected)) spawnCoins();
+
+    for(const e of enemies){
+      if(!e.alive) continue;
+      e.x+=e.vx;
+      if(e.x<0||e.x>480) e.vx*=-1;
+      for(const p of platforms){
+        if(e.plat!==undefined&&(e.x<p.x||e.x+CW>p.x+p.w)) e.vx*=-1;
+      }
+      e.tick++; if(e.tick>8){e.tick=0;e.frame=1-e.frame;}
+      if(player.vy>0 && collideRect(player.x,player.y,CW,CH,e.x,e.y,CW,CH) && player.y+CH<e.y+CH/2){
+        e.alive=false; player.vy=JUMP_V*0.6; score+=50; updateHUD();
+      } else if(collideRect(player.x+4,player.y+4,CW-8,CH-8,e.x+4,e.y+4,CW-8,CH-8)){
+        if(player.attackTick>0){e.alive=false;score+=50;updateHUD();}
+        else if(gameTick%60===0){lives=Math.max(0,lives-1);updateHUD();}
+      }
+    }
+  }
+
+  function render(){
+    drawBG(); drawPlatforms();
+    const t=gameTick*0.06;
+    for(const coin of coins) if(!coin.collected) drawCoin(coin.x,coin.y,t+coin.t);
+    for(const e of enemies){
+      if(!e.alive) continue;
+      drawSlime(e.frame===0?SLIME_A:SLIME_B, e.x, e.y+(CH-9*S));
+    }
+    ctx.fillStyle='#00000030';
+    ctx.beginPath(); ctx.ellipse(player.x+CW/2,GROUND_Y+3,14,4,0,0,Math.PI*2); ctx.fill();
+
+    let sprite;
+    if(player.state==='jump') sprite=JUMP;
+    else if(player.state==='walk') sprite=player.frame===0?WALK_A:WALK_B;
+    else sprite=IDLE;
+    drawSprite(sprite, Math.round(player.x), Math.round(player.y), player.facing===-1);
+
+    if(player.attackTick>0){
+      const flip=player.facing===-1;
+      const ax=flip?player.x-18:player.x+CW+2;
+      const alpha=player.attackTick/18;
+      ctx.fillStyle=`rgba(255,220,50,${alpha*0.8})`;
+      ctx.fillRect(ax, player.y+20, 16, 6);
+    }
+
+    // HUD
+    ctx.fillStyle='#00000099'; ctx.fillRect(0,0,512,22);
+    ctx.fillStyle='#F5C542'; ctx.font='bold 10px "Courier New"';
+    ctx.fillText(`SCORE:${score}`,8,14);
+    ctx.fillStyle='#ff6666';
+    ctx.fillText('♥'.repeat(lives)+'♡'.repeat(Math.max(0,3-lives)),220,14);
+    // GOZO tag
+    ctx.fillStyle='#F5C542aa'; ctx.font='7px "Courier New"';
+    ctx.fillText('🔥$GOZO',420,14);
+  }
+
+  function gameLoop(){update();render();requestAnimationFrame(gameLoop);}
+  updateHUD();
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
