@@ -1587,7 +1587,7 @@ function renderSeedShop(){
         ${inv > 0 ? `<div class="si-inv">x${inv} in bag ✓</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
       </div>
       <div class="si-count">${inv}</div>`;
-    div.onclick = () => { selectedSeed = key; renderSeedShop(); say('buy'); };
+    div.onclick = () => { selectedSeed = key; selectTool('hoe'); renderSeedShop(); say('buy'); };
     el.appendChild(div);
   });
 }
