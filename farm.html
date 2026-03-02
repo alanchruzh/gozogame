@@ -1153,14 +1153,14 @@ const CROP_KEYS = ['tomat','cabe','jagung','terong','wortel','labu','stroberi','
 const FIELD_DEFS = [
   {id:0, name:'Field 1',  cols:2, rows:2, unlockAt:0},
   {id:1, name:'Field 2',  cols:2, rows:2, unlockAt:5},
-  {id:2, name:'Field 3',  cols:3, rows:2, unlockAt:10},
-  {id:3, name:'Field 4',  cols:3, rows:2, unlockAt:20},
-  {id:4, name:'Field 5',  cols:3, rows:2, unlockAt:30},
-  {id:5, name:'Field 6',  cols:3, rows:2, unlockAt:40},
-  {id:6, name:'Field 7',  cols:3, rows:2, unlockAt:55},
-  {id:7, name:'Field 8',  cols:3, rows:2, unlockAt:70},
-  {id:8, name:'Field 9',  cols:3, rows:2, unlockAt:90},
-  {id:9, name:'Field 10', cols:3, rows:2, unlockAt:120},
+  {id:2, name:'Field 3',  cols:2, rows:2, unlockAt:10},
+  {id:3, name:'Field 4',  cols:2, rows:2, unlockAt:20},
+  {id:4, name:'Field 5',  cols:2, rows:2, unlockAt:30},
+  {id:5, name:'Field 6',  cols:2, rows:2, unlockAt:40},
+  {id:6, name:'Field 7',  cols:2, rows:2, unlockAt:55},
+  {id:7, name:'Field 8',  cols:2, rows:2, unlockAt:70},
+  {id:8, name:'Field 9',  cols:2, rows:2, unlockAt:90},
+  {id:9, name:'Field 10', cols:2, rows:2, unlockAt:120},
 ];
 
 // ═══════════════════════════════════════════════════
@@ -1542,10 +1542,11 @@ function doHarvest(fid, pid){
   // Give seeds from harvest (1 harvest = 2 seeds of same type)
   inventory[plantKey] = (inventory[plantKey] || 0) + 2;
 
-  // Unlock new crops based on total harvested
+  // Unlock new crops based on total harvested — give 5 free seeds
   CROP_KEYS.forEach(k => {
     if(CROPS[k].unlockAt > 0 && totalHarvested === CROPS[k].unlockAt){
-      showToast(`🌱 ${CROPS[k].name.toUpperCase()} SEEDS UNLOCKED! Check your seed bag!`);
+      inventory[k] = (inventory[k] || 0) + 5;
+      showToast(`🌱 ${CROPS[k].name.toUpperCase()} UNLOCKED! +5 FREE SEEDS!`);
     }
   });
 
