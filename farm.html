@@ -1787,8 +1787,8 @@ function parts(n, emojis, cx, cy){
 <div id="music-player">
   <div class="mp-icon">🌿</div>
   <div class="mp-info">
-    <div class="mp-title">Nature Sounds</div>
-    <div class="mp-sub" id="mp-track-name">Rain & Forest</div>
+    <div class="mp-title">Calming Melody</div>
+    <div class="mp-sub" id="mp-track-name">Peaceful Piano</div>
   </div>
   <div class="mp-eq paused" id="mp-eq">
     <span></span><span></span><span></span><span></span><span></span>
@@ -1799,151 +1799,99 @@ function parts(n, emojis, cx, cy){
 
 <script>
 (function(){
-  // Generate relaxing nature sounds using Web Audio API
+  // Calming melody using Web Audio API
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  let ctx, rainGain, forestGain, masterGain;
-  let sources = [];
+  let ctx, masterGain;
+  let melodyTimeout = null;
   let playing = false;
 
-  function createRain(ctx) {
-    const bufSize = ctx.sampleRate * 3;
-    const buf = ctx.createBuffer(2, bufSize, ctx.sampleRate);
-    for(let c=0; c<2; c++){
-      const d = buf.getChannelData(c);
-      for(let i=0; i<bufSize; i++) d[i] = (Math.random()*2-1);
-    }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
+  // Pentatonic scale notes (Hz) - very soothing
+  const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 784.00];
 
-    // Filter for rain texture
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'bandpass';
-    lp.frequency.value = 1400;
-    lp.Q.value = 0.3;
+  // Gentle melody sequence
+  const melody = [4,2,0,2,4,6,4,2,4,5,4,2,0,1,2,4,2,0,6,5,4,2,4,2,0];
 
-    const lp2 = ctx.createBiquadFilter();
-    lp2.type = 'lowpass';
-    lp2.frequency.value = 3500;
-
-    src.connect(lp);
-    lp.connect(lp2);
-    return {src, out: lp2};
+  function playNote(freq, startTime, duration, vol) {
+    vol = vol || 0.10;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, startTime);
+    g.gain.linearRampToValueAtTime(vol, startTime + 0.09);
+    g.gain.exponentialRampToValueAtTime(vol * 0.5, startTime + duration * 0.6);
+    g.gain.linearRampToValueAtTime(0.0001, startTime + duration);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.1);
   }
 
-  function createForest(ctx) {
-    // Soft wind / ambient hum
-    const bufSize = ctx.sampleRate * 4;
-    const buf = ctx.createBuffer(2, bufSize, ctx.sampleRate);
-    for(let c=0; c<2; c++){
-      const d = buf.getChannelData(c);
-      for(let i=0; i<bufSize; i++) d[i] = (Math.random()*2-1)*0.3;
-    }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.loop = true;
-
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 300;
-
-    // LFO for wind sway
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.frequency.value = 0.08;
-    lfoGain.gain.value = 150;
-    lfo.connect(lfoGain);
-    lfoGain.connect(lp.frequency);
-    lfo.start();
-
-    src.connect(lp);
-    return {src, out: lp, extra: lfo};
-  }
-
-  function addBirds(ctx, masterGain) {
-    // Periodic bird chirp tones
-    function chirp() {
-      if(!playing) return;
+  function playPad(freqs, startTime, duration) {
+    freqs.forEach(function(f) {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
-      const freq = 800 + Math.random()*1200;
-      osc.frequency.value = freq;
       osc.type = 'sine';
-      g.gain.setValueAtTime(0, ctx.currentTime);
-      g.gain.linearRampToValueAtTime(0.06, ctx.currentTime+0.05);
-      g.gain.linearRampToValueAtTime(0, ctx.currentTime+0.3);
+      osc.frequency.value = f / 2;
+      g.gain.setValueAtTime(0, startTime);
+      g.gain.linearRampToValueAtTime(0.035, startTime + 0.5);
+      g.gain.linearRampToValueAtTime(0.02, startTime + duration - 0.4);
+      g.gain.linearRampToValueAtTime(0.0001, startTime + duration);
       osc.connect(g);
       g.connect(masterGain);
-      osc.start();
-      osc.stop(ctx.currentTime+0.35);
-      // Repeat pattern: 2-3 quick chirps
-      const reps = Math.floor(Math.random()*3)+1;
-      for(let i=1;i<reps;i++){
-        setTimeout(()=>{
-          if(!playing) return;
-          const o2=ctx.createOscillator(), g2=ctx.createGain();
-          o2.frequency.value = freq*(0.9+Math.random()*0.2);
-          o2.type='sine';
-          g2.gain.setValueAtTime(0,ctx.currentTime);
-          g2.gain.linearRampToValueAtTime(0.05,ctx.currentTime+0.04);
-          g2.gain.linearRampToValueAtTime(0,ctx.currentTime+0.25);
-          o2.connect(g2); g2.connect(masterGain);
-          o2.start(); o2.stop(ctx.currentTime+0.3);
-        }, i*200+Math.random()*100);
-      }
-      // Next bird call
-      setTimeout(chirp, 3000+Math.random()*8000);
-    }
-    setTimeout(chirp, 1000+Math.random()*3000);
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.1);
+    });
+  }
+
+  function scheduleMelody() {
+    if (!playing) return;
+    const now = ctx.currentTime;
+    const tempo = 0.55;
+    const total = melody.length * tempo;
+
+    // Ambient pads
+    playPad([261.63, 329.63, 392.00], now, total);
+    playPad([220.00, 261.63, 329.63], now + total * 0.5, total * 0.5);
+
+    // Melody
+    melody.forEach(function(ni, i) {
+      const freq = notes[ni];
+      playNote(freq, now + i * tempo, tempo * 1.15);
+      if (i % 5 === 0) playNote(freq * 1.5, now + i * tempo, tempo * 1.1, 0.035);
+    });
+
+    melodyTimeout = setTimeout(scheduleMelody, (total - 0.2) * 1000);
   }
 
   window.toggleMusic = function() {
-    if(!playing) {
-      startMusic();
-    } else {
-      stopMusic();
-    }
+    if (!playing) startMusic();
+    else stopMusic();
   };
 
   window.setVolume = function(v) {
-    if(masterGain) masterGain.gain.value = v;
+    if (masterGain) masterGain.gain.value = parseFloat(v);
   };
 
   function startMusic() {
     ctx = new AudioCtx();
     masterGain = ctx.createGain();
-    masterGain.gain.value = document.querySelector('.mp-vol').value;
-    masterGain.connect(ctx.destination);
-
-    rainGain = ctx.createGain();
-    rainGain.gain.value = 0.18;
-    rainGain.connect(masterGain);
-
-    forestGain = ctx.createGain();
-    forestGain.gain.value = 0.55;
-    forestGain.connect(masterGain);
-
-    const rain = createRain(ctx);
-    rain.src.start();
-    rain.out.connect(rainGain);
-
-    const forest = createForest(ctx);
-    forest.src.start();
-    forest.out.connect(forestGain);
-
-    sources = [rain.src, forest.src, forest.extra];
-    addBirds(ctx, masterGain);
-
+    masterGain.gain.value = parseFloat(document.querySelector('.mp-vol').value);
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -18;
+    comp.ratio.value = 4;
+    masterGain.connect(comp);
+    comp.connect(ctx.destination);
     playing = true;
+    scheduleMelody();
     document.getElementById('mp-btn').textContent = '⏸';
     document.getElementById('mp-eq').classList.remove('paused');
   }
 
   function stopMusic() {
-    sources.forEach(s=>{ try{s.stop()}catch(e){} });
-    sources = [];
-    if(ctx){ ctx.close(); ctx=null; }
     playing = false;
+    clearTimeout(melodyTimeout);
+    if (ctx) { ctx.close(); ctx = null; }
     document.getElementById('mp-btn').textContent = '▶';
     document.getElementById('mp-eq').classList.add('paused');
   }
