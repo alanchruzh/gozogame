@@ -40,17 +40,15 @@ header{
 .world{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
 
 .sky{flex-shrink:0;height:var(--sky-h);background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 55%,var(--sky3) 100%);position:relative;overflow:hidden}
-.sun{position:absolute;top:14px;right:120px;width:42px;height:42px;background:var(--yellow);box-shadow:0 0 0 5px var(--yellow2),0 0 0 10px rgba(224,168,0,0.18);animation:sunPulse 3s ease-in-out infinite}
-@keyframes sunPulse{0%,100%{box-shadow:0 0 0 5px var(--yellow2),0 0 0 10px rgba(224,168,0,0.18)}50%{box-shadow:0 0 0 5px var(--yellow2),0 0 0 20px rgba(224,168,0,0.08)}}
-.cloud{position:absolute;background:#d8eeff;animation:cloudDrift linear infinite}
-.cloud::before{content:'';position:absolute;background:#d8eeff}
-.cl1{width:72px;height:18px;top:18%;animation-duration:60s}
-.cl1::before{width:36px;height:24px;top:-14px;left:14px}
-.cl2{width:96px;height:20px;top:40%;animation-duration:85s;animation-delay:-30s}
-.cl2::before{width:48px;height:28px;top:-16px;left:22px}
-.cl3{width:56px;height:14px;top:10%;animation-duration:45s;animation-delay:-18s}
-.cl3::before{width:28px;height:18px;top:-10px;left:12px}
-@keyframes cloudDrift{from{left:-150px}to{left:calc(100% + 150px)}}
+.sun{position:absolute;top:10px;right:110px;width:64px;height:64px;animation:sunPulse 3s ease-in-out infinite;image-rendering:pixelated}
+.sun svg{width:64px;height:64px;image-rendering:pixelated}
+@keyframes sunPulse{0%,100%{transform:scale(1) rotate(0deg);filter:drop-shadow(0 0 6px rgba(255,200,0,0.7))}50%{transform:scale(1.08) rotate(4deg);filter:drop-shadow(0 0 14px rgba(255,200,0,0.5))}}
+.cloud{position:absolute;image-rendering:pixelated;animation:cloudDrift linear infinite}
+.cloud svg{image-rendering:pixelated;display:block}
+.cl1{top:18%;animation-duration:60s;width:96px;height:56px}
+.cl2{top:38%;animation-duration:85s;animation-delay:-30s;width:128px;height:72px}
+.cl3{top:10%;animation-duration:45s;animation-delay:-18s;width:72px;height:40px}
+@keyframes cloudDrift{from{left:-160px}to{left:calc(100% + 160px)}}
 .bird{position:absolute;font-size:11px;animation:birdFly linear infinite;filter:brightness(0.2) sepia(0.5)}
 .bd1{top:25%;animation-duration:30s}
 .bd2{top:15%;font-size:8px;animation-duration:44s;animation-delay:-18s}
@@ -58,14 +56,22 @@ header{
 
 .horizon{flex-shrink:0;height:48px;background:linear-gradient(180deg,var(--sky3) 0%,var(--grass) 50%);position:relative;overflow:visible;z-index:5}
 .tree-row{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:0;pointer-events:none}
-.px-tree{display:flex;flex-direction:column;align-items:center;margin-right:12px}
-.px-tree .tc{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:28px solid #2a7020;filter:drop-shadow(0 -2px 0 #1a5010)}
-.px-tree .tc2{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:22px solid #3a8030;margin-top:-12px}
-.px-tree .tt{width:8px;height:18px;background:#8a5018;box-shadow:inset -2px 0 0 rgba(0,0,0,0.4)}
+.px-tree{display:flex;flex-direction:column;align-items:center;margin-right:10px;image-rendering:pixelated}
+.px-tree .canopy{position:relative;display:flex;flex-direction:column;align-items:center}
+.px-tree .canopy-top{background:#4caf50;border-radius:2px 2px 0 0}
+.px-tree .canopy-mid{background:#388e3c;margin-top:-2px}
+.px-tree .canopy-wide{background:#2e7d32;margin-top:-2px}
+.px-tree .vines{display:flex;gap:3px;margin-top:1px;padding:0 4px}
+.px-tree .vine{width:2px;background:#388e3c;border-radius:0 0 2px 2px}
+.px-tree .tt{background:linear-gradient(to right,#6d4c41 60%,#4e342e);margin-top:1px;box-shadow:inset -2px 0 0 rgba(0,0,0,0.35)}
 
-.fence-strip{flex-shrink:0;height:22px;background:#7a4010;display:flex;align-items:stretch;position:relative;z-index:6;box-shadow:0 3px 0 #000}
-.fp{width:8px;height:100%;background:#9a5018;box-shadow:inset -2px 0 0 rgba(0,0,0,0.35);flex-shrink:0}
-.fr{flex:1;height:7px;margin-top:4px;background:#c07030;box-shadow:0 2px 0 rgba(0,0,0,0.3)}
+.fence-strip{flex-shrink:0;height:48px;display:flex;align-items:flex-end;position:relative;z-index:6;overflow:hidden;background:transparent}
+.fp{width:14px;height:46px;flex-shrink:0;position:relative;background:#8B5E3C;box-shadow:inset -3px 0 0 #5C3A1E,inset 3px 0 0 #A8733A;border-bottom:2px solid #3d1f0a}
+.fp::before{content:'';position:absolute;top:0;left:2px;width:10px;height:10px;background:#8B5E3C;box-shadow:inset -2px 0 0 #5C3A1E,inset 2px 0 0 #A8733A;border-radius:4px 4px 0 0;border-top:2px solid #3d1f0a;border-left:2px solid #3d1f0a;border-right:2px solid #3d1f0a}
+.fp::after{content:'';position:absolute;top:16px;left:2px;width:10px;height:4px;background:#C49A6C;opacity:0.5}
+.fr{flex:1;height:10px;flex-shrink:0;background:#A0632A;box-shadow:inset 0 3px 0 #C8844A,inset 0 -2px 0 #5C3A1E,0 1px 0 #3d1f0a;position:relative;z-index:2}
+.fr-top{margin-bottom:6px}
+.fr-bot{margin-bottom:0}
 
 .ground-area{flex:1;overflow:hidden;background:repeating-linear-gradient(90deg,var(--grass) 0,var(--grass) 12px,var(--grass2) 12px,var(--grass2) 24px);position:relative;z-index:7;display:flex;gap:0;padding:12px 12px 8px}
 
@@ -246,10 +252,140 @@ header{
   <!-- WORLD -->
   <div class="world">
     <div class="sky">
-      <div class="sun"></div>
-      <div class="cloud cl1"></div>
-      <div class="cloud cl2"></div>
-      <div class="cloud cl3"></div>
+      <div class="sun"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+        <!-- outer spikes / flame rays - dark orange border -->
+        <rect x="14" y="0" width="4" height="2" fill="#c85000"/>
+        <rect x="12" y="1" width="2" height="2" fill="#c85000"/>
+        <rect x="18" y="1" width="2" height="2" fill="#c85000"/>
+        <rect x="10" y="2" width="2" height="2" fill="#c85000"/>
+        <rect x="20" y="2" width="2" height="2" fill="#c85000"/>
+        <rect x="8"  y="4" width="2" height="2" fill="#c85000"/>
+        <rect x="22" y="4" width="2" height="2" fill="#c85000"/>
+        <rect x="4"  y="8" width="2" height="2" fill="#c85000"/>
+        <rect x="26" y="8" width="2" height="2" fill="#c85000"/>
+        <rect x="2"  y="10" width="2" height="2" fill="#c85000"/>
+        <rect x="28" y="10" width="2" height="2" fill="#c85000"/>
+        <rect x="1"  y="12" width="2" height="2" fill="#c85000"/>
+        <rect x="29" y="12" width="2" height="2" fill="#c85000"/>
+        <rect x="0"  y="14" width="2" height="4" fill="#c85000"/>
+        <rect x="30" y="14" width="2" height="4" fill="#c85000"/>
+        <rect x="1"  y="18" width="2" height="2" fill="#c85000"/>
+        <rect x="29" y="18" width="2" height="2" fill="#c85000"/>
+        <rect x="2"  y="20" width="2" height="2" fill="#c85000"/>
+        <rect x="28" y="20" width="2" height="2" fill="#c85000"/>
+        <rect x="4"  y="22" width="2" height="2" fill="#c85000"/>
+        <rect x="26" y="22" width="2" height="2" fill="#c85000"/>
+        <rect x="8"  y="26" width="2" height="2" fill="#c85000"/>
+        <rect x="22" y="26" width="2" height="2" fill="#c85000"/>
+        <rect x="10" y="28" width="2" height="2" fill="#c85000"/>
+        <rect x="20" y="28" width="2" height="2" fill="#c85000"/>
+        <rect x="12" y="29" width="2" height="2" fill="#c85000"/>
+        <rect x="18" y="29" width="2" height="2" fill="#c85000"/>
+        <rect x="14" y="30" width="4" height="2" fill="#c85000"/>
+        <!-- flame fill orange -->
+        <rect x="13" y="1" width="6" height="3" fill="#f97316"/>
+        <rect x="11" y="2" width="3" height="3" fill="#f97316"/>
+        <rect x="18" y="2" width="3" height="3" fill="#f97316"/>
+        <rect x="9"  y="4" width="3" height="4" fill="#f97316"/>
+        <rect x="20" y="4" width="3" height="4" fill="#f97316"/>
+        <rect x="3"  y="9" width="3" height="3" fill="#f97316"/>
+        <rect x="26" y="9" width="3" height="3" fill="#f97316"/>
+        <rect x="2"  y="11" width="3" height="3" fill="#f97316"/>
+        <rect x="27" y="11" width="3" height="3" fill="#f97316"/>
+        <rect x="1"  y="13" width="3" height="6" fill="#f97316"/>
+        <rect x="28" y="13" width="3" height="6" fill="#f97316"/>
+        <rect x="2"  y="19" width="3" height="3" fill="#f97316"/>
+        <rect x="27" y="19" width="3" height="3" fill="#f97316"/>
+        <rect x="3"  y="21" width="3" height="3" fill="#f97316"/>
+        <rect x="26" y="21" width="3" height="3" fill="#f97316"/>
+        <rect x="9"  y="24" width="3" height="4" fill="#f97316"/>
+        <rect x="20" y="24" width="3" height="4" fill="#f97316"/>
+        <rect x="11" y="27" width="3" height="3" fill="#f97316"/>
+        <rect x="18" y="27" width="3" height="3" fill="#f97316"/>
+        <rect x="13" y="28" width="6" height="3" fill="#f97316"/>
+        <!-- main sun body - yellow-orange -->
+        <rect x="8"  y="6"  width="16" height="20" fill="#fb923c"/>
+        <rect x="6"  y="8"  width="20" height="16" fill="#fb923c"/>
+        <!-- inner bright yellow -->
+        <rect x="9"  y="7"  width="14" height="18" fill="#fbbf24"/>
+        <rect x="7"  y="9"  width="18" height="14" fill="#fbbf24"/>
+        <!-- center bright core -->
+        <rect x="10" y="10" width="12" height="12" fill="#fde68a"/>
+        <rect x="11" y="9"  width="10" height="14" fill="#fde68a"/>
+        <rect x="9"  y="11" width="14" height="10" fill="#fde68a"/>
+        <!-- bright white-ish center -->
+        <rect x="12" y="12" width="8"  height="8"  fill="#fef9c3"/>
+        <rect x="13" y="11" width="6"  height="10" fill="#fef9c3"/>
+        <rect x="11" y="13" width="10" height="6"  fill="#fef9c3"/>
+        <!-- highlight glint -->
+        <rect x="12" y="12" width="3"  height="3"  fill="#ffffff"/>
+      </svg></div>
+      <div class="cloud cl1"><svg viewBox="0 0 24 14" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="96" height="56">
+        <!-- shadow/outline bottom -->
+        <rect x="2"  y="11" width="20" height="2" fill="#b0b8c8"/>
+        <rect x="1"  y="9"  width="1"  height="2" fill="#b0b8c8"/>
+        <rect x="22" y="9"  width="1"  height="2" fill="#b0b8c8"/>
+        <!-- dark outline -->
+        <rect x="3"  y="12" width="18" height="1" fill="#7a8496"/>
+        <rect x="2"  y="11" width="1"  height="1" fill="#7a8496"/>
+        <rect x="21" y="11" width="1"  height="1" fill="#7a8496"/>
+        <!-- cloud body white -->
+        <rect x="2"  y="7"  width="20" height="4" fill="#ffffff"/>
+        <rect x="1"  y="8"  width="22" height="3" fill="#ffffff"/>
+        <!-- bump top -->
+        <rect x="5"  y="4"  width="8"  height="4" fill="#ffffff"/>
+        <rect x="4"  y="5"  width="10" height="4" fill="#ffffff"/>
+        <rect x="6"  y="2"  width="6"  height="4" fill="#ffffff"/>
+        <rect x="5"  y="3"  width="8"  height="4" fill="#ffffff"/>
+        <!-- small right bump -->
+        <rect x="13" y="5"  width="5"  height="3" fill="#ffffff"/>
+        <rect x="12" y="6"  width="7"  height="3" fill="#ffffff"/>
+        <!-- subtle inner shadow on body -->
+        <rect x="2"  y="10" width="20" height="1" fill="#dde4f0"/>
+        <rect x="1"  y="9"  width="22" height="1" fill="#dde4f0"/>
+      </svg></div>
+      <div class="cloud cl2"><svg viewBox="0 0 32 18" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="128" height="72">
+        <!-- shadow bottom -->
+        <rect x="2"  y="14" width="28" height="3" fill="#b0b8c8"/>
+        <rect x="1"  y="12" width="1"  height="3" fill="#b0b8c8"/>
+        <rect x="30" y="12" width="1"  height="3" fill="#b0b8c8"/>
+        <!-- dark outline -->
+        <rect x="3"  y="16" width="26" height="1" fill="#7a8496"/>
+        <rect x="2"  y="15" width="1"  height="1" fill="#7a8496"/>
+        <rect x="29" y="15" width="1"  height="1" fill="#7a8496"/>
+        <!-- cloud body -->
+        <rect x="2"  y="9"  width="28" height="6" fill="#ffffff"/>
+        <rect x="1"  y="10" width="30" height="5" fill="#ffffff"/>
+        <!-- main dome -->
+        <rect x="7"  y="4"  width="12" height="6" fill="#ffffff"/>
+        <rect x="6"  y="5"  width="14" height="6" fill="#ffffff"/>
+        <rect x="8"  y="2"  width="10" height="5" fill="#ffffff"/>
+        <rect x="7"  y="3"  width="12" height="5" fill="#ffffff"/>
+        <!-- right bump -->
+        <rect x="18" y="6"  width="7"  height="4" fill="#ffffff"/>
+        <rect x="17" y="7"  width="9"  height="4" fill="#ffffff"/>
+        <!-- left small bump -->
+        <rect x="4"  y="7"  width="5"  height="3" fill="#ffffff"/>
+        <rect x="3"  y="8"  width="7"  height="3" fill="#ffffff"/>
+        <!-- inner shadow -->
+        <rect x="2"  y="13" width="28" height="1" fill="#dde4f0"/>
+        <rect x="1"  y="12" width="30" height="1" fill="#dde4f0"/>
+      </svg></div>
+      <div class="cloud cl3"><svg viewBox="0 0 18 10" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges" width="72" height="40">
+        <!-- shadow -->
+        <rect x="1"  y="7"  width="16" height="2" fill="#b0b8c8"/>
+        <!-- outline -->
+        <rect x="2"  y="8"  width="14" height="1" fill="#7a8496"/>
+        <!-- body -->
+        <rect x="1"  y="5"  width="16" height="3" fill="#ffffff"/>
+        <rect x="0"  y="6"  width="18" height="2" fill="#ffffff"/>
+        <!-- bump -->
+        <rect x="4"  y="2"  width="6"  height="4" fill="#ffffff"/>
+        <rect x="3"  y="3"  width="8"  height="4" fill="#ffffff"/>
+        <rect x="10" y="3"  width="4"  height="3" fill="#ffffff"/>
+        <!-- inner shadow -->
+        <rect x="1"  y="6"  width="16" height="1" fill="#dde4f0"/>
+      </svg></div>
       <div class="bird bd1">🐦</div>
       <div class="bird bd2">🐦</div>
     </div>
@@ -1772,21 +1908,51 @@ function parts(n, emojis, cx, cy){
 // ═══════════════════════════════════════════════════
 (function buildWorld(){
   const tr = document.getElementById('treeRow');
-  const treeTypes = [{c:'#2a7020',c2:'#3a8030'},{c:'#1a6010',c2:'#2a7020'},{c:'#3a8030',c2:'#4a9040'}];
+  const treeColors = [
+    {top:'#66bb6a',mid:'#43a047',wide:'#2e7d32',vine:'#388e3c'},
+    {top:'#81c784',mid:'#4caf50',wide:'#388e3c',vine:'#2e7d32'},
+    {top:'#4caf50',mid:'#388e3c',wide:'#1b5e20',vine:'#2e7d32'},
+  ];
   for(let i=0; i<22; i++){
-    const tt = treeTypes[i%treeTypes.length];
+    const tc = treeColors[i%treeColors.length];
     const t = document.createElement('div'); t.className = 'px-tree';
-    const h = 20 + Math.random()*16;
+    const scale = 0.7 + Math.random()*0.6;
+    const cw = Math.round(32*scale), ch1=Math.round(10*scale), ch2=Math.round(8*scale), ch3=Math.round(7*scale);
+    const tw = Math.round(6*scale), th = Math.round(20*scale);
+    // Build random vines
+    const vineCount = 5+Math.round(Math.random()*4);
+    const vineSpacing = Math.round((cw-6)/(vineCount-1));
+    let vinesHtml='';
+    for(let v=0;v<vineCount;v++){
+      const vl=Math.round((5+Math.random()*8)*scale);
+      vinesHtml+=`<div class="vine" style="height:${vl}px;background:${tc.vine}"></div>`;
+    }
     t.innerHTML = `
-      <div class="tc2" style="border-bottom-color:${tt.c2};border-left-width:${Math.round(h*0.55)}px;border-right-width:${Math.round(h*0.55)}px;border-bottom-width:${Math.round(h*0.8)}px;margin-top:${-Math.round(h*0.45)}px"></div>
-      <div class="tc" style="border-bottom-color:${tt.c};border-left-width:${Math.round(h*0.7)}px;border-right-width:${Math.round(h*0.7)}px;border-bottom-width:${Math.round(h)}px"></div>
-      <div class="tt" style="height:${Math.round(h*0.6)}px"></div>`;
+      <div class="canopy">
+        <div class="canopy-top" style="width:${Math.round(cw*0.65)}px;height:${ch1}px;background:${tc.top}"></div>
+        <div class="canopy-mid" style="width:${Math.round(cw*0.85)}px;height:${ch2}px;background:${tc.mid}"></div>
+        <div class="canopy-wide" style="width:${cw}px;height:${ch3}px;background:${tc.wide}"></div>
+        <div class="vines" style="width:${cw}px;justify-content:space-between">${vinesHtml}</div>
+      </div>
+      <div class="tt" style="width:${tw}px;height:${th}px"></div>`;
     tr.appendChild(t);
   }
   const f = document.getElementById('fence');
-  for(let i=0; i<120; i++){
-    if(i%4===0){const p=document.createElement('div');p.className='fp';f.appendChild(p)}
-    else{const r=document.createElement('div');r.className='fr';f.appendChild(r)}
+  // Build fence as repeating units: post | rail-segment | post | rail-segment ...
+  const units = 60;
+  for(let i=0; i<units; i++){
+    const post = document.createElement('div');
+    post.className = 'fp';
+    f.appendChild(post);
+    if(i < units-1){
+      // Two rails stacked inside a wrapper
+      const wrap = document.createElement('div');
+      wrap.style.cssText='flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:10px 0 8px;height:46px;box-sizing:border-box;background:transparent';
+      const rt=document.createElement('div'); rt.className='fr';
+      const rb=document.createElement('div'); rb.className='fr';
+      wrap.appendChild(rt); wrap.appendChild(rb);
+      f.appendChild(wrap);
+    }
   }
 })();
 
