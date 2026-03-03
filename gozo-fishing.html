@@ -123,7 +123,12 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   transform:translateX(200%);transition:transform .3s;pointer-events:none;}
 .notif.show{transform:translateX(0);}
 
-.prog{margin-left:4px;}
+.hbtn.save-btn{background:#1a3a5c;border-color:#42a5f5;color:#42a5f5;}
+.hbtn.save-btn:hover{background:#42a5f5;color:#0d1a2a;}
+.hbtn.save-btn.saving{animation:savePulse .8s ease-in-out infinite;}
+@keyframes savePulse{0%,100%{box-shadow:0 0 0 #42a5f5}50%{box-shadow:0 0 12px #42a5f5}}
+
+
 .plabel{font-size:5px;color:#3a5a3a;}
 .pbar{width:80px;height:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.15);margin-top:3px;}
 .pfill{height:100%;background:#FFD700;transition:width .5s;}
@@ -313,6 +318,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="tbtns">
       <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
+      <button class="hbtn save-btn" id="saveBtn" onclick="openSaveModal()">💾 SAVE</button>
       <button class="hbtn" onclick="goTitle()">🏠 MENU</button>
     </div>
   </div>
@@ -363,6 +369,97 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 </div>
 
 <div class="notif" id="notif"></div>
+
+<!-- SAVE/LOAD MODAL -->
+<div id="saveModal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;
+  align-items:center;justify-content:center;z-index:200;">
+  <div class="mbox" style="width:480px;max-height:85vh;">
+    <div class="mtitle">💾 SAVE & LOAD — MONAD CHAIN</div>
+
+    <!-- Wallet status strip -->
+    <div id="svWalletStrip" style="display:flex;align-items:center;justify-content:space-between;
+      background:#030804;border:1px solid rgba(255,215,0,.15);padding:7px 10px;margin-bottom:12px;">
+      <span style="font-size:5px;color:#3a5a3a;" id="svWalletLabel">🔌 WALLET NOT CONNECTED</span>
+      <button class="sbuy" id="svConnectBtn" onclick="svConnect()" style="font-size:5px;padding:3px 9px;">
+        CONNECT
+      </button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0;margin-bottom:12px;border:2px solid rgba(255,215,0,.2);">
+      <button class="sv-tab active" id="tabSave" onclick="svTab('save')"
+        style="flex:1;font-family:'Press Start 2P';font-size:6px;padding:7px;
+        background:rgba(255,215,0,.12);color:#FFD700;border:none;cursor:pointer;">
+        💾 SAVE GAME
+      </button>
+      <button class="sv-tab" id="tabLoad" onclick="svTab('load')"
+        style="flex:1;font-family:'Press Start 2P';font-size:6px;padding:7px;
+        background:transparent;color:#3a5a3a;border:none;border-left:2px solid rgba(255,215,0,.2);cursor:pointer;">
+        📂 LOAD GAME
+      </button>
+    </div>
+
+    <!-- SAVE PANEL -->
+    <div id="svSavePanel">
+      <div style="font-size:5px;color:#3a5a3a;line-height:2.2;margin-bottom:10px;
+        background:#030804;border:1px solid rgba(255,215,0,.1);padding:8px;">
+        Game state akan disimpan ke <span style="color:#FFD700;">Monad Chain</span> sebagai transaction.<br>
+        Data tersimpan permanen di blockchain — tidak bisa dihapus!<br>
+        <span style="color:#ff8c00;">⚠ Butuh sedikit MON untuk gas fee.</span>
+      </div>
+
+      <!-- Current state preview -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+        <div style="background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.1);padding:8px;">
+          <div style="font-size:5px;color:#3a5a3a;margin-bottom:4px;">CURRENT SAVE DATA</div>
+          <div style="font-size:6px;color:#FFD700;" id="svPreviewGold">🪙 0 GOLD</div>
+          <div style="font-size:6px;color:#FFD700;" id="svPreviewCatch">🐟 0 CAUGHT</div>
+          <div style="font-size:6px;color:#FFD700;" id="svPreviewSpecies">📚 0/50 SPECIES</div>
+          <div style="font-size:5px;color:#3a5a3a;margin-top:4px;" id="svPreviewBait"></div>
+        </div>
+        <div style="background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.1);padding:8px;">
+          <div style="font-size:5px;color:#3a5a3a;margin-bottom:4px;">SAVE INFO</div>
+          <div style="font-size:5px;color:#aaa;" id="svSaveTime">—</div>
+          <div style="font-size:5px;color:#aaa;margin-top:4px;" id="svLastSaved">Last saved: Never</div>
+          <div style="font-size:5px;color:#42a5f5;margin-top:4px;word-break:break-all;" id="svLastTx"></div>
+        </div>
+      </div>
+
+      <div id="svSaveStatus" style="font-size:5px;color:#3a5a3a;min-height:14px;text-align:center;
+        margin-bottom:8px;letter-spacing:1px;"></div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="g-mainbtn" id="svSaveBtn" onclick="svSaveOnChain()"
+          style="font-size:7px;padding:10px;">
+          💾 SAVE TO MONAD
+        </button>
+      </div>
+    </div>
+
+    <!-- LOAD PANEL -->
+    <div id="svLoadPanel" style="display:none;">
+      <div style="font-size:5px;color:#3a5a3a;line-height:2.2;margin-bottom:10px;
+        background:#030804;border:1px solid rgba(255,215,0,.1);padding:8px;">
+        Load dari save game terakhir di Monad Chain.<br>
+        Scan tx history wallet untuk menemukan data save.
+      </div>
+
+      <div id="svLoadStatus" style="font-size:5px;color:#3a5a3a;min-height:14px;
+        text-align:center;margin-bottom:8px;letter-spacing:1px;"></div>
+      <div id="svSavesList" style="display:flex;flex-direction:column;gap:6px;
+        max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="g-mainbtn" id="svScanBtn" onclick="svScanChain()"
+          style="font-size:7px;padding:10px;flex:1;">
+          🔍 SCAN MONAD CHAIN
+        </button>
+      </div>
+    </div>
+
+    <button class="mclose" onclick="closeSaveModal()" style="margin-top:10px;">✕ CLOSE</button>
+  </div>
+</div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -2160,10 +2257,445 @@ function gLaunchGame(){
 
 // ── Account/chain listeners ─────────────────────────────
 if(window.ethereum){
-  window.ethereum.on('accountsChanged', a=>{ if(!a.length) location.reload(); else gWallet=a[0]; });
+  window.ethereum.on('accountsChanged', a=>{ if(!a.length) location.reload(); else { gWallet=a[0]; svWalletUpdate(); } });
   window.ethereum.on('chainChanged', ()=>location.reload());
 }
+
 // ═══════════════════════════════════════════════════════
+// SAVE / LOAD SYSTEM — MONAD CHAIN
+// Mekanisme: Game state di-encode ke hex, dikirim sebagai
+// self-transaction (from==to) dengan calldata khusus.
+// Magic prefix: 0x47A2E000 ("GOZO" identifier)
+// Data di-decode dari tx input saat load.
+// ═══════════════════════════════════════════════════════
+
+const SV = {
+  MAGIC      : '47a2e000',         // 4-byte magic "GOZO"
+  VERSION    : 1,
+  LOCAL_KEY  : 'gozoFishSave',     // localStorage backup key
+  EXPLORER_API: 'https://api.monadscan.com', // fallback RPC scan
+};
+
+let svProvider=null, svWallet=null;
+
+// ── Helpers ──────────────────────────────────────────────
+function svEncodeState(){
+  // Encode game state to compact JSON → hex
+  const state={
+    v : SV.VERSION,
+    g : G.gold,
+    b : G.bait,
+    s : G.sel,
+    c : G.caught,
+    t : G.total,
+    ts: Date.now(),
+  };
+  const json=JSON.stringify(state);
+  let hex='';
+  for(let i=0;i<json.length;i++) hex+=json.charCodeAt(i).toString(16).padStart(2,'0');
+  return '0x'+SV.MAGIC+hex;
+}
+
+function svDecodeCalldata(hex){
+  // Strip 0x and magic prefix
+  const raw=hex.replace('0x','');
+  if(!raw.startsWith(SV.MAGIC)) return null;
+  const dataHex=raw.slice(SV.MAGIC.length);
+  let json='';
+  for(let i=0;i<dataHex.length;i+=2){
+    const code=parseInt(dataHex.slice(i,i+2),16);
+    if(code===0) break;
+    json+=String.fromCharCode(code);
+  }
+  try { return JSON.parse(json); } catch(e){ return null; }
+}
+
+function svFormatTs(ts){
+  if(!ts) return '—';
+  const d=new Date(ts);
+  return d.toLocaleDateString('id-ID')+' '+d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+
+function svStatus(msg, color='#3a5a3a'){
+  ['svSaveStatus','svLoadStatus'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.textContent=msg;el.style.color=color;}
+  });
+}
+
+// ── Wallet connect (shared with gate wallet) ─────────────
+async function svConnect(){
+  const eth=window.ethereum;
+  if(!eth){
+    svStatus('⚠ Install MetaMask / Rabby terlebih dahulu!','#ff4444');
+    return;
+  }
+  document.getElementById('svConnectBtn').textContent='CONNECTING...';
+  document.getElementById('svConnectBtn').disabled=true;
+  try {
+    const accounts=await eth.request({method:'eth_requestAccounts'});
+    svWallet=accounts[0];
+    svProvider=eth;
+    // Share with gate wallet so save uses same connection
+    if(!gWallet){ gWallet=svWallet; gProvider=svProvider; }
+    await svEnsureNetwork();
+    svWalletUpdate();
+  } catch(e){
+    svStatus('Gagal connect: '+(e.message||'').slice(0,50),'#ff4444');
+    document.getElementById('svConnectBtn').textContent='CONNECT';
+    document.getElementById('svConnectBtn').disabled=false;
+  }
+}
+
+async function svEnsureNetwork(){
+  const chainId=await svProvider.request({method:'eth_chainId'});
+  if(chainId.toLowerCase()===W3.CHAIN_ID.toLowerCase()) return;
+  try {
+    await svProvider.request({method:'wallet_switchEthereumChain',params:[{chainId:W3.CHAIN_ID}]});
+  } catch(sw){
+    if(sw.code===4902||sw.code===-32603){
+      await svProvider.request({
+        method:'wallet_addEthereumChain',
+        params:[{
+          chainId:W3.CHAIN_ID,
+          chainName:'Monad Mainnet',
+          nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
+          rpcUrls:W3.RPC_URLS,
+          blockExplorerUrls:['https://monadvision.com'],
+        }],
+      });
+    } else throw sw;
+  }
+}
+
+function svWalletUpdate(){
+  if(!svWallet && gWallet){ svWallet=gWallet; svProvider=gProvider||window.ethereum; }
+  const strip=document.getElementById('svWalletStrip');
+  const lbl=document.getElementById('svWalletLabel');
+  const btn=document.getElementById('svConnectBtn');
+  if(!strip||!lbl||!btn) return;
+  if(svWallet||gWallet){
+    const w=svWallet||gWallet;
+    lbl.textContent='✅ '+w.slice(0,8)+'…'+w.slice(-6)+' (Monad Mainnet)';
+    lbl.style.color='#4caf50';
+    btn.textContent='CONNECTED';
+    btn.disabled=true;
+    btn.style.opacity='0.5';
+  }
+}
+
+// ── Save state preview ───────────────────────────────────
+function svUpdatePreview(){
+  const el=id=>document.getElementById(id);
+  if(!el('svPreviewGold')) return;
+  el('svPreviewGold').textContent='🪙 '+G.gold+' GOLD';
+  el('svPreviewCatch').textContent='🐟 '+G.total+' CAUGHT';
+  el('svPreviewSpecies').textContent='📚 '+Object.keys(G.caught).length+'/50 SPECIES';
+  // Bait summary
+  const baitSummary=BAITS.map((b,i)=>G.bait[i]>0?b.icon+'x'+G.bait[i]:null).filter(Boolean).join(' ');
+  el('svPreviewBait').textContent='Bait: '+(baitSummary||'(none)');
+  el('svSaveTime').textContent='🕐 '+new Date().toLocaleTimeString('id-ID');
+
+  // Load last save info from localStorage
+  try {
+    const local=localStorage.getItem(SV.LOCAL_KEY);
+    if(local){
+      const parsed=JSON.parse(local);
+      el('svLastSaved').textContent='Last saved: '+svFormatTs(parsed.ts);
+      if(parsed.txHash){
+        el('svLastTx').textContent='TX: '+parsed.txHash.slice(0,14)+'…'+parsed.txHash.slice(-8);
+        el('svLastTx').onclick=()=>window.open(W3.EXPLORER+parsed.txHash,'_blank');
+        el('svLastTx').style.cursor='pointer';
+      }
+    }
+  } catch(e){}
+}
+
+// ── SAVE ON-CHAIN ────────────────────────────────────────
+async function svSaveOnChain(){
+  // Use whichever wallet is available
+  if(!svWallet && gWallet){ svWallet=gWallet; svProvider=gProvider||window.ethereum; }
+  const wallet=svWallet||gWallet;
+  const provider=svProvider||gProvider||window.ethereum;
+
+  if(!wallet||!provider){
+    svStatus('⚠ Connect wallet terlebih dahulu!','#ff8c00');
+    return;
+  }
+
+  const btn=document.getElementById('svSaveBtn');
+  btn.textContent='⏳ SAVING...'; btn.disabled=true;
+  document.getElementById('saveBtn').classList.add('saving');
+  svStatus('Encode game state...','#FFD700');
+
+  try {
+    await svEnsureNetwork();
+
+    const calldata=svEncodeState();
+
+    svStatus('Konfirmasi transaksi di wallet...','#FFD700');
+
+    // Self-transaction: from wallet to itself, 0 MON, with calldata
+    const txHash=await provider.request({
+      method:'eth_sendTransaction',
+      params:[{
+        from:wallet,
+        to:wallet,          // send to self
+        value:'0x0',        // 0 MON
+        data:calldata,
+        gas:'0x'+(50000).toString(16),
+      }],
+    });
+
+    svStatus('Tx terkirim! Menunggu konfirmasi...','#FFD700');
+
+    // Wait for confirmation
+    let confirmed=false;
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      try {
+        const receipt=await provider.request({method:'eth_getTransactionReceipt',params:[txHash]});
+        if(receipt && receipt.status==='0x1'){ confirmed=true; break; }
+        if(receipt && receipt.status==='0x0'){ throw new Error('Tx reverted'); }
+      } catch(e){ if(e.message==='Tx reverted') throw e; }
+    }
+
+    if(!confirmed) throw new Error('Timeout menunggu konfirmasi');
+
+    // Save to localStorage as backup cache
+    try {
+      localStorage.setItem(SV.LOCAL_KEY, JSON.stringify({
+        txHash,
+        ts: Date.now(),
+        wallet: wallet.toLowerCase(),
+        gold: G.gold,
+        total: G.total,
+        species: Object.keys(G.caught).length,
+      }));
+    } catch(e){}
+
+    svStatus('✅ GAME TERSIMPAN DI MONAD CHAIN!','#4caf50');
+    svUpdatePreview();
+    notify('💾 Game saved on Monad Chain! TX: '+txHash.slice(0,10)+'…');
+    playCatchSound();
+
+    // Show explorer link
+    const txEl=document.getElementById('svLastTx');
+    if(txEl){
+      txEl.textContent='TX: '+txHash.slice(0,14)+'…'+txHash.slice(-8);
+      txEl.onclick=()=>window.open(W3.EXPLORER+txHash,'_blank');
+      txEl.style.cursor='pointer';
+      document.getElementById('svLastSaved').textContent='Last saved: '+svFormatTs(Date.now());
+    }
+
+  } catch(e){
+    if(e.code===4001) svStatus('❌ Transaksi ditolak user.','#ff4444');
+    else if(e.code===-32002) svStatus('⏳ Permintaan pending — cek popup wallet.','#ff8c00');
+    else svStatus('❌ Gagal: '+(e.message||'').slice(0,60),'#ff4444');
+  } finally {
+    btn.textContent='💾 SAVE TO MONAD'; btn.disabled=false;
+    document.getElementById('saveBtn').classList.remove('saving');
+  }
+}
+
+// ── SCAN CHAIN & LOAD ────────────────────────────────────
+async function svScanChain(){
+  if(!svWallet && gWallet){ svWallet=gWallet; svProvider=gProvider||window.ethereum; }
+  const wallet=svWallet||gWallet;
+  const provider=svProvider||gProvider||window.ethereum;
+
+  if(!wallet||!provider){
+    svStatus('⚠ Connect wallet terlebih dahulu!','#ff8c00');
+    return;
+  }
+
+  const btn=document.getElementById('svScanBtn');
+  btn.textContent='🔍 SCANNING...'; btn.disabled=true;
+  svStatus('Scanning Monad Chain untuk save data...','#FFD700');
+
+  const listEl=document.getElementById('svSavesList');
+  listEl.innerHTML='<div style="font-size:5px;color:#3a5a3a;text-align:center;padding:10px;">⏳ Scanning blockchain...</div>';
+
+  try {
+    await svEnsureNetwork();
+
+    // Strategy 1: Get recent transactions from wallet using eth_getTransactionCount
+    // then check recent blocks via eth_getBlockByNumber
+    const saves=[];
+
+    // Check localStorage cache first (fastest)
+    try {
+      const local=localStorage.getItem(SV.LOCAL_KEY);
+      if(local){
+        const parsed=JSON.parse(local);
+        if(parsed.txHash && parsed.wallet && parsed.wallet===wallet.toLowerCase()){
+          // Verify this tx still exists on chain
+          try {
+            const tx=await provider.request({method:'eth_getTransactionByHash',params:[parsed.txHash]});
+            if(tx && tx.input){
+              const decoded=svDecodeCalldata(tx.input);
+              if(decoded){
+                saves.push({
+                  txHash:parsed.txHash,
+                  state:decoded,
+                  blockNumber: parseInt(tx.blockNumber,16),
+                  source:'local cache',
+                });
+              }
+            }
+          } catch(e){}
+        }
+      }
+    } catch(e){}
+
+    // Strategy 2: Scan recent blocks for self-txs with GOZO magic
+    svStatus('Scanning blok terbaru...','#FFD700');
+    try {
+      const latestHex=await provider.request({method:'eth_blockNumber'});
+      const latest=parseInt(latestHex,16);
+      // Scan last 500 blocks for save transactions
+      const scanFrom=Math.max(0, latest-500);
+
+      // Use eth_getLogs or manual block scan (max 20 blocks to avoid timeout)
+      const toScan=Math.min(20, latest-scanFrom);
+      for(let i=0;i<toScan;i++){
+        const blockNum=latest-i;
+        try {
+          const block=await provider.request({
+            method:'eth_getBlockByNumber',
+            params:['0x'+blockNum.toString(16), true],
+          });
+          if(!block||!block.transactions) continue;
+          for(const tx of block.transactions){
+            if(!tx||!tx.input) continue;
+            if(tx.from&&tx.from.toLowerCase()!==wallet.toLowerCase()) continue;
+            if(tx.to&&tx.to.toLowerCase()!==wallet.toLowerCase()) continue;
+            const decoded=svDecodeCalldata(tx.input);
+            if(decoded){
+              // Avoid duplicate
+              if(!saves.find(s=>s.txHash===tx.hash)){
+                saves.push({txHash:tx.hash, state:decoded, blockNumber:blockNum, source:'block scan'});
+              }
+            }
+          }
+        } catch(e){ continue; }
+      }
+    } catch(e){}
+
+    // Sort by newest first
+    saves.sort((a,b)=>b.blockNumber-a.blockNumber);
+
+    if(!saves.length){
+      listEl.innerHTML='<div style="font-size:5px;color:#3a5a3a;text-align:center;padding:14px;">'+
+        '❌ Tidak ada save data ditemukan.<br>Coba Save dulu dari tab SAVE GAME.</div>';
+      svStatus('Tidak ada save ditemukan.','#ff8c00');
+    } else {
+      listEl.innerHTML='';
+      saves.forEach((sv,idx)=>{
+        const s=sv.state;
+        const species=s.c?Object.keys(s.c).length:0;
+        const div=document.createElement('div');
+        div.style.cssText='background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);padding:10px;cursor:pointer;transition:all .15s;';
+        div.onmouseenter=()=>div.style.background='rgba(255,215,0,.12)';
+        div.onmouseleave=()=>div.style.background='rgba(255,215,0,.05)';
+        div.innerHTML=
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">'+
+          '<span style="font-size:6px;color:#FFD700;">💾 SAVE #'+(idx+1)+'</span>'+
+          '<span style="font-size:5px;color:#42a5f5;cursor:pointer;" onclick="window.open(\''+W3.EXPLORER+sv.txHash+'\',\'_blank\')">⛓ VIEW TX ↗</span>'+
+          '</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:5px;">'+
+          '<span style="font-size:5px;color:#aaa;">🪙 '+(s.g||0)+' GOLD</span>'+
+          '<span style="font-size:5px;color:#aaa;">🐟 '+(s.t||0)+' CAUGHT</span>'+
+          '<span style="font-size:5px;color:#aaa;">📚 '+species+'/50</span>'+
+          '</div>'+
+          '<div style="font-size:4px;color:#2a4a2a;margin-bottom:6px;">🕐 '+svFormatTs(s.ts)+' · Block #'+sv.blockNumber+' · '+sv.source+'</div>'+
+          '<button onclick="svLoadState('+JSON.stringify(sv.state).replace(/"/g,"'")+',\''+sv.txHash+'\')" '+
+          'style="font-family:\'Press Start 2P\';font-size:5px;background:#FFD700;color:#0d3320;border:none;padding:5px 14px;cursor:pointer;width:100%;">'+
+          '📂 LOAD SAVE INI</button>';
+        listEl.appendChild(div);
+      });
+      svStatus('✅ Ditemukan '+saves.length+' save data!','#4caf50');
+    }
+
+  } catch(e){
+    listEl.innerHTML='';
+    svStatus('❌ Scan gagal: '+(e.message||'').slice(0,60),'#ff4444');
+  } finally {
+    btn.textContent='🔍 SCAN MONAD CHAIN'; btn.disabled=false;
+  }
+}
+
+// ── Apply loaded state to game ───────────────────────────
+function svLoadState(state, txHash){
+  if(!state) return;
+  if(!confirm('Load save ini? Progress game saat ini akan tergantikan.')) return;
+
+  try {
+    G.gold  = state.g || 0;
+    G.bait  = Array.isArray(state.b) ? state.b : [10,0,0,0,0];
+    G.sel   = state.s || 0;
+    G.caught= state.c || {};
+    G.total = state.t || 0;
+
+    // Ensure bait array has correct length
+    while(G.bait.length<BAITS.length) G.bait.push(0);
+
+    updateHUD();
+    renderBaits();
+
+    // Update localStorage cache
+    try {
+      localStorage.setItem(SV.LOCAL_KEY, JSON.stringify({
+        txHash,
+        ts: state.ts||Date.now(),
+        wallet: (svWallet||gWallet||'').toLowerCase(),
+        gold: G.gold,
+        total: G.total,
+        species: Object.keys(G.caught).length,
+      }));
+    } catch(e){}
+
+    closeSaveModal();
+    notify('📂 Game loaded dari Monad Chain!');
+    setMsg('Game berhasil di-load! Lanjutkan petualangan memancing!');
+    playCatchSound();
+  } catch(e){
+    svStatus('❌ Gagal load: '+(e.message||''),'#ff4444');
+  }
+}
+
+// ── Modal open/close ─────────────────────────────────────
+function openSaveModal(){
+  // Use gate wallet if available
+  if(!svWallet && gWallet){ svWallet=gWallet; svProvider=gProvider||window.ethereum; }
+  svWalletUpdate();
+  svUpdatePreview();
+  svTab('save');
+  document.getElementById('saveModal').style.display='flex';
+}
+function closeSaveModal(){
+  document.getElementById('saveModal').style.display='none';
+}
+function svTab(tab){
+  document.getElementById('svSavePanel').style.display=tab==='save'?'block':'none';
+  document.getElementById('svLoadPanel').style.display=tab==='load'?'block':'none';
+  document.getElementById('tabSave').style.background=tab==='save'?'rgba(255,215,0,.12)':'transparent';
+  document.getElementById('tabSave').style.color=tab==='save'?'#FFD700':'#3a5a3a';
+  document.getElementById('tabLoad').style.background=tab==='load'?'rgba(255,215,0,.12)':'transparent';
+  document.getElementById('tabLoad').style.color=tab==='load'?'#FFD700':'#3a5a3a';
+  if(tab==='load'){
+    svStatus('Klik SCAN untuk mencari save data di chain.','#3a5a3a');
+    document.getElementById('svSavesList').innerHTML='';
+  }
+}
+
+// Close save modal on backdrop click
+document.getElementById('saveModal').addEventListener('click',function(e){
+  if(e.target===this) closeSaveModal();
+});
+// ═══════════════════════════════════════════════════════
+
+
 
 </script>
 </body>
