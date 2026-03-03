@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gozo Adventure</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
   :root{--yellow:#FFD700;--red:#CC2222;--chain:#C0C0C0;--bg:#0a0a0f;--panel:#111122;--border:#FFD700;}
@@ -187,7 +188,30 @@
   .rarity-bar{height:2px;border-radius:1px;margin-top:3px;}
 
   @keyframes dropBounce{0%{transform:translateX(-50%) translateY(20px);opacity:0}60%{transform:translateX(-50%) translateY(-6px);opacity:1}100%{transform:translateX(-50%) translateY(0);opacity:1}}
-  @keyframes invSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}0%,100%{box-shadow:0 0 4px rgba(68,238,68,.4)}50%{box-shadow:0 0 14px rgba(68,238,68,.9)}}
+  @keyframes invSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+  /* SAVE SYSTEM */
+  #save-screen{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;overflow-y:auto;}
+  .save-panel{width:100%;max-width:480px;background:var(--panel);border:2px solid var(--border);padding:20px;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);}
+  .save-title{font-family:'Orbitron',sans-serif;font-size:clamp(14px,4vw,22px);color:var(--yellow);text-shadow:0 0 10px var(--yellow);text-align:center;margin-bottom:14px;}
+  .save-status{font-size:7px;padding:8px 12px;border:1px solid #333;background:#0a0a15;min-height:28px;color:#888;line-height:2;text-align:center;}
+  .save-status.ok{color:#44ff88;border-color:#44ff88;}
+  .save-status.err{color:#ff4444;border-color:#ff4444;}
+  .save-status.loading{color:var(--yellow);border-color:var(--yellow);}
+  .save-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .save-btn{flex:1;min-width:80px;font-family:'Press Start 2P',monospace;font-size:7px;padding:9px 10px;border:2px solid var(--yellow);background:none;color:var(--yellow);cursor:pointer;transition:all .15s;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  .save-btn:hover{background:var(--yellow);color:#000;}
+  .save-btn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+  .save-btn.green{border-color:#44ff88;color:#44ff88;}
+  .save-btn.green:hover{background:#44ff88;color:#000;}
+  .save-btn.red{border-color:#ff4444;color:#ff4444;}
+  .save-btn.red:hover{background:#ff4444;color:#fff;}
+  .wallet-addr{font-size:7px;color:#44aaff;word-break:break-all;padding:6px 10px;background:#050510;border:1px solid #1a1a44;}
+  .chain-badge{display:inline-block;font-size:6px;padding:2px 8px;background:#1a0a3a;border:1px solid #6644cc;color:#9966ff;margin-left:6px;}
+  @keyframes savePulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .saving-anim{animation:savePulse .6s infinite;}
+  #save-hud-btn{position:fixed;bottom:24px;left:20px;z-index:61;background:var(--panel);border:2px solid #4488ff;color:#4488ff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,136,255,.25);transition:box-shadow .2s;}
+  #save-hud-btn:hover{box-shadow:0 0 20px rgba(68,136,255,.6);}
   @keyframes grassSwayFast{0%,100%{transform:translateX(0) skewX(0deg)}25%{transform:translateX(-3px) skewX(-2deg)}75%{transform:translateX(3px) skewX(2deg)}}
   @keyframes exclamPop{0%{transform:scale(0) translateY(10px);opacity:0}60%{transform:scale(1.4) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
   /* MINIMAP */
@@ -333,14 +357,18 @@
       <div id="hud-partner"></div>
     </div>
     <div id="grass-badge">🌿 TALL GRASS!</div>
-    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
-      <div class="hud-box">
-        <div class="hud-name" style="color:var(--chain)">LV <span id="hud-level">1</span></div>
-        <div class="hud-stats">EXP: <span id="hud-exp">0</span></div>
-        <div class="hud-stats">COINS: <span id="hud-coins">0</span> 🪙</div>
-      </div>
-      <button onclick="openInventory()" style="background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 10px;cursor:pointer;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);">🎒 BAG</button>
+    <div class="hud-box">
+      <div class="hud-name" style="color:var(--chain)">LV <span id="hud-level">1</span></div>
+      <div class="hud-stats">EXP: <span id="hud-exp">0</span></div>
+      <div class="hud-stats">COINS: <span id="hud-coins">0</span> 🪙</div>
     </div>
+  </div>
+
+  <!-- SAVE floating button -->
+  <button onclick="openSaveScreen()" id="save-hud-btn">💾 SAVE</button>
+
+  <!-- BAG floating button — always visible -->
+  <button onclick="openInventory()" id="bag-btn" style="position:fixed;bottom:24px;right:20px;z-index:61;background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 12px rgba(255,215,0,.3);transition:box-shadow .2s;" onmouseenter="this.style.boxShadow='0 0 20px rgba(255,215,0,.7)'" onmouseleave="this.style.boxShadow='0 0 12px rgba(255,215,0,.3)'">🎒 BAG</button>
   </div>
 
   <!-- MINIMAP -->
@@ -374,6 +402,52 @@
       <div></div>
     </div>
   </div>
+</div>
+
+<!-- SAVE SCREEN -->
+<div id="save-screen" style="display:none;">
+  <div class="save-title">💾 SAVE ON MONAD CHAIN</div>
+  <div class="save-panel">
+    <div style="font-size:7px;color:#666;text-align:center;margin-bottom:12px;line-height:2.2;">
+      Your progress is saved as a transaction on<br>
+      <span style="color:#9966ff">Monad Mainnet</span> <span class="chain-badge">Chain ID: 143</span><br>
+      <span style="color:#444;font-size:6px">No contract needed · Data stored in tx calldata</span>
+    </div>
+
+    <!-- Wallet status -->
+    <div style="font-size:7px;color:#888;margin-bottom:6px;">WALLET</div>
+    <div id="save-wallet-info" class="save-status">Not connected</div>
+
+    <!-- Action buttons -->
+    <div class="save-row" id="save-actions">
+      <button class="save-btn" id="btn-connect" onclick="connectWallet()">🦊 CONNECT</button>
+      <button class="save-btn green" id="btn-save" onclick="saveGame()" disabled>💾 SAVE GAME</button>
+      <button class="save-btn" id="btn-load" onclick="loadGame()" disabled>📂 LOAD GAME</button>
+    </div>
+
+    <!-- Status log -->
+    <div style="font-size:7px;color:#555;margin-top:14px;margin-bottom:4px;">STATUS</div>
+    <div id="save-log" class="save-status">Ready. Connect wallet to continue.</div>
+
+    <!-- Save info -->
+    <div id="save-tx-info" style="display:none;margin-top:10px;">
+      <div style="font-size:6px;color:#555;margin-bottom:3px;">LAST SAVE TX</div>
+      <div id="save-tx-hash" class="wallet-addr"></div>
+      <a id="save-tx-link" href="#" target="_blank" style="font-size:6px;color:#4488ff;margin-top:4px;display:block;">View on Explorer ↗</a>
+    </div>
+
+    <!-- Load preview -->
+    <div id="load-preview" style="display:none;margin-top:10px;padding:10px;background:#080812;border:1px solid #222;">
+      <div style="font-size:7px;color:var(--yellow);margin-bottom:6px;">SAVE DATA FOUND</div>
+      <div id="load-preview-text" style="font-size:6px;color:#888;line-height:2.2;"></div>
+      <div class="save-row" style="margin-top:8px;">
+        <button class="save-btn green" onclick="confirmLoad()">✅ LOAD THIS SAVE</button>
+        <button class="save-btn red" onclick="cancelLoad()">✖ CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <button onclick="closeSaveScreen()" style="font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;border:2px solid #555;background:none;color:#555;cursor:pointer;margin-top:4px;">✖ CLOSE</button>
 </div>
 
 <!-- BATTLE -->
@@ -2795,6 +2869,9 @@ function openInventory(tab){
   const invs = document.getElementById('inv-screen');
   if(invs){ invs.style.display='flex'; invs.scrollTop=0; }
   switchInvTab(_invTab);
+  // Clear notification dot
+  const dot = document.querySelector('.bag-dot');
+  if(dot) dot.remove();
 }
 function closeInventory(){
   const invsc = document.getElementById('inv-screen');
@@ -3072,14 +3149,343 @@ function showDropPopup(item){
     <div style="color:${col};font-size:7px;margin-top:2px;">${item.rarity} · T${item.t}</div>
     <div style="display:flex;gap:6px;margin-top:10px">
       <button class="inv-btn" onclick="equipItem(window._lastDrop);document.getElementById('drop-popup').style.display='none'">⚡ EQUIP</button>
-      <button class="inv-btn" onclick="openInventory('all');document.getElementById('drop-popup').style.display='none'">🎒 BAG</button>
       <button class="inv-btn" style="border-color:#555;color:#555" onclick="document.getElementById('drop-popup').style.display='none'">✓ OK</button>
     </div>`;
   window._lastDrop = item;
+  // Show notification dot on bag button
+  const bagBtn = document.getElementById('bag-btn');
+  if(bagBtn && !bagBtn.querySelector('.bag-dot')){
+    const dot = document.createElement('span');
+    dot.className = 'bag-dot';
+    dot.style.cssText = 'position:absolute;top:-4px;right:-4px;width:8px;height:8px;background:#ff4444;border-radius:50%;border:1px solid #ff8888;';
+    bagBtn.style.position = 'relative';
+    bagBtn.appendChild(dot);
+  }
   el.style.display = 'flex';
   el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'dropBounce .4s ease forwards';
   setTimeout(()=>{ if(el.style.display!=='none') el.style.display='none'; }, 6000);
 }
+
+
+// ==============================================
+// SAVE SYSTEM — Monad Chain Mainnet (Chain ID 143)
+// Strategy: encode save data as hex in tx calldata
+// sent to player's own address. Load by scanning
+// last N txs from the wallet via eth_getTransactionByHash.
+// ==============================================
+const MONAD_CHAIN_ID   = 143;          // 0x8f
+const MONAD_RPC        = 'https://rpc.monad.xyz';
+const MONAD_EXPLORER   = 'https://explorer.monad.xyz';
+const SAVE_MAGIC       = '0x474f5a4f'; // "GOZO" in hex prefix
+
+let walletAddress  = null;
+let walletProvider = null;
+let pendingLoad    = null; // parsed save data waiting for confirm
+
+// ---- UI helpers ----
+function setSaveLog(msg, cls=''){
+  const el = document.getElementById('save-log');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = 'save-status' + (cls ? ' '+cls : '');
+}
+function setSaveWallet(msg, cls=''){
+  const el = document.getElementById('save-wallet-info');
+  if(!el) return;
+  el.innerHTML = msg;
+  el.className = 'save-status' + (cls ? ' '+cls : '');
+}
+function setSaveBtns(connected){
+  const bs = document.getElementById('btn-save');
+  const bl = document.getElementById('btn-load');
+  if(bs) bs.disabled = !connected;
+  if(bl) bl.disabled = !connected;
+}
+
+function openSaveScreen(){
+  const el = document.getElementById('save-screen');
+  if(el) el.style.display = 'flex';
+  // Refresh wallet display if already connected
+  if(walletAddress) setSaveWallet('🟢 ' + shortAddr(walletAddress) + '<span class="chain-badge">MONAD MAINNET</span>', 'ok');
+}
+function closeSaveScreen(){
+  const el = document.getElementById('save-screen');
+  if(el) el.style.display = 'none';
+}
+
+function shortAddr(addr){
+  return addr.slice(0,6) + '...' + addr.slice(-4);
+}
+
+// ---- Wallet Connect ----
+async function connectWallet(){
+  const btn = document.getElementById('btn-connect');
+  if(!window.ethereum){ setSaveLog('❌ No wallet detected. Install MetaMask!', 'err'); return; }
+  try {
+    setSaveLog('⏳ Requesting wallet connection...', 'loading');
+    if(btn) btn.textContent = '⏳ Connecting...';
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    walletAddress = accounts[0];
+
+    // Switch / add Monad Mainnet
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x8f' }]
+      });
+    } catch(switchErr) {
+      if(switchErr.code === 4902){
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x8f',
+            chainName: 'Monad Mainnet',
+            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+            rpcUrls: ['https://rpc.monad.xyz'],
+            blockExplorerUrls: ['https://explorer.monad.xyz']
+          }]
+        });
+      } else { throw switchErr; }
+    }
+
+    walletProvider = window.ethereum;
+    setSaveWallet('🟢 ' + shortAddr(walletAddress) + '<span class="chain-badge">MONAD MAINNET</span>', 'ok');
+    setSaveLog('✅ Wallet connected! You can now save or load.', 'ok');
+    setSaveBtns(true);
+    if(btn){ btn.textContent = '✅ Connected'; btn.disabled = true; }
+
+    // Listen for account/chain change
+    window.ethereum.on('accountsChanged', a => { walletAddress = a[0]; location.reload(); });
+
+  } catch(err) {
+    setSaveLog('❌ ' + (err.message || 'Connection failed'), 'err');
+    if(btn) btn.textContent = '🦊 CONNECT';
+  }
+}
+
+// ---- Build save payload ----
+function buildSaveData(){
+  const p = state.player;
+  const save = {
+    v: 1,                         // save version
+    ts: Date.now(),
+    lv: p.level,
+    hp: p.hp, mhp: p.maxHp,
+    atk: p.attack, def: p.defense,
+    exp: p.exp, exl: p.expToLevel,
+    coins: p.coins, pot: p.potions,
+    px: Math.round(p.x), py: Math.round(p.y),
+    pt: pType,                    // partner type key
+    ps: partnerStage,             // partner stage 1/2/3
+    bd: bossDefeated ? 1 : 0,
+    // Equipped items (just ids)
+    weq: equipped.weapon ? equipped.weapon.id : null,
+    aeq: equipped.armor  ? equipped.armor.id  : null,
+    // Inventory (ids only, max 20 each)
+    winv: inventory.weapons.slice(-20).map(w=>w.id),
+    ainv: inventory.armors.slice(-20).map(a=>a.id),
+  };
+  return JSON.stringify(save);
+}
+
+// ---- Save to Monad ----
+async function saveGame(){
+  if(!walletAddress){ setSaveLog('❌ Connect wallet first!','err'); return; }
+  const btn = document.getElementById('btn-save');
+  try {
+    setSaveLog('⏳ Preparing save data...', 'loading');
+    if(btn){ btn.disabled=true; btn.classList.add('saving-anim'); btn.textContent='⏳ Saving...'; }
+
+    const json   = buildSaveData();
+    const bytes  = new TextEncoder().encode(json);
+    // Prefix with GOZO magic + data
+    const hexData = SAVE_MAGIC + Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+
+    setSaveLog('⏳ Waiting for wallet confirmation...', 'loading');
+
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [{
+        from: walletAddress,
+        to:   walletAddress,       // send to self
+        value: '0x0',              // 0 MON
+        data: hexData,
+        gas: '0x' + (30000 + bytes.length * 68).toString(16)
+      }]
+    });
+
+    setSaveLog('✅ Saved! Tx: ' + txHash.slice(0,18)+'...', 'ok');
+
+    // Show tx link
+    const txInfo = document.getElementById('save-tx-info');
+    const txHashEl = document.getElementById('save-tx-hash');
+    const txLink = document.getElementById('save-tx-link');
+    if(txInfo) txInfo.style.display='block';
+    if(txHashEl) txHashEl.textContent = txHash;
+    if(txLink){ txLink.href = MONAD_EXPLORER+'/tx/'+txHash; }
+
+    // Flash save button green
+    if(btn){ btn.classList.remove('saving-anim'); btn.textContent='✅ SAVED!'; btn.style.borderColor='#44ff88'; btn.style.color='#44ff88'; }
+    setTimeout(()=>{ if(btn){ btn.textContent='💾 SAVE GAME'; btn.disabled=false; btn.style.borderColor=''; btn.style.color=''; }}, 3000);
+
+  } catch(err){
+    const msg = err.code===4001 ? 'Transaction rejected by user.' : (err.message||'Save failed');
+    setSaveLog('❌ ' + msg, 'err');
+    if(btn){ btn.classList.remove('saving-anim'); btn.textContent='💾 SAVE GAME'; btn.disabled=false; }
+  }
+}
+
+// ---- Load from Monad ----
+async function loadGame(){
+  if(!walletAddress){ setSaveLog('❌ Connect wallet first!','err'); return; }
+  const btn = document.getElementById('btn-load');
+  try {
+    setSaveLog('🔍 Scanning Monad chain for save data...', 'loading');
+    if(btn){ btn.disabled=true; btn.textContent='⏳ Loading...'; }
+
+    // Get tx count for address
+    const txCountHex = await monadRpc('eth_getTransactionCount', [walletAddress, 'latest']);
+    const txCount = parseInt(txCountHex, 16);
+
+    if(txCount === 0){
+      setSaveLog('❌ No save data found on chain for this wallet.', 'err');
+      if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
+      return;
+    }
+
+    // Scan last 20 txs (nonces txCount-1 down to max(0, txCount-20))
+    const scanFrom = Math.max(0, txCount - 20);
+    setSaveLog(`🔍 Scanning last ${txCount - scanFrom} transactions...`, 'loading');
+
+    let bestSave = null;
+    // We can't get tx by nonce directly, so use eth_getBlockByNumber + search
+    // Strategy: get recent blocks and filter by from+data prefix
+    const blockHex = await monadRpc('eth_blockNumber', []);
+    const blockNum = parseInt(blockHex, 16);
+
+    // Scan last 200 blocks for our GOZO txs
+    const scanBlocks = 200;
+    const startBlock = Math.max(0, blockNum - scanBlocks);
+
+    for(let b = blockNum; b >= startBlock && !bestSave; b--){
+      const block = await monadRpc('eth_getBlockByNumber', ['0x'+b.toString(16), true]);
+      if(!block || !block.transactions) continue;
+      for(const tx of block.transactions){
+        if(tx.from && tx.from.toLowerCase() === walletAddress.toLowerCase() &&
+           tx.to   && tx.to.toLowerCase()   === walletAddress.toLowerCase() &&
+           tx.input && tx.input.startsWith(SAVE_MAGIC)){
+          // Found! decode
+          const hexBody = tx.input.slice(SAVE_MAGIC.length);
+          const bytes = new Uint8Array(hexBody.match(/.{1,2}/g).map(b=>parseInt(b,16)));
+          const json  = new TextDecoder().decode(bytes);
+          try {
+            const data = JSON.parse(json);
+            if(!bestSave || data.ts > bestSave.ts){
+              bestSave = data;
+            }
+          } catch(e){}
+        }
+      }
+    }
+
+    if(!bestSave){
+      setSaveLog('❌ No GOZO save found in last '+scanBlocks+' blocks.', 'err');
+      if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
+      return;
+    }
+
+    // Show preview and confirm
+    pendingLoad = bestSave;
+    const d = new Date(bestSave.ts);
+    const prev = document.getElementById('load-preview');
+    const prevTxt = document.getElementById('load-preview-text');
+    if(prevTxt) prevTxt.innerHTML =
+      `LV ${bestSave.lv} &nbsp;·&nbsp; HP ${bestSave.hp}/${bestSave.mhp}<br>` +
+      `ATK ${bestSave.atk} &nbsp;·&nbsp; DEF ${bestSave.def}<br>` +
+      `💰 ${bestSave.coins} coins &nbsp;·&nbsp; ${bestSave.winv?.length||0} weapons · ${bestSave.ainv?.length||0} armors<br>` +
+      `Saved: ${d.toLocaleString()}`;
+    if(prev) prev.style.display='block';
+    setSaveLog('✅ Save data found! Review and confirm below.', 'ok');
+    if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
+
+  } catch(err){
+    setSaveLog('❌ ' + (err.message||'Load failed'), 'err');
+    if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
+  }
+}
+
+async function monadRpc(method, params){
+  const resp = await fetch(MONAD_RPC, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
+  });
+  const json = await resp.json();
+  if(json.error) throw new Error(json.error.message);
+  return json.result;
+}
+
+function confirmLoad(){
+  const save = pendingLoad;
+  if(!save){ closeSaveScreen(); return; }
+  const p = state.player;
+
+  // Restore core stats
+  p.level = save.lv||1;
+  p.hp    = save.hp||100;
+  p.maxHp = save.mhp||100;
+  p.attack  = save.atk||15;
+  p.defense = save.def||5;
+  p.exp     = save.exp||0;
+  p.expToLevel = save.exl||50;
+  p.coins   = save.coins||0;
+  p.potions = save.pot||3;
+  if(save.px) p.x = save.px;
+  if(save.py) p.y = save.py;
+  bossDefeated = !!save.bd;
+
+  // Restore partner
+  if(save.pt && PARTNER_EVOLUTIONS[save.pt]){
+    pType = save.pt;
+    const stage = save.ps||1;
+    applyPartnerStage(pType, Math.min(stage, PARTNER_EVOLUTIONS[pType].length));
+  }
+
+  // Restore inventory from IDs
+  const allWeapons = WEAPONS; const allArmors = ARMORS;
+  inventory.weapons = (save.winv||[]).map(id=>allWeapons.find(w=>w.id===id)).filter(Boolean);
+  inventory.armors  = (save.ainv||[]).map(id=>allArmors.find(a=>a.id===id)).filter(Boolean);
+
+  // Restore equipped
+  equipped.weapon = save.weq ? inventory.weapons.find(w=>w.id===save.weq)||null : null;
+  equipped.armor  = save.aeq ? inventory.armors.find(a=>a.id===save.aeq)||null  : null;
+
+  pendingLoad = null;
+  updateHUD();
+  updatePlayerPos();
+  const prev = document.getElementById('load-preview');
+  if(prev) prev.style.display='none';
+  setSaveLog('✅ Game loaded successfully!', 'ok');
+  setTimeout(closeSaveScreen, 1500);
+}
+
+function cancelLoad(){
+  pendingLoad = null;
+  const prev = document.getElementById('load-preview');
+  if(prev) prev.style.display='none';
+  setSaveLog('Load cancelled.', '');
+}
+
+// Auto-reconnect if wallet was previously connected
+window.addEventListener('load', async () => {
+  if(window.ethereum){
+    const accounts = await window.ethereum.request({ method:'eth_accounts' }).catch(()=>[]);
+    if(accounts.length){
+      walletAddress = accounts[0];
+      walletProvider = window.ethereum;
+    }
+  }
+});
 
 // ==============================================
 // CONTROLS
