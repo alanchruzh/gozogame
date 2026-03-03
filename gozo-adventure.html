@@ -1,0 +1,2750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gozo Adventure</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
+  :root{--yellow:#FFD700;--red:#CC2222;--chain:#C0C0C0;--bg:#0a0a0f;--panel:#111122;--border:#FFD700;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);font-family:'Press Start 2P',monospace;color:#fff;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+
+  /* TITLE */
+  #title-screen{position:fixed;inset:0;background:radial-gradient(ellipse at center,#1a1a2e 0%,#000 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;animation:fadeIn 1s ease;}
+  .title-logo{font-family:'Orbitron',sans-serif;font-size:clamp(32px,8vw,72px);font-weight:900;color:var(--yellow);text-shadow:0 0 20px var(--yellow),4px 4px 0 var(--red);letter-spacing:4px;animation:pulse 2s infinite;text-align:center;}
+  .title-sub{font-size:clamp(8px,2vw,14px);color:var(--chain);margin-top:10px;letter-spacing:6px;}
+  .gozo-hero{width:150px;height:200px;margin:30px 0;animation:float 3s ease-in-out infinite;}
+  .press-start{background:var(--yellow);color:#000;border:none;padding:14px 28px;font-family:'Press Start 2P',monospace;font-size:12px;cursor:pointer;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);transition:all .1s;animation:blink 1.5s step-end infinite;margin-top:20px;}
+  .press-start:hover{background:var(--red);color:#fff;transform:scale(1.05);animation:none;}
+
+  /* SELECT */
+  #select-screen{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#000 100%);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100;gap:16px;padding:20px;}
+  .sel-title{font-family:'Orbitron',sans-serif;font-size:clamp(13px,4vw,26px);color:var(--yellow);text-shadow:0 0 20px var(--yellow);text-align:center;line-height:1.6;}
+  .sel-sub{font-size:clamp(6px,1.4vw,9px);color:var(--chain);text-align:center;letter-spacing:2px;}
+  .monster-cards{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:8px;}
+  .mcard{background:var(--panel);border:3px solid #444;padding:18px 14px;width:clamp(120px,26vw,170px);display:flex;flex-direction:column;align-items:center;gap:9px;cursor:pointer;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);transition:all .2s;position:relative;overflow:hidden;}
+  .mcard::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;}
+  .mcard.fire{border-color:#ff6633;}.mcard.fire::before{background:radial-gradient(circle at 50% 80%,rgba(255,80,0,.3),transparent 70%);}
+  .mcard.water{border-color:#3399ff;}.mcard.water::before{background:radial-gradient(circle at 50% 80%,rgba(0,100,255,.3),transparent 70%);}
+  .mcard.grass{border-color:#44cc44;}.mcard.grass::before{background:radial-gradient(circle at 50% 80%,rgba(0,200,50,.3),transparent 70%);}
+  .mcard:hover::before{opacity:1;}
+  .mcard.fire:hover{border-color:#ff9944;box-shadow:0 0 20px rgba(255,80,0,.5);transform:translateY(-8px) scale(1.04);}
+  .mcard.water:hover{border-color:#66bbff;box-shadow:0 0 20px rgba(0,100,255,.5);transform:translateY(-8px) scale(1.04);}
+  .mcard.grass:hover{border-color:#88ff88;box-shadow:0 0 20px rgba(0,200,50,.5);transform:translateY(-8px) scale(1.04);}
+  .mcard.fire.sel{border-color:#ff9944;box-shadow:0 0 30px rgba(255,80,0,.8);transform:translateY(-12px) scale(1.06);}
+  .mcard.water.sel{border-color:#66bbff;box-shadow:0 0 30px rgba(0,150,255,.8);transform:translateY(-12px) scale(1.06);}
+  .mcard.grass.sel{border-color:#88ff88;box-shadow:0 0 30px rgba(0,200,50,.8);transform:translateY(-12px) scale(1.06);}
+  .memoji{font-size:clamp(38px,9vw,60px);animation:float 2.5s ease-in-out infinite;}
+  .mcard:nth-child(2) .memoji{animation-delay:.4s;}.mcard:nth-child(3) .memoji{animation-delay:.8s;}
+  .mname{font-size:clamp(6px,1.6vw,9px);color:#fff;text-align:center;}
+  .melem{font-size:6px;padding:3px 8px;border-radius:2px;letter-spacing:2px;}
+  .fire .melem{background:#ff4400;color:#fff;}.water .melem{background:#0066cc;color:#fff;}.grass .melem{background:#008822;color:#fff;}
+  .mstats{font-size:6px;color:var(--chain);text-align:center;line-height:1.8;}
+  .mbadge{font-size:6px;padding:2px 6px;margin-top:-4px;border-radius:2px;}
+  .fire .mbadge{background:rgba(255,100,0,.2);color:#ff9944;border:1px solid #ff6600;}
+  .water .mbadge{background:rgba(0,100,255,.2);color:#66bbff;border:1px solid #3399ff;}
+  .grass .mbadge{background:rgba(0,180,50,.2);color:#88ff88;border:1px solid #44cc44;}
+  #confirm-sel{display:none;background:var(--yellow);color:#000;border:none;padding:13px 28px;font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);transition:all .15s;animation:pulse .8s ease-in-out infinite alternate;}
+  #confirm-sel:hover{background:var(--red);color:#fff;}
+
+  /* GAME */
+  #game-screen{display:none;width:100vw;height:100vh;position:relative;overflow:hidden;}
+
+  /* CAMERA VIEWPORT */
+  #viewport{position:absolute;inset:0;overflow:hidden;}
+
+  /* WORLD — much larger than screen, camera follows player */
+  #world{width:2400px;height:1800px;position:absolute;background:#7a5c3a;overflow:visible;}
+  #world::before{display:none;}
+
+  /* PATHS — sandy dirt road over cobblestone ground */
+  .path-h{position:absolute;background:linear-gradient(180deg,#d4aa6a,#c89858,#b07c44);border-top:3px solid #7a4e28;border-bottom:3px solid #7a4e28;z-index:1;}
+  .path-v{position:absolute;background:linear-gradient(90deg,#d4aa6a,#c89858,#b07c44);border-left:3px solid #7a4e28;border-right:3px solid #7a4e28;z-index:1;}
+  .path-cross{position:absolute;background:#c89858;z-index:1;}
+
+  /* TALL GRASS — pixel art, rendered via JS canvas */
+  .tg-back{position:absolute;z-index:2;overflow:hidden;image-rendering:pixelated;}
+  .tg-back canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;}
+  .tg-back.active canvas{filter:brightness(1.25);}
+
+  /* TALL GRASS FRONT (above player z=16) */
+  .tg-front{position:absolute;z-index:16;pointer-events:none;overflow:hidden;image-rendering:pixelated;}
+  .tg-front canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:.82;}
+
+  /* GRASS PARTING EFFECT — canvas overlay drawn by JS */
+  #grass-part-canvas{position:absolute;pointer-events:none;z-index:17;}
+
+  /* Zone label */
+  .tg-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:6px;color:rgba(200,255,180,.7);white-space:nowrap;z-index:3;pointer-events:none;text-shadow:1px 1px 0 rgba(0,0,0,.9);}
+
+  /* PLAYER */
+  #player{position:absolute;width:48px;height:64px;z-index:15;image-rendering:pixelated;}
+  #player.in-grass{filter:drop-shadow(0 6px 4px rgba(5,70,5,.95));}
+
+  /* EXCLAMATION */
+  #exclamation{display:none;position:absolute;font-size:28px;z-index:25;animation:exclamPop .4s cubic-bezier(.36,.07,.19,.97) both;pointer-events:none;}
+
+  /* ENCOUNTER FLASH */
+  #enc-flash{display:none;position:fixed;inset:0;background:#fff;z-index:90;pointer-events:none;}
+
+  /* DECORATIONS */
+  .tree{position:absolute;font-size:32px;z-index:12;filter:drop-shadow(2px 3px 0 rgba(0,0,0,.5));pointer-events:none;}
+  .flower{position:absolute;font-size:12px;z-index:3;pointer-events:none;animation:flowerSway 4s ease-in-out infinite;}
+  .rock{position:absolute;font-size:18px;z-index:5;pointer-events:none;}
+  .npc{position:absolute;cursor:pointer;z-index:13;text-align:center;animation:enemyBob 2.2s ease-in-out infinite;}
+
+  /* HUD */
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);z-index:50;}
+  .hud-box{background:var(--panel);border:2px solid var(--border);padding:8px 12px;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);}
+  .hud-name{font-size:10px;color:var(--yellow);margin-bottom:4px;}
+  .hp-bar{width:120px;height:8px;background:#333;border:1px solid #555;overflow:hidden;}
+  .hp-fill{height:100%;background:linear-gradient(90deg,#00ff44,#44ff88);transition:width .3s;}
+  .hud-stats{font-size:8px;color:var(--chain);}
+  #hud-partner{font-size:7px;color:var(--chain);margin-top:2px;}
+  #grass-badge{display:none;background:#197019;border:2px solid #44ee44;padding:4px 8px;font-size:7px;color:#aaffaa;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);animation:grassPulse 1.5s ease-in-out infinite;}
+
+  /* BATTLE */
+  #battle-screen{display:none;position:fixed;inset:0;background:#0d0d1a;z-index:80;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 20px;}
+  .battle-arena{width:100%;flex:1;position:relative;background:linear-gradient(180deg,#1a1a4e 0%,#2d2d6e 50%,#2a5a2a 50%,#3a7a3a 100%);display:flex;align-items:flex-end;justify-content:space-between;padding:20px 40px;overflow:hidden;}
+  .battle-arena::after{content:'';position:absolute;bottom:50%;left:0;right:0;height:2px;background:rgba(255,255,255,.07);}
+  .battle-arena::before{content:'';position:absolute;bottom:0;left:0;right:0;height:50%;background:repeating-linear-gradient(175deg,transparent 0,transparent 3px,rgba(10,100,10,.35) 3px,rgba(10,100,10,.35) 5px,transparent 5px,transparent 10px);pointer-events:none;}
+  .enemy-battle{display:flex;flex-direction:column;align-items:center;align-self:flex-start;margin-top:20px;}
+  .enemy-hpbar-wrap{background:var(--panel);border:2px solid var(--border);padding:6px 10px;margin-bottom:10px;min-width:160px;}
+  .player-battle{display:flex;flex-direction:column;align-items:center;align-self:flex-end;}
+  .player-hpbar-wrap{background:var(--panel);border:2px solid var(--border);padding:6px 10px;margin-top:10px;min-width:160px;}
+  .battle-sprite{image-rendering:pixelated;filter:drop-shadow(0 8px 16px rgba(0,0,0,.8));}
+  .battle-sprite.shake{animation:shake .5s ease;}
+  #battle-ui{width:100%;max-width:600px;display:flex;flex-direction:column;gap:10px;padding:0 16px;}
+  #battle-log{background:var(--panel);border:3px solid var(--border);padding:12px 16px;font-size:9px;line-height:1.8;min-height:60px;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);}
+  #battle-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .battle-btn{background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 8px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);transition:all .15s;}
+  .battle-btn:hover:not(:disabled){background:var(--yellow);color:#000;transform:scale(1.05);}
+  .battle-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .dmg-popup{position:absolute;font-size:20px;color:#ff4444;text-shadow:2px 2px 0 #000;font-family:'Press Start 2P',monospace;animation:dmgFloat 1s ease-out forwards;pointer-events:none;z-index:99;}
+  .dmg-popup.heal{color:#44ff88;}
+
+  /* LEVEL UP */
+  #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+  .levelup-title{font-family:'Orbitron',sans-serif;font-size:36px;color:var(--yellow);text-shadow:0 0 30px var(--yellow);animation:pulse .5s ease infinite alternate;}
+
+  /* DIALOG */
+  #dialog{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:16px 20px;max-width:500px;width:90%;font-size:9px;line-height:2;z-index:70;clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0% calc(100% - 12px),0% 12px);}
+
+  /* D-PAD */
+  #dpad{position:fixed;bottom:20px;left:20px;z-index:60;display:none;}
+  .dpad-grid{display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px 40px;gap:2px;}
+  .dpad-btn{background:rgba(255,215,0,.25);border:2px solid var(--yellow);color:var(--yellow);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;user-select:none;}
+  .dpad-btn:active{background:rgba(255,215,0,.55);}
+
+  .stars{position:fixed;inset:0;pointer-events:none;overflow:hidden;}
+  .star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle var(--d,3s) ease-in-out infinite var(--delay,0s);}
+
+  /* ANIMATIONS */
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes pulse{from{transform:scale(1)}to{transform:scale(1.04)}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes enemyBob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-6px) rotate(2deg)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
+  @keyframes dmgFloat{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-60px);opacity:0}}
+  @keyframes twinkle{0%,100%{opacity:.2}50%{opacity:1}}
+  /* INVENTORY */
+  .inv-item{display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #333;padding:8px 10px;transition:border-color .15s;}
+  .inv-item.equipped{border-color:var(--yellow);background:#131320;}
+  .inv-item:hover{border-color:#555;}
+  .inv-item-info{flex:1;line-height:1.7;}
+  .inv-btn{background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;white-space:nowrap;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  .inv-btn:hover{background:var(--yellow);color:#000;}
+
+  @keyframes dropBounce{0%{transform:translateX(-50%) translateY(20px);opacity:0}60%{transform:translateX(-50%) translateY(-6px);opacity:1}100%{transform:translateX(-50%) translateY(0);opacity:1}}0%,100%{box-shadow:0 0 4px rgba(68,238,68,.4)}50%{box-shadow:0 0 14px rgba(68,238,68,.9)}}
+  @keyframes grassSwayFast{0%,100%{transform:translateX(0) skewX(0deg)}25%{transform:translateX(-3px) skewX(-2deg)}75%{transform:translateX(3px) skewX(2deg)}}
+  @keyframes exclamPop{0%{transform:scale(0) translateY(10px);opacity:0}60%{transform:scale(1.4) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+  /* MINIMAP */
+  #minimap{position:fixed;top:12px;right:12px;width:120px;height:90px;background:rgba(0,0,0,.75);border:2px solid var(--border);z-index:55;overflow:hidden;}
+  #minimap-player{position:absolute;width:4px;height:5px;background:var(--yellow);border-radius:1px;transform:translate(-50%,-50%);}
+  #minimap canvas{position:absolute;inset:0;}
+
+  @keyframes grassBlade{0%,100%{transform:rotate(-4deg) scaleY(1)}50%{transform:rotate(4deg) scaleY(1.05)}}
+  @keyframes grassSwayFast{0%,100%{transform:skewX(0deg) scaleY(1)}25%{transform:skewX(-7deg) scaleY(1.04)}75%{transform:skewX(7deg) scaleY(1.04)}}
+  @keyframes flowerSway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+
+  @media(max-width:600px){#dpad{display:block;}}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div id="enc-flash"></div>
+
+<!-- TITLE -->
+<div id="title-screen">
+  <div class="title-logo">⚡ GOZO ⚡</div>
+  <div class="title-sub">ADVENTURE</div>
+  <div class="gozo-hero">
+    <!-- Gozo - pixel art style, dark hair, hoodie, jeans, boots -->
+    <svg viewBox="0 0 80 120" xmlns="http://www.w3.org/2000/svg" width="150" height="200" shape-rendering="crispEdges">
+      <!-- BOOTS -->
+      <rect x="22" y="104" width="14" height="10" fill="#1a1a2e"/>
+      <rect x="44" y="104" width="14" height="10" fill="#1a1a2e"/>
+      <rect x="20" y="108" width="16" height="6" fill="#252540"/>
+      <rect x="42" y="108" width="16" height="6" fill="#252540"/>
+      <!-- LEGS / JEANS -->
+      <rect x="23" y="80" width="14" height="26" fill="#3a5080"/>
+      <rect x="43" y="80" width="14" height="26" fill="#3a5080"/>
+      <rect x="23" y="80" width="14" height="3" fill="#2e3f66"/>
+      <rect x="43" y="80" width="14" height="3" fill="#2e3f66"/>
+      <!-- BELT -->
+      <rect x="20" y="77" width="40" height="5" fill="#2a2a2a"/>
+      <rect x="36" y="76" width="8" height="7" fill="#888"/>
+      <rect x="38" y="77" width="4" height="5" fill="#aaa"/>
+      <!-- BODY / HOODIE -->
+      <rect x="18" y="42" width="44" height="38" fill="#2d2d3d"/>
+      <!-- Hoodie inner lining -->
+      <rect x="30" y="42" width="20" height="38" fill="#3a3a50"/>
+      <!-- Hoodie pocket -->
+      <rect x="22" y="62" width="12" height="10" fill="#252535" rx="1"/>
+      <rect x="46" y="62" width="12" height="10" fill="#252535" rx="1"/>
+      <!-- Zipper -->
+      <rect x="38" y="44" width="4" height="34" fill="#555"/>
+      <rect x="39" y="44" width="2" height="34" fill="#777"/>
+      <!-- Hoodie hood/collar -->
+      <rect x="26" y="40" width="28" height="6" fill="#232333"/>
+      <!-- Inner shirt visible at collar -->
+      <rect x="30" y="40" width="20" height="6" fill="#555"/>
+      <!-- ARMS -->
+      <rect x="8"  y="44" width="12" height="32" fill="#2d2d3d"/>
+      <rect x="60" y="44" width="12" height="32" fill="#2d2d3d"/>
+      <!-- Sleeve cuffs -->
+      <rect x="8"  y="72" width="12" height="4" fill="#232333"/>
+      <rect x="60" y="72" width="12" height="4" fill="#232333"/>
+      <!-- HANDS / SKIN -->
+      <rect x="9"  y="76" width="10" height="8" fill="#d4a574"/>
+      <rect x="61" y="76" width="10" height="8" fill="#d4a574"/>
+      <!-- NECK -->
+      <rect x="33" y="30" width="14" height="14" fill="#d4a574"/>
+      <!-- HEAD -->
+      <rect x="22" y="10" width="36" height="32" fill="#d4a574"/>
+      <!-- Ear -->
+      <rect x="18" y="18" width="5" height="10" fill="#c49060"/>
+      <rect x="57" y="18" width="5" height="10" fill="#c49060"/>
+      <!-- HAIR - messy black hair like reference -->
+      <rect x="20" y="4"  width="40" height="14" fill="#1a1a1a"/>
+      <rect x="18" y="6"  width="44" height="10" fill="#1a1a1a"/>
+      <rect x="22" y="10" width="36" height="6"  fill="#1a1a1a"/>
+      <!-- Hair wisps / spikes -->
+      <rect x="16" y="4"  width="6"  height="8"  fill="#1a1a1a"/>
+      <rect x="58" y="4"  width="6"  height="8"  fill="#1a1a1a"/>
+      <rect x="20" y="2"  width="8"  height="6"  fill="#1a1a1a"/>
+      <rect x="30" y="0"  width="8"  height="6"  fill="#1a1a1a"/>
+      <rect x="42" y="2"  width="8"  height="4"  fill="#1a1a1a"/>
+      <rect x="52" y="4"  width="6"  height="6"  fill="#1a1a1a"/>
+      <!-- Hair side pieces covering ears partially -->
+      <rect x="18" y="14" width="6"  height="14" fill="#1a1a1a"/>
+      <rect x="56" y="14" width="6"  height="14" fill="#1a1a1a"/>
+      <!-- EYES -->
+      <rect x="28" y="20" width="10" height="8" fill="#fff"/>
+      <rect x="42" y="20" width="10" height="8" fill="#fff"/>
+      <rect x="30" y="21" width="7"  height="6" fill="#3a2a1a"/>
+      <rect x="44" y="21" width="7"  height="6" fill="#3a2a1a"/>
+      <rect x="31" y="22" width="4"  height="4" fill="#1a0a00"/>
+      <rect x="45" y="22" width="4"  height="4" fill="#1a0a00"/>
+      <!-- Eye shine -->
+      <rect x="33" y="22" width="2" height="2" fill="#fff"/>
+      <rect x="47" y="22" width="2" height="2" fill="#fff"/>
+      <!-- EYEBROWS -->
+      <rect x="27" y="18" width="12" height="3" fill="#1a1a1a"/>
+      <rect x="41" y="18" width="12" height="3" fill="#1a1a1a"/>
+      <!-- NOSE -->
+      <rect x="37" y="28" width="6" height="4" fill="#c49060"/>
+      <!-- MOUTH -->
+      <rect x="30" y="34" width="20" height="3" fill="#a06040"/>
+      <rect x="32" y="34" width="16" height="2" fill="#cc8060"/>
+    </svg>
+  </div>
+  <button class="press-start" onclick="startGame()">▶ START ADVENTURE</button>
+  <div style="font-size:7px;color:#444;margin-top:14px;">WASD / Arrow Keys • Walk into tall grass to battle!</div>
+</div>
+
+<!-- SELECT MONSTER -->
+<div id="select-screen">
+  <div class="sel-title">CHOOSE YOUR PARTNER!</div>
+  <div class="sel-sub">They will accompany Gozo on his adventure</div>
+  <div class="monster-cards">
+    <div class="mcard fire" onclick="selectMonster('fire')">
+      <div class="memoji">🔥</div><div class="mname">IGNIS</div>
+      <div class="melem">🔥 FIRE</div>
+      <div class="mstats">ATK: ⭐⭐⭐⭐⭐<br>DEF: ⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐<br>SPD: ⭐⭐⭐⭐</div>
+      <div class="mbadge">🔥→🌋→🐉 Evolves LV30/60</div>
+    </div>
+    <div class="mcard water" onclick="selectMonster('water')">
+      <div class="memoji">💧</div><div class="mname">AQUA</div>
+      <div class="melem">💧 WATER</div>
+      <div class="mstats">ATK: ⭐⭐⭐<br>DEF: ⭐⭐⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐⭐⭐<br>SPD: ⭐⭐⭐</div>
+      <div class="mbadge">💧→🌊→🌀 Evolves LV30/60</div>
+    </div>
+    <div class="mcard grass" onclick="selectMonster('grass')">
+      <div class="memoji">🌿</div><div class="mname">SYLVA</div>
+      <div class="melem">🌿 GRASS</div>
+      <div class="mstats">ATK: ⭐⭐⭐<br>DEF: ⭐⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐⭐<br>SPD: ⭐⭐⭐⭐⭐</div>
+      <div class="mbadge">🌿→🌳→🌲 Evolves LV30/60</div>
+    </div>
+  </div>
+  <button id="confirm-sel" onclick="confirmMonster()">✅ CHOOSE THIS PARTNER!</button>
+</div>
+
+<!-- GAME -->
+<div id="game-screen">
+  <div id="hud">
+    <div class="hud-box">
+      <div class="hud-name">⚡ GOZO</div>
+      <div class="hp-bar"><div class="hp-fill" id="player-hp-bar" style="width:100%"></div></div>
+      <div class="hud-stats" id="hud-stats">HP: 100/100</div>
+      <div id="hud-partner"></div>
+    </div>
+    <div id="grass-badge">🌿 TALL GRASS!</div>
+    <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+      <div class="hud-box">
+        <div class="hud-name" style="color:var(--chain)">LV <span id="hud-level">1</span></div>
+        <div class="hud-stats">EXP: <span id="hud-exp">0</span></div>
+        <div class="hud-stats">COINS: <span id="hud-coins">0</span> 🪙</div>
+      </div>
+      <button onclick="openInventory()" style="background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 10px;cursor:pointer;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);">🎒 BAG</button>
+    </div>
+  </div>
+
+  <!-- MINIMAP -->
+  <div id="minimap">
+    <canvas id="minimap-canvas" width="120" height="90"></canvas>
+    <div id="minimap-player"></div>
+  </div>
+
+  <div id="viewport">
+  <div id="world">
+    <canvas id="ground-canvas" width="2400" height="1800" style="position:absolute;left:0;top:0;z-index:0;image-rendering:pixelated;"></canvas>
+    <canvas id="grass-part-canvas" width="2400" height="1800"></canvas>
+    <div id="player">
+      <!-- Gozo animated sprite — direction & walk frame set by JS -->
+      <canvas id="gozo-canvas" width="48" height="64" style="image-rendering:pixelated;display:block;"></canvas>
+    </div>
+    <div id="exclamation">❗</div>
+  </div>
+  </div>
+
+  <div id="dpad">
+    <div class="dpad-grid">
+      <div></div>
+      <div class="dpad-btn" ontouchstart="startMove('up')" ontouchend="stopMove()">▲</div>
+      <div></div>
+      <div class="dpad-btn" ontouchstart="startMove('left')" ontouchend="stopMove()">◀</div>
+      <div style="background:rgba(255,215,0,.1);border:2px solid rgba(255,215,0,.2);border-radius:4px;"></div>
+      <div class="dpad-btn" ontouchstart="startMove('right')" ontouchend="stopMove()">▶</div>
+      <div></div>
+      <div class="dpad-btn" ontouchstart="startMove('down')" ontouchend="stopMove()">▼</div>
+      <div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BATTLE -->
+<div id="battle-screen" style="display:none;flex-direction:column;">
+  <div class="battle-arena" id="battle-arena">
+    <div class="enemy-battle">
+      <div class="enemy-hpbar-wrap">
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:4px;" id="enemy-name">???</div>
+        <div class="hp-bar" style="width:160px"><div class="hp-fill" id="enemy-hp-bar" style="width:100%;background:linear-gradient(90deg,#ff4444,#ff8844)"></div></div>
+        <div style="font-size:7px;color:var(--chain);margin-top:2px;" id="enemy-hp-text">HP: ?/?</div>
+      </div>
+      <div id="enemy-battle-sprite" class="battle-sprite"></div>
+    </div>
+    <div class="player-battle">
+      <div id="player-battle-sprite" class="battle-sprite">
+        <!-- Gozo battle sprite 100x140 pixel art -->
+        <svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="100" height="140" shape-rendering="crispEdges">
+          <!-- Boots -->
+          <rect x="11" y="56" width="11" height="14" fill="#1a1a2e"/>
+          <rect x="28" y="56" width="11" height="14" fill="#1a1a2e"/>
+          <rect x="9"  y="62" width="14" height="8"  fill="#252540"/>
+          <rect x="27" y="62" width="14" height="8"  fill="#252540"/>
+          <!-- Boot highlight -->
+          <rect x="10" y="63" width="5"  height="2"  fill="#3a3a60"/>
+          <rect x="28" y="63" width="5"  height="2"  fill="#3a3a60"/>
+          <!-- Jeans -->
+          <rect x="12" y="38" width="12" height="20" fill="#3a5080"/>
+          <rect x="26" y="38" width="12" height="20" fill="#3a5080"/>
+          <!-- Jeans seam -->
+          <rect x="12" y="38" width="12" height="2"  fill="#2e3f66"/>
+          <rect x="26" y="38" width="12" height="2"  fill="#2e3f66"/>
+          <rect x="23" y="38" width="4"  height="20" fill="#334470"/>
+          <!-- Belt -->
+          <rect x="10" y="35" width="30" height="4"  fill="#2a2a2a"/>
+          <rect x="22" y="34" width="6"  height="6"  fill="#888"/>
+          <rect x="23" y="35" width="4"  height="4"  fill="#aaa"/>
+          <!-- Body hoodie main -->
+          <rect x="9"  y="17" width="32" height="20" fill="#2d2d3d"/>
+          <!-- Hoodie center panel -->
+          <rect x="21" y="17" width="8"  height="20" fill="#3a3a50"/>
+          <!-- Zipper -->
+          <rect x="24" y="17" width="2"  height="20" fill="#666"/>
+          <!-- Hoodie pockets -->
+          <rect x="10" y="27" width="9"  height="8"  fill="#252535"/>
+          <rect x="31" y="27" width="9"  height="8"  fill="#252535"/>
+          <!-- Pocket lines -->
+          <rect x="10" y="27" width="9"  height="1"  fill="#1e1e2e"/>
+          <rect x="31" y="27" width="9"  height="1"  fill="#1e1e2e"/>
+          <!-- Hoodie collar -->
+          <rect x="17" y="15" width="16" height="4"  fill="#232333"/>
+          <!-- Inner shirt at collar -->
+          <rect x="20" y="15" width="10" height="4"  fill="#555"/>
+          <!-- Arms -->
+          <rect x="1"  y="18" width="9"  height="18" fill="#2d2d3d"/>
+          <rect x="40" y="18" width="9"  height="18" fill="#2d2d3d"/>
+          <!-- Sleeve cuffs -->
+          <rect x="1"  y="33" width="9"  height="3"  fill="#232333"/>
+          <rect x="40" y="33" width="9"  height="3"  fill="#232333"/>
+          <!-- Hands skin -->
+          <rect x="2"  y="36" width="7"  height="6"  fill="#d4a574"/>
+          <rect x="41" y="36" width="7"  height="6"  fill="#d4a574"/>
+          <!-- Neck -->
+          <rect x="22" y="10" width="6"  height="7"  fill="#d4a574"/>
+          <!-- Head -->
+          <rect x="13" y="3"  width="24" height="18" fill="#d4a574"/>
+          <!-- Ears -->
+          <rect x="9"  y="8"  width="5"  height="8"  fill="#c49060"/>
+          <rect x="36" y="8"  width="5"  height="8"  fill="#c49060"/>
+          <!-- Ear inner -->
+          <rect x="10" y="9"  width="3"  height="5"  fill="#b07850"/>
+          <rect x="37" y="9"  width="3"  height="5"  fill="#b07850"/>
+          <!-- HAIR - messy dark -->
+          <rect x="11" y="0"  width="28" height="8"  fill="#1a1a1a"/>
+          <rect x="9"  y="1"  width="32" height="6"  fill="#1a1a1a"/>
+          <rect x="13" y="3"  width="24" height="4"  fill="#1a1a1a"/>
+          <!-- Hair spikes top -->
+          <rect x="10" y="0"  width="6"  height="5"  fill="#1a1a1a"/>
+          <rect x="16" y="0"  width="6"  height="3"  fill="#1a1a1a"/>
+          <rect x="28" y="0"  width="6"  height="3"  fill="#1a1a1a"/>
+          <rect x="34" y="0"  width="6"  height="5"  fill="#1a1a1a"/>
+          <rect x="20" y="0"  width="10" height="2"  fill="#1a1a1a"/>
+          <!-- Hair sides covering ears -->
+          <rect x="9"  y="6"  width="5"  height="10" fill="#1a1a1a"/>
+          <rect x="36" y="6"  width="5"  height="10" fill="#1a1a1a"/>
+          <!-- Forehead shadow from hair -->
+          <rect x="13" y="3"  width="24" height="3"  fill="#222"/>
+          <!-- EYES -->
+          <rect x="16" y="9"  width="8"  height="7"  fill="#fff"/>
+          <rect x="26" y="9"  width="8"  height="7"  fill="#fff"/>
+          <!-- Iris -->
+          <rect x="18" y="10" width="5"  height="5"  fill="#3a2a1a"/>
+          <rect x="28" y="10" width="5"  height="5"  fill="#3a2a1a"/>
+          <!-- Pupil -->
+          <rect x="19" y="11" width="3"  height="3"  fill="#0d0500"/>
+          <rect x="29" y="11" width="3"  height="3"  fill="#0d0500"/>
+          <!-- Eye shine -->
+          <rect x="21" y="11" width="2"  height="2"  fill="#fff"/>
+          <rect x="31" y="11" width="2"  height="2"  fill="#fff"/>
+          <!-- Eyelid line -->
+          <rect x="16" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
+          <rect x="26" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
+          <!-- EYEBROWS -->
+          <rect x="15" y="7"  width="10" height="3"  fill="#111"/>
+          <rect x="25" y="7"  width="10" height="3"  fill="#111"/>
+          <!-- NOSE -->
+          <rect x="23" y="15" width="4"  height="4"  fill="#c49060"/>
+          <rect x="22" y="17" width="6"  height="2"  fill="#b07850"/>
+          <!-- MOUTH neutral -->
+          <rect x="17" y="19" width="16" height="2"  fill="#9a5535"/>
+          <rect x="19" y="19" width="12" height="2"  fill="#bb7755"/>
+        </svg>
+      </div>
+      <div id="battle-partner-display" style="font-size:40px;position:absolute;right:70px;bottom:115px;animation:float 2s ease-in-out infinite .5s;filter:drop-shadow(0 6px 10px rgba(0,0,0,.8));"></div>
+      <div class="player-hpbar-wrap">
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:4px;">⚡ GOZO</div>
+        <div class="hp-bar" style="width:160px"><div class="hp-fill" id="battle-player-hp-bar" style="width:100%"></div></div>
+        <div style="font-size:7px;color:var(--chain);margin-top:2px;" id="battle-player-hp-text"></div>
+      </div>
+    </div>
+  </div>
+  <div id="battle-ui">
+    <div id="battle-log">A wild monster appeared!</div>
+    <div id="battle-actions">
+      <button class="battle-btn" onclick="battleAction('attack')">⚔️ ATTACK</button>
+      <button class="battle-btn" id="btn-special" onclick="battleAction('special')">⚡ SKILL</button>
+      <button class="battle-btn" onclick="battleAction('heal')">💊 POTION</button>
+      <button class="battle-btn" onclick="battleAction('run')">🏃 RUN</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVENTORY SCREEN -->
+<div id="inv-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 0 32px;">
+  <div style="width:100%;max-width:620px;padding:0 12px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,4vw,22px);color:var(--yellow);text-shadow:0 0 12px var(--yellow)">🎒 GOZO'S BAG</div>
+      <button onclick="closeInventory()" style="background:var(--panel);border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:6px 12px;cursor:pointer;">✖ CLOSE</button>
+    </div>
+    <div style="background:var(--panel);border:2px solid var(--border);padding:10px 14px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);">
+      <div><div style="font-size:7px;color:#888">⚔️ ATK</div><div style="font-size:14px;color:#ff8844" id="inv-atk-val">—</div></div>
+      <div><div style="font-size:7px;color:#888">🛡️ DEF</div><div style="font-size:14px;color:#44aaff" id="inv-def-val">—</div></div>
+      <div><div style="font-size:7px;color:#888">❤️ HP</div><div style="font-size:14px;color:#44ff88" id="inv-hp-val">—</div></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px;">⚔️ EQUIPPED WEAPON</div>
+      <div id="inv-equipped-weapon" style="font-size:9px;background:#0a0a15;border:2px solid #333;padding:8px 12px;min-height:36px;line-height:1.8;"></div>
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px;">🛡️ EQUIPPED ARMOR</div>
+      <div id="inv-equipped-armor" style="font-size:9px;background:#0a0a15;border:2px solid #333;padding:8px 12px;min-height:36px;line-height:1.8;"></div>
+    </div>
+    <div style="font-size:8px;color:#ff8844;margin-bottom:8px;border-bottom:1px solid #331100;padding-bottom:4px;">⚔️ WEAPONS <span id="inv-weapon-count" style="color:#555;font-size:7px"></span></div>
+    <div id="inv-weapon-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:20px;"></div>
+    <div style="font-size:8px;color:#44aaff;margin-bottom:8px;border-bottom:1px solid #001133;padding-bottom:4px;">🛡️ ARMORS <span id="inv-armor-count" style="color:#555;font-size:7px"></span></div>
+    <div id="inv-armor-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+  </div>
+</div>
+
+<!-- DROP POPUP -->
+<div id="drop-popup" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:14px 20px;z-index:91;flex-direction:column;align-items:center;gap:4px;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);animation:fadeIn .3s ease;min-width:180px;text-align:center;"></div>
+
+<!-- LEVEL UP -->
+  <div class="levelup-title">✨ LEVEL UP! ✨</div>
+  <div style="font-size:12px;color:var(--chain);" id="levelup-text"></div>
+  <button class="press-start" style="animation:none;margin-top:20px;" onclick="closeLevelUp()">CONTINUE ▶</button>
+</div>
+
+<!-- EVOLUTION SCREEN -->
+<div id="evo-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:95;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <div id="evo-flash" style="position:absolute;inset:0;background:#fff;pointer-events:none;opacity:0;transition:opacity .1s;"></div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:clamp(18px,5vw,34px);color:#fff;text-shadow:0 0 30px #fff;text-align:center;animation:pulse .6s infinite alternate;" id="evo-title">WHAT?!</div>
+  <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center;">
+    <div style="text-align:center;" id="evo-before">
+      <div id="evo-before-emoji" style="font-size:70px;animation:float 1s ease-in-out infinite;filter:brightness(1.2)"></div>
+      <div id="evo-before-name" style="font-size:10px;color:#aaa;margin-top:8px;font-family:'Press Start 2P'"></div>
+    </div>
+    <div style="font-size:40px;color:var(--yellow);animation:pulse .4s infinite alternate;">➡️</div>
+    <div style="text-align:center;" id="evo-after">
+      <div id="evo-after-emoji" style="font-size:90px;animation:float .8s ease-in-out infinite;filter:drop-shadow(0 0 20px gold) brightness(1.5);"></div>
+      <div id="evo-after-name" style="font-size:12px;color:var(--yellow);margin-top:8px;font-family:'Press Start 2P';text-shadow:0 0 10px gold;"></div>
+    </div>
+  </div>
+  <div id="evo-desc" style="font-size:8px;color:#ccccff;text-align:center;max-width:320px;line-height:2;padding:0 16px;"></div>
+  <div id="evo-skill" style="background:#111133;border:2px solid var(--yellow);padding:10px 18px;font-size:8px;color:var(--yellow);text-align:center;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);max-width:320px;"></div>
+  <button class="press-start" style="animation:none;margin-top:8px;font-size:9px;" onclick="closeEvolution()">AMAZING! ▶</button>
+</div>
+
+<!-- DIALOG -->
+<div id="dialog" onclick="closeDialog()">
+  <div id="dialog-text"></div>
+  <div style="text-align:right;font-size:7px;color:var(--yellow);margin-top:8px;">[ Click to continue ]</div>
+</div>
+
+<script>
+// ==============================================
+// GAME STATE
+// ==============================================
+const state = {
+  player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3 },
+  world:{ w:0,h:0 },
+  keys:{}, moving:null,
+  inBattle:false, currentEnemy:null, battleTurn:'player',
+  inGrass:false,
+  encounterCooldown:0,
+  grassZones:[]      // [{x,y,w,h,el,front,isBoss}]
+};
+
+// ==============================================
+// 100 WILD MONSTERS  (tier 1–10, 10 per tier)
+// tier scales with player level automatically
+// element: fire/water/grass/dark/electric/ice/earth/wind/light/null
+// ==============================================
+const WILD = [
+  // ── TIER 1 (LV 1-2) ──────────────────────
+  {t:1, name:'SLIME',         emoji:'🟢', color:'#44cc44', hp:18,  atk:5,  def:1,  exp:8,   coins:4,  element:'water'},
+  {t:1, name:'BROWN RAT',     emoji:'🐭', color:'#aa8844', hp:15,  atk:6,  def:0,  exp:7,   coins:3,  element:null},
+  {t:1, name:'MUSHROOM',      emoji:'🍄', color:'#cc6644', hp:20,  atk:4,  def:2,  exp:9,   coins:5,  element:'grass'},
+  {t:1, name:'TINY MOTH',     emoji:'🦋', color:'#bb88ff', hp:12,  atk:7,  def:0,  exp:7,   coins:3,  element:'wind'},
+  {t:1, name:'PEBBLE CRAB',   emoji:'🦀', color:'#ff8844', hp:22,  atk:3,  def:4,  exp:10,  coins:5,  element:'earth'},
+  {t:1, name:'BABY SLIME',    emoji:'🫧', color:'#88ddff', hp:14,  atk:5,  def:1,  exp:7,   coins:3,  element:'water'},
+  {t:1, name:'LEAF BUG',      emoji:'🐛', color:'#55cc55', hp:16,  atk:6,  def:1,  exp:8,   coins:4,  element:'grass'},
+  {t:1, name:'TINY BAT',      emoji:'🦇', color:'#886688', hp:13,  atk:8,  def:0,  exp:8,   coins:4,  element:'dark'},
+  {t:1, name:'SPARKLING ORB', emoji:'✨', color:'#ffffaa', hp:10,  atk:9,  def:0,  exp:9,   coins:5,  element:'light'},
+  {t:1, name:'MUD FROG',      emoji:'🐸', color:'#669944', hp:20,  atk:5,  def:2,  exp:9,   coins:4,  element:'water'},
+
+  // ── TIER 2 (LV 2-3) ──────────────────────
+  {t:2, name:'GOBLIN',        emoji:'👺', color:'#44bb44', hp:35,  atk:10, def:3,  exp:18,  coins:10, element:'grass'},
+  {t:2, name:'BLUE SLIME',    emoji:'🟦', color:'#4488ff', hp:30,  atk:9,  def:3,  exp:16,  coins:9,  element:'water'},
+  {t:2, name:'FLAME PUP',     emoji:'🔥', color:'#ff6633', hp:28,  atk:12, def:2,  exp:17,  coins:10, element:'fire'},
+  {t:2, name:'ICE SPRITE',    emoji:'❄️', color:'#aaddff', hp:25,  atk:11, def:2,  exp:16,  coins:9,  element:'ice'},
+  {t:2, name:'ROCK GOLEM Jr', emoji:'🪨', color:'#888866', hp:45,  atk:7,  def:7,  exp:20,  coins:12, element:'earth'},
+  {t:2, name:'VINE CREEP',    emoji:'🌿', color:'#33aa33', hp:32,  atk:10, def:3,  exp:17,  coins:9,  element:'grass'},
+  {t:2, name:'SPARK BEETLE',  emoji:'⚡', color:'#ffee00', hp:26,  atk:13, def:1,  exp:18,  coins:10, element:'electric'},
+  {t:2, name:'SAND WORM',     emoji:'🐛', color:'#ccaa66', hp:38,  atk:8,  def:4,  exp:18,  coins:10, element:'earth'},
+  {t:2, name:'SHADOW PUP',    emoji:'🌑', color:'#444466', hp:28,  atk:12, def:2,  exp:17,  coins:9,  element:'dark'},
+  {t:2, name:'WATER JELLY',   emoji:'🫧', color:'#66bbff', hp:30,  atk:9,  def:4,  exp:17,  coins:9,  element:'water'},
+
+  // ── TIER 3 (LV 3-4) ──────────────────────
+  {t:3, name:'ORC GRUNT',     emoji:'👹', color:'#558844', hp:55,  atk:15, def:5,  exp:28,  coins:18, element:'earth'},
+  {t:3, name:'SKELETON',      emoji:'💀', color:'#cccccc', hp:48,  atk:18, def:3,  exp:30,  coins:20, element:null},
+  {t:3, name:'FIRE LIZARD',   emoji:'🦎', color:'#ff7744', hp:45,  atk:17, def:5,  exp:28,  coins:18, element:'fire'},
+  {t:3, name:'SWAMP TOAD',    emoji:'🐊', color:'#447744', hp:60,  atk:13, def:7,  exp:29,  coins:18, element:'water'},
+  {t:3, name:'STORM CROW',    emoji:'🐦', color:'#7788aa', hp:40,  atk:19, def:3,  exp:28,  coins:17, element:'wind'},
+  {t:3, name:'FROST WOLF',    emoji:'🐺', color:'#aaccee', hp:52,  atk:16, def:5,  exp:30,  coins:19, element:'ice'},
+  {t:3, name:'CAVE SPIDER',   emoji:'🕷️', color:'#554444', hp:42,  atk:20, def:2,  exp:29,  coins:18, element:'dark'},
+  {t:3, name:'ROCK TORTOISE', emoji:'🐢', color:'#887755', hp:70,  atk:10, def:12, exp:30,  coins:20, element:'earth'},
+  {t:3, name:'VOLT SHRIMP',   emoji:'🦐', color:'#ffdd44', hp:38,  atk:21, def:2,  exp:29,  coins:18, element:'electric'},
+  {t:3, name:'POISON IVY',    emoji:'🌱', color:'#66cc44', hp:44,  atk:16, def:6,  exp:28,  coins:17, element:'grass'},
+
+  // ── TIER 4 (LV 4-5) ──────────────────────
+  {t:4, name:'DARK GOBLIN',   emoji:'😈', color:'#6633aa', hp:65,  atk:22, def:7,  exp:40,  coins:26, element:'dark'},
+  {t:4, name:'HARPY',         emoji:'🦅', color:'#bb8844', hp:55,  atk:24, def:5,  exp:40,  coins:26, element:'wind'},
+  {t:4, name:'LAVA SLUG',     emoji:'🌋', color:'#ff5522', hp:70,  atk:20, def:9,  exp:42,  coins:28, element:'fire'},
+  {t:4, name:'SEA WITCH',     emoji:'🧜', color:'#4488bb', hp:58,  atk:23, def:7,  exp:40,  coins:26, element:'water'},
+  {t:4, name:'THUNDER HAWK',  emoji:'⚡', color:'#ffcc00', hp:52,  atk:26, def:4,  exp:41,  coins:27, element:'electric'},
+  {t:4, name:'ICE GOLEM',     emoji:'🧊', color:'#aaddff', hp:80,  atk:16, def:13, exp:42,  coins:28, element:'ice'},
+  {t:4, name:'BONE WARRIOR',  emoji:'🦴', color:'#ddddaa', hp:62,  atk:22, def:8,  exp:40,  coins:26, element:null},
+  {t:4, name:'FOREST FAIRY',  emoji:'🧚', color:'#ff88ff', hp:48,  atk:24, def:5,  exp:39,  coins:25, element:'grass'},
+  {t:4, name:'EARTH BOAR',    emoji:'🐗', color:'#885533', hp:75,  atk:19, def:10, exp:41,  coins:27, element:'earth'},
+  {t:4, name:'MIASMA',        emoji:'💜', color:'#9944bb', hp:55,  atk:25, def:6,  exp:40,  coins:26, element:'dark'},
+
+  // ── TIER 5 (LV 5-6) ──────────────────────
+  {t:5, name:'TROLL',         emoji:'🧌', color:'#557744', hp:90,  atk:26, def:10, exp:55,  coins:36, element:'earth'},
+  {t:5, name:'FIRE SNAKE',    emoji:'🐍', color:'#ff4422', hp:75,  atk:28, def:7,  exp:55,  coins:36, element:'fire'},
+  {t:5, name:'SIREN',         emoji:'🎶', color:'#66aaff', hp:68,  atk:30, def:6,  exp:56,  coins:37, element:'water'},
+  {t:5, name:'WEREWOLF',      emoji:'🐺', color:'#996633', hp:85,  atk:28, def:8,  exp:56,  coins:37, element:'dark'},
+  {t:5, name:'STORM GIANT',   emoji:'🌪️', color:'#88aacc', hp:95,  atk:24, def:12, exp:57,  coins:38, element:'wind'},
+  {t:5, name:'BLIZZARD FOX',  emoji:'🦊', color:'#cceeff', hp:72,  atk:29, def:8,  exp:55,  coins:36, element:'ice'},
+  {t:5, name:'THUNDER EEL',   emoji:'🐟', color:'#ffee44', hp:70,  atk:31, def:5,  exp:56,  coins:37, element:'electric'},
+  {t:5, name:'VINE HYDRA',    emoji:'🌿', color:'#338833', hp:88,  atk:25, def:11, exp:56,  coins:37, element:'grass'},
+  {t:5, name:'GARGOYLE',      emoji:'🗿', color:'#777788', hp:100, atk:22, def:14, exp:57,  coins:38, element:'earth'},
+  {t:5, name:'DUSK PHANTOM',  emoji:'👻', color:'#8866cc', hp:65,  atk:32, def:5,  exp:56,  coins:37, element:'dark'},
+
+  // ── TIER 6 (LV 6-7) ──────────────────────
+  {t:6, name:'MINI DRAGON',   emoji:'🐲', color:'#ff6644', hp:105, atk:32, def:12, exp:72,  coins:48, element:'fire'},
+  {t:6, name:'SEA SERPENT',   emoji:'🐉', color:'#3377bb', hp:110, atk:30, def:13, exp:72,  coins:48, element:'water'},
+  {t:6, name:'SHADOW KNIGHT', emoji:'🗡️', color:'#334455', hp:100, atk:34, def:11, exp:73,  coins:49, element:'dark'},
+  {t:6, name:'CYCLONE BIRD',  emoji:'🦜', color:'#99ccdd', hp:90,  atk:36, def:8,  exp:72,  coins:48, element:'wind'},
+  {t:6, name:'LAVA TITAN',    emoji:'🌋', color:'#dd4411', hp:120, atk:30, def:14, exp:74,  coins:50, element:'fire'},
+  {t:6, name:'GLACIER BEAR',  emoji:'🐻', color:'#aaddff', hp:115, atk:28, def:16, exp:73,  coins:49, element:'ice'},
+  {t:6, name:'THUNDER LION',  emoji:'🦁', color:'#ffcc22', hp:102, atk:35, def:10, exp:73,  coins:49, element:'electric'},
+  {t:6, name:'TREANT',        emoji:'🌳', color:'#557733', hp:125, atk:26, def:17, exp:74,  coins:50, element:'grass'},
+  {t:6, name:'IRON GOLEM',    emoji:'🤖', color:'#888899', hp:130, atk:24, def:20, exp:74,  coins:50, element:'earth'},
+  {t:6, name:'BANSHEE',       emoji:'😱', color:'#cc88ff', hp:88,  atk:38, def:7,  exp:73,  coins:49, element:'dark'},
+
+  // ── TIER 7 (LV 7-8) ──────────────────────
+  {t:7, name:'WYVERN',        emoji:'🐉', color:'#884422', hp:130, atk:38, def:14, exp:92,  coins:62, element:'fire'},
+  {t:7, name:'KRAKEN ARM',    emoji:'🐙', color:'#224488', hp:140, atk:34, def:16, exp:92,  coins:62, element:'water'},
+  {t:7, name:'DEATH KNIGHT',  emoji:'⚔️', color:'#223344', hp:125, atk:40, def:13, exp:93,  coins:63, element:'dark'},
+  {t:7, name:'TEMPEST DRAKE', emoji:'🌩️', color:'#5577aa', hp:120, atk:42, def:11, exp:93,  coins:63, element:'electric'},
+  {t:7, name:'FROST TITAN',   emoji:'🧊', color:'#88ccff', hp:150, atk:33, def:18, exp:94,  coins:64, element:'ice'},
+  {t:7, name:'MAGMA WYRM',    emoji:'🌋', color:'#ff3300', hp:135, atk:38, def:15, exp:93,  coins:63, element:'fire'},
+  {t:7, name:'ELDER TREANT',  emoji:'🌲', color:'#335522', hp:155, atk:30, def:20, exp:94,  coins:64, element:'grass'},
+  {t:7, name:'STORM GENIE',   emoji:'🌪️', color:'#77aacc', hp:115, atk:44, def:10, exp:93,  coins:63, element:'wind'},
+  {t:7, name:'FALLEN ANGEL',  emoji:'👼', color:'#ddbbff', hp:120, atk:43, def:12, exp:93,  coins:63, element:'light'},
+  {t:7, name:'VOID REAPER',   emoji:'💀', color:'#110022', hp:110, atk:46, def:9,  exp:94,  coins:64, element:'dark'},
+
+  // ── TIER 8 (LV 8-9) ──────────────────────
+  {t:8, name:'HELLHOUND',     emoji:'🔥', color:'#cc2200', hp:150, atk:46, def:16, exp:115, coins:78, element:'fire'},
+  {t:8, name:'TIDAL LEVIATH', emoji:'🌊', color:'#1155aa', hp:165, atk:42, def:18, exp:115, coins:78, element:'water'},
+  {t:8, name:'NECROMANCER',   emoji:'🧟', color:'#334422', hp:140, atk:48, def:15, exp:116, coins:79, element:'dark'},
+  {t:8, name:'THUNDER GOD Jr',emoji:'⚡', color:'#ffdd00', hp:145, atk:50, def:13, exp:116, coins:79, element:'electric'},
+  {t:8, name:'BLIZZARD DRAKE',emoji:'🐉', color:'#99ddff', hp:160, atk:44, def:19, exp:116, coins:79, element:'ice'},
+  {t:8, name:'VOLCANO GIANT', emoji:'🗻', color:'#ee4411', hp:180, atk:40, def:22, exp:117, coins:80, element:'fire'},
+  {t:8, name:'WIND COLOSSUS', emoji:'🌪️', color:'#aabbcc', hp:155, atk:46, def:17, exp:116, coins:79, element:'wind'},
+  {t:8, name:'WORLD SERPENT', emoji:'🐍', color:'#446644', hp:170, atk:43, def:20, exp:117, coins:80, element:'grass'},
+  {t:8, name:'LIGHT PALADIN', emoji:'✨', color:'#ffffcc', hp:148, atk:47, def:18, exp:116, coins:79, element:'light'},
+  {t:8, name:'ABYSSAL SHADE', emoji:'🌑', color:'#000022', hp:138, atk:52, def:14, exp:116, coins:79, element:'dark'},
+
+  // ── TIER 9 (LV 9-10) ─────────────────────
+  {t:9, name:'ARCH DEMON',    emoji:'😈', color:'#aa0011', hp:200, atk:55, def:20, exp:145, coins:100, element:'dark'},
+  {t:9, name:'OCEAN TITAN',   emoji:'🌊', color:'#0033aa', hp:210, atk:50, def:22, exp:145, coins:100, element:'water'},
+  {t:9, name:'INFERNO HYDRA', emoji:'🐲', color:'#ff2200', hp:195, atk:54, def:21, exp:146, coins:101, element:'fire'},
+  {t:9, name:'STORM EMPEROR', emoji:'⛈️', color:'#4455cc', hp:185, atk:58, def:18, exp:146, coins:101, element:'electric'},
+  {t:9, name:'GLACIAL COLOSS',emoji:'🧊', color:'#77bbff', hp:220, atk:48, def:25, exp:147, coins:102, element:'ice'},
+  {t:9, name:'VERDANT WYRM',  emoji:'🌿', color:'#224422', hp:205, atk:52, def:23, exp:146, coins:101, element:'grass'},
+  {t:9, name:'DOOM GUARDIAN', emoji:'🗿', color:'#555544', hp:230, atk:46, def:27, exp:147, coins:102, element:'earth'},
+  {t:9, name:'CELESTIAL HAWK',emoji:'🦅', color:'#ffeecc', hp:190, atk:56, def:19, exp:146, coins:101, element:'light'},
+  {t:9, name:'CHAOS WRAITH',  emoji:'👁️', color:'#660044', hp:180, atk:60, def:17, exp:147, coins:102, element:'dark'},
+  {t:9, name:'ANCIENT GOLEM', emoji:'🤖', color:'#667755', hp:250, atk:44, def:30, exp:148, coins:103, element:'earth'},
+
+  // ── TIER 10 (LV 10+) — LEGENDARY ─────────
+  {t:10,name:'SHADOW DRAGON', emoji:'🐉', color:'#220033', hp:280, atk:65, def:25, exp:180, coins:130, element:'dark'},
+  {t:10,name:'TSUNAMI GOD',   emoji:'🌊', color:'#002266', hp:270, atk:62, def:26, exp:178, coins:128, element:'water'},
+  {t:10,name:'MAGMA PHOENIX', emoji:'🦅', color:'#ff1100', hp:260, atk:66, def:24, exp:178, coins:128, element:'fire'},
+  {t:10,name:'THUNDER TITAN', emoji:'⚡', color:'#ccaa00', hp:255, atk:68, def:22, exp:178, coins:128, element:'electric'},
+  {t:10,name:'ETERNAL ICE',   emoji:'☃️', color:'#cceeFF', hp:290, atk:60, def:28, exp:180, coins:130, element:'ice'},
+  {t:10,name:'GAIA SERPENT',  emoji:'🐍', color:'#115511', hp:275, atk:63, def:27, exp:179, coins:129, element:'grass'},
+  {t:10,name:'VOID EMPEROR',  emoji:'🌌', color:'#110033', hp:265, atk:70, def:22, exp:180, coins:130, element:'dark'},
+  {t:10,name:'CELESTIAL LION',emoji:'🦁', color:'#ffeebb', hp:270, atk:66, def:24, exp:179, coins:129, element:'light'},
+  {t:10,name:'EARTH TITAN',   emoji:'🗻', color:'#443322', hp:300, atk:58, def:32, exp:182, coins:132, element:'earth'},
+  {t:10,name:'CHAOS GOD',     emoji:'💀', color:'#330011', hp:320, atk:72, def:26, exp:200, coins:150, element:null},
+];
+
+const BOSS = { name:'BOSS WIZARD', emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null };
+let bossDefeated = false;
+
+// Pick monsters by player level → tier
+function pickWildMonster(zone) {
+  const lv = state.player.level;
+  // Tier range based on level
+  const minT = Math.max(1, Math.floor(lv * 0.8));
+  const maxT = Math.min(10, Math.ceil(lv * 1.2) + 1);
+  let pool = WILD.filter(m => m.t >= minT && m.t <= maxT);
+  if (!pool.length) pool = WILD.filter(m => m.t === 1);
+  // Boss zone: bias toward higher tier
+  if (zone.isBoss) {
+    const highPool = pool.filter(m => m.t === Math.max(...pool.map(m=>m.t)));
+    if (highPool.length) pool = highPool;
+  }
+  const base = { ...pool[Math.floor(Math.random() * pool.length)] };
+  // Small random scaling so repeated encounters feel different
+  const variance = 0.9 + Math.random() * 0.25;
+  base.hp  = Math.round(base.hp  * variance);
+  base.atk = Math.round(base.atk * variance);
+  base.maxHp = base.hp;
+  return base;
+}
+
+// ==============================================
+// PARTNERS — 3 Evolution Stages (LV 1 / 30 / 60)
+// ==============================================
+const PARTNER_EVOLUTIONS = {
+  fire: [
+    { // Stage 1 — Ignis
+      stage:1, name:'IGNIS',    emoji:'🔥',
+      bonusAtk:10, bonusDef:0,  bonusHp:0,
+      specialName:'🔥 FLARE BURST',
+      specialDesc:'Ignis scorches the enemy!',
+      specialMult:2.5, isHeal:false,
+      strong:['grass','ice'], weak:['water'],
+      passive:'ATK +10'
+    },
+    { // Stage 2 — Pyrolos (LV 30)
+      stage:2, name:'PYROLOS',  emoji:'🌋',
+      bonusAtk:25, bonusDef:5,  bonusHp:20,
+      specialName:'🌋 ERUPTION',
+      specialDesc:'Pyrolos erupts volcanic flames — burns all defenses!',
+      specialMult:3.5, isHeal:false,
+      strong:['grass','ice','earth'], weak:['water'],
+      passive:'ATK +25, ignores 30% DEF',
+      ignoreDefPct:0.3
+    },
+    { // Stage 3 — Infernus (LV 60)
+      stage:3, name:'INFERNUS', emoji:'🐉',
+      bonusAtk:50, bonusDef:12, bonusHp:50,
+      specialName:'🐉 INFERNO NOVA',
+      specialDesc:'Infernus unleashes a cataclysmic firestorm — obliterates!',
+      specialMult:5.0, isHeal:false,
+      strong:['grass','ice','earth','wind'], weak:['water'],
+      passive:'ATK +50, ignores 50% DEF, splash burn',
+      ignoreDefPct:0.5, burnOnHit:true
+    }
+  ],
+  water: [
+    { // Stage 1 — Aqua
+      stage:1, name:'AQUA',     emoji:'💧',
+      bonusAtk:3,  bonusDef:5,  bonusHp:30,
+      specialName:'💧 TIDAL WAVE',
+      specialDesc:'Aqua crashes a huge wave!',
+      specialMult:1.8, isHeal:false,
+      strong:['fire','earth'], weak:['grass','electric'],
+      passive:'HP +30, DEF +5'
+    },
+    { // Stage 2 — Maralith (LV 30)
+      stage:2, name:'MARALITH', emoji:'🌊',
+      bonusAtk:12, bonusDef:15, bonusHp:70,
+      specialName:'🌊 TSUNAMI',
+      specialDesc:'Maralith summons a devastating tsunami!',
+      specialMult:3.0, isHeal:false,
+      strong:['fire','earth','dark'], weak:['grass','electric'],
+      passive:'HP +70, DEF +15, heals 5% HP each turn',
+      regenPct:0.05
+    },
+    { // Stage 3 — Abyssos (LV 60)
+      stage:3, name:'ABYSSOS',  emoji:'🌀',
+      bonusAtk:25, bonusDef:28, bonusHp:120,
+      specialName:'🌀 ABYSSAL WHIRLPOOL',
+      specialDesc:'Abyssos tears open a void whirlpool — drains life!',
+      specialMult:4.0, isHeal:false,
+      strong:['fire','earth','dark','rock'], weak:['grass','electric'],
+      passive:'HP +120, DEF +28, lifesteal 20%',
+      regenPct:0.08, lifesteal:0.2
+    }
+  ],
+  grass: [
+    { // Stage 1 — Sylva
+      stage:1, name:'SYLVA',    emoji:'🌿',
+      bonusAtk:5,  bonusDef:3,  bonusHp:15,
+      specialName:'🌿 NATURE HEAL',
+      specialDesc:'Sylva restores Gozo\'s HP!',
+      specialMult:1.5, isHeal:true,
+      strong:['water','earth'], weak:['fire','ice'],
+      passive:'Special = Heal HP'
+    },
+    { // Stage 2 — Thornwood (LV 30)
+      stage:2, name:'THORNWOOD',emoji:'🌳',
+      bonusAtk:15, bonusDef:10, bonusHp:45,
+      specialName:'🌳 THORNS FURY',
+      specialDesc:'Thornwood erupts thorns — heals Gozo and poisons enemy!',
+      specialMult:2.2, isHeal:true,
+      strong:['water','earth','dark'], weak:['fire','ice'],
+      passive:'HP +45, DEF +10, Special heals AND poisons',
+      poisonOnHit:true, healMult:1.5
+    },
+    { // Stage 3 — Verdantis (LV 60)
+      stage:3, name:'VERDANTIS', emoji:'🌲',
+      bonusAtk:30, bonusDef:20, bonusHp:90,
+      specialName:'🌲 ANCIENT BLOOM',
+      specialDesc:'Verdantis channels ancient life force — massive heal and nature explosion!',
+      specialMult:3.0, isHeal:true,
+      strong:['water','earth','dark','electric'], weak:['fire'],
+      passive:'HP +90, DEF +20, Special heals DOUBLE and damages',
+      poisonOnHit:true, healMult:2.5, dualAction:true
+    }
+  ]
+};
+
+// Current partner state (set from PARTNER_EVOLUTIONS based on stage)
+let partner    = null;
+let pType      = null;
+let partnerStage = 1;
+
+function getPartnerStage(level) {
+  if (level >= 60) return 3;
+  if (level >= 30) return 2;
+  return 1;
+}
+function applyPartnerStage(type, stage) {
+  const evo = PARTNER_EVOLUTIONS[type][stage - 1];
+  partner = evo;
+  partnerStage = stage;
+  // Update HUD + battle button
+  const hudEl = document.getElementById('hud-partner');
+  if (hudEl) hudEl.innerHTML = `${evo.emoji} ${evo.name} <span style="color:#888;font-size:6px">★${stage}</span>`;
+  const btnSp = document.getElementById('btn-special');
+  if (btnSp) btnSp.textContent = evo.specialName;
+}
+
+const DIALOGS = [
+  "Hey Gozo! Walk into the tall grass 🌿 to find wild monsters!",
+  "Rare monsters appear more often deep inside the grass zones...",
+  "Rumor has it the Boss Wizard hides in the bottom-right grass zone! 🧙",
+  "Use your partner's skill for type advantages! ⚡"
+];
+
+// ==============================================
+// STARS
+// ==============================================
+(()=>{
+  const s = document.getElementById('stars');
+  if(!s) return;
+  for(let i=0;i<80;i++){
+    const d=document.createElement('div');
+    d.className='star';
+    d.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${2+Math.random()*4}s;--delay:${-Math.random()*5}s`;
+    s.appendChild(d);
+  }
+})();
+
+// ==============================================
+// TITLE → SELECT
+// ==============================================
+function startGame(){
+  document.getElementById('title-screen').style.display='none';
+  document.getElementById('select-screen').style.display='flex';
+}
+function selectMonster(t){
+  pType=t;
+  document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('sel'));
+  document.querySelector('.mcard.'+t).classList.add('sel');
+  document.getElementById('confirm-sel').style.display='block';
+}
+function confirmMonster(){
+  if(!pType)return;
+  const evo = PARTNER_EVOLUTIONS[pType][0]; // stage 1
+  partner = evo;
+  partnerStage = 1;
+  const p=state.player;
+  p.attack+=evo.bonusAtk; p.defense+=evo.bonusDef;
+  p.maxHp+=evo.bonusHp; p.hp=p.maxHp;
+  document.getElementById('select-screen').style.display='none';
+  initGame();
+}
+
+// ==============================================
+// WEB AUDIO — Sound Effects
+// ==============================================
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio(){ if(!audioCtx) audioCtx=new AudioCtx(); return audioCtx; }
+
+function playGrassRustle(){
+  try{
+    const a=getAudio();
+    const buf=a.createBuffer(1,a.sampleRate*0.18,a.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5)*0.35;
+    const src=a.createBufferSource();
+    const filt=a.createBiquadFilter();
+    filt.type='bandpass'; filt.frequency.value=1800; filt.Q.value=0.6;
+    const gain=a.createGain(); gain.gain.setValueAtTime(0.5,a.currentTime); gain.gain.linearRampToValueAtTime(0,a.currentTime+0.18);
+    src.buffer=buf; src.connect(filt); filt.connect(gain); gain.connect(a.destination);
+    src.start();
+  }catch(e){}
+}
+
+function playEncounterSound(){
+  try{
+    const a=getAudio();
+    // Rising dramatic sting
+    const osc1=a.createOscillator(), osc2=a.createOscillator();
+    const gain=a.createGain();
+    osc1.type='square'; osc2.type='sawtooth';
+    osc1.frequency.setValueAtTime(150,a.currentTime);
+    osc1.frequency.exponentialRampToValueAtTime(600,a.currentTime+0.15);
+    osc1.frequency.exponentialRampToValueAtTime(440,a.currentTime+0.35);
+    osc2.frequency.setValueAtTime(155,a.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(610,a.currentTime+0.15);
+    osc2.frequency.exponentialRampToValueAtTime(445,a.currentTime+0.35);
+    gain.gain.setValueAtTime(0.22,a.currentTime);
+    gain.gain.setValueAtTime(0.22,a.currentTime+0.3);
+    gain.gain.linearRampToValueAtTime(0,a.currentTime+0.5);
+    osc1.connect(gain); osc2.connect(gain); gain.connect(a.destination);
+    osc1.start(); osc2.start(); osc1.stop(a.currentTime+0.5); osc2.stop(a.currentTime+0.5);
+    // Second hit
+    setTimeout(()=>{
+      try{
+        const o=a.createOscillator(), g2=a.createGain();
+        o.type='square'; o.frequency.setValueAtTime(880,a.currentTime);
+        o.frequency.exponentialRampToValueAtTime(220,a.currentTime+0.4);
+        g2.gain.setValueAtTime(0.3,a.currentTime); g2.gain.linearRampToValueAtTime(0,a.currentTime+0.4);
+        o.connect(g2); g2.connect(a.destination); o.start(); o.stop(a.currentTime+0.4);
+      }catch(e){}
+    },300);
+  }catch(e){}
+}
+
+function playLevelUpSound(){
+  try{
+    const a=getAudio();
+    [523,659,784,1047].forEach((freq,i)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='triangle'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0,a.currentTime+i*0.1);
+      g.gain.linearRampToValueAtTime(0.2,a.currentTime+i*0.1+0.05);
+      g.gain.linearRampToValueAtTime(0,a.currentTime+i*0.1+0.25);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+i*0.1+0.3);
+    });
+  }catch(e){}
+}
+
+// ==============================================
+// BATTLE SOUND EFFECTS
+// ==============================================
+
+// Generic sword/punch hit
+function playSoundAttack(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    // Short punchy noise burst
+    const buf=a.createBuffer(1,a.sampleRate*0.12,a.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)*0.8;
+    const src=a.createBufferSource();
+    const filt=a.createBiquadFilter(); filt.type='highpass'; filt.frequency.value=400;
+    const g=a.createGain(); g.gain.setValueAtTime(0.55,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+    src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(a.destination); src.start();
+    // Impact thud
+    const o=a.createOscillator(), g2=a.createGain();
+    o.type='sine'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(60,t+0.1);
+    g2.gain.setValueAtTime(0.4,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+    o.connect(g2); g2.connect(a.destination); o.start(); o.stop(t+0.1);
+  }catch(e){}
+}
+
+// Enemy gets hit
+function playSoundHit(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='square'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(120,t+0.08);
+    g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+    o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.1);
+  }catch(e){}
+}
+
+// Gozo takes damage
+function playSoundPlayerHurt(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(440,t); o.frequency.exponentialRampToValueAtTime(200,t+0.15);
+    g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.18);
+    o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.18);
+    // second screech layer
+    setTimeout(()=>{
+      try{
+        const a2=getAudio(), t2=a2.currentTime;
+        const o2=a2.createOscillator(), g2=a2.createGain();
+        o2.type='square'; o2.frequency.setValueAtTime(350,t2); o2.frequency.exponentialRampToValueAtTime(150,t2+0.12);
+        g2.gain.setValueAtTime(0.2,t2); g2.gain.linearRampToValueAtTime(0,t2+0.14);
+        o2.connect(g2); g2.connect(a2.destination); o2.start(); o2.stop(t2+0.14);
+      }catch(e){}
+    },40);
+  }catch(e){}
+}
+
+// Potion heal
+function playSoundHeal(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    [523,659,784,880].forEach((f,i)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+i*0.06);
+      g.gain.linearRampToValueAtTime(0.18,t+i*0.06+0.04);
+      g.gain.linearRampToValueAtTime(0,t+i*0.06+0.14);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.06+0.16);
+    });
+  }catch(e){}
+}
+
+// Run away (blip down)
+function playSoundRun(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    [440,330,220].forEach((f,i)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='square'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.18,t+i*0.07); g.gain.linearRampToValueAtTime(0,t+i*0.07+0.08);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.07+0.1);
+    });
+  }catch(e){}
+}
+
+// Victory fanfare
+function playSoundVictory(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    const seq=[523,523,523,415,523,659,523,415,523,659,784];
+    const dur=[.12,.12,.12,.18,.12,.3,.12,.18,.12,.18,.5];
+    let cur=t;
+    seq.forEach((f,i)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='square'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.18,cur); g.gain.setValueAtTime(0.18,cur+dur[i]*.8); g.gain.linearRampToValueAtTime(0,cur+dur[i]);
+      o.connect(g); g.connect(a.destination); o.start(cur); o.stop(cur+dur[i]);
+      cur+=dur[i];
+    });
+  }catch(e){}
+}
+
+// Defeat sound
+function playSoundDefeat(){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    [440,415,392,370,349].forEach((f,i)=>{
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='sawtooth'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.22,t+i*0.18); g.gain.linearRampToValueAtTime(0,t+i*0.18+0.2);
+      o.connect(g); g.connect(a.destination); o.start(t+i*0.18); o.stop(t+i*0.18+0.22);
+    });
+  }catch(e){}
+}
+
+// SKILL sounds — unique per element/partner type
+function playSoundSkill(partnerType){
+  try{
+    const a=getAudio(), t=a.currentTime;
+    if(partnerType==='fire'||partnerType==='IGNIS'||partnerType==='PYROLOS'||partnerType==='INFERNUS'){
+      // Fire crackle: noise burst + rising pitch
+      const buf=a.createBuffer(1,a.sampleRate*0.3,a.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,0.6)*0.7;
+      const src=a.createBufferSource();
+      const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=2200; filt.Q.value=0.5;
+      const g=a.createGain(); g.gain.setValueAtTime(0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+      src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(a.destination); src.start();
+      // Whoosh up
+      const o=a.createOscillator(), g2=a.createGain();
+      o.type='sawtooth'; o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(1800,t+0.25);
+      g2.gain.setValueAtTime(0.25,t); g2.gain.linearRampToValueAtTime(0,t+0.28);
+      o.connect(g2); g2.connect(a.destination); o.start(); o.stop(t+0.28);
+
+    } else if(partnerType==='water'||partnerType==='AQUA'||partnerType==='MARALITH'||partnerType==='ABYSSOS'){
+      // Water wave: low rumble + splashy noise
+      const o=a.createOscillator(), g=a.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(80,t); o.frequency.linearRampToValueAtTime(140,t+0.2); o.frequency.linearRampToValueAtTime(60,t+0.45);
+      g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.5);
+      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.5);
+      // Splash noise
+      const buf=a.createBuffer(1,a.sampleRate*0.2,a.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(i<d.length*0.4?i/(d.length*0.4):1-i/d.length)*0.5;
+      const src=a.createBufferSource();
+      const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=800; filt.Q.value=0.8;
+      const g2=a.createGain(); g2.gain.setValueAtTime(0.5,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(a.destination); src.start();
+
+    } else {
+      // Grass / heal: gentle chime arpeggio
+      [392,494,587,740,880].forEach((f,i)=>{
+        const o=a.createOscillator(), g=a.createGain();
+        o.type='triangle'; o.frequency.value=f;
+        g.gain.setValueAtTime(0,t+i*0.07);
+        g.gain.linearRampToValueAtTime(0.2,t+i*0.07+0.05);
+        g.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.3);
+        o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.07+0.32);
+      });
+      // Leafy rustle
+      const buf=a.createBuffer(1,a.sampleRate*0.15,a.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.2)*0.3;
+      const src=a.createBufferSource();
+      const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=1200; filt.Q.value=1;
+      const g2=a.createGain(); g2.gain.setValueAtTime(0.4,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(a.destination); src.start();
+    }
+  }catch(e){}
+}
+const CAM = { x:0, y:0 };
+const WORLD_W = 2400, WORLD_H = 1800;
+
+function updateCamera(){
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const px = state.player.x + 24, py = state.player.y + 32;
+  CAM.x = Math.max(0, Math.min(WORLD_W - vw, px - vw/2));
+  CAM.y = Math.max(0, Math.min(WORLD_H - vh, py - vh/2));
+  const worldEl = document.getElementById('world');
+  if(worldEl) worldEl.style.transform = `translate(${-CAM.x}px,${-CAM.y}px)`;
+  updateMinimap();
+}
+
+let _minimapDrawn = false;
+function updateMinimap(){
+  const mm = document.getElementById('minimap-canvas');
+  if(!mm) return;
+  const ctx = mm.getContext('2d');
+  const MW = 120, MH = 90;
+  const scaleX = MW / WORLD_W, scaleY = MH / WORLD_H;
+
+  // Draw static map once (background + zones)
+  if(!_minimapDrawn){
+    _minimapDrawn = true;
+    ctx.fillStyle = '#8c6234';
+    ctx.fillRect(0, 0, MW, MH);
+    // Paths — horizontal
+    ctx.fillStyle = '#c9a96e';
+    ctx.fillRect(0, (WORLD_H/2-30)*scaleY, MW, 60*scaleY);
+    // Paths — vertical
+    ctx.fillRect((WORLD_W/2-30)*scaleX, 0, 60*scaleX, MH);
+    // Grass zones
+    state.grassZones.forEach(z => {
+      ctx.fillStyle = z.isBoss ? 'rgba(170,68,255,.55)' : 'rgba(30,160,30,.5)';
+      ctx.fillRect(z.x*scaleX, z.y*scaleY, z.w*scaleX, z.h*scaleY);
+    });
+  }
+
+  // Player dot
+  const mp = document.getElementById('minimap-player');
+  if(mp){
+    mp.style.left = (state.player.x * scaleX) + 'px';
+    mp.style.top  = (state.player.y * scaleY) + 'px';
+  }
+}
+
+// ==============================================
+// PIXEL ART GROUND — cobblestone/dirt tiles
+// Reference: brown pebble pattern with dark outlines
+// ==============================================
+
+// Color palette from reference image
+const GR_BASE  = '#a07040'; // mid brown base
+const GR_LIGHT = '#c89858'; // light highlight on stones
+const GR_LITE2 = '#d4aa6a'; // brightest highlight
+const GR_DARK  = '#7a4e28'; // dark shadow/cracks
+const GR_EDGE  = '#5a3818'; // darkest outline between stones
+const GR_MID   = '#8c6234'; // medium tone
+const GR_FILL  = '#b07c44'; // stone fill
+
+// Each stone defined as polygon points on a 32×32 grid
+// Format: array of {points:[[x,y],...], fill, highlight, shadow}
+const STONE_TILES = [
+  // Tile A — 4 stones
+  {stones:[
+    {pts:[[1,1],[13,1],[15,5],[13,13],[5,15],[1,11]],             fill:GR_FILL, hi:GR_LITE2, sh:GR_DARK},
+    {pts:[[15,1],[29,1],[31,5],[29,13],[17,13],[15,5]],           fill:GR_BASE, hi:GR_LIGHT, sh:GR_DARK},
+    {pts:[[1,15],[13,15],[15,19],[13,29],[5,31],[1,27]],          fill:GR_LIGHT,hi:GR_LITE2, sh:GR_MID},
+    {pts:[[15,15],[29,15],[31,19],[29,31],[17,31],[15,19]],       fill:GR_MID,  hi:GR_FILL,  sh:GR_DARK},
+  ]},
+  // Tile B — 3 large stones
+  {stones:[
+    {pts:[[1,1],[19,1],[21,3],[21,17],[17,19],[1,17]],            fill:GR_BASE, hi:GR_LITE2, sh:GR_DARK},
+    {pts:[[21,1],[31,1],[31,11],[25,13],[21,11],[21,3]],          fill:GR_FILL, hi:GR_LIGHT, sh:GR_DARK},
+    {pts:[[1,19],[21,19],[23,21],[21,31],[3,31],[1,27]],          fill:GR_LIGHT,hi:GR_LITE2, sh:GR_MID},
+    {pts:[[23,19],[31,19],[31,31],[23,31]],                       fill:GR_MID,  hi:GR_FILL,  sh:GR_DARK},
+  ]},
+  // Tile C — 5 smaller stones
+  {stones:[
+    {pts:[[1,1],[11,1],[13,5],[11,11],[3,13],[1,9]],              fill:GR_FILL, hi:GR_LITE2, sh:GR_DARK},
+    {pts:[[13,1],[23,1],[25,3],[25,11],[15,13],[13,9],[13,5]],    fill:GR_BASE, hi:GR_LIGHT, sh:GR_DARK},
+    {pts:[[25,1],[31,1],[31,9],[27,11],[25,9],[25,3]],            fill:GR_MID,  hi:GR_FILL,  sh:GR_DARK},
+    {pts:[[1,13],[13,13],[15,17],[13,25],[5,27],[1,23]],          fill:GR_LIGHT,hi:GR_LITE2, sh:GR_MID},
+    {pts:[[15,13],[31,13],[31,27],[23,29],[15,25],[15,17]],       fill:GR_BASE, hi:GR_LIGHT, sh:GR_DARK},
+    {pts:[[1,25],[13,25],[15,29],[13,31],[1,31]],                 fill:GR_MID,  hi:GR_FILL,  sh:GR_DARK},
+    {pts:[[23,27],[31,27],[31,31],[21,31]],                       fill:GR_FILL, hi:GR_LITE2, sh:GR_DARK},
+  ]},
+  // Tile D — wide irregular stones
+  {stones:[
+    {pts:[[1,1],[17,1],[19,3],[17,15],[7,17],[1,13]],             fill:GR_BASE, hi:GR_LITE2, sh:GR_DARK},
+    {pts:[[19,1],[31,1],[31,13],[25,15],[19,13],[19,3]],          fill:GR_FILL, hi:GR_LIGHT, sh:GR_MID},
+    {pts:[[1,17],[9,17],[11,19],[9,31],[1,31]],                   fill:GR_LIGHT,hi:GR_LITE2, sh:GR_DARK},
+    {pts:[[11,17],[25,17],[27,19],[25,31],[11,31],[11,19]],       fill:GR_MID,  hi:GR_FILL,  sh:GR_DARK},
+    {pts:[[27,15],[31,15],[31,31],[25,31],[25,19],[27,19]],       fill:GR_BASE, hi:GR_LIGHT, sh:GR_DARK},
+  ]},
+];
+
+const GROUND_TILE_SIZE = 32;
+
+function drawGroundTile(ctx, tx, ty, variant){
+  const S = GROUND_TILE_SIZE;
+  const ox = tx * S, oy = ty * S;
+  const tile = STONE_TILES[variant % STONE_TILES.length];
+
+  // Fill background (crack/gap color)
+  ctx.fillStyle = GR_EDGE;
+  ctx.fillRect(ox, oy, S, S);
+
+  tile.stones.forEach(stone => {
+    const pts = stone.pts;
+    if(pts.length < 3) return;
+
+    // Fill stone base
+    ctx.fillStyle = stone.fill;
+    ctx.beginPath();
+    ctx.moveTo(ox + pts[0][0], oy + pts[0][1]);
+    for(let i = 1; i < pts.length; i++) ctx.lineTo(ox + pts[i][0], oy + pts[i][1]);
+    ctx.closePath();
+    ctx.fill();
+
+    // Dark outline (1px inset shadow on bottom-right)
+    ctx.strokeStyle = stone.sh;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Highlight: top-left pixels (first 2 edges)
+    if(pts.length >= 2){
+      ctx.strokeStyle = stone.hi;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ox + pts[0][0] + 1, oy + pts[0][1] + 1);
+      ctx.lineTo(ox + pts[1][0] - 1, oy + pts[1][1] + 1);
+      ctx.stroke();
+      // Left edge highlight
+      ctx.beginPath();
+      ctx.moveTo(ox + pts[0][0] + 1, oy + pts[0][1] + 1);
+      ctx.lineTo(ox + pts[pts.length-1][0] + 1, oy + pts[pts.length-1][1] - 1);
+      ctx.stroke();
+    }
+
+    // Small bright pixel in top-left of each stone
+    ctx.fillStyle = stone.hi;
+    ctx.fillRect(ox + pts[0][0] + 2, oy + pts[0][1] + 2, 2, 1);
+  });
+}
+
+function makeGroundTileCanvas(variant){
+  const S = GROUND_TILE_SIZE;
+  const c = document.createElement('canvas');
+  c.width = S; c.height = S;
+  const ctx = c.getContext('2d');
+  drawGroundTile(ctx, 0, 0, variant);
+  return c;
+}
+
+function renderGroundCanvas(){
+  const canvas = document.getElementById('ground-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const S = GROUND_TILE_SIZE;
+  const tilesX = Math.ceil(WORLD_W / S);
+  const tilesY = Math.ceil(WORLD_H / S);
+
+  // Pre-render 4 tile variants as OffscreenCanvas patterns
+  const tileCache = STONE_TILES.map((_, i) => makeGroundTileCanvas(i));
+
+  // Seeded random for consistent tile placement
+  let seed = 42;
+  const rng = () => { seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; };
+
+  for(let ty = 0; ty < tilesY; ty++){
+    for(let tx = 0; tx < tilesX; tx++){
+      const v = Math.floor(rng() * STONE_TILES.length);
+      ctx.drawImage(tileCache[v], tx * S, ty * S);
+    }
+  }
+}
+
+// ==============================================
+// INIT GAME
+// ==============================================
+function initGame(){
+  document.getElementById('game-screen').style.display='block';
+  state.world.w = WORLD_W;
+  state.world.h = WORLD_H;
+  state.player.x = WORLD_W/2 - 24;
+  state.player.y = WORLD_H/2 - 32;
+  buildMap();
+  spawnDecorations();
+  renderGroundCanvas();
+  updatePlayerPos();
+  updateCamera();
+  updateHUD();
+  const hp2=document.getElementById('hud-partner'); if(hp2) hp2.innerHTML=`${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★1</span>`;
+  const bs2=document.getElementById('btn-special'); if(bs2) bs2.textContent=partner.specialName;
+  renderGozo('down', 0);
+  setTimeout(()=>showDialog('🌿 '+partner.name+' joined the team! Walk into tall grass to find wild monsters!'),900);
+  requestAnimationFrame(gameLoop);
+}
+
+// ==============================================
+// BUILD MAP — larger, richer layout
+// ==============================================
+function buildMap(){
+  const world = document.getElementById('world');
+  const W = WORLD_W, H = WORLD_H;
+  const pathW = 60; // wider paths
+
+  // === PATHS ===
+  // Main horizontal road
+  const ph = document.createElement('div'); ph.className='path-h';
+  ph.style.cssText=`left:0;top:${H/2-pathW/2}px;width:${W}px;height:${pathW}px;`;
+  world.appendChild(ph);
+
+  // Main vertical road
+  const pv = document.createElement('div'); pv.className='path-v';
+  pv.style.cssText=`left:${W/2-pathW/2}px;top:0;width:${pathW}px;height:${H}px;`;
+  world.appendChild(pv);
+
+  // Secondary horizontal paths
+  [[H*0.25, H*0.4],[H*0.65, H*0.85]].forEach(([y1,y2])=>{
+    [y1,y2].forEach(y=>{
+      const p=document.createElement('div'); p.className='path-h';
+      p.style.cssText=`left:0;top:${y-20}px;width:${W}px;height:36px;opacity:.7;`;
+      world.appendChild(p);
+    });
+  });
+
+  // Secondary vertical paths
+  [[W*0.25,W*0.4],[W*0.65,W*0.85]].forEach(([x1,x2])=>{
+    [x1,x2].forEach(x=>{
+      const p=document.createElement('div'); p.className='path-v';
+      p.style.cssText=`left:${x-18}px;top:0;width:36px;height:${H}px;opacity:.7;`;
+      world.appendChild(p);
+    });
+  });
+
+  // === GRASS ZONES — many larger zones ===
+  // Each zone: {x,y,w,h,label,isBoss}
+  // Spread across the 2400×1800 world with various sizes
+  const zones = [
+    // Main 4 quadrant zones (large)
+    {x:80,    y:80,    w:860,  h:740,  label:'🌿 ZONE A — Beginner Fields',   isBoss:false},
+    {x:1460,  y:80,    w:860,  h:740,  label:'🌿 ZONE B — Misty Meadows',     isBoss:false},
+    {x:80,    y:1000,  w:860,  h:740,  label:'🌿 ZONE C — Dark Forest',       isBoss:false},
+    {x:1460,  y:1000,  w:860,  h:740,  label:'⚠️ ZONE D — Boss Territory',   isBoss:true},
+
+    // Mid zones between main paths
+    {x:1020,  y:80,    w:360,  h:320,  label:'🌿 ZONE E',                      isBoss:false},
+    {x:80,    y:840,   w:360,  h:280,  label:'🌿 ZONE F',                      isBoss:false},
+    {x:1460,  y:840,   w:360,  h:280,  label:'🌿 ZONE G',                      isBoss:false},
+    {x:1020,  y:1380,  w:360,  h:340,  label:'🌿 ZONE H',                      isBoss:false},
+
+    // Corner secret patches
+    {x:80,    y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
+    {x:1460,  y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
+    {x:2120,  y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
+    {x:80,    y:1380,  w:200,  h:160,  label:'🌿',                             isBoss:false},
+    {x:2120,  y:1380,  w:200,  h:160,  label:'🌿',                             isBoss:false},
+
+    // Scattered small patches alongside paths
+    {x:1050,  y:660,   w:140,  h:200,  label:'🌿',                             isBoss:false},
+    {x:1230,  y:660,   w:140,  h:200,  label:'🌿',                             isBoss:false},
+    {x:660,   y:840,   w:200,  h:140,  label:'🌿',                             isBoss:false},
+    {x:660,   y:1020,  w:200,  h:140,  label:'🌿',                             isBoss:false},
+    {x:1540,  y:840,   w:160,  h:140,  label:'🌿',                             isBoss:false},
+    {x:1700,  y:840,   w:160,  h:140,  label:'🌿',                             isBoss:false},
+  ];
+
+  zones.forEach(g => {
+    if(g.w < 80 || g.h < 80) return;
+    const isBigZone = g.w > 400;
+
+    // Back layer — pixel art grass canvas
+    const back = document.createElement('div');
+    back.className = 'tg-back';
+    back.style.cssText = `left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;`;
+    back.appendChild(makeGrassCanvas(g.w, g.h, g.isBoss, false));
+    const lbl = document.createElement('div');
+    lbl.className = 'tg-label'; lbl.textContent = g.label;
+    back.appendChild(lbl);
+    world.appendChild(back);
+
+    // Front layer — taller (65%), darker canvas for depth
+    const frontH = Math.floor(g.h * 0.65);
+    const front = document.createElement('div');
+    front.className = 'tg-front';
+    front.style.cssText = `left:${g.x}px;top:${g.y+g.h-frontH}px;width:${g.w}px;height:${frontH}px;`;
+    front.appendChild(makeGrassCanvas(g.w, frontH, g.isBoss, true));
+    world.appendChild(front);
+
+    state.grassZones.push({ x:g.x, y:g.y, w:g.w, h:g.h, back, front, isBoss:g.isBoss });
+  });
+}
+
+// ==============================================
+// DECORATIONS — spread across large world
+// ==============================================
+function spawnDecorations(){
+  const world = document.getElementById('world');
+  const W = WORLD_W, H = WORLD_H;
+
+  // Dense tree border around edges
+  for(let x=0; x<W; x+=100+Math.random()*80){
+    addDeco(world, x, 10+Math.random()*30, 'tree');
+    addDeco(world, x, H-50+Math.random()*20, 'tree');
+  }
+  for(let y=80; y<H-80; y+=90+Math.random()*80){
+    addDeco(world, 10+Math.random()*30, y, 'tree');
+    addDeco(world, W-50+Math.random()*20, y, 'tree');
+  }
+
+  // Scattered interior trees
+  for(let i=0;i<60;i++){
+    addDeco(world, 100+Math.random()*(W-200), 80+Math.random()*(H-160), 'tree');
+  }
+
+  // Lots of flowers
+  for(let i=0;i<80;i++){
+    addDeco(world, 50+Math.random()*(W-100), 80+Math.random()*(H-160), 'flower');
+  }
+
+  // Rocks
+  for(let i=0;i<30;i++){
+    addDeco(world, 50+Math.random()*(W-100), 80+Math.random()*(H-160), 'rock');
+  }
+
+  // Water features (decorative ponds)
+  ['💧','🌊','💦'].forEach((e,i)=>{
+    const pd=document.createElement('div');
+    pd.style.cssText=`position:absolute;font-size:28px;z-index:3;left:${[600,1800,1200][i]}px;top:${[400,400,1400][i]}px;filter:drop-shadow(0 2px 4px rgba(0,80,180,.5));`;
+    pd.textContent=e; world.appendChild(pd);
+  });
+
+  // Multiple NPCs
+  const npcs=[
+    {x:W/2+80, y:H/2-90, emoji:'👴', label:'MERCHANT'},
+    {x:W*0.25, y:H*0.25, emoji:'🧝', label:'RANGER'},
+    {x:W*0.75, y:H*0.25, emoji:'🧙', label:'MAGE'},
+    {x:W*0.25, y:H*0.75, emoji:'⚔️', label:'WARRIOR'},
+  ];
+  npcs.forEach(n=>{
+    const npc=document.createElement('div'); npc.className='npc';
+    npc.style.cssText=`left:${n.x}px;top:${n.y}px;font-size:28px;`;
+    npc.innerHTML=`<div>${n.emoji}</div><div style="font-size:5px;color:#FFD700;font-family:'Press Start 2P'">${n.label}</div>`;
+    npc.onclick=()=>showDialog(DIALOGS[Math.floor(Math.random()*DIALOGS.length)]);
+    world.appendChild(npc);
+  });
+
+  // Boss marker
+  const bossMarker=document.createElement('div'); bossMarker.id='boss-marker';
+  bossMarker.style.cssText=`position:absolute;left:${W-150}px;top:${H-160}px;font-size:36px;text-align:center;z-index:13;animation:enemyBob 1.8s ease-in-out infinite;cursor:pointer;`;
+  bossMarker.innerHTML=`<div>🧙</div><div style="font-size:5px;color:#aa44ff;font-family:'Press Start 2P'">⚠️ BOSS</div>`;
+  bossMarker.onclick=()=>showDialog('Enter ⚠️ ZONE D in the bottom-right to fight the Boss Wizard! Requires LV 3+');
+  world.appendChild(bossMarker);
+}
+
+function addDeco(world, x, y, type){
+  const el=document.createElement('div'); el.className=type;
+  el.style.cssText=`left:${x}px;top:${y}px;`;
+  if(type==='tree') el.textContent=['🌲','🌳','🌴','🌵'][Math.floor(Math.random()*4)];
+  else if(type==='flower'){ el.textContent=['🌸','🌼','🌺','🌻','🌷'][Math.floor(Math.random()*5)]; el.style.animationDelay=Math.random()*4+'s'; }
+  else el.textContent='🪨';
+  world.appendChild(el);
+}
+
+// ==============================================
+// PIXEL GRASS TILE  — matches reference image
+// Draws a tileable 16×16 pixel pattern onto a canvas
+// ==============================================
+
+// Tile size in pixels (will be scaled up via CSS width/height:100%)
+const TILE = 16;
+
+// Pixel patterns for grass tile (16×16)
+// Colors from reference: bright green bg, white+ cross, dark green blades
+const G_BG   = '#5ab52a'; // main bright green
+const G_MID  = '#4da022'; // slightly darker green
+const G_DARK = '#2d7010'; // dark blade
+const G_LITE = '#78d43a'; // highlight
+const G_WHT  = '#e8f8c0'; // white-ish cross/flower
+const G_YLW  = '#d4e84a'; // yellow-green small cross
+
+// Each grass tile pattern — array of {dx,dy,w,h,color} pixel rects on 16×16 grid
+// Multiple tile variants for visual variety
+const GRASS_TILES = [
+  // Variant A — cross flower + two blades
+  [
+    // bg is filled separately
+    // cross flower (white +)
+    {x:6,y:3,w:4,h:1,c:G_WHT},{x:7,y:2,w:2,h:3,c:G_WHT},
+    // small yellow cross
+    {x:12,y:8,w:3,h:1,c:G_YLW},{x:13,y:7,w:1,h:3,c:G_YLW},
+    // dark blade left
+    {x:2,y:7,w:1,h:5,c:G_DARK},{x:1,y:6,w:1,h:2,c:G_DARK},{x:3,y:5,w:1,h:2,c:G_DARK},
+    // dark blade right
+    {x:10,y:10,w:1,h:4,c:G_DARK},{x:9,y:9,w:1,h:2,c:G_DARK},{x:11,y:9,w:1,h:2,c:G_DARK},
+    // highlight patch
+    {x:5,y:8,w:2,h:2,c:G_LITE},{x:14,y:13,w:2,h:2,c:G_LITE},
+    // mid-tone patch
+    {x:0,y:12,w:3,h:3,c:G_MID},{x:8,y:5,w:2,h:2,c:G_MID},
+  ],
+  // Variant B — two crosses + single blade
+  [
+    {x:2,y:4,w:4,h:1,c:G_WHT},{x:3,y:3,w:2,h:3,c:G_WHT},
+    {x:10,y:10,w:4,h:1,c:G_YLW},{x:11,y:9,w:2,h:3,c:G_YLW},
+    {x:7,y:5,w:1,h:6,c:G_DARK},{x:6,y:4,w:1,h:2,c:G_DARK},{x:8,y:4,w:1,h:2,c:G_DARK},
+    {x:13,y:1,w:1,h:4,c:G_DARK},{x:12,y:1,w:1,h:2,c:G_DARK},
+    {x:0,y:7,w:2,h:3,c:G_LITE},{x:9,y:13,w:3,h:2,c:G_LITE},
+    {x:5,y:11,w:2,h:2,c:G_MID},{x:14,y:6,w:2,h:3,c:G_MID},
+  ],
+  // Variant C — big cross + tiny blade cluster
+  [
+    {x:5,y:1,w:6,h:1,c:G_WHT},{x:7,y:0,w:2,h:4,c:G_WHT},
+    {x:1,y:11,w:3,h:1,c:G_YLW},{x:2,y:10,w:1,h:3,c:G_YLW},
+    {x:12,y:6,w:3,h:1,c:G_YLW},{x:13,y:5,w:1,h:3,c:G_YLW},
+    {x:3,y:7,w:1,h:5,c:G_DARK},{x:2,y:6,w:2,h:1,c:G_DARK},{x:4,y:6,w:1,h:2,c:G_DARK},
+    {x:10,y:11,w:1,h:4,c:G_DARK},{x:9,y:10,w:2,h:1,c:G_DARK},
+    {x:0,y:0,w:2,h:2,c:G_MID},{x:13,y:13,w:3,h:3,c:G_MID},
+    {x:6,y:9,w:3,h:2,c:G_LITE},
+  ],
+  // Variant D — small crosses scattered
+  [
+    {x:1,y:2,w:3,h:1,c:G_WHT},{x:2,y:1,w:1,h:3,c:G_WHT},
+    {x:8,y:6,w:3,h:1,c:G_WHT},{x:9,y:5,w:1,h:3,c:G_WHT},
+    {x:12,y:12,w:3,h:1,c:G_YLW},{x:13,y:11,w:1,h:3,c:G_YLW},
+    {x:5,y:9,w:1,h:5,c:G_DARK},{x:4,y:8,w:2,h:1,c:G_DARK},{x:6,y:8,w:1,h:2,c:G_DARK},
+    {x:0,y:4,w:2,h:3,c:G_LITE},{x:10,y:2,w:2,h:2,c:G_LITE},
+    {x:7,y:13,w:4,h:2,c:G_MID},{x:14,y:0,w:2,h:3,c:G_MID},
+  ],
+];
+
+// Render a pixel grass tile onto a canvas context at given tile position
+function drawGrassTile(ctx, tx, ty, variant){
+  const v = GRASS_TILES[variant % GRASS_TILES.length];
+  const px = tx * TILE, py = ty * TILE;
+  // Background
+  ctx.fillStyle = G_BG;
+  ctx.fillRect(px, py, TILE, TILE);
+  // Pixel details
+  v.forEach(r => {
+    ctx.fillStyle = r.c;
+    ctx.fillRect(px + r.x, py + r.y, r.w, r.h);
+  });
+}
+
+// Create a pixel-art grass canvas for a zone (capped tile resolution for perf)
+function makeGrassCanvas(w, h, isBoss, isFront){
+  const MAX_TILES = 96; // max tiles per axis
+  const tilesX = Math.min(MAX_TILES, Math.ceil(w / TILE));
+  const tilesY = Math.min(MAX_TILES, Math.ceil(h / TILE));
+  const cw = tilesX * TILE, ch = tilesY * TILE;
+
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  c.style.cssText = `position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;`;
+  const ctx = c.getContext('2d');
+
+  // Seeded-random placement using position
+  let seed = w * 7 + h * 13 + (isBoss ? 99 : 0);
+  const rng = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
+
+  for(let ty = 0; ty < tilesY; ty++){
+    for(let tx = 0; tx < tilesX; tx++){
+      // Pick variant pseudo-randomly but consistently
+      const v = Math.floor(rng() * GRASS_TILES.length);
+      drawGrassTile(ctx, tx, ty, v);
+    }
+  }
+
+  // Boss zone: add purple tint overlay
+  if(isBoss){
+    ctx.fillStyle = 'rgba(100,0,100,.18)';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  // Front layer: darker overlay to give depth
+  if(isFront){
+    ctx.fillStyle = 'rgba(0,30,0,.35)';
+    ctx.fillRect(0, 0, cw, ch);
+  }
+
+  return c;
+}
+
+// Animated swaying — shift canvas via CSS animation offset each frame
+// We do this by applying a CSS translate that oscillates
+let _grassSwayOffset = 0;
+let _grassSwayDir = 1;
+const _grassSwayMax = 3; // px
+function tickGrassSway(){
+  if(!document.getElementById('world')) return;
+  _grassSwayOffset += 0.018 * _grassSwayDir;
+  if(Math.abs(_grassSwayOffset) >= _grassSwayMax) _grassSwayDir *= -1;
+  document.querySelectorAll('.tg-back canvas, .tg-front canvas').forEach(c => {
+    c.style.transform = `translateX(${_grassSwayOffset.toFixed(2)}px) skewX(${(_grassSwayOffset*0.4).toFixed(2)}deg)`;
+  });
+}
+// ==============================================
+// PLAYER POSITION
+// ==============================================
+function updatePlayerPos(){
+  const el=document.getElementById('player');
+  if(!el) return;
+  el.style.left=state.player.x+'px';
+  el.style.top=state.player.y+'px';
+}
+
+// ==============================================
+// ZONE HIT-TEST
+// ==============================================
+function getZoneAt(px,py){
+  for(const z of state.grassZones){
+    if(px>=z.x&&px<=z.x+z.w&&py>=z.y&&py<=z.y+z.h)return z;
+  }
+  return null;
+}
+
+// ==============================================
+// GOZO SPRITE RENDERER
+// Canvas is 48×64px. We paint in a 24×32 grid
+// where each "pixel" = 2×2 real pixels.
+// ==============================================
+
+const SK  = '#d4a574'; // skin
+const SKD = '#c49060'; // skin dark
+const H   = '#181818'; // hair
+const HD  = '#2d2d3d'; // hoodie body
+const HM  = '#3a3a50'; // hoodie mid panel
+const HK  = '#232333'; // hoodie dark (collar/cuff)
+const JN  = '#3a5080'; // jeans
+const JD  = '#2e3f66'; // jeans dark
+const BT  = '#1a1a2e'; // boot dark
+const BT2 = '#252540'; // boot lighter
+const BL  = '#2a2a2a'; // belt
+const BC  = '#aaaaaa'; // belt buckle
+const EW  = '#ffffff'; // eye white
+const EI  = '#3a2a1a'; // iris
+const EP  = '#0d0500'; // pupil
+const MO  = '#9a5535'; // mouth
+const COL = '#555555'; // collar shirt
+
+// Draw a pixel-grid rectangle (grid coords → canvas ×2)
+function R(ctx, x, y, w, h, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(x*2, y*2, w*2, h*2);
+}
+
+// ── SHARED HEAD: front-facing ──────────────
+function headFront(ctx) {
+  R(ctx, 7, 2,10, 8, SK);       // face
+  R(ctx, 5, 4, 2, 4, SKD);      // left ear
+  R(ctx,17, 4, 2, 4, SKD);      // right ear
+  // hair
+  R(ctx, 5, 0,14, 6, H);
+  R(ctx, 7, 2,10, 3, H);
+  R(ctx, 5, 5, 2, 4, H);        // left sideburn
+  R(ctx,17, 5, 2, 4, H);        // right sideburn
+  // eyebrows
+  R(ctx, 7, 4, 5, 1, H);
+  R(ctx,12, 4, 5, 1, H);
+  // eyes
+  R(ctx, 8, 5, 3, 3, EW);  R(ctx,13, 5, 3, 3, EW);
+  R(ctx, 9, 6, 2, 2, EI);  R(ctx,14, 6, 2, 2, EI);
+  R(ctx, 9, 6, 1, 1, EP);  R(ctx,14, 6, 1, 1, EP);
+  R(ctx,10, 6, 1, 1, EW);  R(ctx,15, 6, 1, 1, EW);
+  // nose & mouth
+  R(ctx,11, 8, 2, 1, SKD);
+  R(ctx, 9,10, 6, 1, MO);
+}
+
+// ── SHARED HEAD: back-facing ────────────────
+function headBack(ctx) {
+  R(ctx, 7, 2,10, 8, SK);       // back of head (skin visible at bottom/neck)
+  R(ctx, 5, 4, 2, 4, SKD);
+  R(ctx,17, 4, 2, 4, SKD);
+  // hair covers most of head
+  R(ctx, 5, 0,14, 8, H);
+  R(ctx, 7, 2,10, 6, H);
+  R(ctx, 5, 5, 2, 5, H);
+  R(ctx,17, 5, 2, 5, H);
+}
+
+// ── SHARED HEAD: side LEFT — nose/face on LEFT side (low x) ──
+function headLeft(ctx) {
+  R(ctx, 4, 2,14, 8, SK);        // face bulk — left side
+  R(ctx,18, 4, 2, 4, SKD);       // far ear on right
+  R(ctx, 4, 0,16, 6, H);         // hair top
+  R(ctx, 4, 2,10, 3, H);         // hair over face
+  R(ctx,18, 5, 2, 5, H);         // right sideburn
+  R(ctx, 4, 5, 2, 5, H);         // left hair end
+  R(ctx, 8, 4, 5, 1, H);         // eyebrow — near left
+  R(ctx, 8, 5, 4, 3, EW);        // eye white
+  R(ctx, 9, 6, 2, 2, EI);        // iris
+  R(ctx, 9, 6, 1, 1, EP);        // pupil
+  R(ctx,10, 6, 1, 1, EW);        // shine
+  R(ctx, 3, 8, 2, 1, SKD);       // nose pokes LEFT
+  R(ctx, 5,10, 4, 1, MO);        // mouth
+}
+
+// ── SHARED HEAD: side RIGHT — nose/face on RIGHT side (high x) ──
+function headRight(ctx) {
+  R(ctx, 6, 2,14, 8, SK);        // face bulk — right side
+  R(ctx, 4, 4, 2, 4, SKD);       // far ear on left
+  R(ctx, 4, 0,16, 6, H);         // hair top
+  R(ctx,10, 2,10, 3, H);         // hair over face
+  R(ctx, 4, 5, 2, 5, H);         // left sideburn
+  R(ctx,18, 5, 2, 5, H);         // right hair end
+  R(ctx,11, 4, 5, 1, H);         // eyebrow — near right
+  R(ctx,12, 5, 4, 3, EW);        // eye white
+  R(ctx,13, 6, 2, 2, EI);        // iris
+  R(ctx,13, 6, 1, 1, EP);        // pupil
+  R(ctx,14, 6, 1, 1, EW);        // shine
+  R(ctx,19, 8, 2, 1, SKD);       // nose pokes RIGHT
+  R(ctx,15,10, 4, 1, MO);        // mouth
+}
+
+// ── SIDE LEGS: facing left — front leg on left (low x) ──
+function legsSideL(ctx, step) {
+  const fY = step===1 ? -3 : step===2 ?  3 : 0;
+  const bY = step===1 ?  3 : step===2 ? -3 : 0;
+  // back leg further right
+  R(ctx,11,19, 6, 9+bY, JD);
+  R(ctx,11,27+bY, 6, 4, BT);
+  R(ctx,10,29+bY, 8, 2, BT2);
+  // front leg further left
+  R(ctx, 5,19, 7, 9+fY, JN);
+  R(ctx, 5,27+fY, 6, 4, BT);
+  R(ctx, 4,29+fY, 8, 2, BT2);
+}
+
+// ── SIDE LEGS: facing right — front leg on right (high x) ──
+function legsSideR(ctx, step) {
+  const fY = step===1 ? -3 : step===2 ?  3 : 0;
+  const bY = step===1 ?  3 : step===2 ? -3 : 0;
+  // back leg further left
+  R(ctx, 7,19, 6, 9+bY, JD);
+  R(ctx, 7,27+bY, 6, 4, BT);
+  R(ctx, 6,29+bY, 8, 2, BT2);
+  // front leg further right
+  R(ctx,12,19, 7, 9+fY, JN);
+  R(ctx,12,27+fY, 6, 4, BT);
+  R(ctx,11,29+fY, 8, 2, BT2);
+}
+
+// ── SIDE ARMS: facing left — front arm on left ──
+function armsSideL(ctx, step) {
+  const fA = step===1 ? -3 : step===2 ?  3 : 0;
+  const bA = step===1 ?  3 : step===2 ? -3 : 0;
+  R(ctx,16,11+bA, 4, 9, HK);    // back arm on right
+  R(ctx,16,19+bA, 4, 3, SKD);
+  R(ctx, 3,11+fA, 4, 9, HD);    // front arm on left
+  R(ctx, 3,19+fA, 4, 3, SK);
+}
+
+// ── SIDE ARMS: facing right — front arm on right ──
+function armsSideR(ctx, step) {
+  const fA = step===1 ? -3 : step===2 ?  3 : 0;
+  const bA = step===1 ?  3 : step===2 ? -3 : 0;
+  R(ctx, 4,11+bA, 4, 9, HK);    // back arm on left
+  R(ctx, 4,19+bA, 4, 3, SKD);
+  R(ctx,16,11+fA, 4, 9, HD);    // front arm on right
+  R(ctx,16,19+fA, 4, 3, SK);
+}
+
+// ── DRAW FACING LEFT ────────────────────────
+function drawLeft(ctx, step) {
+  legsSideL(ctx, step);
+  R(ctx, 4,18,16, 2, BL);
+  R(ctx, 5,10,14,10, HD);
+  R(ctx,17,10, 2,10, HM);       // front edge on right side
+  R(ctx, 5,21, 5, 5, HK);       // pocket
+  armsSideL(ctx, step);
+  R(ctx, 5, 9, 5, 2, COL);      // collar — left side
+  R(ctx, 5, 5, 4, 5, SK);       // neck
+  headLeft(ctx);
+}
+
+// ── DRAW FACING RIGHT ────────────────────────
+function drawRight(ctx, step) {
+  legsSideR(ctx, step);
+  R(ctx, 4,18,16, 2, BL);
+  R(ctx, 5,10,14,10, HD);
+  R(ctx, 5,10, 2,10, HM);       // front edge on left side
+  R(ctx,14,21, 5, 5, HK);       // pocket
+  armsSideR(ctx, step);
+  R(ctx,14, 9, 5, 2, COL);      // collar — right side
+  R(ctx,15, 5, 4, 5, SK);       // neck
+  headRight(ctx);
+}
+
+// ── FRONT/BACK legs ─────────────────────────
+function legsBoots(ctx, step) {
+  const ly = step===1 ? -2 : step===2 ?  2 : 0;
+  const ry = step===1 ?  2 : step===2 ? -2 : 0;
+  R(ctx, 5,19, 7, 9+ly, JN); R(ctx, 5,19, 7, 2, JD);
+  R(ctx, 5,27+ly, 6, 4, BT); R(ctx, 4,29+ly, 8, 2, BT2);
+  R(ctx,12,19, 7, 9+ry, JN); R(ctx,12,19, 7, 2, JD);
+  R(ctx,13,27+ry, 6, 4, BT); R(ctx,12,29+ry, 8, 2, BT2);
+}
+function armsFront(ctx, step) {
+  const la = step===1 ?  2 : step===2 ? -2 : 0;
+  const ra = step===1 ? -2 : step===2 ?  2 : 0;
+  R(ctx, 1,11+ra, 4, 9, HD); R(ctx,19,11+la, 4, 9, HD);
+  R(ctx, 1,19+ra, 4, 3, SK); R(ctx,19,19+la, 4, 3, SK);
+}
+function drawDown(ctx, step) {
+  legsBoots(ctx, step);
+  R(ctx, 4,18,16, 2, BL); R(ctx,10,17, 4, 3, BC);
+  R(ctx, 4,10,16,10, HD); R(ctx,10,10, 4,10, HM); R(ctx,11,10, 2,10, '#666');
+  R(ctx, 5,21, 4, 5, HK); R(ctx,15,21, 4, 5, HK);
+  armsFront(ctx, step);
+  R(ctx, 9, 9, 6, 2, COL); R(ctx,10, 6, 4, 4, SK);
+  headFront(ctx);
+}
+function drawUp(ctx, step) {
+  legsBoots(ctx, step);
+  R(ctx, 4,18,16, 2, BL);
+  R(ctx, 4,10,16,10, HD); R(ctx, 8,10, 8, 4, HK); R(ctx,11,10, 2,10, HK);
+  armsFront(ctx, step);
+  R(ctx,10, 6, 4, 4, SK);
+  headBack(ctx);
+}
+
+// ── MAIN RENDERER ────────────────────────────
+function renderGozo(dir, step) {
+  const canvas = document.getElementById('gozo-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 48, 64);
+  if      (dir === 'up')    drawUp(ctx, step);
+  else if (dir === 'left')  drawLeft(ctx, step);
+  else if (dir === 'right') drawRight(ctx, step);
+  else                      drawDown(ctx, step);
+}
+
+// ==============================================
+// GAME LOOP  — direction + walk cycle
+// ==============================================
+const SPEED = 4;
+const STEP_FRAMES = 10;   // frames per half-step
+let   stepTimer   = 0;
+let   stepPhase   = 0;    // 0=idle, cycles 1→2→1→2...
+let   playerDir   = 'down';
+
+function gameLoop() {
+  if (!state.inBattle) {
+    let dx = 0, dy = 0;
+    if (state.keys['ArrowUp']    || state.keys['w'] || state.keys['W'] || state.moving === 'up')    dy -= SPEED;
+    if (state.keys['ArrowDown']  || state.keys['s'] || state.keys['S'] || state.moving === 'down')  dy += SPEED;
+    if (state.keys['ArrowLeft']  || state.keys['a'] || state.keys['A'] || state.moving === 'left')  dx -= SPEED;
+    if (state.keys['ArrowRight'] || state.keys['d'] || state.keys['D'] || state.moving === 'right') dx += SPEED;
+
+    if (state.encounterCooldown > 0) state.encounterCooldown--;
+
+    const moving = dx !== 0 || dy !== 0;
+
+    if (moving) {
+      state.player.x = Math.max(0,  Math.min(WORLD_W - 48, state.player.x + dx));
+      state.player.y = Math.max(45, Math.min(WORLD_H - 64, state.player.y + dy));
+      updatePlayerPos();
+      checkGrass();
+
+      // Determine facing direction (vertical wins on diagonal)
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        playerDir = dy < 0 ? 'up' : 'down';
+      } else {
+        playerDir = dx < 0 ? 'left' : 'right';
+      }
+
+      // Walk cycle: advance timer, flip between step 1 and 2
+      stepTimer++;
+      if (stepTimer >= STEP_FRAMES) {
+        stepTimer = 0;
+        stepPhase = stepPhase === 1 ? 2 : 1;
+      }
+    } else {
+      // Idle — reset to neutral pose
+      stepTimer = 0;
+      stepPhase = 0;
+    }
+
+    renderGozo(playerDir, stepPhase);
+    updateCamera();
+    tickGrassSway();
+    if(state.inGrass && moving) drawGrassPart();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ==============================================
+// GRASS PARTING ANIMATION
+// ==============================================
+let grassPartTrail = []; // [{x,y,age,maxAge}]
+
+function drawGrassPart(){
+  const px = state.player.x + 24;
+  const py = state.player.y + 54;
+  // Add new parting point at feet
+  grassPartTrail.push({ x:px, y:py, age:0, maxAge:18 });
+  if(grassPartTrail.length > 40) grassPartTrail.shift();
+
+  const canvas = document.getElementById('grass-part-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, WORLD_W, WORLD_H);
+
+  // Draw each trail point as parted blades
+  grassPartTrail = grassPartTrail.filter(p => p.age < p.maxAge);
+  grassPartTrail.forEach(p => {
+    p.age++;
+    const life = 1 - p.age / p.maxAge;
+    const radius = 22 + (1 - life) * 8;
+
+    // Left parted blades
+    for(let i = 0; i < 5; i++){
+      const angle = Math.PI + (i / 4) * Math.PI * 0.55;
+      const bx = p.x + Math.cos(angle) * radius * (0.5 + i*0.12);
+      const by = p.y + Math.sin(angle) * radius * 0.4;
+      ctx.strokeStyle = `rgba(30,160,30,${life * 0.75})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by + 12);
+      ctx.quadraticCurveTo(bx - 6, by, bx + (i%2===0?-8:8), by - 14);
+      ctx.stroke();
+    }
+    // Right parted blades
+    for(let i = 0; i < 5; i++){
+      const angle = (i / 4) * Math.PI * 0.55;
+      const bx = p.x + Math.cos(angle) * radius * (0.5 + i*0.12);
+      const by = p.y + Math.sin(angle) * radius * 0.4;
+      ctx.strokeStyle = `rgba(50,200,50,${life * 0.7})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(bx, by + 12);
+      ctx.quadraticCurveTo(bx + 6, by, bx + (i%2===0?8:-8), by - 14);
+      ctx.stroke();
+    }
+    // Bright center split line
+    ctx.strokeStyle = `rgba(120,255,80,${life * 0.35})`;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y + 8);
+    ctx.lineTo(p.x, p.y - 10);
+    ctx.stroke();
+  });
+}
+
+// Grass rustle sound — throttled so it doesn't fire every frame
+let _rustleTimer = 0;
+function maybeRustle(){
+  _rustleTimer++;
+  if(_rustleTimer >= 14){ // every ~14 frames ≈ every step
+    _rustleTimer = 0;
+    playGrassRustle();
+  }
+}
+
+// ==============================================
+// GRASS / ENCOUNTER CHECK  ← Core Pokemon mechanic
+// ==============================================
+function checkGrass(){
+  const px=state.player.x+24; // center x
+  const py=state.player.y+52; // feet y
+
+  const zone=getZoneAt(px,py);
+  const wasIn=state.inGrass;
+  state.inGrass=!!zone;
+
+  const playerEl=document.getElementById('player');
+  const badge=document.getElementById('grass-badge');
+  if(!playerEl||!badge) return;
+
+  if(state.inGrass){
+    playerEl.classList.add('in-grass');
+    badge.style.display='block';
+    // Activate back layer glow
+    state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
+    if(zone.back) zone.back.classList.add('active');
+
+    // Rustle sound while walking through grass
+    maybeRustle();
+
+    // Random wild encounter — ~6% per frame when moving in grass
+    if(state.encounterCooldown<=0){
+      const encounterRate = zone.isBoss ? 0.05 : 0.065;
+      if(Math.random()<encounterRate){
+        triggerEncounter(zone);
+      }
+    }
+  } else {
+    playerEl.classList.remove('in-grass');
+    badge.style.display='none';
+    if(wasIn){
+      state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
+      grassPartTrail = [];
+      const canvas = document.getElementById('grass-part-canvas');
+      if(canvas) canvas.getContext('2d').clearRect(0,0,WORLD_W,WORLD_H);
+    }
+  }
+}
+
+// ==============================================
+// TRIGGER WILD ENCOUNTER
+// ==============================================
+function triggerEncounter(zone){
+  state.encounterCooldown=150;
+  grassPartTrail = []; // clear parting trail on encounter
+  playEncounterSound();
+
+  // Pick monster using level-based tier system
+  let enemy;
+  if(zone.isBoss&&!bossDefeated&&state.player.level>=3){
+    enemy={...BOSS,hp:BOSS.hp,maxHp:BOSS.hp};
+  } else {
+    enemy = pickWildMonster(zone);
+  }
+
+  // Show ❗ exclamation above player head
+  const ex=document.getElementById('exclamation');
+  if(ex){
+    ex.style.left=(state.player.x+10)+'px';
+    ex.style.top=(state.player.y-32)+'px';
+    ex.style.display='block';
+    ex.style.animation='none'; void ex.offsetWidth;
+    ex.style.animation='exclamPop .4s cubic-bezier(.36,.07,.19,.97) both';
+  }
+
+  setTimeout(()=>{
+    if(ex) ex.style.display='none';
+    const fl=document.getElementById('enc-flash');
+    if(fl){
+      fl.style.display='block';
+      fl.style.animation='none'; void fl.offsetWidth;
+      fl.style.animation='flashOut .5s ease forwards';
+    }
+    setTimeout(()=>{ if(fl) fl.style.display='none'; startBattle(enemy); },500);
+  },600);
+}
+
+// ==============================================
+// BATTLE
+// ==============================================
+function startBattle(enemy){
+  if(state.inBattle)return;
+  state.inBattle=true;
+  state.currentEnemy={...enemy};
+  state.battleTurn='player';
+
+  const bscr=document.getElementById('battle-screen');
+  if(!bscr) return;
+  bscr.style.display='flex';
+  const en=document.getElementById('enemy-name'); if(en) en.textContent=enemy.name;
+  const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
+  const ec=enemy.element?elemColors[enemy.element]:'#FFD700';
+  if(en) en.style.color=ec;
+  const emojiSize=Math.min(110,60+(enemy.t||1)*5);
+  const ebs=document.getElementById('enemy-battle-sprite'); if(ebs) ebs.innerHTML=
+    `<div style="font-size:${emojiSize}px;filter:drop-shadow(0 10px 20px rgba(0,0,0,.8));animation:float 2s ease-in-out infinite">${enemy.emoji}</div>`;
+
+  const pd=document.getElementById('battle-partner-display');
+  if(pd&&partner) pd.textContent=partner.emoji;
+
+  let tierLabel = enemy.t ? ` [T${enemy.t}]` : '';
+  let intro=`🌿 A wild ${enemy.name}${tierLabel} appeared! `;
+  if(partner&&enemy.element){
+    if(partner.strong.includes(enemy.element))intro+='✅ Type advantage!';
+    else if(partner.weak.includes(enemy.element))intro+='⚠️ Type disadvantage!';
+  }
+  updateBattleHP();
+  setBattleLog(intro);
+  setBattleButtons(true);
+}
+
+function updateBattleHP(){
+  const p=state.player,e=state.currentEnemy;
+  if(!e) return;
+  const ehp=document.getElementById('enemy-hp-bar');
+  const eht=document.getElementById('enemy-hp-text');
+  const bphp=document.getElementById('battle-player-hp-bar');
+  const bpht=document.getElementById('battle-player-hp-text');
+  if(ehp) ehp.style.width=(Math.max(0,e.hp)/e.maxHp*100)+'%';
+  if(eht) eht.textContent=`HP: ${Math.max(0,e.hp)}/${e.maxHp}`;
+  if(bphp) bphp.style.width=(p.hp/p.maxHp*100)+'%';
+  if(bpht) bpht.textContent=`HP: ${p.hp}/${p.maxHp}`;
+  const phb=document.getElementById('player-hp-bar');
+  const hs=document.getElementById('hud-stats');
+  if(phb) phb.style.width=(p.hp/p.maxHp*100)+'%';
+  if(hs) hs.textContent=`HP: ${p.hp}/${p.maxHp}`;
+}
+
+function setBattleLog(t){const el=document.getElementById('battle-log');if(el)el.textContent=t;}
+function setBattleButtons(on){if(!state.inBattle)return;document.querySelectorAll('.battle-btn').forEach(b=>b.disabled=!on);}
+
+function battleAction(action){
+  if(state.battleTurn!=='player')return;
+  setBattleButtons(false);
+  const p=state.player,e=state.currentEnemy;
+  let log='';
+
+  if(action==='attack'){
+    const dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
+    e.hp-=dmg;
+    playSoundAttack();
+    setTimeout(playSoundHit, 80);
+    showDmgPopup(dmg,false);
+    shakeSprite('enemy-battle-sprite');
+    log=`Gozo attacks! Dealt ${dmg} damage to ${e.name}!`;
+
+  }else if(action==='special'){
+    playSoundSkill(partner ? partner.name : pType);
+    if(partner&&partner.isHeal){
+      const healMult = partner.healMult || 1;
+      const heal=Math.round((40+Math.floor(Math.random()*20))*healMult);
+      p.hp=Math.min(p.maxHp,p.hp+heal);
+      showDmgPopup(heal,true);
+      // dualAction: also deal damage
+      if(partner.dualAction){
+        const dmgH=Math.max(1,Math.floor(p.attack*partner.specialMult)-e.def);
+        e.hp-=dmgH;
+        showDmgPopup(dmgH,false);
+        shakeSprite('enemy-battle-sprite');
+        log=`${partner.specialName}! HP +${heal} & dealt ${dmgH} dmg! 🌿`;
+      } else {
+        log=`${partner.specialName}! ${partner.specialDesc} HP +${heal}!`;
+      }
+      // poison effect
+      if(partner.poisonOnHit){ e._poisoned=3; log+=' ☠️ Poisoned!'; }
+    }else{
+      // Damage special
+      const ignoreDef = partner.ignoreDefPct || 0;
+      const effectiveDef = Math.floor(e.def * (1 - ignoreDef));
+      let dmg=Math.max(1,Math.floor(p.attack*(partner?partner.specialMult:2))+Math.floor(Math.random()*12)-effectiveDef);
+      let pre='';
+      if(partner&&e.element){
+        if(partner.strong.includes(e.element)){dmg=Math.floor(dmg*1.5);pre='✅ SUPER EFFECTIVE! ';}
+        else if(partner.weak.includes(e.element)){dmg=Math.floor(dmg*0.6);pre='⚠️ Not very effective... ';}
+      }
+      e.hp-=dmg;
+      showDmgPopup(dmg,false);
+      shakeSprite('enemy-battle-sprite');
+      log=pre+(partner?partner.specialName:'⚡ CHAIN STRIKE')+`! Dealt ${dmg} damage!!`;
+      // burn effect
+      if(partner&&partner.burnOnHit){ e._burned=3; log+=' 🔥 Burned!'; }
+      // lifesteal
+      if(partner&&partner.lifesteal){
+        const ls=Math.floor(dmg*partner.lifesteal);
+        p.hp=Math.min(p.maxHp,p.hp+ls);
+        showDmgPopup(ls,true);
+        log+=` 💧 Lifesteal +${ls}HP`;
+      }
+    }
+
+  }else if(action==='heal'){
+    if(p.potions<=0){setBattleLog('❌ No potions left!');setBattleButtons(true);return;}
+    const heal=30+Math.floor(Math.random()*20);
+    p.hp=Math.min(p.maxHp,p.hp+heal);
+    p.potions--;
+    playSoundHeal();
+    showDmgPopup(heal,true);
+    log=`💊 Used a potion! HP +${heal}! (Left: ${p.potions})`;
+
+  }else if(action==='run'){
+    playSoundRun();
+    if(Math.random()>0.4){setBattleLog('🏃 Got away safely!');updateBattleHP();setTimeout(()=>endBattle(false),1400);return;}
+    log='❌ Could not escape!';
+  }
+
+  updateBattleHP();
+  setBattleLog(log);
+  if(e.hp<=0){setTimeout(winBattle,1000);return;}
+  state.battleTurn='enemy';
+  setTimeout(enemyTurn,1200);
+}
+
+function enemyTurn(){
+  const p=state.player,e=state.currentEnemy;
+  const dmg=Math.max(1,e.atk+Math.floor(Math.random()*6)-p.defense);
+  p.hp-=dmg;
+  playSoundPlayerHurt();
+  showDmgPopup(dmg,false,true);
+  shakeSprite('player-battle-sprite');
+  updateBattleHP();
+  let log=`${e.name} attacks! Gozo took ${dmg} damage!`;
+
+  // Tick status effects on enemy
+  if(e._poisoned>0){
+    const pdmg=Math.max(1,Math.floor(e.maxHp*0.06));
+    e.hp-=pdmg; e._poisoned--;
+    showDmgPopup(pdmg,false);
+    log+=` ☠️ Poison -${pdmg}HP`;
+  }
+  if(e._burned>0){
+    const bdmg=Math.max(1,Math.floor(e.maxHp*0.08));
+    e.hp-=bdmg; e._burned--;
+    showDmgPopup(bdmg,false);
+    log+=` 🔥 Burn -${bdmg}HP`;
+  }
+  // Partner regen
+  if(partner&&partner.regenPct){
+    const regen=Math.max(1,Math.floor(p.maxHp*partner.regenPct));
+    p.hp=Math.min(p.maxHp,p.hp+regen);
+    showDmgPopup(regen,true,true);
+    log+=` 💧 Regen +${regen}HP`;
+  }
+
+  setBattleLog(log);
+  updateBattleHP();
+  if(e.hp<=0){setTimeout(winBattle,800);return;}
+  if(p.hp<=0){p.hp=0;updateBattleHP();setBattleLog('💀 Gozo fainted...');setTimeout(loseBattle,1500);return;}
+  state.battleTurn='player';
+  setBattleButtons(true);
+}
+
+function winBattle(){
+  const e=state.currentEnemy,p=state.player;
+  if(e.name===BOSS.name)bossDefeated=true;
+  p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(5,p.potions+1);
+  playSoundVictory();
+  const drop = rollDrop(e.t||1);
+  if(drop){
+    addToInventory(drop);
+    setBattleLog(`🏆 Victory! +${e.exp} EXP, +${e.coins} coins! 🎁 ${drop.emoji} ${drop.name} dropped!`);
+    setTimeout(()=>showDropPopup(drop), 800);
+  } else {
+    setBattleLog(`🏆 Victory! +${e.exp} EXP, +${e.coins} coins! 🎉`);
+  }
+  updateHUD();
+  if(p.exp>=p.expToLevel){
+    setTimeout(()=>{levelUp();setTimeout(()=>endBattle(true),1200);},900);
+  }else{
+    setTimeout(()=>endBattle(true),1500);
+  }
+}
+
+function loseBattle(){
+  const p=state.player;
+  p.hp=Math.floor(p.maxHp*0.3); p.coins=Math.max(0,p.coins-20);
+  playSoundDefeat();
+  setTimeout(()=>{endBattle(false);showDialog('Gozo was defeated... HP partially restored. Keep going! 💪');},1000);
+}
+
+function endBattle(won){
+  state.inBattle=false;
+  state.currentEnemy=null;
+  state.battleTurn='player';
+  state.encounterCooldown=180;
+  state.inGrass=false;
+  const bs=document.getElementById('battle-screen'); if(bs) bs.style.display='none';
+  const pl=document.getElementById('player'); if(pl) pl.classList.remove('in-grass');
+  const gb=document.getElementById('grass-badge'); if(gb) gb.style.display='none';
+  state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
+  updatePlayerPos();
+  updateHUD();
+}
+
+// ==============================================
+// LEVEL UP
+// ==============================================
+function levelUp(){
+  const p=state.player;
+  p.level++; p.exp-=p.expToLevel; p.expToLevel=Math.floor(p.expToLevel*1.6);
+  p.maxHp+=20; p.hp=p.maxHp; p.attack+=5; p.defense+=2;
+  const lutxt=document.getElementById('levelup-text'); if(lutxt) lutxt.textContent=`LV ${p.level}! HP +20, ATK +5, DEF +2`;
+  const lubox=document.getElementById('levelup'); if(lubox) lubox.style.display='flex';
+  playLevelUpSound();
+  updateHUD();
+
+  // Check evolution at LV 30 and LV 60
+  const newStage = getPartnerStage(p.level);
+  if (newStage > partnerStage && pType) {
+    // Schedule evolution after level-up screen closes
+    state._pendingEvolution = newStage;
+  }
+}
+function closeLevelUp(){
+  const lu=document.getElementById('levelup'); if(lu) lu.style.display='none';
+  if (state._pendingEvolution) {
+    const s = state._pendingEvolution;
+    state._pendingEvolution = null;
+    setTimeout(()=>triggerEvolution(s), 300);
+  }
+}
+
+function triggerEvolution(newStage){
+  const oldEvo = PARTNER_EVOLUTIONS[pType][newStage - 2];
+  const newEvo = PARTNER_EVOLUTIONS[pType][newStage - 1];
+
+  // Apply stat bonuses delta
+  const p = state.player;
+  const atkDiff = newEvo.bonusAtk - oldEvo.bonusAtk;
+  const defDiff = newEvo.bonusDef - oldEvo.bonusDef;
+  const hpDiff  = newEvo.bonusHp  - oldEvo.bonusHp;
+  p.attack += atkDiff;
+  p.defense += defDiff;
+  p.maxHp  += hpDiff;
+  p.hp = p.maxHp;
+
+  // Show evolution screen
+  const screen = document.getElementById('evo-screen');
+  if(!screen) return;
+  screen.style.display = 'flex';
+  const _et=document.getElementById('evo-title'); if(_et) _et.textContent = newStage===2 ? `${oldEvo.name} IS EVOLVING...` : `${oldEvo.name} IS EVOLVING AGAIN...`;
+  const _ebe=document.getElementById('evo-before-emoji'); if(_ebe) _ebe.textContent = oldEvo.emoji;
+  const _ebn=document.getElementById('evo-before-name'); if(_ebn) _ebn.textContent  = oldEvo.name;
+  const _eae=document.getElementById('evo-after-emoji'); if(_eae) _eae.textContent  = newEvo.emoji;
+  const _ean=document.getElementById('evo-after-name'); if(_ean) _ean.textContent   = newEvo.name + ' ★' + newStage;
+  const _edsc=document.getElementById('evo-desc'); if(_edsc) _edsc.textContent  = newEvo.passive;
+  const _esk=document.getElementById('evo-skill'); if(_esk) _esk.innerHTML   =
+    `NEW SKILL: ${newEvo.specialName}<br><span style="color:#aaa;font-size:7px">${newEvo.specialDesc}</span>`;
+
+  // Flash effect
+  const flash = document.getElementById('evo-flash');
+  let flashes = 0;
+  const doFlash = () => {
+    flash.style.opacity = '1';
+    setTimeout(()=>{ flash.style.opacity='0'; }, 80);
+    if(++flashes < 6) setTimeout(doFlash, 180);
+  };
+  doFlash();
+
+  // Apply new partner data
+  applyPartnerStage(pType, newStage);
+  updateHUD();
+}
+
+function closeEvolution(){
+  const es=document.getElementById('evo-screen'); if(es) es.style.display='none';
+}
+
+// ==============================================
+// HUD
+// ==============================================
+function updateHUD(){
+  const p=state.player;
+  const setEl=(id,val,prop='textContent')=>{const e=document.getElementById(id);if(e)e[prop]=val;};
+  setEl('hud-level', p.level);
+  setEl('hud-exp', `${p.exp}/${p.expToLevel}`);
+  setEl('hud-coins', p.coins);
+  const phb=document.getElementById('player-hp-bar');
+  if(phb) phb.style.width=(p.hp/p.maxHp*100)+'%';
+  setEl('hud-stats', `HP: ${p.hp}/${p.maxHp}`);
+}
+
+// ==============================================
+// HELPERS
+// ==============================================
+function showDialog(t){const dt=document.getElementById('dialog-text');const dg=document.getElementById('dialog');if(dt)dt.textContent=t;if(dg)dg.style.display='block';}
+function closeDialog(){const dg=document.getElementById('dialog');if(dg)dg.style.display='none';}
+
+function shakeSprite(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  setTimeout(()=>el.classList.remove('shake'),500);
+}
+
+function showDmgPopup(amt,isHeal,onPlayer=false){
+  const arena=document.getElementById('battle-arena');
+  if(!arena) return;
+  const el=document.createElement('div');
+  el.className='dmg-popup'+(isHeal?' heal':'');
+  el.textContent=(isHeal?'+':'-')+amt;
+  el.style.left=(onPlayer?200:60)+Math.random()*80+'px';
+  el.style.top=(onPlayer?160:80)+Math.random()*40+'px';
+  arena.appendChild(el);
+  setTimeout(()=>el.remove(),1000);
+}
+
+// ==============================================
+// EQUIPMENT SYSTEM — 100 Weapons + 100 Armors
+// tier 1-10, each tier has 10 of each type
+// dropRate: base chance per tier monster kill
+// ==============================================
+
+const RARITY = ['Common','Uncommon','Rare','Epic','Legendary'];
+const RARITY_COLOR = {'Common':'#aaaaaa','Uncommon':'#44dd44','Rare':'#4488ff','Epic':'#cc44ff','Legendary':'#ffaa00'};
+
+const WEAPONS = [
+  // ── TIER 1 ──
+  {id:'w1',  t:1, name:'Wooden Stick',    emoji:'🪵', atk:3,  spd:0, element:null,    rarity:'Common',   desc:'A stick from the forest.'},
+  {id:'w2',  t:1, name:'Rusty Dagger',    emoji:'🗡️', atk:5,  spd:1, element:null,    rarity:'Common',   desc:'Dull but functional.'},
+  {id:'w3',  t:1, name:'Stone Club',      emoji:'🪨', atk:6,  spd:0, element:'earth', rarity:'Common',   desc:'Heavy stone club.'},
+  {id:'w4',  t:1, name:'Twig Wand',       emoji:'✨', atk:4,  spd:2, element:'grass', rarity:'Common',   desc:'Channels grass magic.'},
+  {id:'w5',  t:1, name:'Broken Sword',    emoji:'⚔️', atk:7,  spd:0, element:null,    rarity:'Common',   desc:'Missing its tip.'},
+  {id:'w6',  t:1, name:'Sling',           emoji:'🪃', atk:4,  spd:3, element:null,    rarity:'Common',   desc:'Launches pebbles fast.'},
+  {id:'w7',  t:1, name:'Mud Knife',       emoji:'🔪', atk:5,  spd:2, element:'earth', rarity:'Common',   desc:'Coated in mud.'},
+  {id:'w8',  t:1, name:'Bone Club',       emoji:'🦴', atk:6,  spd:0, element:'dark',  rarity:'Common',   desc:'Dark energy seeps out.'},
+  {id:'w9',  t:1, name:'Feather Lance',   emoji:'🪶', atk:5,  spd:3, element:'wind',  rarity:'Common',   desc:'Light as air.'},
+  {id:'w10', t:1, name:'Spark Pebble',    emoji:'⚡', atk:6,  spd:1, element:'electric',rarity:'Uncommon',desc:'Crackles with static.'},
+  // ── TIER 2 ──
+  {id:'w11', t:2, name:'Iron Sword',      emoji:'🗡️', atk:12, spd:1, element:null,    rarity:'Common',   desc:'Standard iron blade.'},
+  {id:'w12', t:2, name:'Fire Staff',      emoji:'🔥', atk:14, spd:0, element:'fire',  rarity:'Uncommon', desc:'Burns with inner flame.'},
+  {id:'w13', t:2, name:'Water Whip',      emoji:'💧', atk:11, spd:3, element:'water', rarity:'Uncommon', desc:'Flexible water tendril.'},
+  {id:'w14', t:2, name:'Vine Bow',        emoji:'🌿', atk:13, spd:2, element:'grass', rarity:'Common',   desc:'Crafted from living vines.'},
+  {id:'w15', t:2, name:'Stone Axe',       emoji:'🪓', atk:15, spd:0, element:'earth', rarity:'Common',   desc:'Heavy stone blade.'},
+  {id:'w16', t:2, name:'Ice Shard',       emoji:'❄️', atk:12, spd:2, element:'ice',   rarity:'Uncommon', desc:'Perpetually cold.'},
+  {id:'w17', t:2, name:'Thunder Rod',     emoji:'⚡', atk:14, spd:1, element:'electric',rarity:'Uncommon',desc:'Crackles with lightning.'},
+  {id:'w18', t:2, name:'Shadow Blade',    emoji:'🌑', atk:13, spd:2, element:'dark',  rarity:'Uncommon', desc:'Cuts through shadows.'},
+  {id:'w19', t:2, name:'Wind Fan',        emoji:'🌀', atk:10, spd:4, element:'wind',  rarity:'Common',   desc:'Whips up gale force.'},
+  {id:'w20', t:2, name:'Sun Wand',        emoji:'☀️', atk:13, spd:1, element:'light', rarity:'Uncommon', desc:'Radiates holy light.'},
+  // ── TIER 3 ──
+  {id:'w21', t:3, name:'Steel Sword',     emoji:'⚔️', atk:20, spd:2, element:null,    rarity:'Common',   desc:'Reliable steel.'},
+  {id:'w22', t:3, name:'Flame Blade',     emoji:'🔥', atk:23, spd:1, element:'fire',  rarity:'Uncommon', desc:'Edge burns red hot.'},
+  {id:'w23', t:3, name:'Coral Spear',     emoji:'🔱', atk:21, spd:3, element:'water', rarity:'Uncommon', desc:'From the deep sea.'},
+  {id:'w24', t:3, name:'Thorn Whip',      emoji:'🌿', atk:19, spd:4, element:'grass', rarity:'Common',   desc:'Barbed and painful.'},
+  {id:'w25', t:3, name:'Rock Hammer',     emoji:'🔨', atk:25, spd:0, element:'earth', rarity:'Common',   desc:'Crushes anything.'},
+  {id:'w26', t:3, name:'Blizzard Bow',    emoji:'❄️', atk:22, spd:2, element:'ice',   rarity:'Rare',     desc:'Fires frozen arrows.'},
+  {id:'w27', t:3, name:'Storm Javelin',   emoji:'⚡', atk:24, spd:2, element:'electric',rarity:'Rare',   desc:'Called by the storm.'},
+  {id:'w28', t:3, name:'Void Dagger',     emoji:'🌑', atk:22, spd:3, element:'dark',  rarity:'Rare',     desc:'Tears through reality.'},
+  {id:'w29', t:3, name:'Gale Sword',      emoji:'💨', atk:21, spd:4, element:'wind',  rarity:'Uncommon', desc:'Swift wind strikes.'},
+  {id:'w30', t:3, name:'Holy Mace',       emoji:'✨', atk:22, spd:1, element:'light', rarity:'Rare',     desc:'Blessed by priests.'},
+  // ── TIER 4 ──
+  {id:'w31', t:4, name:'Silver Blade',    emoji:'🗡️', atk:30, spd:2, element:null,    rarity:'Uncommon', desc:'Gleaming silver edge.'},
+  {id:'w32', t:4, name:'Magma Axe',       emoji:'🌋', atk:35, spd:0, element:'fire',  rarity:'Rare',     desc:'Dripping with lava.'},
+  {id:'w33', t:4, name:'Tidal Trident',   emoji:'🔱', atk:31, spd:2, element:'water', rarity:'Rare',     desc:'Commands the tides.'},
+  {id:'w34', t:4, name:'Briar Staff',     emoji:'🌿', atk:29, spd:3, element:'grass', rarity:'Uncommon', desc:'Alive with thorns.'},
+  {id:'w35', t:4, name:'Boulder Maul',    emoji:'🪨', atk:38, spd:0, element:'earth', rarity:'Rare',     desc:'Mountain-heavy.'},
+  {id:'w36', t:4, name:'Frost Lance',     emoji:'❄️', atk:32, spd:2, element:'ice',   rarity:'Rare',     desc:'Freezes on contact.'},
+  {id:'w37', t:4, name:'Bolt Blade',      emoji:'⚡', atk:33, spd:2, element:'electric',rarity:'Rare',   desc:'Surges with voltage.'},
+  {id:'w38', t:4, name:'Night Scythe',    emoji:'🌙', atk:34, spd:1, element:'dark',  rarity:'Rare',     desc:'Harvests souls.'},
+  {id:'w39', t:4, name:'Cyclone Bow',     emoji:'🌀', atk:29, spd:5, element:'wind',  rarity:'Rare',     desc:'Fires at wind speed.'},
+  {id:'w40', t:4, name:'Radiant Sword',   emoji:'☀️', atk:32, spd:2, element:'light', rarity:'Rare',     desc:'Blinding golden light.'},
+  // ── TIER 5 ──
+  {id:'w41', t:5, name:'Mithril Sword',   emoji:'⚔️', atk:42, spd:3, element:null,    rarity:'Rare',     desc:'Legendary mithril.'},
+  {id:'w42', t:5, name:'Inferno Staff',   emoji:'🔥', atk:47, spd:1, element:'fire',  rarity:'Epic',     desc:'Channels volcano fury.'},
+  {id:'w43', t:5, name:'Kraken Hook',     emoji:'🐙', atk:44, spd:2, element:'water', rarity:'Epic',     desc:'Torn from a kraken.'},
+  {id:'w44', t:5, name:'Nature Staff',    emoji:'🌳', atk:41, spd:3, element:'grass', rarity:'Rare',     desc:'Ancient forest power.'},
+  {id:'w45', t:5, name:'Seismic Hammer',  emoji:'🔨', atk:50, spd:0, element:'earth', rarity:'Rare',     desc:'Causes earthquakes.'},
+  {id:'w46', t:5, name:'Glacier Blade',   emoji:'❄️', atk:45, spd:2, element:'ice',   rarity:'Epic',     desc:'Absolute zero edge.'},
+  {id:'w47', t:5, name:'Tempest Spear',   emoji:'⚡', atk:46, spd:3, element:'electric',rarity:'Epic',   desc:'Born in a thunderstorm.'},
+  {id:'w48', t:5, name:'Shade Blade',     emoji:'🌑', atk:45, spd:3, element:'dark',  rarity:'Epic',     desc:'Darkness made solid.'},
+  {id:'w49', t:5, name:'Hurricane Fan',   emoji:'🌀', atk:40, spd:6, element:'wind',  rarity:'Rare',     desc:'Creates hurricanes.'},
+  {id:'w50', t:5, name:'Angel Sword',     emoji:'👼', atk:44, spd:3, element:'light', rarity:'Epic',     desc:'Fallen from heaven.'},
+  // ── TIER 6 ──
+  {id:'w51', t:6, name:'Adamant Blade',   emoji:'⚔️', atk:56, spd:3, element:null,    rarity:'Rare',     desc:'Indestructible metal.'},
+  {id:'w52', t:6, name:'Dragon Flame',    emoji:'🐲', atk:63, spd:1, element:'fire',  rarity:'Epic',     desc:'Breathes real flame.'},
+  {id:'w53', t:6, name:'Deep Sea Blade',  emoji:'🌊', atk:58, spd:2, element:'water', rarity:'Epic',     desc:'From the ocean floor.'},
+  {id:'w54', t:6, name:'Elder Vine',      emoji:'🌲', atk:55, spd:4, element:'grass', rarity:'Epic',     desc:'A thousand year vine.'},
+  {id:'w55', t:6, name:'Titan Maul',      emoji:'🗿', atk:68, spd:0, element:'earth', rarity:'Epic',     desc:'Titan-forged weapon.'},
+  {id:'w56', t:6, name:'Permafrost Axe',  emoji:'🧊', atk:60, spd:1, element:'ice',   rarity:'Epic',     desc:'Eternal cold within.'},
+  {id:'w57', t:6, name:'Lightning Sword', emoji:'⚡', atk:62, spd:3, element:'electric',rarity:'Epic',   desc:'Speed of lightning.'},
+  {id:'w58', t:6, name:'Reaper Scythe',   emoji:'💀', atk:64, spd:2, element:'dark',  rarity:'Epic',     desc:'One cut is final.'},
+  {id:'w59', t:6, name:'Storm Blade',     emoji:'⛈️', atk:57, spd:5, element:'wind',  rarity:'Epic',     desc:'Born in the storm.'},
+  {id:'w60', t:6, name:'Seraph Blade',    emoji:'✨', atk:60, spd:3, element:'light', rarity:'Epic',     desc:'Holy guardian weapon.'},
+  // ── TIER 7 ──
+  {id:'w61', t:7, name:'Chaos Sword',     emoji:'🌀', atk:74, spd:3, element:null,    rarity:'Epic',     desc:'Chaos incarnate.'},
+  {id:'w62', t:7, name:'Hellfire Sword',  emoji:'🔥', atk:80, spd:2, element:'fire',  rarity:'Epic',     desc:'Forged in Hell.'},
+  {id:'w63', t:7, name:'Leviathan Blade', emoji:'🐉', atk:76, spd:2, element:'water', rarity:'Epic',     desc:'Slew the leviathan.'},
+  {id:'w64', t:7, name:'World Tree Staff',emoji:'🌲', atk:73, spd:4, element:'grass', rarity:'Legendary',desc:'Branch of the World Tree.'},
+  {id:'w65', t:7, name:'Quake Axe',       emoji:'🌋', atk:84, spd:0, element:'earth', rarity:'Epic',     desc:'Splits the earth.'},
+  {id:'w66', t:7, name:'Absolute Zero',   emoji:'❄️', atk:78, spd:2, element:'ice',   rarity:'Legendary',desc:'Stops all motion.'},
+  {id:'w67', t:7, name:'Judgment Bolt',   emoji:'⚡', atk:80, spd:3, element:'electric',rarity:'Legendary',desc:'Divine judgment.'},
+  {id:'w68', t:7, name:'Death Blade',     emoji:'💀', atk:82, spd:2, element:'dark',  rarity:'Legendary',desc:'Death given form.'},
+  {id:'w69', t:7, name:'Sky Rend',        emoji:'🌪️', atk:74, spd:6, element:'wind',  rarity:'Epic',     desc:'Tears the sky open.'},
+  {id:'w70', t:7, name:'Heaven Strike',   emoji:'☀️', atk:78, spd:3, element:'light', rarity:'Legendary',desc:'Heavens strike down.'},
+  // ── TIER 8 ──
+  {id:'w71', t:8, name:'Void Sword',      emoji:'🌌', atk:94, spd:3, element:'dark',  rarity:'Epic',     desc:'Cuts through void.'},
+  {id:'w72', t:8, name:'Inferno King',    emoji:'🐉', atk:100,spd:2, element:'fire',  rarity:'Legendary',desc:'King of all flames.'},
+  {id:'w73', t:8, name:'Tidal God Spear', emoji:'🌊', atk:96, spd:2, element:'water', rarity:'Legendary',desc:'Wielded by sea gods.'},
+  {id:'w74', t:8, name:'Gaia Blade',      emoji:'🌿', atk:93, spd:3, element:'grass', rarity:'Legendary',desc:'Planet\'s own power.'},
+  {id:'w75', t:8, name:'Terra Colossus',  emoji:'🪨', atk:108,spd:0, element:'earth', rarity:'Legendary',desc:'Earth god weapon.'},
+  {id:'w76', t:8, name:'Frozen Eternity', emoji:'🧊', atk:98, spd:2, element:'ice',   rarity:'Legendary',desc:'Eternal frozen blade.'},
+  {id:'w77', t:8, name:'God Bolt',        emoji:'⚡', atk:102,spd:3, element:'electric',rarity:'Legendary',desc:'God\'s own lightning.'},
+  {id:'w78', t:8, name:'Soul Reaper',     emoji:'💀', atk:104,spd:2, element:'dark',  rarity:'Legendary',desc:'Steals souls on impact.'},
+  {id:'w79', t:8, name:'Typhoon Blade',   emoji:'🌪️', atk:93, spd:7, element:'wind',  rarity:'Legendary',desc:'Infinite storm power.'},
+  {id:'w80', t:8, name:'Divine Sword',    emoji:'✨', atk:98, spd:3, element:'light', rarity:'Legendary',desc:'Blessed by all gods.'},
+  // ── TIER 9 ──
+  {id:'w81', t:9, name:'Oblivion Blade',  emoji:'🌑', atk:118,spd:3, element:'dark',  rarity:'Legendary',desc:'Erases existence.'},
+  {id:'w82', t:9, name:'Sun Destroyer',   emoji:'☀️', atk:122,spd:2, element:'fire',  rarity:'Legendary',desc:'Can destroy a sun.'},
+  {id:'w83', t:9, name:'Ocean God',       emoji:'🌊', atk:120,spd:3, element:'water', rarity:'Legendary',desc:'Ocean\'s true form.'},
+  {id:'w84', t:9, name:'Genesis Staff',   emoji:'🌲', atk:116,spd:4, element:'grass', rarity:'Legendary',desc:'Created all plant life.'},
+  {id:'w85', t:9, name:'World Breaker',   emoji:'🌋', atk:132,spd:0, element:'earth', rarity:'Legendary',desc:'Breaks entire worlds.'},
+  {id:'w86', t:9, name:'Ice Apocalypse',  emoji:'❄️', atk:124,spd:2, element:'ice',   rarity:'Legendary',desc:'Brings eternal winter.'},
+  {id:'w87', t:9, name:'Thunder God',     emoji:'⚡', atk:126,spd:3, element:'electric',rarity:'Legendary',desc:'The thunder god itself.'},
+  {id:'w88', t:9, name:'Chaos Reaper',    emoji:'💀', atk:128,spd:2, element:'dark',  rarity:'Legendary',desc:'Reaper of all chaos.'},
+  {id:'w89', t:9, name:'Sky God Blade',   emoji:'🌪️', atk:118,spd:8, element:'wind',  rarity:'Legendary',desc:'Sky god\'s own blade.'},
+  {id:'w90', t:9, name:'Archangel Sword', emoji:'👼', atk:122,spd:4, element:'light', rarity:'Legendary',desc:'Archangel forged it.'},
+  // ── TIER 10 ──
+  {id:'w91', t:10,name:'Singularity Edge',emoji:'🌌', atk:148,spd:4, element:'dark',  rarity:'Legendary',desc:'Edge of a black hole.'},
+  {id:'w92', t:10,name:'Big Bang Staff',  emoji:'💥', atk:155,spd:2, element:'fire',  rarity:'Legendary',desc:'Contains a Big Bang.'},
+  {id:'w93', t:10,name:'Abyss Trident',   emoji:'🌀', atk:150,spd:3, element:'water', rarity:'Legendary',desc:'From the universe void.'},
+  {id:'w94', t:10,name:'Eden Bough',      emoji:'🌲', atk:145,spd:5, element:'grass', rarity:'Legendary',desc:'Branch of the Eden Tree.'},
+  {id:'w95', t:10,name:'Planet Crusher',  emoji:'🌋', atk:165,spd:0, element:'earth', rarity:'Legendary',desc:'Crushes planets bare.'},
+  {id:'w96', t:10,name:'Absolute End',    emoji:'❄️', atk:155,spd:2, element:'ice',   rarity:'Legendary',desc:'Heat death of the universe.'},
+  {id:'w97', t:10,name:'Omega Bolt',      emoji:'⚡', atk:160,spd:4, element:'electric',rarity:'Legendary',desc:'Final lightning strike.'},
+  {id:'w98', t:10,name:'Death God Blade', emoji:'💀', atk:162,spd:3, element:'dark',  rarity:'Legendary',desc:'The Death God wields it.'},
+  {id:'w99', t:10,name:'Void Storm',      emoji:'🌪️', atk:148,spd:9, element:'wind',  rarity:'Legendary',desc:'A storm that devours voids.'},
+  {id:'w100',t:10,name:'Creator Sword',   emoji:'✨', atk:158,spd:4, element:'light', rarity:'Legendary',desc:'Forged at creation itself.'},
+];
+
+const ARMORS = [
+  // ── TIER 1 ──
+  {id:'a1',  t:1, name:'Cloth Tunic',     emoji:'👕', def:3,  hp:5,  element:null,    rarity:'Common',   desc:'Basic cloth protection.'},
+  {id:'a2',  t:1, name:'Leather Vest',    emoji:'🥋', def:5,  hp:8,  element:null,    rarity:'Common',   desc:'Treated leather armor.'},
+  {id:'a3',  t:1, name:'Mud Cloak',       emoji:'🟫', def:4,  hp:6,  element:'earth', rarity:'Common',   desc:'Hardened mud coating.'},
+  {id:'a4',  t:1, name:'Bark Shield',     emoji:'🌿', def:4,  hp:10, element:'grass', rarity:'Common',   desc:'Thick tree bark armor.'},
+  {id:'a5',  t:1, name:'Pebble Vest',     emoji:'🪨', def:6,  hp:5,  element:'earth', rarity:'Common',   desc:'Pebbles sewn in cloth.'},
+  {id:'a6',  t:1, name:'Bone Shard Mail', emoji:'🦴', def:5,  hp:7,  element:'dark',  rarity:'Common',   desc:'Bone fragments tied together.'},
+  {id:'a7',  t:1, name:'Feather Cloak',   emoji:'🪶', def:3,  hp:6,  element:'wind',  rarity:'Common',   desc:'Light as a feather.'},
+  {id:'a8',  t:1, name:'Wet Cloth',       emoji:'💧', def:3,  hp:12, element:'water', rarity:'Common',   desc:'Oddly absorbent.'},
+  {id:'a9',  t:1, name:'Leaf Armor',      emoji:'🍃', def:4,  hp:8,  element:'grass', rarity:'Common',   desc:'Layered leaves armor.'},
+  {id:'a10', t:1, name:'Static Wrap',     emoji:'⚡', def:4,  hp:6,  element:'electric',rarity:'Uncommon',desc:'Crackles with static.'},
+  // ── TIER 2 ──
+  {id:'a11', t:2, name:'Iron Plate',      emoji:'🛡️', def:12, hp:20, element:null,    rarity:'Common',   desc:'Basic iron plating.'},
+  {id:'a12', t:2, name:'Fire Cape',       emoji:'🔥', def:10, hp:15, element:'fire',  rarity:'Uncommon', desc:'Heat resistant cape.'},
+  {id:'a13', t:2, name:'Scale Mail',      emoji:'🐍', def:13, hp:18, element:'water', rarity:'Uncommon', desc:'Fish scale weave.'},
+  {id:'a14', t:2, name:'Vine Armor',      emoji:'🌿', def:11, hp:22, element:'grass', rarity:'Common',   desc:'Living vine weave.'},
+  {id:'a15', t:2, name:'Stone Plate',     emoji:'🪨', def:15, hp:15, element:'earth', rarity:'Common',   desc:'Solid stone slabs.'},
+  {id:'a16', t:2, name:'Ice Shell',       emoji:'❄️', def:12, hp:18, element:'ice',   rarity:'Uncommon', desc:'Shell of pure ice.'},
+  {id:'a17', t:2, name:'Thunder Vest',    emoji:'⚡', def:11, hp:16, element:'electric',rarity:'Uncommon',desc:'Insulated chain vest.'},
+  {id:'a18', t:2, name:'Shadow Cloak',    emoji:'🌑', def:13, hp:14, element:'dark',  rarity:'Uncommon', desc:'Hard to see in dark.'},
+  {id:'a19', t:2, name:'Wind Coat',       emoji:'🌀', def:10, hp:20, element:'wind',  rarity:'Common',   desc:'Deflects wind attacks.'},
+  {id:'a20', t:2, name:'Holy Robe',       emoji:'✨', def:11, hp:20, element:'light', rarity:'Uncommon', desc:'Blessed with holy light.'},
+  // ── TIER 3 ──
+  {id:'a21', t:3, name:'Steel Mail',      emoji:'🛡️', def:20, hp:30, element:null,    rarity:'Common',   desc:'Woven steel rings.'},
+  {id:'a22', t:3, name:'Flame Plate',     emoji:'🔥', def:18, hp:25, element:'fire',  rarity:'Uncommon', desc:'Forged in flames.'},
+  {id:'a23', t:3, name:'Coral Armor',     emoji:'🪸', def:21, hp:28, element:'water', rarity:'Uncommon', desc:'Coral reef crafted.'},
+  {id:'a24', t:3, name:'Thorn Mail',      emoji:'🌿', def:19, hp:32, element:'grass', rarity:'Common',   desc:'Thorns face outward.'},
+  {id:'a25', t:3, name:'Granite Plate',   emoji:'🪨', def:25, hp:22, element:'earth', rarity:'Common',   desc:'Solid granite slabs.'},
+  {id:'a26', t:3, name:'Blizzard Coat',   emoji:'❄️', def:21, hp:28, element:'ice',   rarity:'Rare',     desc:'Keeps you frozen solid.'},
+  {id:'a27', t:3, name:'Static Mail',     emoji:'⚡', def:20, hp:26, element:'electric',rarity:'Rare',   desc:'Charged chain links.'},
+  {id:'a28', t:3, name:'Void Cloak',      emoji:'🌑', def:22, hp:24, element:'dark',  rarity:'Rare',     desc:'Void energy infused.'},
+  {id:'a29', t:3, name:'Gale Coat',       emoji:'💨', def:18, hp:30, element:'wind',  rarity:'Uncommon', desc:'Wind buffeting coat.'},
+  {id:'a30', t:3, name:'Priest Robe',     emoji:'✨', def:19, hp:32, element:'light', rarity:'Rare',     desc:'High priest blessing.'},
+  // ── TIER 4 ──
+  {id:'a31', t:4, name:'Silver Plate',    emoji:'🛡️', def:30, hp:42, element:null,    rarity:'Uncommon', desc:'Gleaming silver.'},
+  {id:'a32', t:4, name:'Magma Plate',     emoji:'🌋', def:28, hp:38, element:'fire',  rarity:'Rare',     desc:'Forged in magma.'},
+  {id:'a33', t:4, name:'Tide Armor',      emoji:'🌊', def:31, hp:40, element:'water', rarity:'Rare',     desc:'Tidal force armor.'},
+  {id:'a34', t:4, name:'Briar Plate',     emoji:'🌿', def:29, hp:45, element:'grass', rarity:'Uncommon', desc:'Dense thorn plate.'},
+  {id:'a35', t:4, name:'Boulder Plate',   emoji:'🪨', def:36, hp:35, element:'earth', rarity:'Rare',     desc:'Boulder fragment plate.'},
+  {id:'a36', t:4, name:'Frost Armor',     emoji:'❄️', def:32, hp:40, element:'ice',   rarity:'Rare',     desc:'Permanently frost-coated.'},
+  {id:'a37', t:4, name:'Bolt Mail',       emoji:'⚡', def:31, hp:38, element:'electric',rarity:'Rare',   desc:'Attracts lightning safely.'},
+  {id:'a38', t:4, name:'Night Cloak',     emoji:'🌙', def:33, hp:36, element:'dark',  rarity:'Rare',     desc:'Darkness woven in.'},
+  {id:'a39', t:4, name:'Cyclone Wrap',    emoji:'🌀', def:28, hp:44, element:'wind',  rarity:'Rare',     desc:'Cyclone energy wrap.'},
+  {id:'a40', t:4, name:'Radiant Plate',   emoji:'☀️', def:31, hp:42, element:'light', rarity:'Rare',     desc:'Radiates blinding light.'},
+  // ── TIER 5 ──
+  {id:'a41', t:5, name:'Mithril Plate',   emoji:'🛡️', def:42, hp:58, element:null,    rarity:'Rare',     desc:'Legendary mithril.'},
+  {id:'a42', t:5, name:'Inferno Plate',   emoji:'🔥', def:40, hp:52, element:'fire',  rarity:'Epic',     desc:'Volcano forged plate.'},
+  {id:'a43', t:5, name:'Kraken Scale',    emoji:'🐙', def:43, hp:55, element:'water', rarity:'Epic',     desc:'Kraken skin scales.'},
+  {id:'a44', t:5, name:'Nature Mail',     emoji:'🌳', def:41, hp:62, element:'grass', rarity:'Rare',     desc:'Nature spirit woven.'},
+  {id:'a45', t:5, name:'Terra Plate',     emoji:'🪨', def:50, hp:48, element:'earth', rarity:'Rare',     desc:'Earth elemental plate.'},
+  {id:'a46', t:5, name:'Glacier Plate',   emoji:'❄️', def:44, hp:55, element:'ice',   rarity:'Epic',     desc:'Glacier ice compressed.'},
+  {id:'a47', t:5, name:'Tempest Mail',    emoji:'⚡', def:43, hp:54, element:'electric',rarity:'Epic',   desc:'Storm condensed armor.'},
+  {id:'a48', t:5, name:'Shade Plate',     emoji:'🌑', def:44, hp:52, element:'dark',  rarity:'Epic',     desc:'Shadow made solid.'},
+  {id:'a49', t:5, name:'Hurricane Coat',  emoji:'🌀', def:40, hp:60, element:'wind',  rarity:'Rare',     desc:'Hurricane force wrap.'},
+  {id:'a50', t:5, name:'Angel Mail',      emoji:'👼', def:43, hp:58, element:'light', rarity:'Epic',     desc:'Angel feather woven.'},
+  // ── TIER 6 ──
+  {id:'a51', t:6, name:'Adamant Plate',   emoji:'🛡️', def:56, hp:76, element:null,    rarity:'Rare',     desc:'Indestructible adamant.'},
+  {id:'a52', t:6, name:'Dragon Scale',    emoji:'🐲', def:54, hp:70, element:'fire',  rarity:'Epic',     desc:'True dragon scales.'},
+  {id:'a53', t:6, name:'Abyss Plate',     emoji:'🌊', def:57, hp:74, element:'water', rarity:'Epic',     desc:'Abyss forged plate.'},
+  {id:'a54', t:6, name:'Elder Wood Mail', emoji:'🌲', def:55, hp:82, element:'grass', rarity:'Epic',     desc:'Thousand year wood.'},
+  {id:'a55', t:6, name:'Titan Rock Plate',emoji:'🗿', def:65, hp:68, element:'earth', rarity:'Epic',     desc:'Titan stone slabs.'},
+  {id:'a56', t:6, name:'Permafrost Plate',emoji:'🧊', def:59, hp:74, element:'ice',   rarity:'Epic',     desc:'Eternally frozen.'},
+  {id:'a57', t:6, name:'Lightning Plate', emoji:'⚡', def:58, hp:72, element:'electric',rarity:'Epic',   desc:'Speed of lightning.'},
+  {id:'a58', t:6, name:'Reaper Shroud',   emoji:'💀', def:60, hp:70, element:'dark',  rarity:'Epic',     desc:'Death\'s own shroud.'},
+  {id:'a59', t:6, name:'Storm Plate',     emoji:'⛈️', def:55, hp:78, element:'wind',  rarity:'Epic',     desc:'Storm itself solidified.'},
+  {id:'a60', t:6, name:'Seraph Mail',     emoji:'✨', def:58, hp:76, element:'light', rarity:'Epic',     desc:'Seraph feather woven.'},
+  // ── TIER 7 ──
+  {id:'a61', t:7, name:'Chaos Plate',     emoji:'🌀', def:74, hp:98, element:null,    rarity:'Epic',     desc:'Chaos energy plate.'},
+  {id:'a62', t:7, name:'Hellfire Plate',  emoji:'🔥', def:72, hp:92, element:'fire',  rarity:'Epic',     desc:'Hell\'s own furnace.'},
+  {id:'a63', t:7, name:'Leviathan Scale', emoji:'🐉', def:75, hp:95, element:'water', rarity:'Epic',     desc:'Leviathan\'s scales.'},
+  {id:'a64', t:7, name:'World Tree Bark', emoji:'🌲', def:73, hp:105,element:'grass', rarity:'Legendary',desc:'World Tree fragment.'},
+  {id:'a65', t:7, name:'Quake Plate',     emoji:'🌋', def:84, hp:88, element:'earth', rarity:'Epic',     desc:'Earthquake solid.'},
+  {id:'a66', t:7, name:'Zero Kelvin Suit',emoji:'❄️', def:78, hp:95, element:'ice',   rarity:'Legendary',desc:'Absolute zero suit.'},
+  {id:'a67', t:7, name:'Judgment Plate',  emoji:'⚡', def:77, hp:94, element:'electric',rarity:'Legendary',desc:'Divine judgment armor.'},
+  {id:'a68', t:7, name:'Death Shroud',    emoji:'💀', def:80, hp:92, element:'dark',  rarity:'Legendary',desc:'Death walks beside.'},
+  {id:'a69', t:7, name:'Sky Rend Coat',   emoji:'🌪️', def:73, hp:100,element:'wind',  rarity:'Epic',     desc:'Sky-rending armor.'},
+  {id:'a70', t:7, name:'Heaven Plate',    emoji:'☀️', def:77, hp:97, element:'light', rarity:'Legendary',desc:'Heaven\'s own plate.'},
+  // ── TIER 8 ──
+  {id:'a71', t:8, name:'Void Plate',      emoji:'🌌', def:94, hp:122,element:'dark',  rarity:'Epic',     desc:'Void condensed plate.'},
+  {id:'a72', t:8, name:'Inferno King',    emoji:'🐉', def:92, hp:116,element:'fire',  rarity:'Legendary',desc:'King\'s own scales.'},
+  {id:'a73', t:8, name:'Tidal God Plate', emoji:'🌊', def:95, hp:120,element:'water', rarity:'Legendary',desc:'Sea god forged.'},
+  {id:'a74', t:8, name:'Gaia Mail',       emoji:'🌿', def:93, hp:128,element:'grass', rarity:'Legendary',desc:'Planet spirit armor.'},
+  {id:'a75', t:8, name:'Terra God Plate', emoji:'🪨', def:108,hp:112,element:'earth', rarity:'Legendary',desc:'Earth god\'s plate.'},
+  {id:'a76', t:8, name:'Eternal Frost',   emoji:'🧊', def:98, hp:118,element:'ice',   rarity:'Legendary',desc:'Eternal frozen plate.'},
+  {id:'a77', t:8, name:'God Bolt Mail',   emoji:'⚡', def:100,hp:116,element:'electric',rarity:'Legendary',desc:'God\'s own armor.'},
+  {id:'a78', t:8, name:'Soul Shroud',     emoji:'💀', def:103,hp:114,element:'dark',  rarity:'Legendary',desc:'Souls woven inside.'},
+  {id:'a79', t:8, name:'Typhoon Suit',    emoji:'🌪️', def:93, hp:122,element:'wind',  rarity:'Legendary',desc:'Typhoon condensed.'},
+  {id:'a80', t:8, name:'Divine Plate',    emoji:'✨', def:98, hp:120,element:'light', rarity:'Legendary',desc:'Blessed by all gods.'},
+  // ── TIER 9 ──
+  {id:'a81', t:9, name:'Oblivion Plate',  emoji:'🌑', def:118,hp:150,element:'dark',  rarity:'Legendary',desc:'Erases existence.'},
+  {id:'a82', t:9, name:'Sun Core Plate',  emoji:'☀️', def:122,hp:142,element:'fire',  rarity:'Legendary',desc:'Sun core condensed.'},
+  {id:'a83', t:9, name:'Ocean God Mail',  emoji:'🌊', def:120,hp:148,element:'water', rarity:'Legendary',desc:'Ocean god\'s armor.'},
+  {id:'a84', t:9, name:'Genesis Bark',    emoji:'🌲', def:116,hp:158,element:'grass', rarity:'Legendary',desc:'Genesis tree bark.'},
+  {id:'a85', t:9, name:'World Core',      emoji:'🌋', def:132,hp:138,element:'earth', rarity:'Legendary',desc:'Planet\'s own core.'},
+  {id:'a86', t:9, name:'Ice Epoch Suit',  emoji:'❄️', def:125,hp:145,element:'ice',   rarity:'Legendary',desc:'Ice epoch frozen suit.'},
+  {id:'a87', t:9, name:'Thunder God Mail',emoji:'⚡', def:126,hp:144,element:'electric',rarity:'Legendary',desc:'Thunder god\'s mail.'},
+  {id:'a88', t:9, name:'Chaos Shroud',    emoji:'💀', def:128,hp:142,element:'dark',  rarity:'Legendary',desc:'Chaos itself woven.'},
+  {id:'a89', t:9, name:'Sky God Suit',    emoji:'🌪️', def:118,hp:152,element:'wind',  rarity:'Legendary',desc:'Sky god\'s suit.'},
+  {id:'a90', t:9, name:'Archangel Plate', emoji:'👼', def:122,hp:148,element:'light', rarity:'Legendary',desc:'Archangel forged.'},
+  // ── TIER 10 ──
+  {id:'a91', t:10,name:'Singularity Suit',emoji:'🌌', def:148,hp:188,element:'dark',  rarity:'Legendary',desc:'Black hole compressed.'},
+  {id:'a92', t:10,name:'Big Bang Plate',  emoji:'💥', def:155,hp:178,element:'fire',  rarity:'Legendary',desc:'Created at Big Bang.'},
+  {id:'a93', t:10,name:'Abyss God Mail',  emoji:'🌀', def:150,hp:185,element:'water', rarity:'Legendary',desc:'Void ocean forged.'},
+  {id:'a94', t:10,name:'Eden Bark Mail',  emoji:'🌲', def:145,hp:196,element:'grass', rarity:'Legendary',desc:'Eden Tree\'s own bark.'},
+  {id:'a95', t:10,name:'Planet Core',     emoji:'🌋', def:165,hp:172,element:'earth', rarity:'Legendary',desc:'Entire planet compressed.'},
+  {id:'a96', t:10,name:'Heat Death Suit', emoji:'❄️', def:156,hp:182,element:'ice',   rarity:'Legendary',desc:'Heat death of universe.'},
+  {id:'a97', t:10,name:'Omega Plate',     emoji:'⚡', def:160,hp:178,element:'electric',rarity:'Legendary',desc:'The final armor ever.'},
+  {id:'a98', t:10,name:'Death God Shroud',emoji:'💀', def:162,hp:175,element:'dark',  rarity:'Legendary',desc:'Death god\'s shroud.'},
+  {id:'a99', t:10,name:'Void Storm Suit', emoji:'🌪️', def:148,hp:188,element:'wind',  rarity:'Legendary',desc:'Void storm woven suit.'},
+  {id:'a100',t:10,name:'Creator Armor',   emoji:'✨', def:158,hp:185,element:'light', rarity:'Legendary',desc:'Made at creation itself.'},
+];
+
+// Inventory & equipped items
+const inventory = { weapons:[], armors:[] };
+const equipped   = { weapon:null, armor:null };
+
+// Pick a random drop for a monster of given tier
+function rollDrop(tier){
+  // Drop chance based on tier: 25% chance, higher tier = slightly better odds
+  if(Math.random() > 0.28 + tier*0.02) return null;
+  const isWeapon = Math.random() < 0.5;
+  const pool = isWeapon ? WEAPONS : ARMORS;
+  // Allow tier ±1 range from monster tier, capped 1–10
+  const minT = Math.max(1, tier-1), maxT = Math.min(10, tier+1);
+  const eligible = pool.filter(i => i.t >= minT && i.t <= maxT);
+  if(!eligible.length) return null;
+  const item = eligible[Math.floor(Math.random() * eligible.length)];
+  return { ...item, type: isWeapon ? 'weapon' : 'armor' };
+}
+
+// Add item to inventory
+function addToInventory(item){
+  if(!item) return;
+  if(item.type==='weapon') inventory.weapons.push(item);
+  else inventory.armors.push(item);
+  // Keep inventory max 30 per type
+  if(inventory.weapons.length > 30) inventory.weapons.shift();
+  if(inventory.armors.length > 30) inventory.armors.shift();
+}
+
+// Equip an item — updates player stats
+function equipItem(item){
+  if(!item) return;
+  const p = state.player;
+  if(item.type==='weapon'){
+    // Unequip old weapon
+    if(equipped.weapon){ p.attack -= equipped.weapon.atk; }
+    equipped.weapon = item;
+    p.attack += item.atk;
+  } else {
+    if(equipped.armor){ p.defense -= equipped.armor.def; p.maxHp -= equipped.armor.hp; p.hp = Math.min(p.hp, p.maxHp); }
+    equipped.armor = item;
+    p.defense += item.def;
+    p.maxHp   += item.hp;
+    p.hp = Math.min(p.hp + item.hp, p.maxHp);
+  }
+  updateHUD();
+  renderInventory();
+}
+
+// ==============================================
+// INVENTORY UI
+// ==============================================
+function openInventory(){
+  renderInventory();
+  const invs=document.getElementById('inv-screen'); if(invs) invs.style.display='flex';
+}
+function closeInventory(){
+  const invsc=document.getElementById('inv-screen'); if(invsc) invsc.style.display='none';
+}
+function renderInventory(){
+  const p = state.player;
+  // Equipped display
+  const iew=document.getElementById('inv-equipped-weapon'); if(iew) iew.innerHTML = equipped.weapon
+    ? `<span style="color:${RARITY_COLOR[equipped.weapon.rarity]}">${equipped.weapon.emoji} ${equipped.weapon.name}</span><br><span style="font-size:7px;color:#aaa">ATK +${equipped.weapon.atk} | ${equipped.weapon.rarity}</span>`
+    : '<span style="color:#555">— None —</span>';
+  const iea=document.getElementById('inv-equipped-armor'); if(iea) iea.innerHTML = equipped.armor
+    ? `<span style="color:${RARITY_COLOR[equipped.armor.rarity]}">${equipped.armor.emoji} ${equipped.armor.name}</span><br><span style="font-size:7px;color:#aaa">DEF +${equipped.armor.def} HP +${equipped.armor.hp} | ${equipped.armor.rarity}</span>`
+    : '<span style="color:#555">— None —</span>';
+  const wc=document.getElementById('inv-weapon-count'); if(wc) wc.textContent='('+inventory.weapons.length+'/30)';
+  const ac=document.getElementById('inv-armor-count'); if(ac) ac.textContent='('+inventory.armors.length+'/30)';
+  const iav=document.getElementById('inv-atk-val'); if(iav) iav.textContent=p.attack;
+  const idv=document.getElementById('inv-def-val'); if(idv) idv.textContent=p.defense;
+  const ihv=document.getElementById('inv-hp-val'); if(ihv) ihv.textContent=`${p.hp}/${p.maxHp}`;
+
+  // Weapon list
+  const wList = document.getElementById('inv-weapon-list');
+  wList.innerHTML = '';
+  if(!inventory.weapons.length){ wList.innerHTML='<div style="color:#555;font-size:8px;padding:8px">No weapons yet</div>'; }
+  inventory.weapons.forEach((w,i) => {
+    const div = document.createElement('div');
+    div.className = 'inv-item' + (equipped.weapon===w?' equipped':'');
+    div.innerHTML = `<span style="font-size:18px">${w.emoji}</span><div class="inv-item-info"><div style="color:${RARITY_COLOR[w.rarity]}">${w.name}</div><div style="color:#888;font-size:7px">T${w.t} | ATK +${w.atk} | ${w.rarity}</div><div style="color:#666;font-size:6px">${w.desc}</div></div><button class="inv-btn" onclick="equipFromList('weapon',${i})">${equipped.weapon===w?'✅ EQ':'EQUIP'}</button>`;
+    wList.appendChild(div);
+  });
+
+  // Armor list
+  const aList = document.getElementById('inv-armor-list');
+  aList.innerHTML = '';
+  if(!inventory.armors.length){ aList.innerHTML='<div style="color:#555;font-size:8px;padding:8px">No armor yet</div>'; }
+  inventory.armors.forEach((a,i) => {
+    const div = document.createElement('div');
+    div.className = 'inv-item' + (equipped.armor===a?' equipped':'');
+    div.innerHTML = `<span style="font-size:18px">${a.emoji}</span><div class="inv-item-info"><div style="color:${RARITY_COLOR[a.rarity]}">${a.name}</div><div style="color:#888;font-size:7px">T${a.t} | DEF +${a.def} HP +${a.hp} | ${a.rarity}</div><div style="color:#666;font-size:6px">${a.desc}</div></div><button class="inv-btn" onclick="equipFromList('armor',${i})">${equipped.armor===a?'✅ EQ':'EQUIP'}</button>`;
+    aList.appendChild(div);
+  });
+}
+
+function equipFromList(type, idx){
+  const item = type==='weapon' ? inventory.weapons[idx] : inventory.armors[idx];
+  if(item) equipItem(item);
+}
+
+// Show drop popup after winning a battle
+function showDropPopup(item){
+  if(!item) return;
+  const el = document.getElementById('drop-popup');
+  if(!el) return;
+  el.innerHTML = `<div style="font-size:10px;color:var(--yellow);margin-bottom:4px">🎁 ITEM DROPPED!</div>
+    <div style="font-size:24px">${item.emoji}</div>
+    <div style="color:${RARITY_COLOR[item.rarity]};font-size:9px;margin-top:4px">${item.name}</div>
+    <div style="color:#aaa;font-size:7px">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+' HP +'+item.hp}</div>
+    <div style="color:${RARITY_COLOR[item.rarity]};font-size:7px">${item.rarity}</div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="inv-btn" onclick="equipItem(window._lastDrop);document.getElementById('drop-popup').style.display='none'">⚡ EQUIP</button>
+      <button class="inv-btn" style="border-color:#888;color:#888" onclick="document.getElementById('drop-popup').style.display='none'">KEEP</button>
+    </div>`;
+  window._lastDrop = item;
+  el.style.display = 'flex';
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'dropBounce .4s ease forwards';
+  setTimeout(()=>{ if(el.style.display!=='none') el.style.display='none'; }, 5000);
+}
+
+// ==============================================
+// CONTROLS
+// ==============================================
+document.addEventListener('keydown',e=>{
+  state.keys[e.key]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+  if(e.key==='i'||e.key==='I'){ if(document.getElementById('inv-screen').style.display==='none') openInventory(); else closeInventory(); }
+});
+document.addEventListener('keyup',e=>{state.keys[e.key]=false;});
+function startMove(d){state.moving=d;}
+function stopMove(){state.moving=null;}
+window.addEventListener('resize',()=>{
+  state.world.w=document.getElementById('world').offsetWidth;
+  state.world.h=document.getElementById('world').offsetHeight;
+});
+</script>
+</body>
+</html>
