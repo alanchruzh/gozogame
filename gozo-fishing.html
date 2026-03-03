@@ -458,6 +458,80 @@ let G={
   t:0,
 };
 
+// ═══════════════════════════════════════════
+// SOUND ENGINE (Web Audio API)
+// ═══════════════════════════════════════════
+let audioCtx=null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+function playBiteSound(){
+  try{
+    const ac=getAudioCtx();
+    // Ding-dong splash bite sound
+    const times=[0, 0.12, 0.28];
+    const freqs=[880, 1100, 660];
+    times.forEach((t,i)=>{
+      const osc=ac.createOscillator();
+      const gain=ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freqs[i], ac.currentTime+t);
+      osc.frequency.exponentialRampToValueAtTime(freqs[i]*0.5, ac.currentTime+t+0.18);
+      gain.gain.setValueAtTime(0, ac.currentTime+t);
+      gain.gain.linearRampToValueAtTime(0.4, ac.currentTime+t+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+t+0.22);
+      osc.start(ac.currentTime+t);
+      osc.stop(ac.currentTime+t+0.25);
+    });
+    // Splash noise
+    const buf=ac.createBuffer(1,ac.sampleRate*0.15,ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*Math.pow(1-j/d.length,2);
+    const src=ac.createBufferSource();
+    const filt=ac.createBiquadFilter();
+    const gn=ac.createGain();
+    src.buffer=buf; filt.type='bandpass'; filt.frequency.value=800; filt.Q.value=0.8;
+    src.connect(filt); filt.connect(gn); gn.connect(ac.destination);
+    gn.gain.setValueAtTime(0.25,ac.currentTime);
+    gn.gain.linearRampToValueAtTime(0,ac.currentTime+0.15);
+    src.start(ac.currentTime);
+  }catch(e){}
+}
+function playCastSound(){
+  try{
+    const ac=getAudioCtx();
+    const osc=ac.createOscillator();
+    const gain=ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.type='sine';
+    osc.frequency.setValueAtTime(400, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, ac.currentTime+0.3);
+    gain.gain.setValueAtTime(0.2, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.3);
+    osc.start(ac.currentTime); osc.stop(ac.currentTime+0.35);
+  }catch(e){}
+}
+function playCatchSound(){
+  try{
+    const ac=getAudioCtx();
+    const melody=[523,659,784,1047];
+    melody.forEach((f,i)=>{
+      const osc=ac.createOscillator();
+      const gain=ac.createGain();
+      osc.connect(gain); gain.connect(ac.destination);
+      osc.type='triangle';
+      osc.frequency.value=f;
+      gain.gain.setValueAtTime(0,ac.currentTime+i*0.1);
+      gain.gain.linearRampToValueAtTime(0.3,ac.currentTime+i*0.1+0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.1+0.25);
+      osc.start(ac.currentTime+i*0.1);
+      osc.stop(ac.currentTime+i*0.1+0.28);
+    });
+  }catch(e){}
+}
+
 // Keys
 const keys={};
 document.addEventListener('keydown',e=>{
@@ -1560,6 +1634,7 @@ function handleCast(){
 
 function doCast(){
   G.casting=true;
+  playCastSound();
   const btn=document.getElementById('castBtn');
   btn.textContent='⏳ Casting...';btn.disabled=true;
 
@@ -1578,13 +1653,14 @@ function doCast(){
   setTimeout(()=>{
     G.casting=false;G.waiting=true;
     btn.textContent='🎣 REEL IN!';btn.disabled=false;btn.className='castbtn';
-    G.timer=setTimeout(triggerBite, 1500+Math.random()*5000);
+    G.timer=setTimeout(triggerBite, 5000+Math.random()*12000);
   },700);
 }
 
 function triggerBite(){
   if(!G.waiting) return;
   G.bob.alert=true;
+  playBiteSound();
   setMsg('⚡ BITE! Press REEL IN NOW!');
   document.getElementById('castBtn').className='castbtn waiting';
   G.timer=setTimeout(()=>{if(G.waiting)missed();},2200);
@@ -1595,6 +1671,7 @@ function reel(){
   const fish=rollFish(BAITS[G.sel].pw);
   if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
   G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;G.gold+=fish.g;
+  playCatchSound();
   updateHUD();showCatch(fish);
 }
 function rollFish(pw){
