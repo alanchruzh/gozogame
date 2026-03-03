@@ -1986,22 +1986,22 @@ async function gHandleBtn(){
 async function gConnect(){
   const eth=window.ethereum;
   if(!eth){
-    gSetStatus('⚠ WALLET TIDAK DITEMUKAN. INSTALL METAMASK / RABBY.','err');
+    gSetStatus('⚠ WALLET NOT FOUND. INSTALL METAMASK / RABBY.','err');
     gSetBtn('CONNECT WALLET',false);
     gSetStep(1,'error');
     return;
   }
   gSetBtn('CONNECTING...',true);
   gSetStep(1,'active');
-  gSetStatus('MEMINTA AKSES WALLET...');
+  gSetStatus('REQUEST TO ACCESS WALLET...');
 
   let accounts;
   try {
     accounts=await eth.request({method:'eth_requestAccounts'});
   } catch(e) {
     gSetStep(1,'error');
-    if(e.code===4001)       gSetStatus('DITOLAK USER. COBA LAGI.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
+    if(e.code===4001)       gSetStatus('REJECTED BY USER. TRY AGAIN.','err');
+    else if(e.code===-32002) gSetStatus('REQUEST PENDING — CHECK POPUP WALLET.','err');
     else                    gSetStatus('GAGAL: '+(e.message||'').slice(0,50),'err');
     gSetBtn('CONNECT WALLET',false); gShowRetry(true);
     return;
@@ -2009,7 +2009,7 @@ async function gConnect(){
 
   if(!accounts||!accounts.length){
     gSetStep(1,'error');
-    gSetStatus('TIDAK ADA AKUN TERDETEKSI.','err');
+    gSetStatus('NO ACCOUNT DETECTED.','err');
     gSetBtn('CONNECT WALLET',false);
     return;
   }
@@ -2020,14 +2020,14 @@ async function gConnect(){
   addrEl.textContent=gWallet; addrEl.classList.add('show');
 
   gSetStep(1,'done');
-  gSetStatus('WALLET TERHUBUNG! MENGECEK JARINGAN...','ok');
+  gSetStatus('WALLET CONNECTED! CHECK NETWORK...','ok');
 
   // Switch to Monad
   try { await gEnsureNetwork(); }
   catch(e){
     gSetStep(1,'error');
-    if(e.code===4001) gSetStatus('SWITCH JARINGAN DITOLAK. PINDAH KE MONAD MANUAL.','err');
-    else              gSetStatus('GAGAL SWITCH JARINGAN: '+(e.message||'').slice(0,50),'err');
+    if(e.code===4001) gSetStatus('SWITCH NETWORK REJECTED. MOVING TO MONAD MANUAL.','err');
+    else              gSetStatus('FAILED TO SWITCH NETWORK: '+(e.message||'').slice(0,50),'err');
     gSetBtn('CONNECT WALLET',false); gShowRetry(true);
     return;
   }
@@ -2038,7 +2038,7 @@ async function gConnect(){
   gFlowStep=1;
   gSetBtn('APPROVE 10 GOZO →');
   gSetStep(2,'');
-  gSetStatus('CONNECTED! KLIK APPROVE UNTUK LANJUT.','ok');
+  gSetStatus('CONNECTED! CLICK APPROVE TO CONTINUE.','ok');
   gShowRetry(false);
 }
 
@@ -2050,12 +2050,12 @@ async function gEnsureNetwork(){
     document.getElementById('gNetName').textContent='MONAD MAINNET';
     return;
   }
-  gSetStatus('SWITCHING KE MONAD MAINNET...');
+  gSetStatus('SWITCHING TO MONAD MAINNET...');
   try {
     await gProvider.request({method:'wallet_switchEthereumChain',params:[{chainId:W3.CHAIN_ID}]});
   } catch(sw){
     if(sw.code===4902||sw.code===-32603){
-      gSetStatus('MENAMBAHKAN MONAD MAINNET...');
+      gSetStatus('ADD MONAD MAINNET...');
       await gProvider.request({
         method:'wallet_addEthereumChain',
         params:[{
@@ -2070,7 +2070,7 @@ async function gEnsureNetwork(){
   }
   const newId=await gProvider.request({method:'eth_chainId'});
   if(newId.toLowerCase()!==W3.CHAIN_ID.toLowerCase())
-    throw new Error('Masih di jaringan yang salah setelah switch.');
+    throw new Error('Still on wrong network after switch.');
   document.getElementById('gNetBadge').className='gnet-badge ok';
   document.getElementById('gNetName').textContent='MONAD MAINNET';
 }
@@ -2088,26 +2088,26 @@ async function gFetchBalance(){
 // ── Step 2: Approve ─────────────────────────────────────
 async function gApprove(){
   gSetBtn('APPROVING...',true); gSetStep(2,'active');
-  gSetStatus('KONFIRMASI APPROVE DI WALLET...'); gSetProgress(10); gShowRetry(false);
+  gSetStatus('CONFIRMATION APPROVE ON WALLET...'); gSetProgress(10); gShowRetry(false);
   try {
     const data='0x'+FNS.approve+gAddr(W3.BURN_ADDR)+gUint(W3.BURN_WEI);
     const txHash=await gProvider.request({
       method:'eth_sendTransaction',
       params:[{from:gWallet,to:W3.GOZO_ADDR,data}],
     });
-    gSetStatus('APPROVE TX TERKIRIM — MENUNGGU KONFIRMASI...');
+    gSetStatus('APPROVE TX SENT — WAITING CONFIRMATION...');
     gSetProgress(40); gShowTx(txHash);
     await gWaitTx(txHash);
     gSetStep(2,'done'); gSetProgress(60);
-    gSetStatus('APPROVED! SEKARANG BAKAR GOZO 🔥','ok');
+    gSetStatus('APPROVED! NOW BURN GOZO 🔥','ok');
     gFlowStep=2;
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!');
+    gSetBtn('🔥 BURN 10 GOZO & PLAY!');
     gSetStep(3,'');
   } catch(e){
     gSetStep(2,'error');
-    if(e.code===4001)        gSetStatus('APPROVE DITOLAK USER.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
-    else                     gSetStatus('APPROVE GAGAL: '+(e.message||'').slice(0,50),'err');
+    if(e.code===4001)        gSetStatus('APPROVE REJECTED BY USER.','err');
+    else if(e.code===-32002) gSetStatus('REQUEST PENDING — CHECK POPUP WALLET.','err');
+    else                     gSetStatus('APPROVE FAILED: '+(e.message||'').slice(0,50),'err');
     gSetBtn('APPROVE 10 GOZO →',false); gShowRetry(true);
   }
 }
@@ -2117,15 +2117,15 @@ async function gBurn(){
   if(gBurning)return;
   gBurning=true;
   gSetBtn('BURNING...',true); gSetStep(3,'active');
-  gSetStatus('KONFIRMASI BURN DI WALLET...'); gSetProgress(65); gShowRetry(false);
+  gSetStatus('CONFIRMATION BURN IN WALLET...'); gSetProgress(65); gShowRetry(false);
 
   // Check balance
   let bal;
   try { bal=await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal<BigInt(W3.BURN_WEI)){
     gSetStep(3,'error');
-    gSetStatus('SALDO GOZO TIDAK CUKUP!','err');
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurning=false;
+    gSetStatus('TOKEN GOZO NOT ENOUGH!','err');
+    gSetBtn('🔥 BURN 10 GOZO & PLAY!',false); gBurning=false;
     return;
   }
 
@@ -2135,11 +2135,11 @@ async function gBurn(){
       method:'eth_sendTransaction',
       params:[{from:gWallet,to:W3.GOZO_ADDR,data}],
     });
-    gSetStatus('BURN TX TERKIRIM — MENUNGGU KONFIRMASI...');
+    gSetStatus('BURN TX SENT — WAITING CONFIRMATION...');
     gSetProgress(80); gShowTx(txHash);
     await gWaitTx(txHash);
     gSetStep(3,'done'); gSetProgress(100);
-    gSetStatus('🔥 10 GOZO TERBAKAR! LAUNCHING GAME...','ok');
+    gSetStatus('🔥 10 GOZO BURNED! LAUNCHING GAME...','ok');
 
     // Show burn notification
     const n=document.createElement('div');
@@ -2152,11 +2152,11 @@ async function gBurn(){
   } catch(e){
     gBurning=false;
     gSetStep(3,'error');
-    if(e.code===4001)        gSetStatus('BURN DITOLAK USER.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
-    else if(e.code===-32603) gSetStatus('INTERNAL ERROR — COBA LAGI.','err');
-    else                     gSetStatus('BURN GAGAL: '+(e.message||'').slice(0,50),'err');
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gShowRetry(true);
+    if(e.code===4001)        gSetStatus('BURN REJECTED BY USER.','err');
+    else if(e.code===-32002) gSetStatus('REQUEST PENDING — CHECK POPUP WALLET.','err');
+    else if(e.code===-32603) gSetStatus('INTERNAL ERROR — TRY AGAIN.','err');
+    else                     gSetStatus('BURN FAILED: '+(e.message||'').slice(0,50),'err');
+    gSetBtn('🔥 BURN 10 GOZO & PLAY!',false); gShowRetry(true);
   }
 }
 
@@ -2186,7 +2186,7 @@ async function gRetry(){
     return;
   }
   if(gFlowStep===1){ gSetStep(2,''); gSetBtn('APPROVE 10 GOZO →',false); gApprove(); }
-  else if(gFlowStep===2){ gSetStep(3,''); gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurn(); }
+  else if(gFlowStep===2){ gSetStep(3,''); gSetBtn('🔥 BURN 10 GOZO & PLAY!',false); gBurn(); }
 }
 
 // ── Launch fishing game ─────────────────────────────────
@@ -2549,7 +2549,7 @@ async function svScanChain(){
     } catch(e){}
 
     // Strategy 2: Scan recent blocks for self-txs with GOZO magic
-    svStatus('Scanning blok terbaru...','#FFD700');
+    svStatus('Scanning new block...','#FFD700');
     try {
       const latestHex=await provider.request({method:'eth_blockNumber'});
       const latest=parseInt(latestHex,16);
@@ -2587,8 +2587,8 @@ async function svScanChain(){
 
     if(!saves.length){
       listEl.innerHTML='<div style="font-size:5px;color:#3a5a3a;text-align:center;padding:14px;">'+
-        '❌ Tidak ada save data ditemukan.<br>Coba Save dulu dari tab SAVE GAME.</div>';
-      svStatus('Tidak ada save ditemukan.','#ff8c00');
+        '❌ no save data found.<br>Try Save First from Tab SAVE GAME.</div>';
+      svStatus('no save found.','#ff8c00');
     } else {
       listEl.innerHTML='';
       saves.forEach((sv,idx)=>{
@@ -2628,7 +2628,7 @@ async function svScanChain(){
 // ── Apply loaded state to game ───────────────────────────
 function svLoadState(state, txHash){
   if(!state) return;
-  if(!confirm('Load save ini? Progress game saat ini akan tergantikan.')) return;
+  if(!confirm('Load this save ? Progress game will replaced.')) return;
 
   try {
     G.gold  = state.g || 0;
@@ -2656,11 +2656,11 @@ function svLoadState(state, txHash){
     } catch(e){}
 
     closeSaveModal();
-    notify('📂 Game loaded dari Monad Chain!');
-    setMsg('Game berhasil di-load! Lanjutkan petualangan memancing!');
+    notify('📂 Game loaded from Monad Chain!');
+    setMsg('Game loaded! Continue to fishing!');
     playCatchSound();
   } catch(e){
-    svStatus('❌ Gagal load: '+(e.message||''),'#ff4444');
+    svStatus('❌ Fail to load: '+(e.message||''),'#ff4444');
   }
 }
 
@@ -2684,7 +2684,7 @@ function svTab(tab){
   document.getElementById('tabLoad').style.background=tab==='load'?'rgba(255,215,0,.12)':'transparent';
   document.getElementById('tabLoad').style.color=tab==='load'?'#FFD700':'#3a5a3a';
   if(tab==='load'){
-    svStatus('Klik SCAN untuk mencari save data di chain.','#3a5a3a');
+    svStatus('Click SCAN to seraching save data on chain.','#3a5a3a');
     document.getElementById('svSavesList').innerHTML='';
   }
 }
