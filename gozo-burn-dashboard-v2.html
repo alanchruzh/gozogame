@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GOZO Burn Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0f;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #ff4d00;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.85rem;
+      margin-bottom: 36px;
+      letter-spacing: 1px;
+    }
+
+    .rpc-bar {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+
+    .rpc-bar label {
+      font-size: 0.78rem;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .rpc-bar input {
+      flex: 1;
+      background: #13131a;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 0.82rem;
+    }
+
+    .rpc-bar input:focus { outline: none; border-color: #ff4d00; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+      margin-bottom: 36px;
+    }
+
+    .card {
+      background: #13131a;
+      border: 1px solid #1f1f2e;
+      border-radius: 16px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #ff4d00, #ff8c00);
+      border-radius: 16px 16px 0 0;
+    }
+
+    .card-label {
+      font-size: 0.72rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .card-value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      word-break: break-all;
+    }
+
+    .card-value.burn { color: #ff4d00; }
+    .card-value.pct { color: #ff8c00; }
+    .card-value.addr { font-size: 0.78rem; color: #ff8c00; }
+
+    .card-sub { font-size: 0.73rem; color: #555; }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ff8c00;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      max-width: 900px;
+      background: #13131a;
+      border: 1px solid #1f1f2e;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+
+    thead tr { background: #1a1a25; }
+
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      color: #888;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+    }
+
+    td {
+      padding: 12px 16px;
+      border-top: 1px solid #1a1a25;
+      color: #ccc;
+      word-break: break-all;
+    }
+
+    td a { color: #ff6a20; text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+    tr:hover td { background: #16161f; }
+
+    .badge-amount { color: #ff4d00; font-weight: 700; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #555;
+      margin-top: 24px;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #ff4d00;
+    }
+
+    .dot.pulse { animation: pulse 1.5s infinite; }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .refresh-btn {
+      margin-top: 20px;
+      background: linear-gradient(135deg, #ff4d00, #ff8c00);
+      border: none;
+      color: #fff;
+      padding: 10px 28px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: opacity 0.2s;
+    }
+
+    .refresh-btn:hover { opacity: 0.85; }
+    .refresh-btn:disabled { opacity: 0.4; cursor: default; }
+
+    .error-msg {
+      color: #ff6060;
+      background: #1a0a0a;
+      border: 1px solid #3a1a1a;
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-top: 16px;
+      max-width: 900px;
+      width: 100%;
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+
+    .info-msg {
+      color: #aaa;
+      background: #111118;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-top: 16px;
+      max-width: 900px;
+      width: 100%;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    .info-msg code {
+      background: #1f1f2e;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #ff8c00;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #333;
+      border-top-color: #ff4d00;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <h1>🔥 GOZO Burn Dashboard</h1>
+  <p class="subtitle">Live data from Monad Mainnet</p>
+
+  <!-- RPC URL input for CORS issues -->
+  <div class="rpc-bar">
+    <label>RPC URL:</label>
+    <input type="text" id="rpcInput" value="https://rpc.monad.xyz" placeholder="Enter RPC URL..." />
+    <button class="refresh-btn" style="margin:0;padding:8px 16px;" onclick="fetchBurnData()">Fetch</button>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Total Burned</div>
+      <div class="card-value burn" id="totalBurned">—</div>
+      <div class="card-sub">GOZO sent to dead address</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Total Supply</div>
+      <div class="card-value" id="totalSupply">—</div>
+      <div class="card-sub">Current total supply</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Burn Percentage</div>
+      <div class="card-value pct" id="burnPct">—</div>
+      <div class="card-sub">% of total supply burned</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Burn Address</div>
+      <div class="card-value addr" id="burnAddr">0x000...dEaD</div>
+      <div class="card-sub" id="contractAddr">Contract: 0xc655...7777</div>
+    </div>
+  </div>
+
+  <div style="width:100%;max-width:900px;margin-bottom:12px;">
+    <div class="section-title">🔥 Recent Burns (Last 50,000 Blocks)</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Tx Hash</th>
+          <th>Block</th>
+          <th>From</th>
+          <th>Amount (GOZO)</th>
+        </tr>
+      </thead>
+      <tbody id="burnTable">
+        <tr><td colspan="5" style="text-align:center;color:#555;padding:30px;">Click Fetch to load data</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="errorMsg" class="error-msg" style="display:none;"></div>
+
+  <div id="infoMsg" class="info-msg" style="display:none;">
+    ⚠️ <strong>CORS Error Detected.</strong> Browser memblokir request langsung ke RPC.<br><br>
+    Solusi:
+    <ul style="margin-top:8px;padding-left:20px;">
+      <li>Jalankan file HTML ini melalui web server lokal:<br>
+        <code>npx serve .</code> atau <code>python -m http.server 8080</code>
+      </li>
+      <li>Atau gunakan browser extension seperti <strong>CORS Unblock</strong></li>
+      <li>Atau deploy ke server yang punya backend proxy ke <code>rpc.monad.xyz</code></li>
+      <li>Coba RPC alternatif: <code>https://monad-mainnet.g.alchemy.com/v2/YOUR_KEY</code></li>
+    </ul>
+  </div>
+
+  <button class="refresh-btn" id="refreshBtn" onclick="fetchBurnData()">⟳ Refresh</button>
+
+  <div class="status">
+    <div class="dot pulse" id="dotEl"></div>
+    <span id="lastUpdated">Belum ada data</span>
+  </div>
+
+<script>
+  const GOZO_CONTRACT = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+  const BURN_ADDRESS  = '0x000000000000000000000000000000000000dEaD';
+  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+  let callId = 1;
+
+  async function rpcCall(method, params) {
+    const RPC_URL = document.getElementById('rpcInput').value.trim();
+    const res = await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: callId++, method, params }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message);
+    return json.result;
+  }
+
+  function fmt(num) {
+    return Number(num).toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+
+  function shortAddr(addr) {
+    if (!addr || addr.length < 10) return addr;
+    return addr.slice(0, 6) + '...' + addr.slice(-4);
+  }
+
+  function setLoading(on) {
+    const btn = document.getElementById('refreshBtn');
+    const tbody = document.getElementById('burnTable');
+    btn.disabled = on;
+    if (on) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#555;padding:30px;">
+        <span class="spinner"></span>Mengambil data dari blockchain...
+      </td></tr>`;
+    }
+  }
+
+  async function fetchBurnData() {
+    setLoading(true);
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('infoMsg').style.display = 'none';
+
+    try {
+      // 1. Total burned
+      const balanceOfSelector = '0x70a08231';
+      const paddedBurn = BURN_ADDRESS.slice(2).padStart(64, '0');
+      const balanceHex = await rpcCall('eth_call', [
+        { to: GOZO_CONTRACT, data: balanceOfSelector + paddedBurn }, 'latest'
+      ]);
+      const totalBurnedRaw = BigInt(balanceHex || '0x0');
+      const totalBurnedExact = Number(totalBurnedRaw * BigInt(100) / BigInt(1e18)) / 100;
+
+      // 2. Total supply
+      const tsHex = await rpcCall('eth_call', [
+        { to: GOZO_CONTRACT, data: '0x18160ddd' }, 'latest'
+      ]);
+      const totalSupplyRaw = BigInt(tsHex || '0x0');
+      const totalSupply = Number(totalSupplyRaw / BigInt(1e18));
+
+      const burnPct = totalSupply > 0
+        ? ((totalBurnedExact / totalSupply) * 100).toFixed(4)
+        : '0';
+
+      document.getElementById('totalBurned').textContent = fmt(totalBurnedExact.toFixed(2));
+      document.getElementById('totalSupply').textContent = fmt(totalSupply);
+      document.getElementById('burnPct').textContent = burnPct + '%';
+      document.getElementById('burnAddr').textContent = BURN_ADDRESS;
+      document.getElementById('contractAddr').textContent = 'Contract: ' + shortAddr(GOZO_CONTRACT);
+
+      // 3. Logs
+      const latestBlockHex = await rpcCall('eth_blockNumber', []);
+      const latestBlock = parseInt(latestBlockHex, 16);
+      const fromBlock = Math.max(0, latestBlock - 50000);
+      const paddedBurnTopic = '0x' + BURN_ADDRESS.slice(2).padStart(64, '0');
+
+      let recentBurns = [];
+      try {
+        const logs = await rpcCall('eth_getLogs', [{
+          address: GOZO_CONTRACT,
+          fromBlock: '0x' + fromBlock.toString(16),
+          toBlock: 'latest',
+          topics: [TRANSFER_TOPIC, null, paddedBurnTopic],
+        }]);
+        if (Array.isArray(logs)) {
+          recentBurns = logs.slice(-20).reverse().map(log => ({
+            txHash: log.transactionHash,
+            blockNumber: parseInt(log.blockNumber, 16),
+            from: '0x' + (log.topics[1] || '').slice(26),
+            amount: Number(BigInt(log.data || '0x0') / BigInt(1e18)),
+          }));
+        }
+      } catch (e) {
+        console.warn('Log fetch failed:', e.message);
+      }
+
+      const tbody = document.getElementById('burnTable');
+      if (recentBurns.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#555;padding:30px;">Tidak ada burn dalam 50,000 block terakhir.</td></tr>';
+      } else {
+        tbody.innerHTML = recentBurns.map((b, i) => `
+          <tr>
+            <td style="color:#555;">${i + 1}</td>
+            <td><a href="https://monadexplorer.com/tx/${b.txHash}" target="_blank" title="${b.txHash}">${shortAddr(b.txHash)}</a></td>
+            <td>${b.blockNumber.toLocaleString()}</td>
+            <td><a href="https://monadexplorer.com/address/${b.from}" target="_blank" title="${b.from}">${shortAddr(b.from)}</a></td>
+            <td class="badge-amount">${fmt(b.amount)} GOZO</td>
+          </tr>
+        `).join('');
+      }
+
+      document.getElementById('lastUpdated').textContent =
+        'Last updated: ' + new Date().toLocaleTimeString('id-ID');
+
+    } catch (err) {
+      const errEl = document.getElementById('errorMsg');
+      const infoEl = document.getElementById('infoMsg');
+      const msg = err.message || '';
+      errEl.textContent = '❌ ' + msg;
+      errEl.style.display = 'block';
+
+      if (msg.toLowerCase().includes('cors') ||
+          msg.toLowerCase().includes('network') ||
+          msg.toLowerCase().includes('failed to fetch') ||
+          msg.toLowerCase().includes('load')) {
+        infoEl.style.display = 'block';
+      }
+
+      document.getElementById('burnTable').innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#555;padding:30px;">Gagal memuat data</td></tr>';
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Auto fetch on load
+  fetchBurnData();
+</script>
+</body>
+</html>
