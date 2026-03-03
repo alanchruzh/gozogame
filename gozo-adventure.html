@@ -150,14 +150,44 @@
   @keyframes dmgFloat{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-60px);opacity:0}}
   @keyframes twinkle{0%,100%{opacity:.2}50%{opacity:1}}
   /* INVENTORY */
-  .inv-item{display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #333;padding:8px 10px;transition:border-color .15s;}
-  .inv-item.equipped{border-color:var(--yellow);background:#131320;}
-  .inv-item:hover{border-color:#555;}
-  .inv-item-info{flex:1;line-height:1.7;}
-  .inv-btn{background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 7px;cursor:pointer;white-space:nowrap;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  #inv-screen{scrollbar-width:thin;scrollbar-color:#333 #111;}
+  #inv-screen::-webkit-scrollbar{width:4px;}
+  #inv-screen::-webkit-scrollbar-track{background:#111;}
+  #inv-screen::-webkit-scrollbar-thumb{background:#444;border-radius:2px;}
+  .inv-tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #333;}
+  .inv-tab{flex:1;padding:8px 4px;font-family:'Press Start 2P',monospace;font-size:7px;color:#666;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:all .15s;text-align:center;}
+  .inv-tab.active{color:var(--yellow);border-bottom-color:var(--yellow);}
+  .inv-tab:hover:not(.active){color:#999;}
+  .inv-panel{display:none;}
+  .inv-panel.active{display:block;}
+  .inv-item{display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #2a2a3a;padding:9px 10px;transition:all .15s;position:relative;}
+  .inv-item.equipped{border-color:var(--yellow);background:#14140a;}
+  .inv-item.equipped::before{content:'EQ';position:absolute;top:4px;right:4px;font-size:5px;color:var(--yellow);font-family:'Press Start 2P',monospace;}
+  .inv-item:hover{border-color:#555;background:#111122;}
+  .inv-item-info{flex:1;line-height:1.8;min-width:0;}
+  .inv-item-name{font-size:8px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .inv-item-stats{font-size:7px;color:#888;margin-top:1px;}
+  .inv-item-desc{font-size:6px;color:#555;margin-top:1px;}
+  .inv-compare{font-size:6px;margin-top:2px;}
+  .inv-compare .up{color:#44ff88;}
+  .inv-compare .down{color:#ff4444;}
+  .inv-compare .same{color:#888;}
+  .inv-btn{background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:pointer;white-space:nowrap;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
   .inv-btn:hover{background:var(--yellow);color:#000;}
+  .inv-btn.danger{border-color:#cc4444;color:#cc4444;}
+  .inv-btn.danger:hover{background:#cc4444;color:#fff;}
+  .inv-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center;}
+  .inv-filter-btn{font-family:'Press Start 2P',monospace;font-size:6px;padding:4px 8px;border:1px solid #444;background:none;color:#666;cursor:pointer;transition:all .1s;}
+  .inv-filter-btn.on{background:#222;color:#eee;border-color:#888;}
+  .inv-sort-btn{font-family:'Press Start 2P',monospace;font-size:6px;padding:4px 8px;border:1px solid #333;background:none;color:#555;cursor:pointer;}
+  .inv-sort-btn.on{color:var(--yellow);border-color:var(--yellow);}
+  .inv-empty{color:#444;font-size:8px;text-align:center;padding:24px;border:2px dashed #222;}
+  .inv-equipped-card{display:flex;align-items:center;gap:10px;background:#0a0a14;border:2px solid #333;padding:10px 12px;min-height:48px;}
+  .inv-equipped-card.has-item{border-color:var(--yellow);}
+  .rarity-bar{height:2px;border-radius:1px;margin-top:3px;}
 
-  @keyframes dropBounce{0%{transform:translateX(-50%) translateY(20px);opacity:0}60%{transform:translateX(-50%) translateY(-6px);opacity:1}100%{transform:translateX(-50%) translateY(0);opacity:1}}0%,100%{box-shadow:0 0 4px rgba(68,238,68,.4)}50%{box-shadow:0 0 14px rgba(68,238,68,.9)}}
+  @keyframes dropBounce{0%{transform:translateX(-50%) translateY(20px);opacity:0}60%{transform:translateX(-50%) translateY(-6px);opacity:1}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+  @keyframes invSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}0%,100%{box-shadow:0 0 4px rgba(68,238,68,.4)}50%{box-shadow:0 0 14px rgba(68,238,68,.9)}}
   @keyframes grassSwayFast{0%,100%{transform:translateX(0) skewX(0deg)}25%{transform:translateX(-3px) skewX(-2deg)}75%{transform:translateX(3px) skewX(2deg)}}
   @keyframes exclamPop{0%{transform:scale(0) translateY(10px);opacity:0}60%{transform:scale(1.4) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
   /* MINIMAP */
@@ -476,30 +506,120 @@
 </div>
 
 <!-- INVENTORY SCREEN -->
-<div id="inv-screen" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:16px 0 32px;">
-  <div style="width:100%;max-width:620px;padding:0 12px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,4vw,22px);color:var(--yellow);text-shadow:0 0 12px var(--yellow)">🎒 GOZO'S BAG</div>
-      <button onclick="closeInventory()" style="background:var(--panel);border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:6px 12px;cursor:pointer;">✖ CLOSE</button>
+<div id="inv-screen" style="display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;">
+  <div style="width:100%;max-width:640px;padding:0;">
+
+    <!-- Header bar -->
+    <div style="position:sticky;top:0;z-index:10;background:rgba(5,5,15,.97);border-bottom:2px solid #222;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(8px);">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-family:'Orbitron',sans-serif;font-size:clamp(13px,3.5vw,20px);color:var(--yellow);text-shadow:0 0 10px var(--yellow)">🎒 GOZO'S BAG</span>
+        <span id="inv-total-badge" style="font-size:7px;color:#666;font-family:'Press Start 2P',monospace;"></span>
+      </div>
+      <button onclick="closeInventory()" style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
     </div>
-    <div style="background:var(--panel);border:2px solid var(--border);padding:10px 14px;margin-bottom:14px;display:flex;gap:20px;flex-wrap:wrap;clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);">
-      <div><div style="font-size:7px;color:#888">⚔️ ATK</div><div style="font-size:14px;color:#ff8844" id="inv-atk-val">—</div></div>
-      <div><div style="font-size:7px;color:#888">🛡️ DEF</div><div style="font-size:14px;color:#44aaff" id="inv-def-val">—</div></div>
-      <div><div style="font-size:7px;color:#888">❤️ HP</div><div style="font-size:14px;color:#44ff88" id="inv-hp-val">—</div></div>
+
+    <!-- Stats bar -->
+    <div style="background:#0d0d1a;border-bottom:1px solid #222;padding:10px 14px;display:flex;gap:0;flex-wrap:wrap;">
+      <div style="flex:1;min-width:80px;padding:4px 10px;border-right:1px solid #222;text-align:center;">
+        <div style="font-size:6px;color:#666;margin-bottom:3px;">⚔️ ATTACK</div>
+        <div style="font-size:16px;color:#ff8844;font-family:'Press Start 2P',monospace" id="inv-atk-val">—</div>
+        <div style="font-size:6px;color:#444;margin-top:1px;" id="inv-atk-from">base</div>
+      </div>
+      <div style="flex:1;min-width:80px;padding:4px 10px;border-right:1px solid #222;text-align:center;">
+        <div style="font-size:6px;color:#666;margin-bottom:3px;">🛡️ DEFENSE</div>
+        <div style="font-size:16px;color:#44aaff;font-family:'Press Start 2P',monospace" id="inv-def-val">—</div>
+        <div style="font-size:6px;color:#444;margin-top:1px;" id="inv-def-from">base</div>
+      </div>
+      <div style="flex:1;min-width:80px;padding:4px 10px;text-align:center;">
+        <div style="font-size:6px;color:#666;margin-bottom:3px;">❤️ MAX HP</div>
+        <div style="font-size:16px;color:#44ff88;font-family:'Press Start 2P',monospace" id="inv-hp-val">—</div>
+        <div style="font-size:6px;color:#444;margin-top:1px;" id="inv-hp-from">base</div>
+      </div>
     </div>
-    <div style="margin-bottom:12px;">
-      <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px;">⚔️ EQUIPPED WEAPON</div>
-      <div id="inv-equipped-weapon" style="font-size:9px;background:#0a0a15;border:2px solid #333;padding:8px 12px;min-height:36px;line-height:1.8;"></div>
+
+    <!-- Tab bar -->
+    <div class="inv-tab-bar" style="padding:0 14px;margin-bottom:0;">
+      <button class="inv-tab active" onclick="switchInvTab('equipped')" id="tab-equipped">🧤 EQUIPPED</button>
+      <button class="inv-tab" onclick="switchInvTab('weapons')" id="tab-weapons">⚔️ WEAPONS</button>
+      <button class="inv-tab" onclick="switchInvTab('armors')" id="tab-armors">🛡️ ARMORS</button>
+      <button class="inv-tab" onclick="switchInvTab('all')" id="tab-all">📦 ALL DROPS</button>
     </div>
-    <div style="margin-bottom:18px;">
-      <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px;">🛡️ EQUIPPED ARMOR</div>
-      <div id="inv-equipped-armor" style="font-size:9px;background:#0a0a15;border:2px solid #333;padding:8px 12px;min-height:36px;line-height:1.8;"></div>
-    </div>
-    <div style="font-size:8px;color:#ff8844;margin-bottom:8px;border-bottom:1px solid #331100;padding-bottom:4px;">⚔️ WEAPONS <span id="inv-weapon-count" style="color:#555;font-size:7px"></span></div>
-    <div id="inv-weapon-list" style="display:flex;flex-direction:column;gap:5px;margin-bottom:20px;"></div>
-    <div style="font-size:8px;color:#44aaff;margin-bottom:8px;border-bottom:1px solid #001133;padding-bottom:4px;">🛡️ ARMORS <span id="inv-armor-count" style="color:#555;font-size:7px"></span></div>
-    <div id="inv-armor-list" style="display:flex;flex-direction:column;gap:5px;"></div>
-  </div>
+
+    <div style="padding:14px;">
+
+      <!-- EQUIPPED TAB -->
+      <div class="inv-panel active" id="panel-equipped">
+        <div style="font-size:7px;color:#888;margin-bottom:8px;">Currently equipped gear. Swap anytime from the Weapons or Armors tab.</div>
+
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;margin-top:12px;">⚔️ WEAPON SLOT</div>
+        <div id="inv-equipped-weapon" class="inv-equipped-card"></div>
+
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:6px;margin-top:14px;">🛡️ ARMOR SLOT</div>
+        <div id="inv-equipped-armor" class="inv-equipped-card"></div>
+
+        <div style="margin-top:20px;padding:12px;background:#0a0a15;border:1px solid #1a1a2a;">
+          <div style="font-size:7px;color:#555;margin-bottom:8px;">💡 TIPS</div>
+          <div style="font-size:6px;color:#444;line-height:2.2;">
+            • Items drop from monsters after winning battles<br>
+            • Higher tier monsters drop better gear<br>
+            • Legendary items glow gold in the list<br>
+            • Green arrows = better than current equip<br>
+            • Press <span style="color:#888">I</span> key to open/close bag anytime
+          </div>
+        </div>
+      </div>
+
+      <!-- WEAPONS TAB -->
+      <div class="inv-panel" id="panel-weapons">
+        <div class="inv-filter-bar">
+          <span style="font-size:6px;color:#555;font-family:'Press Start 2P',monospace;">RARITY:</span>
+          <button class="inv-filter-btn on" onclick="toggleFilter(this,'w','all')">ALL</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'w','Common')" style="color:#aaa;border-color:#aaa;">CMN</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'w','Uncommon')" style="color:#44dd44;border-color:#44dd44;">UNC</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'w','Rare')" style="color:#4488ff;border-color:#4488ff;">RARE</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'w','Epic')" style="color:#cc44ff;border-color:#cc44ff;">EPIC</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'w','Legendary')" style="color:#ffaa00;border-color:#ffaa00;">LEG</button>
+          <span style="flex:1"></span>
+          <button class="inv-sort-btn on" id="wsort-atk" onclick="setSortW('atk')">ATK▼</button>
+          <button class="inv-sort-btn" id="wsort-tier" onclick="setSortW('tier')">TIER</button>
+          <button class="inv-sort-btn" id="wsort-new" onclick="setSortW('new')">NEW</button>
+        </div>
+        <div id="inv-weapon-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <!-- ARMORS TAB -->
+      <div class="inv-panel" id="panel-armors">
+        <div class="inv-filter-bar">
+          <span style="font-size:6px;color:#555;font-family:'Press Start 2P',monospace;">RARITY:</span>
+          <button class="inv-filter-btn on" onclick="toggleFilter(this,'a','all')">ALL</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'a','Common')" style="color:#aaa;border-color:#aaa;">CMN</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'a','Uncommon')" style="color:#44dd44;border-color:#44dd44;">UNC</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'a','Rare')" style="color:#4488ff;border-color:#4488ff;">RARE</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'a','Epic')" style="color:#cc44ff;border-color:#cc44ff;">EPIC</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'a','Legendary')" style="color:#ffaa00;border-color:#ffaa00;">LEG</button>
+          <span style="flex:1"></span>
+          <button class="inv-sort-btn on" id="asort-def" onclick="setSortA('def')">DEF▼</button>
+          <button class="inv-sort-btn" id="asort-hp" onclick="setSortA('hp')">HP</button>
+          <button class="inv-sort-btn" id="asort-tier" onclick="setSortA('tier')">TIER</button>
+          <button class="inv-sort-btn" id="asort-new" onclick="setSortA('new')">NEW</button>
+        </div>
+        <div id="inv-armor-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <!-- ALL DROPS TAB -->
+      <div class="inv-panel" id="panel-all">
+        <div style="font-size:7px;color:#888;margin-bottom:10px;">All items collected from monster drops, sorted newest first.</div>
+        <div class="inv-filter-bar">
+          <span style="font-size:6px;color:#555;font-family:'Press Start 2P',monospace;">TYPE:</span>
+          <button class="inv-filter-btn on" onclick="toggleFilter(this,'all-type','all')">ALL</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'all-type','weapon')">⚔️ WPN</button>
+          <button class="inv-filter-btn" onclick="toggleFilter(this,'all-type','armor')">🛡️ ARM</button>
+        </div>
+        <div id="inv-all-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+    </div><!-- /padding -->
+  </div><!-- /max-width -->
 </div>
 
 <!-- DROP POPUP -->
@@ -2660,74 +2780,305 @@ function equipItem(item){
 // ==============================================
 // INVENTORY UI
 // ==============================================
-function openInventory(){
+// =============================================
+// INVENTORY SYSTEM — tabs, filters, sort, compare
+// =============================================
+let _invTab = 'equipped';
+let _wFilter = 'all', _aFilter = 'all', _allTypeFilter = 'all';
+let _wSort = 'atk', _aSort = 'def';
+// All-drops log (newest first)
+const dropLog = [];
+
+function openInventory(tab){
+  _invTab = tab || _invTab || 'equipped';
   renderInventory();
-  const invs=document.getElementById('inv-screen'); if(invs) invs.style.display='flex';
+  const invs = document.getElementById('inv-screen');
+  if(invs){ invs.style.display='flex'; invs.scrollTop=0; }
+  switchInvTab(_invTab);
 }
 function closeInventory(){
-  const invsc=document.getElementById('inv-screen'); if(invsc) invsc.style.display='none';
+  const invsc = document.getElementById('inv-screen');
+  if(invsc) invsc.style.display='none';
 }
+
+function switchInvTab(tab){
+  _invTab = tab;
+  ['equipped','weapons','armors','all'].forEach(t => {
+    const btn = document.getElementById('tab-'+t);
+    const panel = document.getElementById('panel-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    if(panel) panel.classList.toggle('active', t===tab);
+  });
+  if(tab==='weapons') renderWeaponList();
+  else if(tab==='armors') renderArmorList();
+  else if(tab==='all') renderAllDrops();
+  else renderEquippedPanel();
+}
+
+function toggleFilter(btn, type, val){
+  // Deactivate siblings
+  btn.closest('.inv-filter-bar').querySelectorAll('.inv-filter-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(type==='w') { _wFilter=val; renderWeaponList(); }
+  else if(type==='a') { _aFilter=val; renderArmorList(); }
+  else if(type==='all-type') { _allTypeFilter=val; renderAllDrops(); }
+}
+
+function setSortW(s){
+  _wSort=s;
+  document.querySelectorAll('[id^=wsort-]').forEach(b=>b.classList.remove('on'));
+  const el=document.getElementById('wsort-'+s); if(el) el.classList.add('on');
+  if(el) el.textContent = s==='atk'?'ATK▼':s==='tier'?'TIER▼':'NEW▼';
+  renderWeaponList();
+}
+function setSortA(s){
+  _aSort=s;
+  document.querySelectorAll('[id^=asort-]').forEach(b=>b.classList.remove('on'));
+  const el=document.getElementById('asort-'+s); if(el) el.classList.add('on');
+  if(el) el.textContent = s==='def'?'DEF▼':s==='hp'?'HP▼':s==='tier'?'TIER▼':'NEW▼';
+  renderArmorList();
+}
+
 function renderInventory(){
   const p = state.player;
-  // Equipped display
-  const iew=document.getElementById('inv-equipped-weapon'); if(iew) iew.innerHTML = equipped.weapon
-    ? `<span style="color:${RARITY_COLOR[equipped.weapon.rarity]}">${equipped.weapon.emoji} ${equipped.weapon.name}</span><br><span style="font-size:7px;color:#aaa">ATK +${equipped.weapon.atk} | ${equipped.weapon.rarity}</span>`
-    : '<span style="color:#555">— None —</span>';
-  const iea=document.getElementById('inv-equipped-armor'); if(iea) iea.innerHTML = equipped.armor
-    ? `<span style="color:${RARITY_COLOR[equipped.armor.rarity]}">${equipped.armor.emoji} ${equipped.armor.name}</span><br><span style="font-size:7px;color:#aaa">DEF +${equipped.armor.def} HP +${equipped.armor.hp} | ${equipped.armor.rarity}</span>`
-    : '<span style="color:#555">— None —</span>';
-  const wc=document.getElementById('inv-weapon-count'); if(wc) wc.textContent='('+inventory.weapons.length+'/30)';
-  const ac=document.getElementById('inv-armor-count'); if(ac) ac.textContent='('+inventory.armors.length+'/30)';
+  // Stats bar
   const iav=document.getElementById('inv-atk-val'); if(iav) iav.textContent=p.attack;
   const idv=document.getElementById('inv-def-val'); if(idv) idv.textContent=p.defense;
-  const ihv=document.getElementById('inv-hp-val'); if(ihv) ihv.textContent=`${p.hp}/${p.maxHp}`;
+  const ihv=document.getElementById('inv-hp-val'); if(ihv) ihv.textContent=p.maxHp;
+  // Show weapon/armor contribution
+  const af=document.getElementById('inv-atk-from');
+  const df=document.getElementById('inv-def-from');
+  const hf=document.getElementById('inv-hp-from');
+  if(af) af.textContent = equipped.weapon ? '+'+equipped.weapon.atk+' from '+equipped.weapon.name : 'no weapon';
+  if(df) df.textContent = equipped.armor ? '+'+equipped.armor.def+' from '+equipped.armor.name : 'no armor';
+  if(hf) hf.textContent = equipped.armor ? '+'+equipped.armor.hp+' from '+equipped.armor.name : 'no armor';
+  // Badge
+  const tot = inventory.weapons.length + inventory.armors.length;
+  const tb = document.getElementById('inv-total-badge');
+  if(tb) tb.textContent = tot+' items';
+}
 
-  // Weapon list
+function renderEquippedPanel(){
+  renderInventory();
+  const c = RARITY_COLOR;
+  // Weapon slot
+  const iew = document.getElementById('inv-equipped-weapon');
+  if(iew){
+    const w = equipped.weapon;
+    if(w){
+      iew.className = 'inv-equipped-card has-item';
+      iew.innerHTML = `
+        <span style="font-size:32px;filter:drop-shadow(0 2px 6px ${c[w.rarity]}88)">${w.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-size:9px;color:${c[w.rarity]};margin-bottom:2px;">${w.name}</div>
+          <div style="font-size:7px;color:#888;">T${w.t} · ⚔️ ATK +${w.atk} · ${w.rarity}</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">${w.desc}</div>
+          <div class="rarity-bar" style="background:${c[w.rarity]};opacity:.5;width:${Math.min(100,w.t*10)}%"></div>
+        </div>
+        <button class="inv-btn danger" onclick="unequipItem('weapon')">REMOVE</button>`;
+    } else {
+      iew.className = 'inv-equipped-card';
+      iew.innerHTML = '<span style="color:#333;font-size:7px">— No weapon equipped. Go to ⚔️ WEAPONS tab —</span>';
+    }
+  }
+  // Armor slot
+  const iea = document.getElementById('inv-equipped-armor');
+  if(iea){
+    const a = equipped.armor;
+    if(a){
+      iea.className = 'inv-equipped-card has-item';
+      iea.innerHTML = `
+        <span style="font-size:32px;filter:drop-shadow(0 2px 6px ${c[a.rarity]}88)">${a.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-size:9px;color:${c[a.rarity]};margin-bottom:2px;">${a.name}</div>
+          <div style="font-size:7px;color:#888;">T${a.t} · 🛡️ DEF +${a.def} · ❤️ HP +${a.hp} · ${a.rarity}</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">${a.desc}</div>
+          <div class="rarity-bar" style="background:${c[a.rarity]};opacity:.5;width:${Math.min(100,a.t*10)}%"></div>
+        </div>
+        <button class="inv-btn danger" onclick="unequipItem('armor')">REMOVE</button>`;
+    } else {
+      iea.className = 'inv-equipped-card';
+      iea.innerHTML = '<span style="color:#333;font-size:7px">— No armor equipped. Go to 🛡️ ARMORS tab —</span>';
+    }
+  }
+}
+
+function unequipItem(type){
+  const p = state.player;
+  if(type==='weapon' && equipped.weapon){
+    p.attack -= equipped.weapon.atk;
+    equipped.weapon = null;
+  } else if(type==='armor' && equipped.armor){
+    p.defense -= equipped.armor.def;
+    p.maxHp   -= equipped.armor.hp;
+    p.hp = Math.min(p.hp, p.maxHp);
+    equipped.armor = null;
+  }
+  updateHUD();
+  renderEquippedPanel();
+}
+
+function makeCompareHtml(item){
+  const cur = item.type==='weapon' ? equipped.weapon : equipped.armor;
+  if(!cur) return '<span style="color:#44ff88;font-size:6px">▲ New equip!</span>';
+  let html = '';
+  if(item.type==='weapon'){
+    const diff = item.atk - cur.atk;
+    html = `<span class="${diff>0?'up':diff<0?'down':'same'}">${diff>=0?'▲+':'▼'}${diff} ATK vs ${cur.name}</span>`;
+  } else {
+    const dd = item.def - cur.def, dh = item.hp - cur.hp;
+    const dcls=dd>0?'up':dd<0?'down':'same', hcls=dh>0?'up':dh<0?'down':'same';
+    html = `<span class="${dcls}">${dd>=0?'▲+':'▼'}${dd} DEF</span> <span class="${hcls}">${dh>=0?'▲+':'▼'}${dh} HP</span> vs ${cur.name}`;
+  }
+  return `<div class="inv-compare">${html}</div>`;
+}
+
+function renderWeaponList(){
   const wList = document.getElementById('inv-weapon-list');
+  if(!wList) return;
+  let items = [...inventory.weapons];
+  // Filter
+  if(_wFilter !== 'all') items = items.filter(w => w.rarity === _wFilter);
+  // Sort
+  if(_wSort==='atk') items.sort((a,b)=>b.atk-a.atk);
+  else if(_wSort==='tier') items.sort((a,b)=>b.t-a.t);
+  // 'new' = original order (reversed = newest first)
+  else items = [...items].reverse();
   wList.innerHTML = '';
-  if(!inventory.weapons.length){ wList.innerHTML='<div style="color:#555;font-size:8px;padding:8px">No weapons yet</div>'; }
-  inventory.weapons.forEach((w,i) => {
+  if(!items.length){
+    wList.innerHTML = '<div class="inv-empty">No weapons' + (_wFilter!=='all'?' of this rarity':' in bag yet') + '</div>';
+    return;
+  }
+  items.forEach(w => {
+    const origIdx = inventory.weapons.indexOf(w);
+    const isEq = equipped.weapon === w;
+    const col = RARITY_COLOR[w.rarity];
     const div = document.createElement('div');
-    div.className = 'inv-item' + (equipped.weapon===w?' equipped':'');
-    div.innerHTML = `<span style="font-size:18px">${w.emoji}</span><div class="inv-item-info"><div style="color:${RARITY_COLOR[w.rarity]}">${w.name}</div><div style="color:#888;font-size:7px">T${w.t} | ATK +${w.atk} | ${w.rarity}</div><div style="color:#666;font-size:6px">${w.desc}</div></div><button class="inv-btn" onclick="equipFromList('weapon',${i})">${equipped.weapon===w?'✅ EQ':'EQUIP'}</button>`;
+    div.className = 'inv-item' + (isEq?' equipped':'');
+    div.style.animation = 'invSlideIn .2s ease both';
+    div.innerHTML = `
+      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${w.emoji}</span>
+      <div class="inv-item-info">
+        <div class="inv-item-name" style="color:${col}">${w.name}</div>
+        <div class="inv-item-stats">T${w.t} &nbsp;⚔️ ATK <b style="color:#ff8844">+${w.atk}</b> &nbsp;${w.element?'['+w.element.toUpperCase()+']':''} &nbsp;<span style="color:${col}">${w.rarity}</span></div>
+        <div class="inv-item-desc">${w.desc}</div>
+        ${makeCompareHtml(w)}
+      </div>
+      <button class="inv-btn${isEq?' danger':''}" onclick="equipFromList('weapon',${origIdx})">${isEq?'✓ ON':'EQUIP'}</button>`;
     wList.appendChild(div);
   });
+}
 
-  // Armor list
+function renderArmorList(){
   const aList = document.getElementById('inv-armor-list');
+  if(!aList) return;
+  let items = [...inventory.armors];
+  if(_aFilter !== 'all') items = items.filter(a => a.rarity === _aFilter);
+  if(_aSort==='def') items.sort((a,b)=>b.def-a.def);
+  else if(_aSort==='hp') items.sort((a,b)=>b.hp-a.hp);
+  else if(_aSort==='tier') items.sort((a,b)=>b.t-a.t);
+  else items = [...items].reverse();
   aList.innerHTML = '';
-  if(!inventory.armors.length){ aList.innerHTML='<div style="color:#555;font-size:8px;padding:8px">No armor yet</div>'; }
-  inventory.armors.forEach((a,i) => {
+  if(!items.length){
+    aList.innerHTML = '<div class="inv-empty">No armor' + (_aFilter!=='all'?' of this rarity':' in bag yet') + '</div>';
+    return;
+  }
+  items.forEach(a => {
+    const origIdx = inventory.armors.indexOf(a);
+    const isEq = equipped.armor === a;
+    const col = RARITY_COLOR[a.rarity];
     const div = document.createElement('div');
-    div.className = 'inv-item' + (equipped.armor===a?' equipped':'');
-    div.innerHTML = `<span style="font-size:18px">${a.emoji}</span><div class="inv-item-info"><div style="color:${RARITY_COLOR[a.rarity]}">${a.name}</div><div style="color:#888;font-size:7px">T${a.t} | DEF +${a.def} HP +${a.hp} | ${a.rarity}</div><div style="color:#666;font-size:6px">${a.desc}</div></div><button class="inv-btn" onclick="equipFromList('armor',${i})">${equipped.armor===a?'✅ EQ':'EQUIP'}</button>`;
+    div.className = 'inv-item' + (isEq?' equipped':'');
+    div.style.animation = 'invSlideIn .2s ease both';
+    div.innerHTML = `
+      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${a.emoji}</span>
+      <div class="inv-item-info">
+        <div class="inv-item-name" style="color:${col}">${a.name}</div>
+        <div class="inv-item-stats">T${a.t} &nbsp;🛡️ DEF <b style="color:#44aaff">+${a.def}</b> &nbsp;❤️ HP <b style="color:#44ff88">+${a.hp}</b> &nbsp;${a.element?'['+a.element.toUpperCase()+']':''} &nbsp;<span style="color:${col}">${a.rarity}</span></div>
+        <div class="inv-item-desc">${a.desc}</div>
+        ${makeCompareHtml(a)}
+      </div>
+      <button class="inv-btn${isEq?' danger':''}" onclick="equipFromList('armor',${origIdx})">${isEq?'✓ ON':'EQUIP'}</button>`;
     aList.appendChild(div);
   });
 }
 
+function renderAllDrops(){
+  const list = document.getElementById('inv-all-list');
+  if(!list) return;
+  let items = [...dropLog];
+  if(_allTypeFilter==='weapon') items = items.filter(i=>i.type==='weapon');
+  else if(_allTypeFilter==='armor') items = items.filter(i=>i.type==='armor');
+  list.innerHTML = '';
+  if(!items.length){
+    list.innerHTML = '<div class="inv-empty">No drops collected yet.<br>Defeat monsters to get items!</div>';
+    return;
+  }
+  items.forEach((item, di) => {
+    const col = RARITY_COLOR[item.rarity];
+    const isEq = (item.type==='weapon' && equipped.weapon===item) || (item.type==='armor' && equipped.armor===item);
+    const inBag = item.type==='weapon' ? inventory.weapons.includes(item) : inventory.armors.includes(item);
+    const div = document.createElement('div');
+    div.className = 'inv-item' + (isEq?' equipped':'');
+    div.style.animation = 'invSlideIn .2s ease both';
+    div.innerHTML = `
+      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${item.emoji}</span>
+      <div class="inv-item-info">
+        <div class="inv-item-name" style="color:${col}">${item.name} <span style="font-size:6px;color:#444">${item.type==='weapon'?'⚔️':'🛡️'}</span></div>
+        <div class="inv-item-stats">T${item.t} &nbsp;${item.type==='weapon'?'ATK +'+item.atk:'DEF +'+item.def+' HP +'+item.hp} &nbsp;<span style="color:${col}">${item.rarity}</span></div>
+        <div class="inv-item-desc">${item.desc}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
+        ${isEq ? '<span style="font-size:6px;color:var(--yellow)">✓ EQUIPPED</span>' : ''}
+        ${inBag && !isEq ? '<button class="inv-btn" onclick="equipFromDropLog('+di+')">EQUIP</button>' : ''}
+        ${!inBag ? '<span style="font-size:6px;color:#444">discarded</span>' : ''}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function equipFromDropLog(idx){
+  const item = dropLog[idx];
+  if(!item) return;
+  // Make sure it's still in inventory
+  const inBag = item.type==='weapon' ? inventory.weapons.includes(item) : inventory.armors.includes(item);
+  if(!inBag) return;
+  equipItem(item);
+  renderAllDrops();
+}
+
 function equipFromList(type, idx){
   const item = type==='weapon' ? inventory.weapons[idx] : inventory.armors[idx];
-  if(item) equipItem(item);
+  if(item){ equipItem(item); renderWeaponList(); renderArmorList(); renderEquippedPanel(); }
 }
 
 // Show drop popup after winning a battle
 function showDropPopup(item){
   if(!item) return;
+  // Add to drop log (newest first)
+  dropLog.unshift(item);
+  if(dropLog.length > 100) dropLog.pop();
+
   const el = document.getElementById('drop-popup');
   if(!el) return;
-  el.innerHTML = `<div style="font-size:10px;color:var(--yellow);margin-bottom:4px">🎁 ITEM DROPPED!</div>
-    <div style="font-size:24px">${item.emoji}</div>
-    <div style="color:${RARITY_COLOR[item.rarity]};font-size:9px;margin-top:4px">${item.name}</div>
-    <div style="color:#aaa;font-size:7px">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+' HP +'+item.hp}</div>
-    <div style="color:${RARITY_COLOR[item.rarity]};font-size:7px">${item.rarity}</div>
-    <div style="display:flex;gap:8px;margin-top:6px">
+  const col = RARITY_COLOR[item.rarity];
+  const isLeg = item.rarity === 'Legendary';
+  el.style.borderColor = isLeg ? '#ffaa00' : col;
+  el.innerHTML = `
+    <div style="font-size:8px;color:${col};margin-bottom:4px;font-family:'Press Start 2P',monospace;">🎁 ITEM DROPPED!</div>
+    <div style="font-size:36px;filter:drop-shadow(0 0 12px ${col})">${item.emoji}</div>
+    <div style="color:${col};font-size:10px;margin-top:6px;font-family:'Press Start 2P',monospace;">${item.name}</div>
+    <div style="color:#888;font-size:7px;margin-top:3px;">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+'  ❤️ HP +'+item.hp}</div>
+    <div style="color:${col};font-size:7px;margin-top:2px;">${item.rarity} · T${item.t}</div>
+    <div style="display:flex;gap:6px;margin-top:10px">
       <button class="inv-btn" onclick="equipItem(window._lastDrop);document.getElementById('drop-popup').style.display='none'">⚡ EQUIP</button>
-      <button class="inv-btn" style="border-color:#888;color:#888" onclick="document.getElementById('drop-popup').style.display='none'">KEEP</button>
+      <button class="inv-btn" onclick="openInventory('all');document.getElementById('drop-popup').style.display='none'">🎒 BAG</button>
+      <button class="inv-btn" style="border-color:#555;color:#555" onclick="document.getElementById('drop-popup').style.display='none'">✓ OK</button>
     </div>`;
   window._lastDrop = item;
   el.style.display = 'flex';
   el.style.animation = 'none'; void el.offsetWidth; el.style.animation = 'dropBounce .4s ease forwards';
-  setTimeout(()=>{ if(el.style.display!=='none') el.style.display='none'; }, 5000);
+  setTimeout(()=>{ if(el.style.display!=='none') el.style.display='none'; }, 6000);
 }
 
 // ==============================================
@@ -2736,7 +3087,7 @@ function showDropPopup(item){
 document.addEventListener('keydown',e=>{
   state.keys[e.key]=true;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
-  if(e.key==='i'||e.key==='I'){ if(document.getElementById('inv-screen').style.display==='none') openInventory(); else closeInventory(); }
+  if(e.key==='i'||e.key==='I'){ const is=document.getElementById('inv-screen'); if(!is||is.style.display==='none') openInventory(); else closeInventory(); }
 });
 document.addEventListener('keyup',e=>{state.keys[e.key]=false;});
 function startMove(d){state.moving=d;}
