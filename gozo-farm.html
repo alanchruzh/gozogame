@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gozo Farm 🌾</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0d1b2a;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
+  }
+  #gameContainer {
+    position: relative; width: 800px; height: 600px;
+    border: 3px solid #f5c842; border-radius: 6px; overflow: hidden;
+    box-shadow: 0 0 60px #f5c84244, inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  #gameCanvas { display: block; image-rendering: pixelated; }
+  #ui { position: absolute; top:0; left:0; right:0; pointer-events: none; }
+  #topBar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.88) 0%, transparent 100%);
+  }
+  #dayInfo { color: #f5c842; font-size: 8px; text-shadow: 2px 2px 0 #000; }
+  #energyBar { display:flex; align-items:center; gap:5px; }
+  #energyLabel { color:#ff6b6b; font-size:8px; }
+  #energyBarFill { width:80px; height:10px; background:#333; border:2px solid #ff6b6b; border-radius:3px; overflow:hidden; }
+  #energyFill { height:100%; background:linear-gradient(90deg,#ff6b6b,#ff4444); transition:width 0.3s; }
+  #moneyDisplay { color:#ffd700; font-size:9px; }
+  #toolBar {
+    position:absolute; bottom:0; left:0; right:0;
+    display:flex; justify-content:center; align-items:flex-end; padding:8px; gap:6px;
+    background:linear-gradient(0deg, rgba(0,0,0,0.92) 0%, transparent 100%);
+  }
+  .toolBtn {
+    width:50px; height:52px; background:rgba(20,12,40,0.95); border:2px solid #f5c842;
+    border-radius:6px; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; cursor:pointer; pointer-events:all;
+    transition:all 0.15s; font-size:18px; gap:2px; position:relative;
+  }
+  .toolBtn span.label { font-size:5px; color:#ccc; }
+  .toolBtn.active { border-color:#fff; background:rgba(245,200,66,0.25); box-shadow:0 0 12px #f5c842; transform:translateY(-4px); }
+  .toolBtn .hotkey { position:absolute; top:2px; right:3px; font-size:5px; color:#666; font-family:monospace; }
+  #inventory {
+    position:absolute; right:8px; top:50px; background:rgba(10,6,25,0.95);
+    border:2px solid #f5c842; border-radius:8px; padding:8px; font-size:7px; color:#fff; min-width:90px;
+  }
+  #inventory h3 { color:#f5c842; font-size:7px; margin-bottom:6px; }
+  .invRow { display:flex; justify-content:space-between; margin:3px 0; color:#ddd; }
+  #controls {
+    position:absolute; left:8px; top:50px; background:rgba(10,6,25,0.85);
+    border:2px solid #444; border-radius:8px; padding:8px; font-size:6px; color:#777; line-height:2.2;
+  }
+  #controls b { color:#f5c842; }
+  #messageBox {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.94); border:3px solid #f5c842; border-radius:8px;
+    padding:14px 20px; font-size:9px; color:#fff; text-align:center;
+    display:none; pointer-events:none; z-index:100; max-width:260px; line-height:2;
+    white-space: pre-line;
+  }
+  #messageBox.show { display:block; animation:popIn 0.2s ease; }
+  @keyframes popIn { from{transform:translate(-50%,-50%) scale(0.8);opacity:0} to{transform:translate(-50%,-50%) scale(1);opacity:1} }
+  #sleepBtn {
+    position:absolute; right:8px; bottom:70px; background:#0e0a2e;
+    border:2px solid #6666ff; color:#aaaaff; font-family:'Press Start 2P';
+    font-size:6px; padding:8px 10px; border-radius:6px; cursor:pointer;
+    pointer-events:all; transition:all 0.2s;
+  }
+  #sleepBtn:hover { box-shadow:0 0 12px #6666ff; background:#1a1050; }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="ui">
+    <div id="topBar">
+      <div id="dayInfo">HARI 1 - MUSIM SEMI</div>
+      <div id="energyBar">
+        <span id="energyLabel">⚡</span>
+        <div id="energyBarFill"><div id="energyFill" style="width:100%"></div></div>
+      </div>
+      <div id="moneyDisplay">💰 0G</div>
+    </div>
+    <div id="controls">
+      <b>WASD/Arrow</b> Gerak<br>
+      <b>SPACE/E</b> Aksi<br>
+      <b>1-5</b> Tool<br>
+      <b>ENTER</b> Tidur
+    </div>
+    <div id="inventory">
+      <h3>🎒 INVENTORI</h3>
+      <div class="invRow"><span>🌱 Benih</span><span id="inv-seeds">5</span></div>
+      <div class="invRow"><span>🌽 Jagung</span><span id="inv-corn">0</span></div>
+      <div class="invRow"><span>🍅 Tomat</span><span id="inv-tomato">0</span></div>
+      <div class="invRow"><span>🌻 Bunga</span><span id="inv-flower">0</span></div>
+    </div>
+    <div id="toolBar">
+      <div class="toolBtn active" id="t0" onclick="selectTool(0)"><span>⛏️</span><span class="label">CANGKUL</span><span class="hotkey">1</span></div>
+      <div class="toolBtn" id="t1" onclick="selectTool(1)"><span>💧</span><span class="label">SIRAM</span><span class="hotkey">2</span></div>
+      <div class="toolBtn" id="t2" onclick="selectTool(2)"><span>🌱</span><span class="label">TANAM</span><span class="hotkey">3</span></div>
+      <div class="toolBtn" id="t3" onclick="selectTool(3)"><span>🌾</span><span class="label">PANEN</span><span class="hotkey">4</span></div>
+      <div class="toolBtn" id="t4" onclick="selectTool(4)"><span>💰</span><span class="label">JUAL</span><span class="hotkey">5</span></div>
+    </div>
+    <button id="sleepBtn" onclick="sleepDay()">😴 TIDUR</button>
+    <div id="messageBox"></div>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const TW=64, TH=32, TDEPTH=12;
+const COLS=22, ROWS=18;
+
+function isoX(c,r){ return (c-r)*TW/2 + canvas.width/2 - TW/2; }
+function isoY(c,r){ return (c+r)*TH/2 + 55; }
+
+const T={VOID:0,GRASS:1,TILLED:2,WATERED:3,PLANTED:4,GROWN:5,READY:6,PATH:7,WATER:8,BRIDGE:9};
+
+let G={
+  day:1,season:0,money:0,energy:100,maxEnergy:100,
+  seeds:5,inv:{corn:0,tomato:0,flower:0},
+  tool:0, px:8,py:10, pdir:2,pframe:0,pft:0,
+  tiles:[], waterT:0,
+};
+
+const SEASONS=['SEMI ☀️','PANAS 🌞','GUGUR 🍂','DINGIN ❄️'];
+const CROPS=[['Jagung','🌽',3,50,'corn'],['Tomat','🍅',2,80,'tomato'],['Bunga','🌻',1,30,'flower']];
+let cropRot=0;
+
+const MAP=[
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+  [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,2,2,2,2,2,2,2,2,2,1,1,4,4,4,1,1,0,0],
+  [0,1,1,1,2,2,2,2,2,2,2,2,2,3,3,5,4,4,1,1,0,0],
+  [0,1,1,1,2,2,2,2,2,2,2,2,2,1,1,4,4,4,1,1,0,0],
+  [0,1,1,1,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,1,1,3,3,3,3,3,3,3,3,3,3,3,3,1,1,1,1,1,0,0],
+  [0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+  [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+  [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+const BUILDINGS=[
+  {type:'house',c:5,r:3},{type:'market',c:14,r:3}
+];
+const TREES=[
+  {c:2,r:3},{c:3,r:2},{c:17,r:2},{c:18,r:3},
+  {c:2,r:14},{c:3,r:13},{c:17,r:13},{c:16,r:14},
+  {c:1,r:8},{c:19,r:8},
+];
+
+function initTiles(){
+  G.tiles=[];
+  for(let r=0;r<ROWS;r++){
+    G.tiles[r]=[];
+    for(let c=0;c<COLS;c++){
+      const m=MAP[r]?MAP[r][c]||0:0;
+      let type=T.VOID;
+      if(m===1)type=T.GRASS;
+      if(m===2)type=T.GRASS;
+      if(m===3)type=T.PATH;
+      if(m===4)type=T.WATER;
+      if(m===5)type=T.BRIDGE;
+      G.tiles[r][c]={type,isFarm:m===2,crop:null,watered:false};
+    }
+  }
+}
+initTiles();
+
+function isFarm(c,r){return G.tiles[r]&&G.tiles[r][c]&&G.tiles[r][c].isFarm;}
+
+function isWalkable(c,r){
+  if(c<0||r<0||c>=COLS||r>=ROWS)return false;
+  const t=G.tiles[r][c];
+  if(!t||t.type===T.VOID||t.type===T.WATER)return false;
+  for(const b of BUILDINGS){
+    if(b.type==='house'&&c>=b.c&&c<b.c+4&&r>=b.r&&r<b.r+3)return false;
+    if(b.type==='market'&&c>=b.c&&c<b.c+3&&r>=b.r&&r<b.r+3)return false;
+  }
+  for(const tr of TREES){if(Math.abs(c-tr.c)<=0&&Math.abs(r-tr.r)<=0)return false;}
+  return true;
+}
+
+const keys={};
+window.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(e.key==='1')selectTool(0);if(e.key==='2')selectTool(1);
+  if(e.key==='3')selectTool(2);if(e.key==='4')selectTool(3);if(e.key==='5')selectTool(4);
+  if(e.key===' '||e.key==='e'||e.key==='E'){e.preventDefault();doAction();}
+  if(e.key==='Enter')sleepDay();
+});
+window.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+function selectTool(i){
+  G.tool=i;
+  document.querySelectorAll('.toolBtn').forEach((b,j)=>b.classList.toggle('active',i===j));
+}
+
+function getFacing(){
+  const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
+  const[dc,dr]=dirs[G.pdir];
+  return{tc:Math.round(G.px)+dc,tr:Math.round(G.py)+dr};
+}
+
+function showMsg(text,dur=2500){
+  const b=document.getElementById('messageBox');
+  b.textContent=text;b.classList.add('show');
+  clearTimeout(b._t);b._t=setTimeout(()=>b.classList.remove('show'),dur);
+}
+
+function doAction(){
+  const{tc,tr}=getFacing();
+  if(tc<0||tr<0||tc>=COLS||tr>=ROWS)return;
+  const tile=G.tiles[tr][tc];
+  for(const b of BUILDINGS){
+    if(b.type==='market'&&tc>=b.c&&tc<b.c+3&&tr>=b.r&&tr<b.r+3){
+      let total=0,items=[];
+      Object.keys(G.inv).forEach(k=>{
+        const cr=CROPS.find(c=>c[4]===k);
+        if(cr&&G.inv[k]>0){const e=G.inv[k]*cr[3];total+=e;items.push(cr[1]+'x'+G.inv[k]+' = '+e+'G');G.inv[k]=0;}
+      });
+      if(total>0){G.money+=total;showMsg('✅ TERJUAL!\n'+items.join('\n')+'\n+'+total+'G');}
+      else showMsg('🛒 Tidak ada yang dijual.\nPanen dulu ya!');
+      updateUI();return;
+    }
+  }
+  if(G.energy<=0){showMsg('😫 Gozo kelelahan!\nTidur dulu!');return;}
+  const tl=G.tool;
+  if(tl===0){
+    if(tile.isFarm&&tile.type===T.GRASS){tile.type=T.TILLED;useE(5);showMsg('⛏️ Tanah dicangkul!');}
+    else showMsg('⚠️ Hanya di area farm!');return;
+  }
+  if(tl===1){
+    if((tile.type===T.TILLED||tile.type===T.PLANTED||tile.type===T.GROWN)&&tile.isFarm){
+      tile.watered=true;if(tile.type===T.TILLED)tile.type=T.WATERED;useE(3);showMsg('💧 Disiram!');
+    }else showMsg('⚠️ Tidak bisa disiram!');return;
+  }
+  if(tl===2){
+    if(G.seeds<=0){showMsg('🌱 Benih habis!');return;}
+    if((tile.type===T.TILLED||tile.type===T.WATERED)&&tile.isFarm){
+      tile.crop={cropIdx:cropRot%3,daysPlanted:0};cropRot++;
+      tile.type=T.PLANTED;G.seeds--;useE(5);showMsg('🌱 '+CROPS[tile.crop.cropIdx][0]+' ditanam!');
+    }else showMsg('⚠️ Cangkul tanah dulu!');return;
+  }
+  if(tl===3){
+    if(tile.type===T.READY&&tile.crop){
+      const cr=CROPS[tile.crop.cropIdx];G.inv[cr[4]]++;
+      tile.crop=null;tile.type=T.TILLED;tile.watered=false;useE(5);showMsg('🎉 '+cr[1]+' dipanen!\n+1 '+cr[0]);
+    }else showMsg('⚠️ Belum siap panen!');return;
+  }
+  if(tl===4)showMsg('💡 Pergi ke 🏪 TOKO GOZO\nuntuk jual hasil panen!');
+}
+
+function useE(a){G.energy=Math.max(0,G.energy-a);updateUI();}
+
+function sleepDay(){
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const t=G.tiles[r][c];
+    if(t.crop&&(t.type===T.PLANTED||t.type===T.GROWN)){
+      if(t.watered){t.crop.daysPlanted++;const cr=CROPS[t.crop.cropIdx];t.type=t.crop.daysPlanted>=cr[2]?T.READY:T.GROWN;}
+      t.watered=false;
+    }
+  }
+  G.seeds+=3;G.day++;
+  if(G.day>30){G.day=1;G.season=(G.season+1)%4;}
+  G.energy=G.maxEnergy;
+  showMsg('😴 Gozo tidur...\n🌅 Hari '+G.day+' dimulai!\nMusim '+SEASONS[G.season]);
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById('dayInfo').textContent='HARI '+G.day+' - MUSIM '+SEASONS[G.season];
+  document.getElementById('energyFill').style.width=(G.energy/G.maxEnergy*100)+'%';
+  document.getElementById('moneyDisplay').textContent='💰 '+G.money+'G';
+  document.getElementById('inv-seeds').textContent=G.seeds;
+  document.getElementById('inv-corn').textContent=G.inv.corn;
+  document.getElementById('inv-tomato').textContent=G.inv.tomato;
+  document.getElementById('inv-flower').textContent=G.inv.flower;
+}
+
+const SPEED=0.07;
+function updatePlayer(dt){
+  let dc=0,dr=0;
+  if(keys['ArrowUp']||keys['w']||keys['W']){dr=-1;dc=-1;G.pdir=0;}
+  if(keys['ArrowDown']||keys['s']||keys['S']){dr=1;dc=1;G.pdir=2;}
+  if(keys['ArrowLeft']||keys['a']||keys['A']){dc=-1;dr=1;G.pdir=3;}
+  if(keys['ArrowRight']||keys['d']||keys['D']){dc=1;dr=-1;G.pdir=1;}
+  if(dc!==0&&dr!==0){dc*=0.707;dr*=0.707;}
+  const sp=SPEED*dt/16;
+  const nx=G.px+dc*sp, ny=G.py+dr*sp;
+  if(isWalkable(Math.round(nx),Math.round(G.py)))G.px=nx;
+  if(isWalkable(Math.round(G.px),Math.round(ny)))G.py=ny;
+  if(dc!==0||dr!==0){G.pft+=dt;if(G.pft>140){G.pframe=(G.pframe+1)%4;G.pft=0;}}else G.pframe=0;
+}
+
+// COLOR PALETTES
+const PAL=[
+  {g1:'#5ab552',g2:'#3d8a38',g3:'#2e6b2a',s1:'#8b6914',s2:'#5e4510',s3:'#4a360c',
+   w1:'#4a3210',w2:'#2e1f08',w3:'#1f1505',p1:'#c8a05a',p2:'#8b6d2e',p3:'#6e5420',
+   wt1:'#3a9fd6',wt2:'#1a6fa0',wt3:'#145c88',sky1:'#5ab0e0',sky2:'#a8e8b8'},
+  {g1:'#4eb04a',g2:'#337a30',g3:'#256025',s1:'#9b7520',s2:'#6e5015',s3:'#553e10',
+   w1:'#5a3e14',w2:'#3a280a',w3:'#2a1e07',p1:'#d4aa60',p2:'#9a7530',p3:'#7a5c20',
+   wt1:'#2a8dc6',wt2:'#0a5f90',wt3:'#084e78',sky1:'#ffe080',sky2:'#b8f0a0'},
+  {g1:'#9a7c30',g2:'#6a5520',g3:'#504018',s1:'#7a5a14',s2:'#4e380c',s3:'#3a2a08',
+   w1:'#4a3010',w2:'#2e1e08',w3:'#1e1405',p1:'#b08040',p2:'#7a5a20',p3:'#5e4418',
+   wt1:'#2a7ab0',wt2:'#0a5080',wt3:'#084068',sky1:'#ff9050',sky2:'#e8c080'},
+  {g1:'#a8c4c8',g2:'#7a9098',g3:'#607880',s1:'#7a6a58',s2:'#504840',s3:'#3c3830',
+   w1:'#4a4850',w2:'#2e3038',w3:'#202530',p1:'#b0a090',p2:'#807060',p3:'#605850',
+   wt1:'#6090c0',wt2:'#407098',wt3:'#305880',sky1:'#b0d0e8',sky2:'#d8e8f0'},
+];
+
+function isoFace(sx,sy,top,left,right,w,h,d){
+  w=w||TW;h=h||TH;d=d||TDEPTH;
+  ctx.beginPath();
+  ctx.moveTo(sx+w/2,sy);ctx.lineTo(sx+w,sy+h/2);
+  ctx.lineTo(sx+w/2,sy+h);ctx.lineTo(sx,sy+h/2);
+  ctx.closePath();ctx.fillStyle=top;ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx,sy+h/2);ctx.lineTo(sx+w/2,sy+h);
+  ctx.lineTo(sx+w/2,sy+h+d);ctx.lineTo(sx,sy+h/2+d);
+  ctx.closePath();ctx.fillStyle=left;ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx+w/2,sy+h);ctx.lineTo(sx+w,sy+h/2);
+  ctx.lineTo(sx+w,sy+h/2+d);ctx.lineTo(sx+w/2,sy+h+d);
+  ctx.closePath();ctx.fillStyle=right;ctx.fill();
+}
+
+function drawTileAt(c,r){
+  const tile=G.tiles[r]&&G.tiles[r][c];if(!tile||tile.type===T.VOID)return;
+  const sx=isoX(c,r),sy=isoY(c,r);
+  const P=PAL[G.season];
+
+  switch(tile.type){
+    case T.GRASS:
+      isoFace(sx,sy,P.g1,P.g2,P.g3);
+      // grass tufts pixel art style
+      ctx.fillStyle='rgba(0,60,0,0.22)';
+      [[.2,.4],[.5,.3],[.75,.45],[.35,.65],[.65,.6]].forEach(([fx,fy])=>{
+        ctx.fillRect(sx+fx*TW,sy+fy*TH,4,3);
+      });
+      if(G.season===3){// snow
+        ctx.fillStyle='rgba(228,240,255,0.5)';
+        ctx.beginPath();ctx.moveTo(sx+TW/2,sy+3);ctx.lineTo(sx+TW-5,sy+TH/2-1);
+        ctx.lineTo(sx+TW/2,sy+TH-3);ctx.lineTo(sx+5,sy+TH/2-1);ctx.closePath();ctx.fill();
+      }
+      break;
+    case T.TILLED:
+      isoFace(sx,sy,P.s1,P.s2,P.s3);
+      ctx.strokeStyle=P.s2;ctx.lineWidth=1;
+      for(let i=1;i<4;i++){const t=i/4;
+        ctx.beginPath();ctx.moveTo(sx+TW*t,sy+TH*(0.5-t*0.3));ctx.lineTo(sx+TW*(t+0.25),sy+TH*(0.5-t*0.3+0.22));ctx.stroke();
+      }break;
+    case T.WATERED:
+      isoFace(sx,sy,P.w1,P.w2,P.w3);
+      ctx.fillStyle='rgba(60,140,220,0.22)';
+      ctx.beginPath();ctx.moveTo(sx+TW/2,sy+2);ctx.lineTo(sx+TW-4,sy+TH/2);
+      ctx.lineTo(sx+TW/2,sy+TH-2);ctx.lineTo(sx+4,sy+TH/2);ctx.closePath();ctx.fill();
+      break;
+    case T.PLANTED:
+      isoFace(sx,sy,tile.watered?P.w1:P.s1,tile.watered?P.w2:P.s2,tile.watered?P.w3:P.s3);
+      ctx.fillStyle='#3a9a32';ctx.fillRect(sx+TW/2-1,sy+TH/2-8,3,9);
+      ctx.fillStyle='#58c44e';
+      ctx.beginPath();ctx.ellipse(sx+TW/2-3,sy+TH/2-8,5,3,-.4,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(sx+TW/2+3,sy+TH/2-9,5,3,.4,0,Math.PI*2);ctx.fill();
+      break;
+    case T.GROWN:
+      isoFace(sx,sy,tile.watered?P.w1:P.s1,tile.watered?P.w2:P.s2,tile.watered?P.w3:P.s3);
+      ctx.fillStyle='#2a8222';ctx.fillRect(sx+TW/2-1,sy+TH/2-16,3,16);
+      ctx.fillStyle='#44b83a';ctx.beginPath();ctx.ellipse(sx+TW/2,sy+TH/2-16,10,7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#58d44a';
+      ctx.beginPath();ctx.ellipse(sx+TW/2-6,sy+TH/2-13,6,4,-.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(sx+TW/2+6,sy+TH/2-13,6,4,.5,0,Math.PI*2);ctx.fill();
+      break;
+    case T.READY:
+      isoFace(sx,sy,P.s1,P.s2,P.s3);
+      if(tile.crop){
+        ctx.fillStyle='rgba(255,220,0,0.3)';ctx.beginPath();ctx.arc(sx+TW/2,sy+TH/2-12,16,0,Math.PI*2);ctx.fill();
+        ctx.font='22px serif';ctx.textAlign='center';ctx.fillText(CROPS[tile.crop.cropIdx][1],sx+TW/2,sy+TH/2-4);
+        ctx.font='10px serif';ctx.fillText('✨',sx+TW/2+16,sy+TH/2-18);
+      }break;
+    case T.PATH:
+      isoFace(sx,sy-4,P.p1,P.p2,P.p3,TW,TH,TDEPTH-4);
+      ctx.fillStyle='rgba(255,255,255,0.1)';
+      [[.25,.45],[.55,.55],[.7,.4],[.4,.65]].forEach(([fx,fy])=>ctx.fillRect(sx+fx*TW,sy-4+fy*TH,4,3));
+      break;
+    case T.WATER:{
+      const wv=Math.sin(G.waterT*0.003+c*0.7+r*0.5)*4;
+      isoFace(sx,sy+wv,P.wt1,P.wt2,P.wt3);
+      ctx.fillStyle=`rgba(255,255,255,${0.08+Math.sin(G.waterT*0.004+c+r)*0.06})`;
+      ctx.beginPath();ctx.moveTo(sx+TW/2,sy+wv);ctx.lineTo(sx+TW*0.75,sy+TH*0.25+wv);
+      ctx.lineTo(sx+TW/2,sy+TH*0.5+wv);ctx.lineTo(sx+TW*0.25,sy+TH*0.25+wv);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=`rgba(255,255,255,${0.2+Math.sin(G.waterT*0.002)*0.1})`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(sx+TW*0.25,sy+TH*0.45+wv);ctx.lineTo(sx+TW*0.5,sy+TH*0.38+wv);ctx.lineTo(sx+TW*0.75,sy+TH*0.45+wv);ctx.stroke();
+      break;}
+    case T.BRIDGE:{
+      isoFace(sx,sy,P.wt1,P.wt2,P.wt3);
+      const bsy=sy-10;
+      ctx.fillStyle='#a0784a';
+      ctx.beginPath();ctx.moveTo(sx+TW/2,bsy);ctx.lineTo(sx+TW,bsy+TH/2);
+      ctx.lineTo(sx+TW/2,bsy+TH);ctx.lineTo(sx,bsy+TH/2);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#7a5830';ctx.lineWidth=2;
+      for(let i=1;i<4;i++){const t=i*0.25;
+        const x1=sx+TW*t,y1=bsy+TH*Math.abs(t-0.5)*0.8+bsy+TH*0.2-bsy;
+        ctx.beginPath();ctx.moveTo(x1,bsy+TH*(0.5-Math.abs(t-0.5)));ctx.lineTo(x1,bsy+TH-2);ctx.stroke();
+      }
+      ctx.fillStyle='#6a4828';
+      ctx.beginPath();ctx.moveTo(sx,bsy+TH/2);ctx.lineTo(sx+TW/2,bsy+TH);ctx.lineTo(sx+TW/2,bsy+TH+12);ctx.lineTo(sx,bsy+TH/2+12);ctx.closePath();ctx.fill();
+      ctx.beginPath();ctx.moveTo(sx+TW/2,bsy+TH);ctx.lineTo(sx+TW,bsy+TH/2);ctx.lineTo(sx+TW,bsy+TH/2+12);ctx.lineTo(sx+TW/2,bsy+TH+12);ctx.closePath();ctx.fill();
+      ctx.strokeStyle='#c8a060';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(sx+2,bsy+TH/2);ctx.lineTo(sx+TW/2,bsy+TH-3);ctx.lineTo(sx+TW-2,bsy+TH/2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sx+2,bsy+TH/2-8);ctx.lineTo(sx+TW/2,bsy+TH-11);ctx.lineTo(sx+TW-2,bsy+TH/2-8);ctx.stroke();
+      break;}
+  }
+}
+
+function drawTree(sx,sy){
+  const fc=G.season===3?['#d0e0e8','#b0c0c8','#90a0a8']:
+           G.season===2?['#d07020','#a85018','#803810']:
+           G.season===1?['#3aaa30','#2a8a22','#1a6a16']:
+                        ['#4ab840','#3a9030','#2a7022'];
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(sx+TW/2,sy+TH+10,22,8,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#5C3317';ctx.fillRect(sx+TW/2-4,sy+TH/2,8,22);
+  ctx.fillStyle='#3E2010';ctx.fillRect(sx+TW/2+4,sy+TH/2+4,5,20);
+  // roots
+  [-8,0,8].forEach(rx=>{ctx.fillStyle='#5C3317';ctx.fillRect(sx+TW/2+rx-2,sy+TH/2+20,5,7);});
+  // foliage 3 layers
+  [{r:28,oy:-10},{r:22,oy:-22},{r:16,oy:-32}].forEach((o,i)=>{
+    ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(sx+TW/2+4,sy+TH/2+o.oy+4,o.r,o.r*0.55,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=fc[i];ctx.beginPath();ctx.ellipse(sx+TW/2,sy+TH/2+o.oy,o.r,o.r*0.55,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.14)';ctx.beginPath();ctx.ellipse(sx+TW/2-o.r*0.28,sy+TH/2+o.oy-o.r*0.08,o.r*0.32,o.r*0.18,-.3,0,Math.PI*2);ctx.fill();
+  });
+}
+
+function drawPixelBricks(x,y,w,h,light,dark){
+  // Draw brick pattern pixel-art style
+  const bw=8,bh=4;
+  for(let row=0;row*bh<h;row++){
+    const offset=(row%2===0)?0:bw/2;
+    for(let col=-bw;col<w+bw;col+=bw){
+      const bx=x+col+offset, by=y+row*bh;
+      if(bx+bw<x||bx>x+w||by+bh<y||by>y+h)continue;
+      const cx=Math.max(bx,x), cy=Math.max(by,y);
+      const cw=Math.min(bx+bw,x+w)-cx, ch=Math.min(by+bh,y+h)-cy;
+      ctx.fillStyle=light; ctx.fillRect(cx,cy,cw,ch);
+      // mortar lines
+      ctx.fillStyle=dark;
+      ctx.fillRect(cx,cy,cw,1);   // top
+      ctx.fillRect(cx,cy,1,ch);   // left
+    }
+  }
+}
+
+function drawHouse(sx,sy){
+  // raise the house so it sits ON TOP of the tile surface
+  sy = sy - TDEPTH - TH/2;
+  // === GROUND PLATFORM ===
+  isoFace(sx-10,sy+6,'#a09060','#706840','#504828',TW*5+20,TH*3+12,18);
+
+  // === PORCH / STEPS ===
+  const px=sx+TW*0.8, py=sy+TH*3.6;
+  ctx.fillStyle='#c0b090'; ctx.fillRect(px,py,TW*1.2,12);
+  ctx.fillStyle='#a09070'; ctx.fillRect(px,py+8,TW*1.2,6);
+  // porch red carpet
+  ctx.fillStyle='#aa2020'; ctx.fillRect(px+6,py,TW*0.8,12);
+
+  // === MAIN WALL (brick) ===
+  const wx=sx+TW*0.2, wy=sy+TH*0.4;
+  const ww=TW*2.6, wh=TH*3.2;
+  drawPixelBricks(wx,wy,ww,wh,'#cc5c22','#7a2a08');
+  // dark mortar shadow on right
+  ctx.fillStyle='rgba(0,0,0,0.18)'; ctx.fillRect(wx+ww-6,wy,6,wh);
+
+  // === GARAGE WING (right side, shorter) ===
+  const gx=sx+TW*2.9, gy=sy+TH*1.0;
+  const gw=TW*1.4, gh=TH*2.6;
+  drawPixelBricks(gx,gy,gw,gh,'#b84e1a','#6a2206');
+  // garage door
+  const gdx=gx+8, gdy=gy+gh-TH*1.1;
+  ctx.fillStyle='#e0d8c8'; ctx.fillRect(gdx,gdy,gw-16,TH*1.0);
+  // garage door panels (horizontal lines)
+  ctx.strokeStyle='#b0a898'; ctx.lineWidth=1.5;
+  for(let p=1;p<4;p++){
+    ctx.beginPath();ctx.moveTo(gdx,gdy+p*(TH*1.0/4));ctx.lineTo(gdx+gw-16,gdy+p*(TH*1.0/4));ctx.stroke();
+  }
+  // garage door frame
+  ctx.strokeStyle='#888070'; ctx.lineWidth=2;
+  ctx.strokeRect(gdx,gdy,gw-16,TH*1.0);
+  // garage door side depth
+  ctx.fillStyle='rgba(0,0,0,0.15)'; ctx.fillRect(gx+gw-8,gy,8,gh);
+
+  // === MAIN WINDOWS ===
+  function pixelWindow(wx2,wy2,ww2,wh2){
+    // frame dark wood
+    ctx.fillStyle='#3a2010'; ctx.fillRect(wx2-3,wy2-3,ww2+6,wh2+6);
+    // white frame
+    ctx.fillStyle='#f0f0e0'; ctx.fillRect(wx2-2,wy2-2,ww2+4,wh2+4);
+    // glass panes
+    const paneColors=['#b8e0f8','#a0d4f0'];
+    // top-left pane
+    ctx.fillStyle=paneColors[0]; ctx.fillRect(wx2,wy2,ww2/2-1,wh2/2-1);
+    // top-right pane
+    ctx.fillStyle=paneColors[1]; ctx.fillRect(wx2+ww2/2+1,wy2,ww2/2-1,wh2/2-1);
+    // bottom-left pane
+    ctx.fillStyle=paneColors[1]; ctx.fillRect(wx2,wy2+wh2/2+1,ww2/2-1,wh2/2-1);
+    // bottom-right pane  
+    ctx.fillStyle=paneColors[0]; ctx.fillRect(wx2+ww2/2+1,wy2+wh2/2+1,ww2/2-1,wh2/2-1);
+    // center cross divider
+    ctx.fillStyle='#f0f0e0';
+    ctx.fillRect(wx2+ww2/2-1,wy2,3,wh2);
+    ctx.fillRect(wx2,wy2+wh2/2-1,ww2,3);
+    // window sill
+    ctx.fillStyle='#d0c8a8'; ctx.fillRect(wx2-4,wy2+wh2+2,ww2+8,5);
+  }
+  // two front windows
+  pixelWindow(wx+14, wy+20, 26, 22);
+  pixelWindow(wx+ww-42, wy+20, 26, 22);
+  // small attic window (triangle gable area)
+  pixelWindow(wx+ww/2-10, wy-22, 20, 16);
+
+  // === MAIN DOOR ===
+  const dx=wx+ww/2-14, dy=wy+wh-TH*1.1;
+  // door frame dark
+  ctx.fillStyle='#2a1408'; ctx.fillRect(dx-4,dy-4,32,TH*1.1+4);
+  // door body red-brown
+  ctx.fillStyle='#8a1a10'; ctx.fillRect(dx,dy,28,TH*1.05);
+  // door panels
+  ctx.fillStyle='#6a1008';
+  ctx.fillRect(dx+4,dy+4,10,TH*0.4);
+  ctx.fillRect(dx+16,dy+4,8,TH*0.4);
+  ctx.fillRect(dx+4,dy+TH*0.5,10,TH*0.35);
+  ctx.fillRect(dx+16,dy+TH*0.5,8,TH*0.35);
+  // door knob
+  ctx.fillStyle='#f5c842';ctx.beginPath();ctx.arc(dx+22,dy+TH*0.55,3,0,Math.PI*2);ctx.fill();
+  // door window top
+  ctx.fillStyle='#b8e0f8'; ctx.fillRect(dx+6,dy+4,16,10);
+  ctx.strokeStyle='#f0f0e0';ctx.lineWidth=1;ctx.strokeRect(dx+6,dy+4,16,10);
+
+  // === PORCH AWNING (small roof over door) ===
+  ctx.fillStyle='#2a2a2a';
+  ctx.beginPath();
+  ctx.moveTo(dx-14,dy-2);
+  ctx.lineTo(dx+14,dy-22);
+  ctx.lineTo(dx+42,dy-2);
+  ctx.closePath();ctx.fill();
+  // awning underside
+  ctx.fillStyle='#1a1a1a';
+  ctx.beginPath();
+  ctx.moveTo(dx-14,dy-2);ctx.lineTo(dx-14,dy+2);
+  ctx.lineTo(dx+42,dy+2);ctx.lineTo(dx+42,dy-2);
+  ctx.closePath();ctx.fill();
+
+  // === MAIN ROOF (dark gray pixel art, pitched) ===
+  // Left slope
+  ctx.fillStyle='#2a2a2a';
+  ctx.beginPath();
+  ctx.moveTo(wx+ww/2, wy-42);   // peak
+  ctx.lineTo(wx-18, wy+4);       // left eave
+  ctx.lineTo(wx-18, wy+12);
+  ctx.lineTo(wx+ww/2, wy-34);
+  ctx.closePath();ctx.fill();
+  // Right slope
+  ctx.fillStyle='#383838';
+  ctx.beginPath();
+  ctx.moveTo(wx+ww/2, wy-42);   // peak
+  ctx.lineTo(wx+ww+18, wy+4);   // right eave
+  ctx.lineTo(wx+ww+18, wy+12);
+  ctx.lineTo(wx+ww/2, wy-34);
+  ctx.closePath();ctx.fill();
+  // Roof texture - pixel shingle lines
+  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=1.5;
+  for(let sh=0;sh<5;sh++){
+    const t=(sh+1)/7;
+    const lx1=wx+ww/2+(wx-18-wx-ww/2)*t, ly1=wy-42+(wy+4-wy+42)*t;
+    const lx2=wx+ww/2, ly2=wy-42+(wy+4-wy+42)*t;
+    ctx.beginPath();ctx.moveTo(lx1,ly1);ctx.lineTo(wx+ww/2+(wx+ww+18-wx-ww/2)*t,ly1);ctx.stroke();
+  }
+  // Eave trim (white)
+  ctx.fillStyle='#f0f0e0';
+  ctx.fillRect(wx-20,wy+2,ww+38,5);
+
+  // === GARAGE ROOF (flat with slight pitch matching garage) ===
+  ctx.fillStyle='#2a2a2a';
+  ctx.beginPath();
+  ctx.moveTo(gx-6,gy-4);
+  ctx.lineTo(gx+gw+10,gy-4);
+  ctx.lineTo(gx+gw+10,gy+6);
+  ctx.lineTo(gx-6,gy+2);
+  ctx.closePath();ctx.fill();
+
+  // === CHIMNEY ===
+  const chx=wx+ww*0.6-6, chy=wy-48;
+  // chimney body (brick)
+  drawPixelBricks(chx,chy,18,55,'#cc5c22','#7a2a08');
+  // chimney cap
+  ctx.fillStyle='#2a2a2a'; ctx.fillRect(chx-3,chy-5,24,6);
+  // chimney cap top
+  ctx.fillStyle='#1a1a1a'; ctx.fillRect(chx-4,chy-8,26,4);
+  // smoke puffs
+  for(let i=0;i<3;i++){
+    const alpha=0.35-i*0.08;
+    ctx.fillStyle=`rgba(200,200,210,${alpha})`;
+    ctx.beginPath();ctx.arc(chx+9+i*2,chy-18-i*14,6+i*4,0,Math.PI*2);ctx.fill();
+  }
+
+  // === LABEL ===
+  ctx.fillStyle='#fff'; ctx.font='bold 8px "Press Start 2P"';
+  ctx.textAlign='center'; ctx.shadowColor='#000'; ctx.shadowBlur=6;
+  ctx.fillText('🏠 RUMAH', sx+TW*2, sy-58); ctx.shadowBlur=0;
+}
+
+function drawMarket(sx,sy){
+  sy = sy - TDEPTH - TH/2;
+  isoFace(sx-4,sy+4,'#d4a870','#a07840','#7a5a28',TW*3+8,TH*3+4,14);
+  ctx.fillStyle='#d4a870';ctx.fillRect(sx+TW*0.2,sy+TH*0.8,TW*2.2,TH*2.5);
+  ctx.fillStyle='#b08850';ctx.fillRect(sx+TW*2,sy+TH*0.4,TW*1,TH*2.5);
+  for(let i=0;i<4;i++){
+    ctx.fillStyle=i%2===0?'#cc2222':'#fff';
+    ctx.fillRect(sx+i*TW*0.7-2,sy+TH*0.4,TW*0.72,TH*0.45);
+  }
+  ctx.fillStyle='#f5e6a0';ctx.fillRect(sx+TW*0.4,sy+TH*1.2,TW*1.6,TH*0.65);
+  ctx.fillStyle='#8a0000';ctx.font='bold 7px "Press Start 2P"';ctx.textAlign='center';ctx.fillText('TOKO',sx+TW*1.2,sy+TH*1.6);
+  ctx.font='13px serif';ctx.textAlign='center';ctx.fillText('🌽🍅🌻',sx+TW*1.2,sy+TH*2.4);
+  ctx.fillStyle='#fff';ctx.font='bold 8px "Press Start 2P"';
+  ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText('🏪 TOKO GOZO',sx+TW*1.5,sy-18);ctx.shadowBlur=0;
+}
+
+function drawGozo(){
+  const sx=isoX(G.px,G.py),sy=isoY(G.px,G.py);
+  const wy=[0,-4,0,4][G.pframe%4],arm=[-10,-5,0,5][G.pframe%4];
+  // anchor at top-center of tile diamond, legs touch the tile surface
+  ctx.save();ctx.translate(sx+TW/2, sy+TH/2-TDEPTH-8+wy);
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0, TDEPTH+26,15,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2B4380';ctx.fillRect(-10,8,8,20);ctx.fillRect(2,8,8,20);
+  ctx.strokeStyle='#C0C0C0';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.moveTo(0,14);ctx.quadraticCurveTo(9,20,7,28);ctx.stroke();
+  ctx.fillStyle='#F5C842';
+  ctx.save();ctx.translate(-13,2);ctx.rotate(arm*Math.PI/180);ctx.fillRect(-3,0,7,16);ctx.restore();
+  ctx.save();ctx.translate(13,2);ctx.rotate(-arm*Math.PI/180);ctx.fillRect(-3,0,7,16);ctx.restore();
+  ctx.fillStyle='#F5C842';ctx.fillRect(-10,-6,20,16);
+  ctx.fillStyle='#E6B800';ctx.fillRect(-8,-4,16,3);
+  ctx.strokeStyle='#C8C8C8';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,2,9,0.2,Math.PI-0.2);ctx.stroke();
+  ctx.fillStyle='#F5C842';ctx.beginPath();ctx.ellipse(0,-18,14,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#1565C0';
+  ctx.beginPath();ctx.ellipse(-5,-20,4,4.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(5,-20,4,4.5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.ellipse(-4,-21.5,1.5,1.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(6,-21.5,1.5,1.5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#D4A800';ctx.beginPath();ctx.moveTo(0,-16);ctx.lineTo(-3,-12);ctx.lineTo(3,-12);ctx.fill();
+  ctx.strokeStyle='#8B6000';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,-13,6,0.1,Math.PI-0.1);ctx.stroke();
+  ctx.strokeStyle='#5C3D00';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(-8,-25);ctx.lineTo(-2,-26);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(8,-25);ctx.lineTo(2,-26);ctx.stroke();
+  ctx.fillStyle='#1A1A1A';ctx.fillRect(-10,-28,20,5);
+  ctx.fillStyle='#8B0000';ctx.beginPath();ctx.arc(0,-27,14,Math.PI,0);ctx.fill();
+  ctx.fillRect(-14,-30,28,6);
+  ctx.fillStyle='#6B0000';ctx.fillRect(-18,-27,7,5);ctx.fillRect(11,-27,7,5);
+  ctx.fillStyle='#FF4444';ctx.beginPath();ctx.arc(0,-40,3,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+
+function drawHighlight(){
+  const dirs=[[0,-1],[1,0],[0,1],[-1,0]];
+  const[dc,dr]=dirs[G.pdir];
+  const tc=Math.round(G.px)+dc,tr=Math.round(G.py)+dr;
+  if(tc<0||tr<0||tc>=COLS||tr>=ROWS)return;
+  const sx=isoX(tc,tr),sy=isoY(tc,tr);
+  ctx.strokeStyle='rgba(255,240,50,0.9)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(sx+TW/2,sy+2);ctx.lineTo(sx+TW-4,sy+TH/2);ctx.lineTo(sx+TW/2,sy+TH-2);ctx.lineTo(sx+4,sy+TH/2);ctx.closePath();ctx.stroke();
+  ctx.fillStyle='rgba(255,240,50,0.1)';ctx.beginPath();ctx.moveTo(sx+TW/2,sy+2);ctx.lineTo(sx+TW-4,sy+TH/2);ctx.lineTo(sx+TW/2,sy+TH-2);ctx.lineTo(sx+4,sy+TH/2);ctx.closePath();ctx.fill();
+}
+
+const clouds=[{x:80,y:38,w:85,s:0.11},{x:300,y:22,w:110,s:0.08},{x:530,y:48,w:90,s:0.14},{x:690,y:28,w:70,s:0.1}];
+function drawClouds(){
+  for(const cl of clouds){
+    cl.x=(cl.x+cl.s)%(canvas.width+160);
+    ctx.fillStyle='rgba(255,255,255,0.72)';
+    ctx.beginPath();ctx.ellipse(cl.x,cl.y,cl.w/2,18,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cl.x-cl.w*0.3,cl.y+7,cl.w*0.3,13,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cl.x+cl.w*0.3,cl.y+7,cl.w*0.3,13,0,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function getOrder(){
+  const items=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)items.push({type:'t',c,r,d:c+r});
+  for(const tr of TREES)items.push({type:'tr',c:tr.c,r:tr.r,d:tr.c+tr.r+0.5});
+  for(const b of BUILDINGS){const sz=b.type==='house'?4:3;items.push({type:'b',data:b,d:b.c+b.r+sz});}
+  items.push({type:'p',d:Math.round(G.px)+Math.round(G.py)+0.5});
+  items.sort((a,b)=>a.d-b.d);
+  return items;
+}
+
+let lastTime=0;
+function loop(ts){
+  const dt=ts-lastTime;lastTime=ts;
+  updatePlayer(dt);G.waterT=ts;
+  const P=PAL[G.season];
+  const sky=ctx.createLinearGradient(0,0,0,canvas.height);
+  sky.addColorStop(0,P.sky1);sky.addColorStop(1,P.sky2);
+  ctx.fillStyle=sky;ctx.fillRect(0,0,canvas.width,canvas.height);
+  drawClouds();
+  const order=getOrder();
+  for(const item of order){
+    if(item.type==='t')drawTileAt(item.c,item.r);
+    else if(item.type==='tr'){const sx=isoX(item.c,item.r),sy=isoY(item.c,item.r);drawTree(sx,sy-TDEPTH-TH/2);}
+    else if(item.type==='b'){
+      const b=item.data,sx=isoX(b.c,b.r),sy=isoY(b.c,b.r);
+      if(b.type==='house')drawHouse(sx,sy);else drawMarket(sx,sy);
+    }else if(item.type==='p'){drawHighlight();drawGozo();}
+  }
+  const vg=ctx.createRadialGradient(400,300,160,400,300,500);
+  vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.52)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,canvas.width,canvas.height);
+  requestAnimationFrame(loop);
+}
+
+setTimeout(()=>showMsg('🌾 GOZO FARM 🌾\n\nSelamat datang!\nCangkul tanah di area farm\nlalu Tanam, Siram, Panen\ndan Jual di Toko!\n\nWASD = Gerak | SPACE = Aksi',5000),500);
+updateUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
