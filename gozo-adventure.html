@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gozo Adventure</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&display=swap');
   :root{--yellow:#FFD700;--red:#CC2222;--chain:#C0C0C0;--bg:#0a0a0f;--panel:#111122;--border:#FFD700;}
@@ -329,19 +328,19 @@
   <div class="sel-sub">They will accompany Gozo on his adventure</div>
   <div class="monster-cards">
     <div class="mcard fire" onclick="selectMonster('fire')">
-      <div class="memoji">🔥</div><div class="mname">IGNIS</div>
+      <div class="memoji" id="card-sprite-fire"></div><div class="mname">IGNIS</div>
       <div class="melem">🔥 FIRE</div>
       <div class="mstats">ATK: ⭐⭐⭐⭐⭐<br>DEF: ⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐<br>SPD: ⭐⭐⭐⭐</div>
       <div class="mbadge">🔥→🌋→🐉 Evolves LV30/60</div>
     </div>
     <div class="mcard water" onclick="selectMonster('water')">
-      <div class="memoji">💧</div><div class="mname">AQUA</div>
+      <div class="memoji" id="card-sprite-water"></div><div class="mname">AQUA</div>
       <div class="melem">💧 WATER</div>
       <div class="mstats">ATK: ⭐⭐⭐<br>DEF: ⭐⭐⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐⭐⭐<br>SPD: ⭐⭐⭐</div>
       <div class="mbadge">💧→🌊→🌀 Evolves LV30/60</div>
     </div>
     <div class="mcard grass" onclick="selectMonster('grass')">
-      <div class="memoji">🌿</div><div class="mname">SYLVA</div>
+      <div class="memoji" id="card-sprite-grass"></div><div class="mname">SYLVA</div>
       <div class="melem">🌿 GRASS</div>
       <div class="mstats">ATK: ⭐⭐⭐<br>DEF: ⭐⭐⭐<br>HP:&nbsp;&nbsp;⭐⭐⭐⭐<br>SPD: ⭐⭐⭐⭐⭐</div>
       <div class="mbadge">🌿→🌳→🌲 Evolves LV30/60</div>
@@ -409,39 +408,28 @@
 
 <!-- SAVE SCREEN -->
 <div id="save-screen" style="display:none;">
-  <div class="save-title">💾 SAVE ON MONAD CHAIN</div>
+  <div class="save-title">💾 SAVE / LOAD GAME</div>
   <div class="save-panel">
     <div style="font-size:7px;color:#666;text-align:center;margin-bottom:12px;line-height:2.2;">
-      Your progress is saved as a transaction on<br>
-      <span style="color:#9966ff">Monad Mainnet</span> <span class="chain-badge">Chain ID: 143</span><br>
-      <span style="color:#444;font-size:6px">No contract needed · Data stored in tx calldata</span>
+      Save progress as a <span style="color:#FFD700">.json</span> file on your computer<br>
+      <span style="color:#444;font-size:6px">No internet required · File stays on your device</span>
     </div>
-
-    <!-- Wallet status -->
-    <div style="font-size:7px;color:#888;margin-bottom:6px;">WALLET</div>
-    <div id="save-wallet-info" class="save-status">Not connected</div>
 
     <!-- Action buttons -->
     <div class="save-row" id="save-actions">
-      <button class="save-btn" id="btn-connect" onclick="connectWallet()">🦊 CONNECT</button>
-      <button class="save-btn green" id="btn-save" onclick="saveGame()" disabled>💾 SAVE GAME</button>
-      <button class="save-btn" id="btn-load" onclick="loadGame()" disabled>📂 LOAD GAME</button>
+      <button class="save-btn green" id="btn-save" onclick="saveGame()">💾 SAVE FILE</button>
+      <button class="save-btn" id="btn-load" onclick="triggerLoadFile()">📂 LOAD FILE</button>
     </div>
+    <!-- Hidden file input for loading -->
+    <input type="file" id="load-file-input" accept=".json" style="display:none;" onchange="handleLoadFile(event)">
 
     <!-- Status log -->
     <div style="font-size:7px;color:#555;margin-top:14px;margin-bottom:4px;">STATUS</div>
-    <div id="save-log" class="save-status">Ready. Connect wallet to continue.</div>
-
-    <!-- Save info -->
-    <div id="save-tx-info" style="display:none;margin-top:10px;">
-      <div style="font-size:6px;color:#555;margin-bottom:3px;">LAST SAVE TX</div>
-      <div id="save-tx-hash" class="wallet-addr"></div>
-      <a id="save-tx-link" href="#" target="_blank" style="font-size:6px;color:#4488ff;margin-top:4px;display:block;">View on Explorer ↗</a>
-    </div>
+    <div id="save-log" class="save-status">Ready.</div>
 
     <!-- Load preview -->
     <div id="load-preview" style="display:none;margin-top:10px;padding:10px;background:#080812;border:1px solid #222;">
-      <div style="font-size:7px;color:var(--yellow);margin-bottom:6px;">SAVE DATA FOUND</div>
+      <div style="font-size:7px;color:var(--yellow);margin-bottom:6px;">📄 SAVE FILE FOUND</div>
       <div id="load-preview-text" style="font-size:6px;color:#888;line-height:2.2;"></div>
       <div class="save-row" style="margin-top:8px;">
         <button class="save-btn green" onclick="confirmLoad()">✅ LOAD THIS SAVE</button>
@@ -937,6 +925,965 @@ function pickWildMonster(zone) {
 }
 
 // ==============================================
+// ════════════════════════════════════════════════════════════════════
+// PIXEL ART SPRITE SYSTEM
+// All sprites drawn on 32×32 canvas (scaled up for display)
+// ════════════════════════════════════════════════════════════════════
+
+function mkCanvas(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function p(ctx,x,y,w,h,c){ if(!c||c==='_') return; ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
+
+// ── PARTNER SPRITES ──────────────────────────────────────────────────────────
+
+// IGNIS — small fire fox cub (fire type)
+function drawIgnis(ctx){
+  const O='#1a0800',B='#cc3300',M='#ff5500',L='#ff8833',H='#ffcc44',W='#fff8f0',E='#111';
+  // tail (behind body)
+  p(ctx,22,14,8,6,M); p(ctx,25,11,5,4,L); p(ctx,27,10,3,2,H);
+  // body
+  p(ctx,8,14,16,12,B); p(ctx,9,15,14,10,M); p(ctx,11,16,10,8,L);
+  // belly
+  p(ctx,12,19,8,6,H); p(ctx,13,20,6,4,W);
+  // head
+  p(ctx,9,8,14,10,B); p(ctx,10,9,12,8,M); p(ctx,12,10,8,6,L);
+  // ears
+  p(ctx,9,5,4,5,B); p(ctx,10,6,2,4,M); p(ctx,19,5,4,5,B); p(ctx,20,6,2,4,M);
+  // ear tips (flame)
+  p(ctx,10,4,2,2,H); p(ctx,20,4,2,2,H);
+  // eyes
+  p(ctx,12,12,3,3,O); p(ctx,13,12,2,2,H); p(ctx,13,12,1,1,W); // left
+  p(ctx,19,12,3,3,O); p(ctx,20,12,2,2,H); p(ctx,20,12,1,1,W); // right
+  // nose
+  p(ctx,15,16,3,2,O); p(ctx,15,17,1,1,B);
+  // legs
+  p(ctx,10,24,5,6,B); p(ctx,11,25,3,5,M);
+  p(ctx,17,24,5,6,B); p(ctx,18,25,3,5,M);
+  // flame markings
+  p(ctx,9,12,2,4,L); p(ctx,21,12,2,4,L);
+  // outline
+  p(ctx,8,8,1,18,O); p(ctx,23,8,1,18,O); p(ctx,8,8,16,1,O); p(ctx,9,26,14,1,O);
+}
+
+// PYROLOS — fire wolf mid-stage (fire type)
+function drawPyrolos(ctx){
+  const O='#110000',B='#aa2200',M='#dd4400',L='#ff6600',H='#ff9922',F='#ffcc00',W='#fff5e0';
+  // flame aura
+  p(ctx,4,2,6,8,F); p(ctx,7,1,4,6,H); p(ctx,22,2,6,8,F); p(ctx,21,1,4,6,H);
+  p(ctx,13,0,6,5,F); p(ctx,14,0,4,3,H);
+  // tail
+  p(ctx,24,14,6,8,M); p(ctx,25,10,5,6,L); p(ctx,26,8,4,5,H); p(ctx,27,6,3,4,F);
+  // body
+  p(ctx,6,16,20,12,B); p(ctx,7,17,18,10,M); p(ctx,9,18,14,8,L);
+  // chest blaze
+  p(ctx,11,19,10,8,H); p(ctx,12,20,8,6,F);
+  // head
+  p(ctx,7,6,18,13,B); p(ctx,8,7,16,11,M); p(ctx,10,8,12,9,L);
+  // muzzle
+  p(ctx,11,13,10,6,M); p(ctx,12,14,8,4,L); p(ctx,13,15,6,3,H);
+  // ears
+  p(ctx,7,2,5,6,B); p(ctx,8,3,3,5,M); p(ctx,20,2,5,6,B); p(ctx,21,3,3,5,M);
+  p(ctx,8,2,3,2,F); p(ctx,21,2,3,2,F);
+  // eyes (glowing)
+  p(ctx,10,9,4,3,O); p(ctx,11,9,3,2,F); p(ctx,11,9,1,1,W);
+  p(ctx,18,9,4,3,O); p(ctx,19,9,3,2,F); p(ctx,19,9,1,1,W);
+  // nose
+  p(ctx,14,14,4,3,O); p(ctx,15,15,2,1,B);
+  // legs
+  p(ctx,8,26,5,6,B); p(ctx,9,27,3,5,M);
+  p(ctx,13,26,5,6,B); p(ctx,14,27,3,5,M);
+  p(ctx,18,26,5,6,B); p(ctx,19,27,3,5,M);
+}
+
+// INFERNUS — fire dragon (fire type)
+function drawInfernus(ctx){
+  const O='#0a0000',B='#880000',M='#cc1100',L='#ff3300',H='#ff6600',F='#ffaa00',G='#ffee00',W='#fff';
+  // wings
+  p(ctx,0,6,10,16,B); p(ctx,1,7,8,12,M); p(ctx,2,8,6,10,L); // left wing
+  p(ctx,22,6,10,16,B); p(ctx,23,7,8,12,M); p(ctx,24,8,6,10,L); // right wing
+  // wing membranes
+  p(ctx,0,8,3,2,F); p(ctx,0,12,3,2,F); p(ctx,0,16,3,2,F);
+  p(ctx,29,8,3,2,F); p(ctx,29,12,3,2,F); p(ctx,29,16,3,2,F);
+  // tail
+  p(ctx,24,22,8,6,B); p(ctx,26,20,6,4,M); p(ctx,28,18,4,4,L); p(ctx,29,15,3,4,H);
+  // body
+  p(ctx,8,14,16,14,B); p(ctx,9,15,14,12,M); p(ctx,10,16,12,10,L);
+  // belly scales
+  p(ctx,11,18,10,8,H); p(ctx,12,19,8,7,F); p(ctx,13,20,6,5,G);
+  // neck
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,6,M); p(ctx,13,10,6,5,L);
+  // head
+  p(ctx,8,2,16,10,B); p(ctx,9,3,14,8,M); p(ctx,10,4,12,7,L);
+  // horns
+  p(ctx,9,0,3,4,B); p(ctx,10,0,2,3,M);
+  p(ctx,20,0,3,4,B); p(ctx,21,0,2,3,M);
+  // snout
+  p(ctx,10,8,12,6,M); p(ctx,11,9,10,4,L); p(ctx,12,10,8,3,H);
+  // nostrils
+  p(ctx,12,10,2,2,O); p(ctx,18,10,2,2,O);
+  // eyes (glowing fierce)
+  p(ctx,10,4,5,4,O); p(ctx,11,5,4,3,F); p(ctx,11,5,2,2,G); p(ctx,12,5,1,1,W);
+  p(ctx,17,4,5,4,O); p(ctx,18,5,4,3,F); p(ctx,18,5,2,2,G); p(ctx,19,5,1,1,W);
+  // claws
+  p(ctx,8,26,4,6,B); p(ctx,7,30,5,2,M); p(ctx,6,31,6,1,L);
+  p(ctx,20,26,4,6,B); p(ctx,21,30,5,2,M); p(ctx,22,31,6,1,L);
+}
+
+// AQUA — water otter pup (water type)
+function drawAqua(ctx){
+  const O='#001122',B='#114488',M='#2266bb',L='#44aadd',H='#88ccff',W='#eef8ff',BW='#b8d4e8';
+  // tail
+  p(ctx,22,18,8,8,B); p(ctx,23,17,7,6,M); p(ctx,24,16,6,5,L); p(ctx,25,19,5,5,H);
+  // body
+  p(ctx,8,15,16,13,B); p(ctx,9,16,14,11,M); p(ctx,10,17,12,9,L);
+  // belly
+  p(ctx,11,18,10,9,H); p(ctx,12,19,8,7,W);
+  // head
+  p(ctx,9,7,14,11,B); p(ctx,10,8,12,9,M); p(ctx,11,9,10,7,L);
+  // ears (round)
+  p(ctx,8,6,5,5,B); p(ctx,9,7,3,4,M); p(ctx,19,6,5,5,B); p(ctx,20,7,3,4,M);
+  // water droplet on forehead
+  p(ctx,14,6,4,5,L); p(ctx,15,5,2,3,H); p(ctx,15,6,2,2,W);
+  // eyes (big cute)
+  p(ctx,11,10,4,4,O); p(ctx,12,10,3,3,L); p(ctx,12,10,2,2,H); p(ctx,12,10,1,1,W);
+  p(ctx,18,10,4,4,O); p(ctx,19,10,3,3,L); p(ctx,19,10,2,2,H); p(ctx,19,10,1,1,W);
+  // nose
+  p(ctx,14,14,4,3,O); p(ctx,15,15,2,1,B);
+  // whiskers
+  p(ctx,8,15,4,1,BW); p(ctx,7,16,3,1,BW);
+  p(ctx,20,15,4,1,BW); p(ctx,22,16,3,1,BW);
+  // flippers
+  p(ctx,6,19,4,7,B); p(ctx,7,20,3,6,M); p(ctx,5,24,4,3,L);
+  p(ctx,22,19,4,7,B); p(ctx,23,20,3,6,M); p(ctx,23,24,4,3,L);
+  // bubble
+  p(ctx,3,8,4,4,H); p(ctx,4,9,2,2,W); p(ctx,3,8,1,1,W);
+}
+
+// MARALITH — water serpent (water type)
+function drawMaralith(ctx){
+  const O='#000e22',B='#0a3366',M='#1155aa',L='#2288dd',H='#55aaee',S='#88ccff',W='#ddf4ff';
+  // coiled tail
+  p(ctx,16,22,12,10,B); p(ctx,17,23,10,8,M); p(ctx,20,24,8,6,L);
+  p(ctx,4,20,10,10,B); p(ctx,5,21,8,8,M); p(ctx,6,22,6,6,L);
+  // scales pattern
+  for(let i=0;i<4;i++){ p(ctx,5+i*3,23,2,2,H); p(ctx,17+i*3,25,2,2,H); }
+  // body
+  p(ctx,10,10,12,14,B); p(ctx,11,11,10,12,M); p(ctx,12,12,8,10,L);
+  // belly
+  p(ctx,12,13,8,10,S); p(ctx,13,14,6,8,W);
+  // head
+  p(ctx,9,2,14,12,B); p(ctx,10,3,12,10,M); p(ctx,11,4,10,8,L);
+  // crown fins
+  p(ctx,10,0,4,4,L); p(ctx,11,0,2,3,S);
+  p(ctx,18,0,4,4,L); p(ctx,19,0,2,3,S);
+  p(ctx,14,0,4,5,H); p(ctx,15,0,2,4,S); p(ctx,15,0,2,1,W);
+  // eyes
+  p(ctx,11,6,4,4,O); p(ctx,12,6,3,3,H); p(ctx,12,6,2,2,S); p(ctx,12,6,1,1,W);
+  p(ctx,19,6,4,4,O); p(ctx,20,6,3,3,H); p(ctx,20,6,2,2,S); p(ctx,20,6,1,1,W);
+  // forked tongue
+  p(ctx,14,12,4,3,B); p(ctx,13,14,2,2,M); p(ctx,17,14,2,2,M);
+  // arms/fins
+  p(ctx,5,12,6,8,B); p(ctx,6,13,4,6,M); p(ctx,5,16,3,3,L);
+  p(ctx,21,12,6,8,B); p(ctx,22,13,4,6,M); p(ctx,24,16,3,3,L);
+}
+
+// ABYSSOS — deep sea kraken (water type)
+function drawAbyssos(ctx){
+  const O='#000011',B='#001133',M='#002266',L='#0044aa',H='#0077dd',S='#00aaff',G='#00ffcc',W='#ccf0ff';
+  // tentacles
+  const tents=[[2,18,4,14],[6,20,4,12],[22,18,4,14],[26,20,4,12],[4,22,4,10],[24,22,4,10]];
+  tents.forEach(([x,y,w,h])=>{ p(ctx,x,y,w,h,B); p(ctx,x+1,y+1,w-1,h-2,M); p(ctx,x+1,y+1,2,2,H); });
+  // body dome
+  p(ctx,6,6,20,20,B); p(ctx,7,7,18,18,M); p(ctx,8,8,16,16,L);
+  p(ctx,9,9,14,14,H); p(ctx,10,10,12,12,S);
+  // mantle top
+  p(ctx,8,4,16,8,B); p(ctx,9,5,14,6,M); p(ctx,10,6,12,5,L); p(ctx,11,7,10,4,H);
+  // bioluminescent spots
+  p(ctx,10,12,3,3,G); p(ctx,16,11,3,3,G); p(ctx,13,16,3,3,G); p(ctx,19,15,2,2,G);
+  p(ctx,10,12,1,1,W); p(ctx,16,11,1,1,W); p(ctx,13,16,1,1,W);
+  // eyes (huge glowing)
+  p(ctx,8,10,6,6,O); p(ctx,9,11,5,5,H); p(ctx,9,11,4,4,S); p(ctx,10,11,2,2,G); p(ctx,10,11,1,1,W);
+  p(ctx,18,10,6,6,O); p(ctx,19,11,5,5,H); p(ctx,19,11,4,4,S); p(ctx,20,11,2,2,G); p(ctx,20,11,1,1,W);
+  // beak
+  p(ctx,13,18,6,5,O); p(ctx,14,18,4,3,B); p(ctx,14,19,4,2,M);
+}
+
+// SYLVA — grass bunny (grass type)
+function drawSylva(ctx){
+  const O='#0a1a00',B='#1a5500',M='#2d8800',L='#44bb22',H='#88dd44',S='#ccff88',W='#f0ffe0',PK='#ffaacc';
+  // leaf cape/back
+  p(ctx,7,14,18,14,B); p(ctx,8,15,16,12,M); p(ctx,9,16,14,10,L); p(ctx,10,17,12,8,H);
+  // leaf details on cape
+  p(ctx,10,19,3,5,M); p(ctx,15,18,3,5,M); p(ctx,20,20,3,4,M);
+  // body
+  p(ctx,9,15,14,13,B); p(ctx,10,16,12,11,M); p(ctx,11,17,10,9,L);
+  // belly
+  p(ctx,12,19,8,8,H); p(ctx,13,20,6,6,S); p(ctx,13,21,6,5,W);
+  // head
+  p(ctx,9,6,14,12,B); p(ctx,10,7,12,10,M); p(ctx,11,8,10,8,L);
+  // long ears (bunny)
+  p(ctx,10,0,5,8,B); p(ctx,11,0,3,7,M); p(ctx,12,1,2,5,PK);
+  p(ctx,17,0,5,8,B); p(ctx,18,0,3,7,M); p(ctx,18,1,2,5,PK);
+  // leaf on head
+  p(ctx,13,5,6,4,L); p(ctx,14,4,4,3,H); p(ctx,15,4,2,2,S);
+  // eyes (sparkly)
+  p(ctx,11,9,4,4,O); p(ctx,12,9,3,3,H); p(ctx,12,9,2,2,S); p(ctx,12,9,1,1,W);
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,H); p(ctx,19,9,2,2,S); p(ctx,19,9,1,1,W);
+  // nose
+  p(ctx,14,13,4,3,PK); p(ctx,15,14,2,1,B);
+  // small paws
+  p(ctx,9,26,5,4,M); p(ctx,10,27,4,3,L);
+  p(ctx,18,26,5,4,M); p(ctx,19,27,4,3,L);
+  // seed/sprout accessory
+  p(ctx,3,10,3,6,M); p(ctx,4,8,2,3,L); p(ctx,4,7,2,2,H); p(ctx,4,6,1,2,S);
+}
+
+// THORNWOOD — plant wolf with thorns (grass type)
+function drawThornwood(ctx){
+  const O='#051002',B='#0d3305',M='#1a5c0a',L='#2e9913',H='#55cc22',S='#88ee44',T='#ccff55',W='#f5fff0';
+  // bark tail
+  p(ctx,22,16,8,10,B); p(ctx,23,15,7,8,M); p(ctx,25,13,5,6,L);
+  // thorns on tail
+  p(ctx,29,15,3,2,T); p(ctx,30,18,2,3,T); p(ctx,28,21,3,2,T);
+  // leafy mane
+  p(ctx,5,8,22,14,B); p(ctx,6,9,20,12,M); p(ctx,7,10,18,10,L);
+  p(ctx,5,6,5,6,M); p(ctx,9,5,4,5,L); p(ctx,14,4,5,6,M); p(ctx,20,5,5,6,L); p(ctx,24,7,4,5,M);
+  // leaf tips
+  p(ctx,5,5,3,2,H); p(ctx,10,4,3,2,H); p(ctx,14,3,3,2,H); p(ctx,20,4,3,2,H); p(ctx,24,6,3,2,H);
+  // body
+  p(ctx,8,18,16,12,B); p(ctx,9,19,14,10,M); p(ctx,10,20,12,8,L);
+  // bark texture
+  p(ctx,11,20,2,6,B); p(ctx,15,21,2,5,B); p(ctx,19,22,2,4,B);
+  // head
+  p(ctx,8,8,16,13,B); p(ctx,9,9,14,11,M); p(ctx,10,10,12,9,L);
+  // snout
+  p(ctx,11,15,10,7,M); p(ctx,12,16,8,5,L); p(ctx,13,17,6,4,H);
+  // eyes (glowing green)
+  p(ctx,10,11,4,4,O); p(ctx,11,11,3,3,H); p(ctx,11,11,2,2,S); p(ctx,12,11,1,1,W);
+  p(ctx,18,11,4,4,O); p(ctx,19,11,3,3,H); p(ctx,19,11,2,2,S); p(ctx,20,11,1,1,W);
+  // thorns on body
+  p(ctx,6,14,3,2,T); p(ctx,5,18,2,3,T); p(ctx,23,14,3,2,T); p(ctx,25,19,2,3,T);
+  // legs
+  p(ctx,9,28,5,4,B); p(ctx,10,29,3,3,M);
+  p(ctx,18,28,5,4,B); p(ctx,19,29,3,3,M);
+}
+
+// VERDANTIS — ancient tree dragon (grass type)
+function drawVerdantis(ctx){
+  const O='#030a00',B='#0a2a05',M='#145210',L='#228a1c',H='#3dcc2e',S='#7aee55',T='#c8ff88',W='#f0fff0',BK='#3d2200';
+  // bark wings
+  p(ctx,0,6,10,18,BK); p(ctx,1,7,8,14,B); p(ctx,2,8,6,12,M);
+  p(ctx,22,6,10,18,BK); p(ctx,23,7,8,14,B); p(ctx,24,8,6,12,M);
+  // leaf canopy on wings
+  p(ctx,0,6,6,6,M); p(ctx,1,5,5,5,L); p(ctx,2,4,4,4,H);
+  p(ctx,26,6,6,6,M); p(ctx,27,5,5,5,L); p(ctx,28,4,4,4,H);
+  // tail
+  p(ctx,24,22,8,8,BK); p(ctx,25,21,6,6,B); p(ctx,28,18,4,5,M);
+  // root legs
+  p(ctx,7,26,5,6,BK); p(ctx,8,27,4,5,B); p(ctx,6,30,6,2,M);
+  p(ctx,20,26,5,6,BK); p(ctx,21,27,4,5,B); p(ctx,20,30,6,2,M);
+  // body bark
+  p(ctx,8,14,16,14,BK); p(ctx,9,15,14,12,B); p(ctx,10,16,12,10,M);
+  // vines/leaves on body
+  p(ctx,8,16,4,8,M); p(ctx,9,15,3,6,L); p(ctx,20,18,4,6,M); p(ctx,21,17,3,5,L);
+  p(ctx,12,14,4,4,L); p(ctx,16,13,4,4,L);
+  // chest glow
+  p(ctx,12,18,8,8,L); p(ctx,13,19,6,6,H); p(ctx,14,20,4,4,S); p(ctx,15,21,2,2,T);
+  // neck
+  p(ctx,12,8,8,8,BK); p(ctx,13,9,6,6,B); p(ctx,13,9,4,4,M);
+  // head
+  p(ctx,8,2,16,10,BK); p(ctx,9,3,14,8,B); p(ctx,10,4,12,7,M);
+  // ancient horns (branching)
+  p(ctx,9,0,3,5,BK); p(ctx,10,0,2,4,B); p(ctx,8,2,2,2,M);
+  p(ctx,20,0,3,5,BK); p(ctx,21,0,2,4,B); p(ctx,22,2,2,2,M);
+  // leaf crown
+  p(ctx,11,1,10,4,L); p(ctx,12,0,8,3,H); p(ctx,13,0,6,2,S); p(ctx,14,0,4,1,T);
+  // eyes (glowing ancient)
+  p(ctx,10,5,5,4,O); p(ctx,11,5,4,3,H); p(ctx,11,5,3,2,S); p(ctx,11,5,2,2,T); p(ctx,12,5,1,1,W);
+  p(ctx,17,5,5,4,O); p(ctx,18,5,4,3,H); p(ctx,18,5,3,2,S); p(ctx,18,5,2,2,T); p(ctx,19,5,1,1,W);
+  // snout
+  p(ctx,11,8,10,5,B); p(ctx,12,9,8,3,M); p(ctx,13,9,6,2,L);
+}
+
+// ── MONSTER SPRITES MAP ───────────────────────────────────────────────────────
+// Returns a drawing function for a given monster name/element/tier
+
+const MONSTER_DRAWERS = {};
+
+// Helper to register
+function reg(name, fn){ MONSTER_DRAWERS[name.toUpperCase()] = fn; }
+
+// ── TIER 1 ──
+reg('SLIME', ctx=>{
+  const O='#003300',B='#006600',M='#00aa44',L='#44dd66',H='#88ffaa',W='#ccffdd',E='#001100';
+  p(ctx,8,18,16,12,B); p(ctx,6,20,20,10,M); p(ctx,7,21,18,8,L);
+  p(ctx,8,22,16,6,H); p(ctx,10,24,12,4,W);
+  // eyes
+  p(ctx,10,20,4,4,E); p(ctx,11,20,3,3,H); p(ctx,11,20,1,1,W);
+  p(ctx,18,20,4,4,E); p(ctx,19,20,3,3,H); p(ctx,19,20,1,1,W);
+  // cute smile
+  p(ctx,12,25,2,1,E); p(ctx,14,26,4,1,E); p(ctx,18,25,2,1,E);
+  // blob highlight
+  p(ctx,11,17,5,4,H); p(ctx,12,17,3,3,W);
+});
+
+reg('BROWN RAT', ctx=>{
+  const O='#1a0a00',B='#5c3310',M='#8c5520',L='#b87840',H='#d4a060',W='#f0e0c8',PK='#ffaaaa';
+  p(ctx,22,12,8,8,B); // tail
+  p(ctx,20,14,10,8,M); p(ctx,22,16,8,6,L); // tail curl
+  p(ctx,8,16,16,14,B); p(ctx,9,17,14,12,M); p(ctx,10,18,12,10,L);
+  p(ctx,12,20,8,8,H); p(ctx,13,21,6,6,W);
+  p(ctx,9,8,14,11,B); p(ctx,10,9,12,9,M); p(ctx,11,10,10,7,L);
+  // big round ears
+  p(ctx,7,6,6,6,B); p(ctx,8,7,4,5,M); p(ctx,9,8,3,3,PK);
+  p(ctx,19,6,6,6,B); p(ctx,20,7,4,5,M); p(ctx,21,8,3,3,PK);
+  p(ctx,11,10,4,4,O||'#000'); p(ctx,12,10,3,3,H); p(ctx,12,10,1,1,W);
+  p(ctx,18,10,4,4,O||'#000'); p(ctx,19,10,3,3,H); p(ctx,19,10,1,1,W);
+  p(ctx,14,14,4,3,PK); p(ctx,7,15,5,1,H); p(ctx,20,15,5,1,H);
+  p(ctx,10,28,4,4,B); p(ctx,18,28,4,4,B);
+});
+
+reg('MUSHROOM', ctx=>{
+  const O='#3a0a00',B='#8a1c00',M='#cc3300',L='#ff5522',H='#ff8866',W='#fff0ee',SP='#fffdd0',ST='#d4b86a';
+  // stalk
+  p(ctx,11,20,10,12,ST); p(ctx,12,21,8,10,W); p(ctx,12,22,8,8,SP);
+  // cap
+  p(ctx,6,8,20,16,B); p(ctx,7,7,18,14,M); p(ctx,8,6,16,13,L);
+  p(ctx,9,6,14,10,H); p(ctx,10,6,12,6,W);
+  // spots
+  p(ctx,9,9,4,4,W); p(ctx,18,8,4,4,W); p(ctx,13,12,4,4,W);
+  p(ctx,10,10,2,2,SP); p(ctx,19,9,2,2,SP); p(ctx,14,13,2,2,SP);
+  // face
+  p(ctx,12,18,4,3,O); p(ctx,17,18,4,3,O);
+  p(ctx,12,19,3,2,L); p(ctx,17,19,3,2,L); p(ctx,12,20,1,1,W); p(ctx,17,20,1,1,W);
+  p(ctx,13,22,6,2,O); p(ctx,14,23,4,1,O);
+});
+
+reg('TINY MOTH', ctx=>{
+  const O='#110022',B='#442266',M='#7744aa',L='#bb66dd',H='#ee99ff',W='#ffeeff',Y='#ffee44',A='#ff8844';
+  // wings
+  p(ctx,2,8,12,16,M); p(ctx,3,7,10,16,L); p(ctx,4,6,8,15,H);
+  p(ctx,18,8,12,16,M); p(ctx,20,7,10,16,L); p(ctx,20,6,8,15,H);
+  // wing markings
+  p(ctx,5,10,5,6,Y); p(ctx,6,11,3,4,A);
+  p(ctx,22,10,5,6,Y); p(ctx,23,11,3,4,A);
+  // body
+  p(ctx,12,10,8,16,O); p(ctx,13,10,6,15,B); p(ctx,14,11,4,13,M);
+  // head
+  p(ctx,12,6,8,8,O); p(ctx,13,7,6,6,B); p(ctx,14,8,4,5,M);
+  // antennae
+  p(ctx,12,2,2,6,B); p(ctx,10,0,3,3,L); p(ctx,10,0,2,2,H);
+  p(ctx,18,2,2,6,B); p(ctx,19,0,3,3,L); p(ctx,20,0,2,2,H);
+  // eyes
+  p(ctx,13,8,3,3,W); p(ctx,13,8,2,2,H); p(ctx,13,8,1,1,Y);
+  p(ctx,18,8,3,3,W); p(ctx,19,8,2,2,H); p(ctx,19,8,1,1,Y);
+});
+
+reg('PEBBLE CRAB', ctx=>{
+  const O='#1a0a00',B='#7a3300',M='#cc6633',L='#ee9955',H='#ffcc88',W='#fff0cc',S='#888866',R='#aaa888';
+  // shell (rocky)
+  p(ctx,8,12,16,14,S); p(ctx,9,11,14,12,R); p(ctx,10,10,12,12,H);
+  // rock texture
+  p(ctx,10,12,3,3,S); p(ctx,15,11,4,3,S); p(ctx,20,14,3,3,S); p(ctx,11,17,4,3,S);
+  // claws
+  p(ctx,2,14,8,8,B); p(ctx,3,13,7,7,M); p(ctx,2,16,5,4,L);
+  p(ctx,22,14,8,8,B); p(ctx,23,13,7,7,M); p(ctx,25,16,5,4,L);
+  // claw pincers
+  p(ctx,2,12,3,4,B); p(ctx,2,18,3,4,B); p(ctx,27,12,3,4,B); p(ctx,27,18,3,4,B);
+  // head/eyes on stalks
+  p(ctx,11,6,4,8,M); p(ctx,11,4,5,5,M); p(ctx,11,4,5,5,L);
+  p(ctx,18,6,4,8,M); p(ctx,18,4,5,5,M); p(ctx,18,4,5,5,L);
+  p(ctx,11,4,4,4,O||'#000'); p(ctx,12,4,3,3,H); p(ctx,12,4,1,1,W);
+  p(ctx,18,4,4,4,O||'#000'); p(ctx,19,4,3,3,H); p(ctx,19,4,1,1,W);
+  // legs
+  [4,8,18,22].forEach(x=>{ p(ctx,x,20,3,6,M); p(ctx,x,24,4,2,L); });
+});
+
+reg('LEAF BUG', ctx=>{
+  const O='#001a00',B='#1a5500',M='#2d8800',L='#44bb00',H='#88ee22',Y='#ccff44',W='#f0ffcc';
+  // wing covers (elytra)
+  p(ctx,8,12,8,14,B); p(ctx,9,11,7,13,M); p(ctx,10,10,6,13,L); p(ctx,10,11,5,11,H);
+  p(ctx,16,12,8,14,B); p(ctx,17,11,7,13,M); p(ctx,17,10,6,13,L); p(ctx,17,11,5,11,H);
+  // vein patterns
+  p(ctx,11,13,1,8,M); p(ctx,13,12,1,9,M);
+  p(ctx,19,13,1,8,M); p(ctx,21,12,1,9,M);
+  // body
+  p(ctx,12,14,8,12,B); p(ctx,13,15,6,10,M); p(ctx,13,16,6,8,L);
+  // head
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,6,M); p(ctx,13,10,6,5,L);
+  // antennae
+  p(ctx,12,4,2,6,M); p(ctx,10,2,3,3,L); p(ctx,10,2,2,2,Y);
+  p(ctx,18,4,2,6,M); p(ctx,19,2,3,3,L); p(ctx,20,2,2,2,Y);
+  // eyes
+  p(ctx,12,10,4,3,O); p(ctx,13,10,3,2,Y); p(ctx,13,10,1,1,W);
+  p(ctx,17,10,4,3,O); p(ctx,18,10,3,2,Y); p(ctx,18,10,1,1,W);
+  // 6 legs
+  [7,12,17].forEach(x=>{ p(ctx,x,18,4,2,M); p(ctx,x+18,18,4,2,M); });
+  [8,12,16].forEach(x=>{ p(ctx,x,22,4,2,M); p(ctx,x+16,22,4,2,M); });
+});
+
+reg('TINY BAT', ctx=>{
+  const O='#0a0011',B='#220033',M='#440066',L='#6600aa',H='#aa44cc',W='#eeccff',R='#ff2244',Y='#ffee44';
+  // wings (big)
+  p(ctx,0,8,14,16,B); p(ctx,1,6,12,16,M); p(ctx,2,4,10,16,L);
+  p(ctx,18,8,14,16,B); p(ctx,19,6,12,16,M); p(ctx,20,4,10,16,L);
+  // wing bones
+  p(ctx,2,8,1,12,H); p(ctx,6,6,1,14,H); p(ctx,10,5,1,15,H);
+  p(ctx,22,8,1,12,H); p(ctx,26,6,1,14,H); p(ctx,29,5,1,15,H);
+  // body
+  p(ctx,12,12,8,16,B); p(ctx,13,13,6,14,M); p(ctx,13,14,6,12,L);
+  // head
+  p(ctx,11,6,10,10,B); p(ctx,12,7,8,8,M); p(ctx,13,8,6,6,L);
+  // ears (pointy)
+  p(ctx,11,2,4,6,B); p(ctx,12,3,3,5,M); p(ctx,13,3,2,3,H);
+  p(ctx,17,2,4,6,B); p(ctx,18,3,3,5,M); p(ctx,18,3,2,3,H);
+  // eyes (red)
+  p(ctx,12,8,4,3,R); p(ctx,13,8,3,2,Y); p(ctx,13,8,1,1,W);
+  p(ctx,17,8,4,3,R); p(ctx,18,8,3,2,Y); p(ctx,18,8,1,1,W);
+  // fangs
+  p(ctx,14,14,2,3,W); p(ctx,17,14,2,3,W);
+  // feet
+  p(ctx,12,26,3,4,B); p(ctx,18,26,3,4,B);
+});
+
+reg('MUD FROG', ctx=>{
+  const O='#0a1400',B='#1c4000',M='#2d6e0f',L='#44991c',H='#66cc33',S='#99ee55',W='#f0ffe8',Y='#ffee44',R='#cc3300';
+  // back legs (wide)
+  p(ctx,2,18,8,10,B); p(ctx,3,19,7,8,M); p(ctx,1,24,8,4,L);
+  p(ctx,22,18,8,10,B); p(ctx,23,19,7,8,M); p(ctx,23,24,8,4,L);
+  // body (wide squat)
+  p(ctx,7,14,18,16,B); p(ctx,8,15,16,14,M); p(ctx,9,16,14,12,L);
+  p(ctx,10,18,12,10,H); p(ctx,11,19,10,8,S);
+  // belly (light)
+  p(ctx,11,20,10,8,W); p(ctx,12,21,8,7,S);
+  // head (huge)
+  p(ctx,6,6,20,12,B); p(ctx,7,7,18,10,M); p(ctx,8,8,16,9,L);
+  p(ctx,9,9,14,7,H);
+  // wide mouth
+  p(ctx,7,14,18,4,B); p(ctx,8,15,16,3,R); p(ctx,9,15,14,2,Y);
+  // big eyes on top
+  p(ctx,8,5,8,8,B); p(ctx,9,4,7,7,M); p(ctx,9,4,7,7,L);
+  p(ctx,9,5,6,5,O||'#000'); p(ctx,10,5,5,4,H); p(ctx,10,5,3,3,S); p(ctx,11,5,1,1,W);
+  p(ctx,18,5,8,8,B); p(ctx,19,4,7,7,M); p(ctx,19,4,7,7,L);
+  p(ctx,19,5,6,5,O||'#000'); p(ctx,20,5,5,4,H); p(ctx,20,5,3,3,S); p(ctx,21,5,1,1,W);
+  // spots
+  p(ctx,10,18,3,3,B); p(ctx,18,17,3,3,B); p(ctx,14,22,3,3,B);
+  // front legs
+  p(ctx,8,22,5,6,M); p(ctx,7,26,6,2,L); p(ctx,20,22,5,6,M); p(ctx,21,26,6,2,L);
+});
+
+// ── TIER 2 ──
+reg('GOBLIN', ctx=>{
+  const O='#001a00',B='#114400',M='#228800',L='#44bb22',H='#88dd44',W='#ccff99',SK='#d4a860',R='#cc2200';
+  p(ctx,8,16,16,14,B); p(ctx,9,17,14,12,M); p(ctx,10,18,12,10,L);
+  p(ctx,8,6,16,13,B); p(ctx,9,7,14,11,M); p(ctx,10,8,12,9,L);
+  // big ears
+  p(ctx,4,8,6,8,B); p(ctx,5,9,5,6,M); p(ctx,5,9,4,5,H);
+  p(ctx,22,8,6,8,B); p(ctx,23,9,5,6,M); p(ctx,23,9,4,5,H);
+  // eyes (mean)
+  p(ctx,10,10,5,4,O); p(ctx,11,10,4,3,R); p(ctx,11,10,2,2,H); p(ctx,11,10,1,1,W);
+  p(ctx,17,10,5,4,O); p(ctx,18,10,4,3,R); p(ctx,18,10,2,2,H); p(ctx,18,10,1,1,W);
+  // nose (big)
+  p(ctx,13,13,6,4,M); p(ctx,14,14,4,3,L); p(ctx,13,14,2,2,O);  p(ctx,17,14,2,2,O);
+  // teeth
+  p(ctx,12,18,4,3,W); p(ctx,17,18,4,3,W); p(ctx,12,20,3,2,SK); p(ctx,17,20,3,2,SK);
+  // club weapon
+  p(ctx,24,14,3,16,SK); p(ctx,22,12,7,6,B); p(ctx,23,12,5,4,M);
+  p(ctx,9,28,5,4,M); p(ctx,18,28,5,4,M);
+});
+
+reg('FLAME PUP', ctx=>{
+  const O='#1a0000',B='#882200',M='#cc4400',L='#ff6600',H='#ff9933',F='#ffcc00',W='#fff8e8';
+  p(ctx,22,14,8,8,M); p(ctx,24,10,6,6,L); p(ctx,26,8,4,5,F);
+  p(ctx,8,16,16,12,B); p(ctx,9,17,14,10,M); p(ctx,10,18,12,8,L);
+  p(ctx,11,20,10,7,H); p(ctx,12,21,8,5,W);
+  p(ctx,9,8,14,11,B); p(ctx,10,9,12,9,M); p(ctx,11,10,10,7,L);
+  p(ctx,9,5,4,5,M); p(ctx,10,6,2,4,L); p(ctx,10,4,2,2,F);
+  p(ctx,19,5,4,5,M); p(ctx,20,6,2,4,L); p(ctx,20,4,2,2,F);
+  p(ctx,11,10,4,4,O); p(ctx,12,10,3,3,F); p(ctx,12,10,1,1,W);
+  p(ctx,18,10,4,4,O); p(ctx,19,10,3,3,F); p(ctx,19,10,1,1,W);
+  p(ctx,14,14,4,3,O); p(ctx,10,26,4,4,M); p(ctx,18,26,4,4,M);
+});
+
+reg('BLUE SLIME', ctx=>{
+  const O='#000d33',B='#001155',M='#0033aa',L='#2266dd',H='#55aaff',S='#99ccff',W='#ddeeff';
+  p(ctx,8,18,16,12,B); p(ctx,6,20,20,10,M); p(ctx,7,21,18,8,L);
+  p(ctx,8,22,16,6,H); p(ctx,10,23,12,4,S); p(ctx,11,23,10,3,W);
+  p(ctx,10,20,4,4,O); p(ctx,11,20,3,3,H); p(ctx,11,20,1,1,W);
+  p(ctx,18,20,4,4,O); p(ctx,19,20,3,3,H); p(ctx,19,20,1,1,W);
+  p(ctx,12,17,6,5,H); p(ctx,13,16,4,4,S); p(ctx,14,16,2,3,W);
+  // water crown
+  p(ctx,10,16,3,4,L); p(ctx,14,15,4,4,L); p(ctx,20,16,3,4,L);
+  p(ctx,11,15,2,2,H); p(ctx,15,14,2,2,H); p(ctx,20,15,2,2,H);
+});
+
+reg('ICE SPRITE', ctx=>{
+  const O='#001133',B='#003366',M='#0066aa',L='#55aadd',H='#aaddff',S='#ddf5ff',W='#ffffff',Y='#ffffcc';
+  // ice wings
+  p(ctx,2,10,10,14,B); p(ctx,3,8,8,14,M); p(ctx,4,6,6,14,L); p(ctx,4,6,4,12,H);
+  p(ctx,20,10,10,14,B); p(ctx,21,8,8,14,M); p(ctx,22,6,6,14,L); p(ctx,24,6,4,12,H);
+  // crystal shards on wings
+  p(ctx,3,7,3,4,H); p(ctx,4,5,2,3,S); p(ctx,25,7,3,4,H); p(ctx,26,5,2,3,S);
+  // body
+  p(ctx,11,14,10,14,B); p(ctx,12,15,8,12,M); p(ctx,12,16,8,10,L);
+  // ice crystal body
+  p(ctx,13,14,6,3,H); p(ctx,12,12,8,3,L); p(ctx,13,10,6,4,H); p(ctx,14,8,4,4,S);
+  // head
+  p(ctx,10,6,12,10,B); p(ctx,11,7,10,8,M); p(ctx,12,8,8,7,L);
+  // ice crown
+  p(ctx,11,3,3,5,H); p(ctx,15,2,2,5,S); p(ctx,19,3,3,5,H);
+  p(ctx,12,2,2,2,W); p(ctx,15,1,2,2,W); p(ctx,19,2,2,2,W);
+  // eyes
+  p(ctx,12,9,4,4,O); p(ctx,13,9,3,3,H); p(ctx,13,9,2,2,W); p(ctx,13,9,1,1,Y);
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,H); p(ctx,19,9,2,2,W); p(ctx,19,9,1,1,Y);
+  // snowflake mark
+  p(ctx,15,18,2,6,S); p(ctx,12,20,8,2,S); p(ctx,13,19,6,4,H);
+});
+
+// Generic animal generators by element for unnamed/varied monsters
+function drawGenericAnimal(ctx, element, tier){
+  const palettes={
+    fire:['#1a0000','#882200','#cc4400','#ff6600','#ff9933','#ffcc00'],
+    water:['#001122','#114488','#2266bb','#44aadd','#88ccff','#ddf4ff'],
+    grass:['#001100','#1a5500','#2d8800','#44bb22','#88ee44','#ccff88'],
+    dark:['#0a0011','#220033','#440066','#6600aa','#aa44cc','#eeccff'],
+    electric:['#111100','#444400','#888800','#cccc00','#ffee44','#ffffaa'],
+    ice:['#001133','#003366','#0066aa','#55aadd','#aaddff','#ffffff'],
+    earth:['#1a0e00','#4a2800','#7a4c10','#aa7030','#cc9950','#eed4a0'],
+    wind:['#001122','#224466','#447799','#77aacc','#aaccee','#ddeeff'],
+    light:['#222200','#665500','#aaaa00','#dddd44','#ffff88','#ffffee'],
+  };
+  const pal = palettes[element] || palettes.earth;
+  const [O,B,M,L,H,W] = pal;
+  const s = Math.min(10, tier);
+  // Scale with tier
+  const sz = 8 + s;
+  // Body
+  p(ctx,16-sz/2,20-sz/2,sz,sz,B);
+  p(ctx,17-sz/2,21-sz/2,sz-2,sz-2,M);
+  p(ctx,18-sz/2,22-sz/2,sz-4,sz-4,L);
+  // Head
+  const hs = Math.round(sz*0.8);
+  p(ctx,16-hs/2,12-hs/2,hs,hs,B);
+  p(ctx,17-hs/2,13-hs/2,hs-2,hs-2,M);
+  // Eyes
+  p(ctx,14,14,3,3,O); p(ctx,15,14,2,2,H); p(ctx,15,14,1,1,W);
+  p(ctx,19,14,3,3,O); p(ctx,20,14,2,2,H); p(ctx,20,14,1,1,W);
+  // Legs
+  p(ctx,12,26,3,4,B); p(ctx,17,26,3,4,B);
+}
+
+// ── Remaining key monsters ──
+reg('ROCK GOLEM JR', ctx=>{
+  const O='#0a0800',B='#3a3020',M='#5a4a30',L='#807050',H='#a89070',S='#c4b090',W='#e0d0b0';
+  p(ctx,8,10,16,20,B); p(ctx,9,11,14,18,M); p(ctx,10,12,12,16,L);
+  p(ctx,11,14,10,12,H); p(ctx,12,16,8,10,S);
+  p(ctx,8,6,16,8,B); p(ctx,9,7,14,6,M); p(ctx,10,8,12,5,L);
+  p(ctx,4,12,6,12,B); p(ctx,5,13,5,10,M); p(ctx,4,20,5,4,L);
+  p(ctx,22,12,6,12,B); p(ctx,23,13,5,10,M); p(ctx,23,20,5,4,L);
+  p(ctx,11,8,4,4,O); p(ctx,12,8,3,3,H); p(ctx,12,8,2,2,S); p(ctx,12,8,1,1,W);
+  p(ctx,17,8,4,4,O); p(ctx,18,8,3,3,H); p(ctx,18,8,2,2,S); p(ctx,18,8,1,1,W);
+  // crack lines
+  p(ctx,13,12,1,8,O); p(ctx,18,14,1,6,O); p(ctx,11,20,1,4,O);
+  p(ctx,10,26,5,4,B); p(ctx,17,26,5,4,B);
+  // rock chunks on shoulders
+  p(ctx,6,10,4,4,M); p(ctx,22,10,4,4,M);
+});
+
+reg('VINE CREEP', ctx=>{
+  const O='#001800',B='#0a3500',M='#186000',L='#2a9a00',H='#44cc00',S='#88ee44',W='#ccff88',T='#8b4513';
+  // vines
+  p(ctx,4,10,4,20,T); p(ctx,6,8,3,22,M); p(ctx,7,7,4,23,L);
+  p(ctx,24,10,4,20,T); p(ctx,23,8,3,22,M); p(ctx,21,7,4,23,L);
+  // body core
+  p(ctx,10,12,12,16,B); p(ctx,11,13,10,14,M); p(ctx,12,14,8,12,L);
+  // leaf clusters
+  p(ctx,8,8,8,8,M); p(ctx,9,7,6,7,L); p(ctx,10,6,5,6,H); p(ctx,11,6,4,4,S);
+  p(ctx,16,9,8,7,M); p(ctx,17,8,6,6,L); p(ctx,18,7,5,5,H);
+  // face
+  p(ctx,11,14,5,4,O); p(ctx,12,14,4,3,H); p(ctx,12,14,2,2,S); p(ctx,12,14,1,1,W);
+  p(ctx,17,14,5,4,O); p(ctx,18,14,4,3,H); p(ctx,18,14,2,2,S); p(ctx,18,14,1,1,W);
+  p(ctx,12,20,8,3,O); p(ctx,13,21,6,2,L); p(ctx,14,21,4,1,H);
+  // tendrils
+  p(ctx,3,6,3,5,L); p(ctx,2,4,2,3,H); p(ctx,26,7,3,4,L); p(ctx,27,5,2,3,H);
+});
+
+reg('SPARK BEETLE', ctx=>{
+  const O='#111100',B='#333300',M='#666600',L='#aaaa00',H='#dddd00',Y='#ffff00',W='#ffffcc',E='#ff6600';
+  p(ctx,9,14,7,14,B); p(ctx,10,13,6,13,M); p(ctx,11,12,5,13,L); p(ctx,11,13,4,11,H);
+  p(ctx,16,14,7,14,B); p(ctx,17,13,6,13,M); p(ctx,17,12,5,13,L); p(ctx,17,13,4,11,H);
+  // lightning bolt markings
+  p(ctx,11,15,2,5,E); p(ctx,13,18,2,5,E); p(ctx,18,16,2,4,E); p(ctx,20,19,2,4,E);
+  p(ctx,12,14,8,12,B); p(ctx,13,15,6,10,M); p(ctx,13,16,6,8,L);
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,6,M); p(ctx,13,10,6,5,L);
+  // electric antennae
+  p(ctx,12,4,2,6,M); p(ctx,11,2,4,3,Y); p(ctx,11,2,4,2,W); // left
+  p(ctx,18,4,2,6,M); p(ctx,19,2,4,3,Y); p(ctx,19,2,4,2,W); // right
+  p(ctx,12,10,4,3,O); p(ctx,13,10,3,2,Y); p(ctx,13,10,1,1,W);
+  p(ctx,17,10,4,3,O); p(ctx,18,10,3,2,Y); p(ctx,18,10,1,1,W);
+  [7,11,15].forEach(x=>{ p(ctx,x,20,4,2,M); p(ctx,x+14,20,4,2,M); });
+});
+
+reg('SAND WORM', ctx=>{
+  const O='#1a0e00',B='#5c3310',M='#8c5520',L='#b87840',H='#d4a060',S='#f0c880',W='#fff8f0',R='#cc2200';
+  // segmented body
+  for(let i=0;i<5;i++){
+    const y=20-i*3, w=14-i*2, x=16-w/2;
+    p(ctx,x,y,w,4,B); p(ctx,x+1,y+1,w-2,2,M); p(ctx,x+2,y+1,w-4,2,L);
+  }
+  p(ctx,10,24,12,6,B); p(ctx,11,25,10,4,M); p(ctx,12,26,8,3,L);
+  // head/mouth
+  p(ctx,8,6,16,12,B); p(ctx,9,7,14,10,M); p(ctx,10,8,12,9,L);
+  p(ctx,10,14,12,6,R); p(ctx,11,15,10,4,B); p(ctx,12,15,8,3,O||'#000');
+  // ring teeth
+  [11,14,17,20].forEach(x=>p(ctx,x,15,2,3,S));
+  // eyes (beady)
+  p(ctx,11,9,4,4,O||'#000'); p(ctx,12,9,3,3,H); p(ctx,12,9,1,1,W);
+  p(ctx,17,9,4,4,O||'#000'); p(ctx,18,9,3,3,H); p(ctx,18,9,1,1,W);
+});
+
+reg('SHADOW PUP', ctx=>{
+  const O='#000000',B='#0a0a1a',M='#1a1a33',L='#333366',H='#6666aa',S='#aaaacc',W='#eeeeff',R='#ff00ff',P='#cc44ff';
+  // shadow wisps
+  p(ctx,6,4,4,12,B); p(ctx,5,6,3,10,M); p(ctx,22,4,4,12,B); p(ctx,24,6,3,10,M);
+  p(ctx,14,2,4,8,B); p(ctx,15,1,3,6,M);
+  p(ctx,22,16,8,8,M); p(ctx,24,14,6,6,L); p(ctx,25,12,5,5,H);
+  p(ctx,8,16,16,12,B); p(ctx,9,17,14,10,M); p(ctx,10,18,12,8,L);
+  p(ctx,11,20,10,7,H); p(ctx,12,21,8,5,S);
+  p(ctx,9,8,14,11,B); p(ctx,10,9,12,9,M); p(ctx,11,10,10,7,L);
+  p(ctx,9,5,4,5,B); p(ctx,10,6,2,4,M);
+  p(ctx,19,5,4,5,B); p(ctx,20,6,2,4,M);
+  p(ctx,11,10,4,4,O); p(ctx,12,10,3,3,P); p(ctx,12,10,2,2,R); p(ctx,12,10,1,1,W);
+  p(ctx,18,10,4,4,O); p(ctx,19,10,3,3,P); p(ctx,19,10,2,2,R); p(ctx,19,10,1,1,W);
+  p(ctx,10,26,4,4,B); p(ctx,18,26,4,4,B);
+});
+
+reg('WATER JELLY', ctx=>{
+  const O='#001133',B='#002255',M='#0044aa',L='#3388ee',H='#66bbff',S='#aaddff',W='#ddeeff',G='#00ffcc';
+  p(ctx,8,16,16,14,B); p(ctx,6,18,20,12,M); p(ctx,7,20,18,10,L);
+  p(ctx,8,22,16,8,H); p(ctx,9,23,14,6,S); p(ctx,10,24,12,4,W);
+  // dome
+  p(ctx,8,8,16,12,B); p(ctx,9,7,14,12,M); p(ctx,10,6,12,12,L); p(ctx,11,5,10,10,H); p(ctx,12,4,8,9,S);
+  p(ctx,13,4,6,6,W);
+  // bioluminescent spots
+  p(ctx,10,10,3,3,G); p(ctx,17,9,3,3,G); p(ctx,13,14,3,3,G); p(ctx,20,13,2,2,G);
+  p(ctx,10,10,1,1,W); p(ctx,17,9,1,1,W);
+  // eyes
+  p(ctx,11,12,4,4,O); p(ctx,12,12,3,3,G); p(ctx,12,12,1,1,W);
+  p(ctx,18,12,4,4,O); p(ctx,19,12,3,3,G); p(ctx,19,12,1,1,W);
+  // tentacles
+  [8,11,14,17,20].forEach(x=>{ p(ctx,x,28,2,4,M); p(ctx,x-1,30,2,2,L); });
+});
+
+// ── TIER 3+ ──
+reg('FROST WOLF', ctx=>{
+  const O='#001122',B='#114466',M='#2277aa',L='#55aacc',H='#aaddee',S='#ddeeff',W='#ffffff',Y='#88eeff';
+  p(ctx,22,14,8,10,B); p(ctx,24,12,6,8,M); p(ctx,26,10,4,6,L); p(ctx,27,8,3,4,H);
+  p(ctx,6,16,20,12,B); p(ctx,7,17,18,10,M); p(ctx,8,18,16,8,L);
+  p(ctx,10,20,12,8,H); p(ctx,11,21,10,6,S); p(ctx,12,22,8,4,W);
+  // ice crystal mane
+  p(ctx,5,8,6,12,B); p(ctx,6,6,5,11,M); p(ctx,6,4,5,8,L); p(ctx,7,2,4,6,H); p(ctx,8,1,3,4,S);
+  p(ctx,21,8,6,12,B); p(ctx,22,6,5,11,M); p(ctx,22,4,5,8,L); p(ctx,23,2,4,6,H); p(ctx,24,1,3,4,S);
+  p(ctx,7,6,16,13,B); p(ctx,8,7,14,11,M); p(ctx,9,8,12,9,L); p(ctx,10,9,10,7,H);
+  p(ctx,11,14,10,6,M); p(ctx,12,15,8,4,L); p(ctx,13,16,6,3,H);
+  p(ctx,7,2,5,6,B); p(ctx,8,3,3,5,M); p(ctx,8,2,3,2,S);
+  p(ctx,20,2,5,6,B); p(ctx,21,3,3,5,M); p(ctx,21,2,3,2,S);
+  p(ctx,9,9,4,4,O||'#001122'); p(ctx,10,9,3,3,Y); p(ctx,10,9,2,2,W); p(ctx,10,9,1,1,Y);
+  p(ctx,18,9,4,4,O||'#001122'); p(ctx,19,9,3,3,Y); p(ctx,19,9,2,2,W); p(ctx,19,9,1,1,Y);
+  p(ctx,8,26,5,6,B); p(ctx,9,27,3,5,M); p(ctx,13,26,5,6,B); p(ctx,14,27,3,5,M); p(ctx,18,26,5,6,B); p(ctx,19,27,3,5,M);
+});
+
+reg('FIRE LIZARD', ctx=>{
+  const O='#1a0000',B='#6a1800',M='#aa3300',L='#ee5500',H='#ff8822',F='#ffcc44',W='#fff8e8',G='#ff4400';
+  p(ctx,24,14,8,10,B); p(ctx,25,12,7,8,M); p(ctx,27,9,5,7,L); p(ctx,28,7,4,5,F);
+  p(ctx,6,18,20,12,B); p(ctx,7,19,18,10,M); p(ctx,8,20,16,8,L);
+  // flame dorsal spines
+  p(ctx,10,8,3,12,G); p(ctx,14,6,3,14,G); p(ctx,18,7,3,13,G);
+  p(ctx,11,7,2,5,F); p(ctx,15,5,2,6,F); p(ctx,19,6,2,6,F);
+  p(ctx,8,10,16,12,B); p(ctx,9,11,14,10,M); p(ctx,10,12,12,8,L);
+  p(ctx,11,14,10,6,H); p(ctx,12,15,8,4,F);
+  p(ctx,10,8,4,5,O); p(ctx,11,8,3,4,H); p(ctx,11,8,2,2,F); p(ctx,11,8,1,1,W);
+  p(ctx,18,8,4,5,O); p(ctx,19,8,3,4,H); p(ctx,19,8,2,2,F); p(ctx,19,8,1,1,W);
+  p(ctx,14,18,4,4,O); p(ctx,6,26,5,6,B); p(ctx,12,26,5,6,B); p(ctx,18,26,5,6,B);
+});
+
+reg('CAVE SPIDER', ctx=>{
+  const O='#0a0000',B='#220000',M='#440022',L='#660033',H='#993355',S='#cc6677',W='#ffddee',R='#ff0000';
+  // 8 legs
+  [[2,8],[2,14],[2,20],[2,26],[24,8],[24,14],[24,20],[24,26]].forEach(([x,y],i)=>{
+    const dir = i<4 ? 1 : -1;
+    p(ctx,x,y,8,2,M); p(ctx,x+2,y-2,6,4,L);
+    if(i<4) p(ctx,x,y+2,6,4,M);
+    else p(ctx,x+2,y+2,6,4,M);
+  });
+  p(ctx,8,8,16,18,B); p(ctx,9,9,14,16,M); p(ctx,10,10,12,14,L);
+  p(ctx,10,10,12,8,H); p(ctx,11,10,10,6,S);
+  // hourglass marking
+  p(ctx,13,14,6,8,R); p(ctx,14,14,4,6,M); p(ctx,14,16,4,2,B);
+  p(ctx,10,8,5,5,O); p(ctx,11,8,4,4,R); p(ctx,11,8,3,3,W); p(ctx,11,8,1,1,R);
+  p(ctx,17,8,5,5,O); p(ctx,18,8,4,4,R); p(ctx,18,8,3,3,W); p(ctx,18,8,1,1,R);
+  // extra eyes
+  p(ctx,13,7,2,2,R); p(ctx,17,7,2,2,R);
+  // chelicerae/fangs
+  p(ctx,12,24,4,4,B); p(ctx,12,26,2,3,S); p(ctx,18,24,4,4,B); p(ctx,20,26,2,3,S);
+});
+
+reg('STORM CROW', ctx=>{
+  const O='#001122',B='#223344',M='#445566',L='#7799bb',H='#99bbcc',S='#ccdde8',W='#eef5ff',Y='#ffee44';
+  p(ctx,2,8,12,14,B); p(ctx,3,6,10,14,M); p(ctx,4,4,8,14,L); p(ctx,5,3,6,13,H);
+  p(ctx,18,8,12,14,B); p(ctx,20,6,10,14,M); p(ctx,20,4,8,14,L); p(ctx,21,3,6,13,H);
+  p(ctx,11,12,10,16,B); p(ctx,12,13,8,14,M); p(ctx,12,14,8,12,L);
+  p(ctx,10,6,12,10,B); p(ctx,11,7,10,8,M); p(ctx,12,8,8,7,L);
+  p(ctx,13,13,6,6,Y); p(ctx,14,14,4,4,S);
+  // beak
+  p(ctx,14,12,4,4,Y); p(ctx,15,13,3,2,W); p(ctx,13,14,6,3,Y);
+  p(ctx,12,8,4,4,O||'#001122'); p(ctx,13,8,3,3,H); p(ctx,13,8,2,2,W); p(ctx,13,8,1,1,Y);
+  p(ctx,18,8,4,4,O||'#001122'); p(ctx,19,8,3,3,H); p(ctx,19,8,2,2,W); p(ctx,19,8,1,1,Y);
+  // talons
+  p(ctx,12,26,5,4,B); p(ctx,11,28,6,2,M); p(ctx,17,26,5,4,B); p(ctx,18,28,6,2,M);
+  // lightning in feathers
+  p(ctx,5,6,2,4,Y); p(ctx,24,5,2,4,Y);
+});
+
+reg('ROCK TORTOISE', ctx=>{
+  const O='#0a0800',B='#2a2010',M='#4a3820',L='#7a6040',H='#a08055',S='#c8a870',W='#e8d0a0',GN='#336622';
+  // shell
+  p(ctx,6,10,20,18,B); p(ctx,7,9,18,17,M); p(ctx,8,8,16,17,L); p(ctx,9,7,14,16,H); p(ctx,10,6,12,15,S);
+  // shell pattern (hexagons)
+  p(ctx,11,8,4,5,M); p(ctx,16,8,4,5,M); p(ctx,13,13,5,5,M); p(ctx,9,14,4,4,M); p(ctx,18,14,4,4,M);
+  p(ctx,11,9,3,3,H); p(ctx,16,9,3,3,H); p(ctx,13,14,3,3,H); p(ctx,10,15,2,2,H); p(ctx,19,15,2,2,H);
+  // mossy bits
+  p(ctx,9,7,3,3,GN); p(ctx,20,8,3,3,GN); p(ctx,14,6,4,2,GN);
+  // head
+  p(ctx,12,4,8,8,B); p(ctx,13,5,6,6,M); p(ctx,14,6,4,5,L);
+  p(ctx,13,6,3,3,O||'#000'); p(ctx,14,6,2,2,H); p(ctx,14,6,1,1,W);
+  p(ctx,18,6,3,3,O||'#000'); p(ctx,19,6,2,2,H); p(ctx,19,6,1,1,W);
+  // legs stubby
+  p(ctx,6,22,5,8,B); p(ctx,7,23,4,6,M); p(ctx,21,22,5,8,B); p(ctx,22,23,4,6,M);
+  // tail
+  p(ctx,14,26,5,4,B); p(ctx,15,27,4,3,M);
+});
+
+// Tier 4-6 key monsters
+reg('HARPY', ctx=>{
+  const O='#1a0800',B='#6a3000',M='#aa5500',L='#dd8833',H='#ffaa44',F='#fff0cc',W='#ffffff',BN='#8b4513';
+  p(ctx,1,6,12,20,B); p(ctx,2,4,10,20,M); p(ctx,3,2,8,20,L); p(ctx,4,1,6,20,H);
+  p(ctx,19,6,12,20,B); p(ctx,21,4,10,20,M); p(ctx,21,2,8,20,L); p(ctx,22,1,6,20,H);
+  // feather tips
+  p(ctx,3,2,4,3,F); p(ctx,7,0,4,3,F); p(ctx,22,2,4,3,F); p(ctx,26,0,4,3,F);
+  p(ctx,11,12,10,16,BN); p(ctx,12,13,8,14,M); p(ctx,12,14,8,12,L);
+  p(ctx,10,5,12,11,BN); p(ctx,11,6,10,9,M); p(ctx,12,7,8,8,L);
+  // crest
+  p(ctx,12,2,8,5,M); p(ctx,13,1,6,4,L); p(ctx,14,0,4,3,H);
+  p(ctx,12,8,4,4,O||'#1a0800'); p(ctx,13,8,3,3,H); p(ctx,13,8,2,2,F); p(ctx,13,8,1,1,W);
+  p(ctx,18,8,4,4,O||'#1a0800'); p(ctx,19,8,3,3,H); p(ctx,19,8,2,2,F); p(ctx,19,8,1,1,W);
+  // talon feet
+  p(ctx,12,28,4,4,BN); p(ctx,11,30,5,2,M); p(ctx,16,28,4,4,BN); p(ctx,17,30,5,2,M);
+  p(ctx,13,14,3,5,BN); // hooked beak
+});
+
+reg('BLIZZARD FOX', ctx=>{
+  const O='#001133',B='#224466',M='#336699',L='#88bbdd',H='#cceeff',S='#eef8ff',W='#ffffff',Y='#ffee88';
+  p(ctx,22,12,10,10,B); p(ctx,24,10,8,8,M); p(ctx,26,8,5,6,L); p(ctx,27,6,4,4,H); p(ctx,28,4,3,4,S);
+  p(ctx,6,16,20,12,B); p(ctx,7,17,18,10,M); p(ctx,8,18,16,8,L);
+  p(ctx,10,20,12,8,H); p(ctx,11,21,10,6,S); p(ctx,12,22,8,4,W);
+  // ice shard fur
+  p(ctx,5,12,5,8,B); p(ctx,4,10,4,8,M); p(ctx,3,8,4,6,L); p(ctx,3,6,3,5,H);
+  p(ctx,22,12,5,8,B); p(ctx,24,10,4,8,M); p(ctx,25,8,4,6,L); p(ctx,26,6,3,5,H);
+  p(ctx,7,6,18,13,B); p(ctx,8,7,16,11,M); p(ctx,9,8,14,9,L); p(ctx,10,9,12,7,H);
+  p(ctx,7,2,5,6,B); p(ctx,8,3,3,5,M); p(ctx,8,2,3,3,H);
+  p(ctx,20,2,5,6,B); p(ctx,21,3,3,5,M); p(ctx,21,2,3,3,H);
+  p(ctx,10,9,4,4,O||'#001133'); p(ctx,11,9,3,3,Y); p(ctx,11,9,2,2,W); p(ctx,11,9,1,1,Y);
+  p(ctx,18,9,4,4,O||'#001133'); p(ctx,19,9,3,3,Y); p(ctx,19,9,2,2,W); p(ctx,19,9,1,1,Y);
+  p(ctx,8,26,5,6,B); p(ctx,9,27,3,5,M); p(ctx,13,26,5,6,B); p(ctx,14,27,3,5,M); p(ctx,18,26,5,6,B); p(ctx,19,27,3,5,M);
+});
+
+reg('THUNDER HAWK', ctx=>{
+  const O='#111100',B='#444400',M='#888800',L='#cccc00',H='#ffee00',S='#ffff88',W='#ffffff',E='#ff8800';
+  p(ctx,1,4,14,18,B); p(ctx,2,2,12,18,M); p(ctx,3,0,10,18,L); p(ctx,4,0,8,16,H);
+  p(ctx,17,4,14,18,B); p(ctx,19,2,12,18,M); p(ctx,19,0,10,18,L); p(ctx,20,0,8,16,H);
+  // lightning bolt markings
+  p(ctx,4,4,3,6,E); p(ctx,7,8,3,5,E); p(ctx,22,4,3,6,E); p(ctx,22,8,3,5,E);
+  p(ctx,11,10,10,18,B); p(ctx,12,11,8,16,M); p(ctx,12,12,8,14,L);
+  p(ctx,10,4,12,10,B); p(ctx,11,5,10,8,M); p(ctx,12,6,8,7,L);
+  // crown of lightning
+  p(ctx,12,0,8,6,H); p(ctx,14,0,4,4,S); p(ctx,15,0,2,6,W);
+  p(ctx,11,7,4,4,O||'#111100'); p(ctx,12,7,3,3,H); p(ctx,12,7,2,2,S); p(ctx,12,7,1,1,W);
+  p(ctx,17,7,4,4,O||'#111100'); p(ctx,18,7,3,3,H); p(ctx,18,7,2,2,S); p(ctx,18,7,1,1,W);
+  // hooked beak
+  p(ctx,14,11,4,5,E); p(ctx,15,12,3,4,S);
+  p(ctx,12,26,5,4,B); p(ctx,11,28,6,2,M); p(ctx,17,26,5,4,B); p(ctx,18,28,6,2,M);
+});
+
+reg('SEA SERPENT', ctx=>{
+  const O='#000e22',B='#0a3366',M='#1155aa',L='#2288dd',H='#55aaee',S='#88ccff',W='#ddf4ff',G='#00ffaa';
+  // coiled body
+  p(ctx,4,16,24,14,B); p(ctx,5,17,22,12,M); p(ctx,6,18,20,10,L);
+  // scale pattern
+  for(let i=0;i<6;i++){ p(ctx,5+i*4,19,3,3,H); p(ctx,7+i*4,23,3,3,H); }
+  // neck rising
+  p(ctx,10,6,12,14,B); p(ctx,11,7,10,12,M); p(ctx,12,8,8,10,L);
+  // head
+  p(ctx,8,0,16,10,B); p(ctx,9,1,14,8,M); p(ctx,10,2,12,7,L);
+  // crest fins
+  p(ctx,8,0,6,6,L); p(ctx,9,0,4,5,H); p(ctx,10,0,3,4,S);
+  p(ctx,18,0,6,6,L); p(ctx,19,0,4,5,H); p(ctx,20,0,3,4,S);
+  // eyes
+  p(ctx,10,3,5,4,O||'#000e22'); p(ctx,11,3,4,3,H); p(ctx,11,3,3,3,G); p(ctx,12,3,1,1,W);
+  p(ctx,18,3,5,4,O||'#000e22'); p(ctx,19,3,4,3,H); p(ctx,19,3,3,3,G); p(ctx,20,3,1,1,W);
+  // tongue
+  p(ctx,14,8,4,3,B); p(ctx,13,10,2,2,M); p(ctx,17,10,2,2,M);
+});
+
+reg('MINI DRAGON', ctx=>{
+  const O='#1a0000',B='#6a1500',M='#aa3300',L='#ee5500',H='#ff8822',F='#ffcc44',W='#fffce8';
+  p(ctx,0,8,10,14,B); p(ctx,1,6,8,14,M); p(ctx,2,4,6,14,L); // left wing
+  p(ctx,22,8,10,14,B); p(ctx,23,6,8,14,M); p(ctx,24,4,6,14,L); // right wing
+  p(ctx,24,20,8,8,B); p(ctx,25,18,7,6,M); p(ctx,27,16,5,6,L); // tail
+  p(ctx,8,16,16,14,B); p(ctx,9,17,14,12,M); p(ctx,10,18,12,10,L); // body
+  p(ctx,11,20,10,8,H); p(ctx,12,21,8,6,F);
+  p(ctx,11,8,10,10,B); p(ctx,12,9,8,8,M); p(ctx,13,10,6,7,L); // head
+  // horns
+  p(ctx,11,4,3,6,B); p(ctx,12,5,2,5,M);
+  p(ctx,18,4,3,6,B); p(ctx,19,5,2,5,M);
+  p(ctx,12,10,4,4,O||'#1a0000'); p(ctx,13,10,3,3,F); p(ctx,13,10,2,2,W); p(ctx,13,10,1,1,F);
+  p(ctx,18,10,4,4,O||'#1a0000'); p(ctx,19,10,3,3,F); p(ctx,19,10,2,2,W); p(ctx,19,10,1,1,F);
+  p(ctx,10,26,5,6,B); p(ctx,17,26,5,6,B);
+});
+
+reg('THUNDER EEL', ctx=>{
+  const O='#111100',B='#333300',M='#666600',L='#aaaa00',H='#ffee00',Y='#ffff88',W='#ffffcc',E='#ff6600';
+  // eel body
+  for(let i=0;i<8;i++){
+    const wave = Math.sin(i*0.8)*4;
+    p(ctx,6+wave,4+i*3,8+i,3,B);
+    p(ctx,7+wave,4+i*3,6+i,2,M);
+    p(ctx,7+wave,4+i*3,4+i,1,L);
+  }
+  // dorsal fin
+  for(let i=0;i<6;i++) p(ctx,8+i*2,4+i*2,2,4,H);
+  // head
+  p(ctx,10,0,12,10,B); p(ctx,11,1,10,8,M); p(ctx,12,2,8,6,L);
+  p(ctx,11,2,4,4,O||'#000'); p(ctx,12,2,3,3,H); p(ctx,12,2,2,2,Y); p(ctx,12,2,1,1,W);
+  p(ctx,18,2,4,4,O||'#000'); p(ctx,19,2,3,3,H); p(ctx,19,2,2,2,Y); p(ctx,19,2,1,1,W);
+  // electric sparks
+  p(ctx,4,8,4,2,H); p(ctx,3,10,3,2,Y); p(ctx,26,12,4,2,H); p(ctx,27,14,3,2,Y);
+  // barbs
+  p(ctx,8,10,3,3,E); p(ctx,6,16,3,3,E); p(ctx,22,18,3,3,E);
+});
+
+// Tier 7-10 (dragons, titans, gods)
+reg('WYVERN', ctx=>{
+  const O='#100000',B='#550000',M='#990000',L='#cc2200',H='#ee5500',F='#ff8800',W='#fff8ee',G='#ffcc00';
+  p(ctx,0,4,12,20,B); p(ctx,1,2,10,20,M); p(ctx,2,0,8,20,L); p(ctx,3,0,6,18,H); // L wing
+  p(ctx,20,4,12,20,B); p(ctx,22,2,10,20,M); p(ctx,22,0,8,20,L); p(ctx,23,0,6,18,H); // R wing
+  p(ctx,25,20,7,10,B); p(ctx,26,18,6,8,M); p(ctx,27,15,5,7,L); // tail
+  p(ctx,8,14,16,16,B); p(ctx,9,15,14,14,M); p(ctx,10,16,12,12,L); // body
+  p(ctx,11,18,10,10,H); p(ctx,12,19,8,8,F);
+  p(ctx,10,6,12,12,B); p(ctx,11,7,10,10,M); p(ctx,12,8,8,8,L); // head
+  p(ctx,10,2,4,6,B); p(ctx,11,3,3,5,M); p(ctx,20,2,4,6,B); p(ctx,21,3,3,5,M); // horns
+  p(ctx,11,9,4,4,O||'#100000'); p(ctx,12,9,3,3,G); p(ctx,12,9,2,2,F); p(ctx,12,9,1,1,W);
+  p(ctx,18,9,4,4,O||'#100000'); p(ctx,19,9,3,3,G); p(ctx,19,9,2,2,F); p(ctx,19,9,1,1,W);
+  p(ctx,8,28,5,4,B); p(ctx,9,29,4,3,M); p(ctx,19,28,5,4,B); p(ctx,20,29,4,3,M);
+});
+
+reg('KRAKEN ARM', ctx=>{
+  const O='#000011',B='#001133',M='#002266',L='#0044aa',H='#0077dd',S='#00aaff',G='#00ffcc',W='#ccf0ff';
+  // main giant tentacle
+  p(ctx,10,0,12,32,B); p(ctx,11,0,10,32,M); p(ctx,12,0,8,32,L); p(ctx,13,2,6,28,H);
+  // sucker pads
+  for(let i=0;i<8;i++) p(ctx,13,2+i*4,6,3,S);
+  for(let i=0;i<8;i++) p(ctx,14,3+i*4,4,2,G);
+  for(let i=0;i<8;i++) p(ctx,15,3+i*4,2,1,W);
+  // curling tips
+  p(ctx,8,4,6,6,B); p(ctx,7,6,5,5,M); p(ctx,6,8,4,4,L);
+  p(ctx,18,2,6,6,B); p(ctx,20,4,5,5,M); p(ctx,22,6,4,4,L);
+  // bioluminescent spots
+  p(ctx,10,8,3,3,G); p(ctx,22,14,3,3,G); p(ctx,8,20,3,3,G);
+  p(ctx,11,8,1,1,W); p(ctx,23,14,1,1,W); p(ctx,9,20,1,1,W);
+  // eye
+  p(ctx,14,0,4,5,O||'#000011'); p(ctx,15,0,3,4,H); p(ctx,15,0,2,3,G); p(ctx,15,0,1,1,W);
+});
+
+reg('SHADOW DRAGON', ctx=>{
+  const O='#000000',B='#0a0011',M='#1a0033',L='#330066',H='#6600aa',S='#aa44cc',G='#ff00ff',W='#ffffff',V='#cc00ff';
+  p(ctx,0,6,10,18,B); p(ctx,1,4,8,18,M); p(ctx,2,2,6,18,L); // L wing
+  p(ctx,22,6,10,18,B); p(ctx,24,4,8,18,M); p(ctx,24,2,6,18,L); // R wing
+  // void cracks on wings
+  p(ctx,3,6,2,10,V); p(ctx,6,4,2,12,G); p(ctx,26,6,2,10,V); p(ctx,24,4,2,12,G);
+  p(ctx,25,20,7,10,B); p(ctx,26,18,6,8,M); p(ctx,27,14,5,8,L); // tail
+  p(ctx,8,14,16,16,B); p(ctx,9,15,14,14,M); p(ctx,10,16,12,12,L); // body
+  p(ctx,11,18,10,10,H); p(ctx,12,19,8,8,S);
+  // void core
+  p(ctx,13,20,6,8,O); p(ctx,14,21,4,6,V); p(ctx,15,22,2,4,G);
+  p(ctx,9,4,14,14,B); p(ctx,10,5,12,12,M); p(ctx,11,6,10,10,L); // head
+  p(ctx,9,0,4,6,B); p(ctx,10,1,3,5,M); p(ctx,19,0,4,6,B); p(ctx,20,1,3,5,M); // horns
+  p(ctx,10,7,5,5,O); p(ctx,11,7,4,4,V); p(ctx,11,7,3,3,G); p(ctx,12,7,2,2,W); p(ctx,12,7,1,1,G); // eyes
+  p(ctx,17,7,5,5,O); p(ctx,18,7,4,4,V); p(ctx,18,7,3,3,G); p(ctx,19,7,2,2,W); p(ctx,19,7,1,1,G);
+  p(ctx,8,28,5,4,B); p(ctx,19,28,5,4,B); // feet
+});
+
+reg('CHAOS GOD', ctx=>{
+  const O='#000000',B='#110011',M='#220022',L='#440044',H='#880088',S='#cc00cc',G='#ff00ff',W='#ffffff',R='#ff0000',Y='#ffff00';
+  // multiple arms
+  p(ctx,0,10,8,6,B); p(ctx,0,16,8,6,B); p(ctx,0,22,8,6,B); // left arms
+  p(ctx,24,10,8,6,B); p(ctx,24,16,8,6,B); p(ctx,24,22,8,6,B); // right arms
+  p(ctx,1,11,6,4,M); p(ctx,1,17,6,4,M); p(ctx,1,23,6,4,M);
+  p(ctx,25,11,6,4,M); p(ctx,25,17,6,4,M); p(ctx,25,23,6,4,M);
+  // clawed hands
+  p(ctx,0,10,2,2,G); p(ctx,0,14,2,2,G); p(ctx,0,16,2,2,G); p(ctx,0,20,2,2,G); p(ctx,0,22,2,2,G); p(ctx,0,26,2,2,G);
+  p(ctx,30,10,2,2,G); p(ctx,30,14,2,2,G); p(ctx,30,16,2,2,G); p(ctx,30,20,2,2,G); p(ctx,30,22,2,2,G); p(ctx,30,26,2,2,G);
+  // massive body
+  p(ctx,7,8,18,22,B); p(ctx,8,9,16,20,M); p(ctx,9,10,14,18,L);
+  p(ctx,10,11,12,16,H); p(ctx,11,12,10,14,S);
+  // void eye in chest
+  p(ctx,13,16,6,8,O); p(ctx,14,16,4,8,R); p(ctx,15,17,2,6,Y); p(ctx,15,18,2,4,W);
+  // head (massive)
+  p(ctx,8,0,16,12,B); p(ctx,9,1,14,10,M); p(ctx,10,2,12,9,L);
+  // many horns
+  p(ctx,8,0,3,5,B); p(ctx,11,0,3,5,H); p(ctx,14,0,4,6,S); p(ctx,18,0,3,5,H); p(ctx,21,0,3,5,B);
+  p(ctx,9,0,2,3,G); p(ctx,12,0,2,4,G); p(ctx,15,0,2,5,W); p(ctx,19,0,2,4,G); p(ctx,22,0,2,3,G);
+  // eyes (4 eyes)
+  p(ctx,10,4,4,4,O); p(ctx,11,4,3,3,R); p(ctx,11,4,2,2,Y); p(ctx,11,4,1,1,W);
+  p(ctx,15,3,4,4,O); p(ctx,16,3,3,3,G); p(ctx,16,3,2,2,W); p(ctx,16,3,1,1,G);
+  p(ctx,18,4,4,4,O); p(ctx,19,4,3,3,R); p(ctx,19,4,2,2,Y); p(ctx,19,4,1,1,W);
+  p(ctx,10,9,4,4,O); p(ctx,11,9,3,3,S); p(ctx,11,9,2,2,G);
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,S); p(ctx,19,9,2,2,G);
+  // mouth with chaos runes
+  p(ctx,10,9,12,5,B); p(ctx,11,10,10,4,O); p(ctx,12,11,8,2,R);
+  p(ctx,12,28,4,4,B); p(ctx,18,28,4,4,B); // feet
+});
+
+// ── PUBLIC API ────────────────────────────────────────────────────────────────
+
+// Get or create a 32×32 canvas with the correct sprite drawn
+function getMonsterCanvas(name, element, tier){
+  const key = name.toUpperCase().replace(/ /g,'_');
+  const nameKey = name.toUpperCase();
+  const drawFn = MONSTER_DRAWERS[nameKey] || MONSTER_DRAWERS[key];
+  const c = mkCanvas(32,32);
+  const ctx = c.getContext('2d');
+  if(drawFn){
+    drawFn(ctx);
+  } else {
+    drawGenericAnimal(ctx, element, tier||1);
+  }
+  return c;
+}
+
+function getPartnerCanvas(type, stage){
+  const c = mkCanvas(32,32);
+  const ctx = c.getContext('2d');
+  const drawFns = {
+    fire: [drawIgnis, drawPyrolos, drawInfernus],
+    water: [drawAqua, drawMaralith, drawAbyssos],
+    grass: [drawSylva, drawThornwood, drawVerdantis],
+  };
+  const fns = drawFns[type];
+  if(fns && fns[stage-1]) fns[stage-1](ctx);
+  return c;
+}
+
+
 // PARTNERS — 3 Evolution Stages (LV 1 / 30 / 60)
 // ==============================================
 const PARTNER_EVOLUTIONS = {
@@ -1080,9 +2027,19 @@ const DIALOGS = [
 // ==============================================
 // TITLE → SELECT
 // ==============================================
+function initSelectScreenSprites(){
+  ['fire','water','grass'].forEach(type=>{
+    const el=document.getElementById('card-sprite-'+type);
+    if(!el||el.querySelector('canvas')) return;
+    const c=getPartnerCanvas(type,1);
+    c.style.cssText='width:80px;height:80px;image-rendering:pixelated;image-rendering:crisp-edges;display:block;margin:0 auto;';
+    el.appendChild(c);
+  });
+}
 function startGame(){
   document.getElementById('title-screen').style.display='none';
   document.getElementById('select-screen').style.display='flex';
+  initSelectScreenSprites();
 }
 function selectMonster(t){
   pType=t;
@@ -1533,7 +2490,15 @@ function initGame(fromLoad){
   updatePlayerPos();
   updateCamera();
   updateHUD();
-  const hp2=document.getElementById('hud-partner'); if(hp2) hp2.innerHTML=`${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
+  const hp2=document.getElementById('hud-partner');
+  if(hp2){
+    const pc2=getPartnerCanvas(pType||partnerType||'fire', partnerStage||1);
+    pc2.style.cssText='width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-right:4px;';
+    hp2.innerHTML=''; hp2.appendChild(pc2);
+    const span2=document.createElement('span');
+    span2.innerHTML=`${partner.name} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
+    hp2.appendChild(span2);
+  }
   const bs2=document.getElementById('btn-special'); if(bs2) bs2.textContent=partner.specialName;
   renderGozo('down', 0);
   if(!fromLoad) setTimeout(()=>showDialog('🌿 '+partner.name+' joined the team! Walk into tall grass to find wild monsters!'),900);
@@ -2692,12 +3657,23 @@ function startBattle(enemy){
   const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
   const ec=enemy.element?elemColors[enemy.element]:'#FFD700';
   if(en) en.style.color=ec;
-  const emojiSize=Math.min(110,60+(enemy.t||1)*5);
-  const ebs=document.getElementById('enemy-battle-sprite'); if(ebs) ebs.innerHTML=
-    `<div style="font-size:${emojiSize}px;filter:drop-shadow(0 10px 20px rgba(0,0,0,.8));animation:float 2s ease-in-out infinite">${enemy.emoji}</div>`;
+  const ebs=document.getElementById('enemy-battle-sprite');
+  if(ebs){
+    ebs.innerHTML='';
+    const sc = getMonsterCanvas(enemy.name, enemy.element, enemy.t||1);
+    const dispSz = Math.min(160, 80+(enemy.t||1)*8);
+    sc.style.cssText=`width:${dispSz}px;height:${dispSz}px;image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 8px 16px rgba(0,0,0,.8));animation:float 2s ease-in-out infinite;`;
+    ebs.appendChild(sc);
+  }
 
   const pd=document.getElementById('battle-partner-display');
-  if(pd&&partner) pd.textContent=partner.emoji;
+  if(pd&&partner){
+    pd.innerHTML='';
+    const pc=getPartnerCanvas(pType, partnerStage||1);
+    pc.style.cssText='width:56px;height:56px;image-rendering:pixelated;image-rendering:crisp-edges;';
+    pd.appendChild(pc);
+    pd.style.fontSize='';
+  }
 
   let tierLabel = enemy.t ? ` [T${enemy.t}]` : '';
   let intro=`🌿 A wild ${enemy.name}${tierLabel} appeared! `;
@@ -3610,14 +4586,9 @@ function showDropPopup(item){
 // sent to player's own address. Load by scanning
 // last N txs from the wallet via eth_getTransactionByHash.
 // ==============================================
-const MONAD_CHAIN_ID   = 143;          // 0x8f
-const MONAD_RPC        = 'https://rpc.monad.xyz';
-const MONAD_EXPLORER   = 'https://explorer.monad.xyz';
-const SAVE_MAGIC       = '0x474f5a4f'; // "GOZO" in hex prefix
-
-let walletAddress  = null;
-let walletProvider = null;
-let pendingLoad    = null; // parsed save data waiting for confirm
+// LOCAL FILE SAVE / LOAD SYSTEM
+// ==============================================
+let pendingLoad = null; // save data waiting for confirm
 
 // ---- UI helpers ----
 function setSaveLog(msg, cls=''){
@@ -3626,85 +4597,22 @@ function setSaveLog(msg, cls=''){
   el.textContent = msg;
   el.className = 'save-status' + (cls ? ' '+cls : '');
 }
-function setSaveWallet(msg, cls=''){
-  const el = document.getElementById('save-wallet-info');
-  if(!el) return;
-  el.innerHTML = msg;
-  el.className = 'save-status' + (cls ? ' '+cls : '');
-}
-function setSaveBtns(connected){
-  const bs = document.getElementById('btn-save');
-  const bl = document.getElementById('btn-load');
-  if(bs) bs.disabled = !connected;
-  if(bl) bl.disabled = !connected;
-}
 
 function openSaveScreen(){
   const el = document.getElementById('save-screen');
   if(el) el.style.display = 'flex';
-  // Refresh wallet display if already connected
-  if(walletAddress) setSaveWallet('🟢 ' + shortAddr(walletAddress) + '<span class="chain-badge">MONAD MAINNET</span>', 'ok');
+  setSaveLog('Ready.');
 }
 function closeSaveScreen(){
   const el = document.getElementById('save-screen');
   if(el) el.style.display = 'none';
 }
 
-function shortAddr(addr){
-  return addr.slice(0,6) + '...' + addr.slice(-4);
-}
-
-// ---- Wallet Connect ----
-async function connectWallet(){
-  const btn = document.getElementById('btn-connect');
-  if(!window.ethereum){ setSaveLog('❌ No wallet detected. Install MetaMask!', 'err'); return; }
-  try {
-    setSaveLog('⏳ Requesting wallet connection...', 'loading');
-    if(btn) btn.textContent = '⏳ Connecting...';
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    walletAddress = accounts[0];
-
-    // Switch / add Monad Mainnet
-    try {
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x8f' }]
-      });
-    } catch(switchErr) {
-      if(switchErr.code === 4902){
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0x8f',
-            chainName: 'Monad Mainnet',
-            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-            rpcUrls: ['https://rpc.monad.xyz'],
-            blockExplorerUrls: ['https://explorer.monad.xyz']
-          }]
-        });
-      } else { throw switchErr; }
-    }
-
-    walletProvider = window.ethereum;
-    setSaveWallet('🟢 ' + shortAddr(walletAddress) + '<span class="chain-badge">MONAD MAINNET</span>', 'ok');
-    setSaveLog('✅ Wallet connected! You can now save or load.', 'ok');
-    setSaveBtns(true);
-    if(btn){ btn.textContent = '✅ Connected'; btn.disabled = true; }
-
-    // Listen for account/chain change
-    window.ethereum.on('accountsChanged', a => { walletAddress = a[0]; location.reload(); });
-
-  } catch(err) {
-    setSaveLog('❌ ' + (err.message || 'Connection failed'), 'err');
-    if(btn) btn.textContent = '🦊 CONNECT';
-  }
-}
-
 // ---- Build save payload ----
 function buildSaveData(){
   const p = state.player;
-  const save = {
-    v: 1,                         // save version
+  return {
+    v: 2,
     ts: Date.now(),
     lv: p.level,
     hp: p.hp, mhp: p.maxHp,
@@ -3712,260 +4620,73 @@ function buildSaveData(){
     exp: p.exp, exl: p.expToLevel,
     coins: p.coins, pot: p.potions,
     px: Math.round(p.x), py: Math.round(p.y),
-    pt: pType,                    // partner type key
-    ps: partnerStage,             // partner stage 1/2/3
+    pt: pType,
+    ps: partnerStage,
     bd: bossDefeated ? 1 : 0,
-    // Equipped items (just ids)
     weq: equipped.weapon ? equipped.weapon.id : null,
     aeq: equipped.armor  ? equipped.armor.id  : null,
-    // Inventory (ids only, max 20 each)
     winv: inventory.weapons.slice(-20).map(w=>w.id),
     ainv: inventory.armors.slice(-20).map(a=>a.id),
   };
-  return JSON.stringify(save);
 }
 
-// ---- Save to Monad ----
-async function saveGame(){
-  if(!walletAddress){ setSaveLog('❌ Connect wallet first!','err'); return; }
+// ---- Save to file ----
+function saveGame(){
   const btn = document.getElementById('btn-save');
   try {
-    setSaveLog('⏳ Preparing save data...', 'loading');
-    if(btn){ btn.disabled=true; btn.classList.add('saving-anim'); btn.textContent='⏳ Saving...'; }
-
-    const json   = buildSaveData();
-    const bytes  = new TextEncoder().encode(json);
-    // Prefix with GOZO magic + data
-    const hexData = SAVE_MAGIC + Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
-
-    setSaveLog('⏳ Waiting for wallet confirmation...', 'loading');
-
-    const txHash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{
-        from: walletAddress,
-        to:   walletAddress,       // send to self
-        value: '0x0',              // 0 MON
-        data: hexData,
-        gas: '0x' + (30000 + bytes.length * 68).toString(16)
-      }]
-    });
-
-    setSaveLog('✅ Saved! Tx: ' + txHash.slice(0,18)+'...', 'ok');
-
-    // Show tx link
-    const txInfo = document.getElementById('save-tx-info');
-    const txHashEl = document.getElementById('save-tx-hash');
-    const txLink = document.getElementById('save-tx-link');
-    if(txInfo) txInfo.style.display='block';
-    if(txHashEl) txHashEl.textContent = txHash;
-    if(txLink){ txLink.href = MONAD_EXPLORER+'/tx/'+txHash; }
-
-    // Flash save button green
-    if(btn){ btn.classList.remove('saving-anim'); btn.textContent='✅ SAVED!'; btn.style.borderColor='#44ff88'; btn.style.color='#44ff88'; }
-    setTimeout(()=>{ if(btn){ btn.textContent='💾 SAVE GAME'; btn.disabled=false; btn.style.borderColor=''; btn.style.color=''; }}, 3000);
-
+    const data = buildSaveData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const d    = new Date(data.ts);
+    const fname = `gozo-save-lv${data.lv}-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
+    const a    = document.createElement('a');
+    a.href = url; a.download = fname; a.click();
+    URL.revokeObjectURL(url);
+    setSaveLog('✅ Saved! File: ' + fname, 'ok');
+    if(btn){ const orig=btn.textContent; btn.textContent='✅ SAVED!'; btn.style.color='#44ff88'; btn.style.borderColor='#44ff88'; setTimeout(()=>{ btn.textContent=orig; btn.style.color=''; btn.style.borderColor=''; },2500); }
   } catch(err){
-    const msg = err.code===4001 ? 'Transaction rejected by user.' : (err.message||'Save failed');
-    setSaveLog('❌ ' + msg, 'err');
-    if(btn){ btn.classList.remove('saving-anim'); btn.textContent='💾 SAVE GAME'; btn.disabled=false; }
+    setSaveLog('❌ Save failed: ' + (err.message||err), 'err');
   }
 }
 
-// ---- Load from Monad ----
-async function loadGame(){
-  if(!walletAddress){ setSaveLog('❌ Connect wallet first!','err'); return; }
-  const btn = document.getElementById('btn-load');
-  try {
-    setSaveLog('🔍 Scanning Monad chain for save data...', 'loading');
-    if(btn){ btn.disabled=true; btn.textContent='⏳ Loading...'; }
+// ---- Load from file ----
+function triggerLoadFile(){
+  const inp = document.getElementById('load-file-input');
+  if(inp){ inp.value=''; inp.click(); }
+}
 
-    // Get tx count for address
-    const txCountHex = await monadRpc('eth_getTransactionCount', [walletAddress, 'latest']);
-    const txCount = parseInt(txCountHex, 16);
-
-    if(txCount === 0){
-      setSaveLog('❌ No save data found on chain for this wallet.', 'err');
-      if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
-      return;
-    }
-
-    // Scan last 20 txs (nonces txCount-1 down to max(0, txCount-20))
-    const scanFrom = Math.max(0, txCount - 20);
-    setSaveLog(`🔍 Scanning last ${txCount - scanFrom} transactions...`, 'loading');
-
-    let bestSave = null;
-    // We can't get tx by nonce directly, so use eth_getBlockByNumber + search
-    // Strategy: get recent blocks and filter by from+data prefix
-    const blockHex = await monadRpc('eth_blockNumber', []);
-    const blockNum = parseInt(blockHex, 16);
-
-    // Scan last 200 blocks for our GOZO txs
-    const scanBlocks = 200;
-    const startBlock = Math.max(0, blockNum - scanBlocks);
-
-    for(let b = blockNum; b >= startBlock && !bestSave; b--){
-      const block = await monadRpc('eth_getBlockByNumber', ['0x'+b.toString(16), true]);
-      if(!block || !block.transactions) continue;
-      for(const tx of block.transactions){
-        if(tx.from && tx.from.toLowerCase() === walletAddress.toLowerCase() &&
-           tx.to   && tx.to.toLowerCase()   === walletAddress.toLowerCase() &&
-           tx.input && tx.input.startsWith(SAVE_MAGIC)){
-          // Found! decode
-          const hexBody = tx.input.slice(SAVE_MAGIC.length);
-          const bytes = new Uint8Array(hexBody.match(/.{1,2}/g).map(b=>parseInt(b,16)));
-          const json  = new TextDecoder().decode(bytes);
-          try {
-            const data = JSON.parse(json);
-            if(!bestSave || data.ts > bestSave.ts){
-              bestSave = data;
-            }
-          } catch(e){}
-        }
+function handleLoadFile(evt){
+  const file = evt.target.files[0];
+  if(!file){ return; }
+  setSaveLog('⏳ Reading file...', 'loading');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data || !data.lv){
+        setSaveLog('❌ Invalid save file.', 'err'); return;
       }
+      pendingLoad = data;
+      const d = new Date(data.ts||0);
+      const prev = document.getElementById('load-preview');
+      const prevTxt = document.getElementById('load-preview-text');
+      if(prevTxt) prevTxt.innerHTML =
+        `LV ${data.lv} &nbsp;·&nbsp; HP ${data.hp}/${data.mhp}<br>` +
+        `ATK ${data.atk} &nbsp;·&nbsp; DEF ${data.def}<br>` +
+        `💰 ${data.coins} coins &nbsp;·&nbsp; ${data.winv?.length||0} weapons · ${data.ainv?.length||0} armors<br>` +
+        `Saved: ${data.ts ? d.toLocaleString() : 'Unknown'}`;
+      if(prev) prev.style.display='block';
+      setSaveLog('✅ File read! Review and confirm below.', 'ok');
+    } catch(err){
+      setSaveLog('❌ Could not parse file: ' + (err.message||err), 'err');
     }
-
-    if(!bestSave){
-      setSaveLog('❌ No GOZO save found in last '+scanBlocks+' blocks.', 'err');
-      if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
-      return;
-    }
-
-    // Show preview and confirm
-    pendingLoad = bestSave;
-    const d = new Date(bestSave.ts);
-    const prev = document.getElementById('load-preview');
-    const prevTxt = document.getElementById('load-preview-text');
-    if(prevTxt) prevTxt.innerHTML =
-      `LV ${bestSave.lv} &nbsp;·&nbsp; HP ${bestSave.hp}/${bestSave.mhp}<br>` +
-      `ATK ${bestSave.atk} &nbsp;·&nbsp; DEF ${bestSave.def}<br>` +
-      `💰 ${bestSave.coins} coins &nbsp;·&nbsp; ${bestSave.winv?.length||0} weapons · ${bestSave.ainv?.length||0} armors<br>` +
-      `Saved: ${d.toLocaleString()}`;
-    if(prev) prev.style.display='block';
-    setSaveLog('✅ Save data found! Review and confirm below.', 'ok');
-    if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
-
-  } catch(err){
-    setSaveLog('❌ ' + (err.message||'Load failed'), 'err');
-    if(btn){ btn.disabled=false; btn.textContent='📂 LOAD GAME'; }
-  }
+  };
+  reader.onerror = ()=> setSaveLog('❌ Failed to read file.', 'err');
+  reader.readAsText(file);
 }
 
-async function monadRpc(method, params){
-  const resp = await fetch(MONAD_RPC, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ jsonrpc:'2.0', id:1, method, params })
-  });
-  const json = await resp.json();
-  if(json.error) throw new Error(json.error.message);
-  return json.result;
-}
 
-function confirmLoad(){
-  const save = pendingLoad;
-  if(!save){ closeSaveScreen(); return; }
-  const p = state.player;
-
-  // ── 1. Restore core stats ──
-  p.level      = save.lv  || 1;
-  p.maxHp      = save.mhp || 100;
-  p.hp         = Math.min(save.hp || p.maxHp, p.maxHp);
-  p.attack     = save.atk || 15;
-  p.defense    = save.def || 5;
-  p.exp        = save.exp || 0;
-  p.expToLevel = save.exl || 50;
-  p.coins      = save.coins || 0;
-  p.potions    = save.pot || 3;
-  p.x          = save.px  || WORLD_W/2 - 24;
-  p.y          = save.py  || WORLD_H/2 - 32;
-  bossDefeated = !!save.bd;
-
-  // ── 2. Restore partner ──
-  if(save.pt && PARTNER_EVOLUTIONS[save.pt]){
-    pType = save.pt;
-    const stage = Math.min(save.ps||1, PARTNER_EVOLUTIONS[pType].length);
-    // Manually set partner without stat delta (stats already restored above)
-    partner = PARTNER_EVOLUTIONS[pType][stage - 1];
-    partnerStage = stage;
-  }
-
-  // ── 3. Restore inventory ──
-  inventory.weapons = (save.winv||[]).map(id => WEAPONS.find(w=>w.id===id)).filter(Boolean);
-  inventory.armors  = (save.ainv||[]).map(id => ARMORS.find(a=>a.id===id)).filter(Boolean);
-
-  // ── 4. Restore equipped (ids reference the restored inventory objects) ──
-  equipped.weapon = save.weq ? inventory.weapons.find(w=>w.id===save.weq)||null : null;
-  equipped.armor  = save.aeq ? inventory.armors.find(a=>a.id===save.aeq)||null  : null;
-
-  pendingLoad = null;
-
-  const gameRunning = document.getElementById('game-screen').style.display === 'block';
-
-  if(!gameRunning){
-    // ── Game not started yet — hide title/select screens and boot game ──
-    const ts = document.getElementById('title-screen');
-    const ss = document.getElementById('select-screen');
-    if(ts) ts.style.display='none';
-    if(ss) ss.style.display='none';
-    // initGame will render everything fresh with the restored state
-    initGame(true);
-    // After initGame, override with saved position
-    p.x = save.px || WORLD_W/2 - 24;
-    p.y = save.py || WORLD_H/2 - 32;
-    updatePlayerPos();
-    updateCamera();
-  } else {
-    // ── Game already running — just refresh all live UI ──
-    // End any ongoing battle
-    if(state.inBattle){
-      state.inBattle = false;
-      state.currentEnemy = null;
-      const bs = document.getElementById('battle-screen');
-      if(bs) bs.style.display='none';
-    }
-  }
-
-  // ── 5. Refresh all HUD elements ──
-  updateHUD();
-  updatePlayerPos();
-  updateCamera();
-
-  // Partner HUD
-  if(partner){
-    const hp2 = document.getElementById('hud-partner');
-    if(hp2) hp2.innerHTML = `${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★${partnerStage}</span>`;
-    const bs2 = document.getElementById('btn-special');
-    if(bs2) bs2.textContent = partner.specialName;
-  }
-
-  // ── 6. Close screens & notify ──
-  const prev = document.getElementById('load-preview');
-  if(prev) prev.style.display='none';
-  setSaveLog('✅ Game loaded successfully!', 'ok');
-  setTimeout(()=>{
-    closeSaveScreen();
-    showDialog(`💾 Save loaded! Welcome back, LV${p.level} Gozo!`);
-  }, 1200);
-}
-
-function cancelLoad(){
-  pendingLoad = null;
-  const prev = document.getElementById('load-preview');
-  if(prev) prev.style.display='none';
-  setSaveLog('Load cancelled.', '');
-}
-
-// Auto-reconnect if wallet was previously connected
-window.addEventListener('load', async () => {
-  if(window.ethereum){
-    const accounts = await window.ethereum.request({ method:'eth_accounts' }).catch(()=>[]);
-    if(accounts.length){
-      walletAddress = accounts[0];
-      walletProvider = window.ethereum;
-    }
-  }
-});
 
 // ==============================================
 // CONTROLS
