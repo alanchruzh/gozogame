@@ -90,7 +90,7 @@
   #enc-flash{display:none;position:fixed;inset:0;background:#fff;z-index:90;pointer-events:none;}
 
   /* DECORATIONS */
-  .tree{position:absolute;font-size:32px;z-index:12;filter:drop-shadow(2px 3px 0 rgba(0,0,0,.5));pointer-events:none;}
+  .tree{position:absolute;z-index:12;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges;}
   .flower{position:absolute;font-size:12px;z-index:3;pointer-events:none;animation:flowerSway 4s ease-in-out infinite;}
   .rock{position:absolute;font-size:18px;z-index:5;pointer-events:none;}
   .npc{position:absolute;cursor:pointer;z-index:13;text-align:center;animation:enemyBob 2.2s ease-in-out infinite;}
@@ -208,6 +208,9 @@
   .save-btn.red:hover{background:#ff4444;color:#fff;}
   .wallet-addr{font-size:7px;color:#44aaff;word-break:break-all;padding:6px 10px;background:#050510;border:1px solid #1a1a44;}
   .chain-badge{display:inline-block;font-size:6px;padding:2px 8px;background:#1a0a3a;border:1px solid #6644cc;color:#9966ff;margin-left:6px;}
+  @keyframes treeSway{0%,100%{transform:rotate(-1deg) scaleX(1)}50%{transform:rotate(1deg) scaleX(1.01)}}
+  @keyframes fruitPop{0%{opacity:0;transform:scale(0)}40%{opacity:1;transform:scale(1.2)}70%{transform:scale(0.9)}100%{opacity:1;transform:scale(1)}}
+  @keyframes fruitFall{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(18px)}}
   @keyframes savePulse{0%,100%{opacity:1}50%{opacity:.4}}
   .saving-anim{animation:savePulse .6s infinite;}
   #save-hud-btn{position:fixed;bottom:24px;left:20px;z-index:61;background:var(--panel);border:2px solid #4488ff;color:#4488ff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,136,255,.25);transition:box-shadow .2s;}
@@ -735,6 +738,42 @@
 // ==============================================
 // GAME STATE
 // ==============================================
+// Obstacle collision boxes [{x,y,w,h}]
+const obstacles = [];
+
+// Hardcoded grass zone rectangles — used to exclude decorations from spawning inside grass
+// Must match the zones array in buildMap()
+const GRASS_RECTS = [
+  {x:80,   y:80,   w:860, h:740},  // Zone A
+  {x:1460, y:80,   w:860, h:740},  // Zone B
+  {x:80,   y:1000, w:860, h:740},  // Zone C
+  {x:1460, y:1000, w:860, h:740},  // Zone D
+  {x:1020, y:80,   w:360, h:320},  // Zone E
+  {x:80,   y:840,  w:360, h:280},  // Zone F
+  {x:1460, y:840,  w:360, h:280},  // Zone G
+  {x:1020, y:1380, w:360, h:340},  // Zone H
+  {x:80,   y:380,  w:200, h:160},  // patch
+  {x:1460, y:380,  w:200, h:160},
+  {x:2120, y:380,  w:200, h:160},
+  {x:80,   y:1380, w:200, h:160},
+  {x:2120, y:1380, w:200, h:160},
+  {x:1050, y:660,  w:140, h:200},
+  {x:1230, y:660,  w:140, h:200},
+  {x:660,  y:840,  w:200, h:140},
+  {x:660,  y:1020, w:200, h:140},
+  {x:1540, y:840,  w:160, h:140},
+  {x:1700, y:840,  w:160, h:140},
+];
+
+// Returns true if rect (x,y,w,h) overlaps any grass zone
+function inGrass(x, y, w, h){
+  w = w||1; h = h||1;
+  for(const r of GRASS_RECTS){
+    if(x+w > r.x && x < r.x+r.w && y+h > r.y && y < r.y+r.h) return true;
+  }
+  return false;
+}
+
 const state = {
   player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3 },
   world:{ w:0,h:0 },
@@ -1480,22 +1519,24 @@ function renderGroundCanvas(){
 // ==============================================
 // INIT GAME
 // ==============================================
-function initGame(){
+function initGame(fromLoad){
   document.getElementById('game-screen').style.display='block';
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
-  state.player.x = WORLD_W/2 - 24;
-  state.player.y = WORLD_H/2 - 32;
+  if(!fromLoad){
+    state.player.x = WORLD_W/2 - 24;
+    state.player.y = WORLD_H/2 - 32;
+  }
   buildMap();
   spawnDecorations();
   renderGroundCanvas();
   updatePlayerPos();
   updateCamera();
   updateHUD();
-  const hp2=document.getElementById('hud-partner'); if(hp2) hp2.innerHTML=`${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★1</span>`;
+  const hp2=document.getElementById('hud-partner'); if(hp2) hp2.innerHTML=`${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
   const bs2=document.getElementById('btn-special'); if(bs2) bs2.textContent=partner.specialName;
   renderGozo('down', 0);
-  setTimeout(()=>showDialog('🌿 '+partner.name+' joined the team! Walk into tall grass to find wild monsters!'),900);
+  if(!fromLoad) setTimeout(()=>showDialog('🌿 '+partner.name+' joined the team! Walk into tall grass to find wild monsters!'),900);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1601,46 +1642,79 @@ function spawnDecorations(){
   const world = document.getElementById('world');
   const W = WORLD_W, H = WORLD_H;
 
+  // Reset all obstacles (trees + cactus both push here)
+  obstacles.length = 0;
+
   // Dense tree border around edges
   for(let x=0; x<W; x+=100+Math.random()*80){
-    addDeco(world, x, 10+Math.random()*30, 'tree');
-    addDeco(world, x, H-50+Math.random()*20, 'tree');
+    const y1=10+Math.random()*30, y2=H-50+Math.random()*20;
+    if(!inGrass(x,y1,48,48)) addDeco(world, x, y1, 'tree');
+    if(!inGrass(x,y2,48,48)) addDeco(world, x, y2, 'tree');
   }
   for(let y=80; y<H-80; y+=90+Math.random()*80){
-    addDeco(world, 10+Math.random()*30, y, 'tree');
-    addDeco(world, W-50+Math.random()*20, y, 'tree');
+    const x1=10+Math.random()*30, x2=W-50+Math.random()*20;
+    if(!inGrass(x1,y,48,48)) addDeco(world, x1, y, 'tree');
+    if(!inGrass(x2,y,48,48)) addDeco(world, x2, y, 'tree');
   }
 
-  // Scattered interior trees
-  for(let i=0;i<60;i++){
-    addDeco(world, 100+Math.random()*(W-200), 80+Math.random()*(H-160), 'tree');
+  // Scattered interior trees — skip if inside grass zone
+  for(let i=0;i<55;i++){
+    const x=100+Math.random()*(W-200), y=80+Math.random()*(H-160);
+    if(!inGrass(x,y,48,48)) addDeco(world, x, y, 'tree');
   }
 
-  // Lots of flowers
-  for(let i=0;i<80;i++){
-    addDeco(world, 50+Math.random()*(W-100), 80+Math.random()*(H-160), 'flower');
+  // Pixel art cactus — single cactus, well-spaced, never inside grass or paths
+  let _cs = 7777;
+  const _cr = ()=>{ _cs=(_cs*1664525+1013904223)&0xffffffff; return (_cs>>>0)/0xffffffff; };
+  function onPath(cx,cy){
+    return (cx>W/2-90 && cx<W/2+90) ||
+           (cy>H/2-90 && cy<H/2+90) ||
+           (Math.abs(cx-W/2)<100 && Math.abs(cy-H/2)<100);
   }
 
-  // Rocks
-  for(let i=0;i<30;i++){
-    addDeco(world, 50+Math.random()*(W-100), 80+Math.random()*(H-160), 'rock');
+  const cactusPlaced = [];
+  const MIN_CACTUS_DIST = 180;
+  for(let i=0;i<35;i++){
+    let cx, cy, ok=false;
+    for(let tries=0;tries<60;tries++){
+      cx = 120+_cr()*(W-240);
+      cy = 120+_cr()*(H-240);
+      if(onPath(cx,cy)) continue;
+      if(inGrass(cx,cy,96,120)) continue;
+      let tooClose = false;
+      for(const p of cactusPlaced){
+        const ddx=cx-p.x, ddy=cy-p.y;
+        if(ddx*ddx+ddy*ddy < MIN_CACTUS_DIST*MIN_CACTUS_DIST){ tooClose=true; break; }
+      }
+      if(tooClose) continue;
+      ok=true; break;
+    }
+    if(!ok) continue;
+    const sz = 72 + Math.floor(_cr()*40);
+    spawnCactus(world, cx, cy, sz);
+    cactusPlaced.push({x:cx, y:cy});
   }
 
-  // Water features (decorative ponds)
-  ['💧','🌊','💦'].forEach((e,i)=>{
+  // Flowers and rocks removed
+
+  // Water features — never inside grass
+  const waters=[{e:'💧',x:600,y:400},{e:'🌊',x:1800,y:400},{e:'💦',x:1200,y:1400}];
+  waters.forEach(({e,x,y})=>{
+    if(inGrass(x,y,40,40)) return;
     const pd=document.createElement('div');
-    pd.style.cssText=`position:absolute;font-size:28px;z-index:3;left:${[600,1800,1200][i]}px;top:${[400,400,1400][i]}px;filter:drop-shadow(0 2px 4px rgba(0,80,180,.5));`;
+    pd.style.cssText=`position:absolute;font-size:28px;z-index:3;left:${x}px;top:${y}px;filter:drop-shadow(0 2px 4px rgba(0,80,180,.5));`;
     pd.textContent=e; world.appendChild(pd);
   });
 
-  // Multiple NPCs
+  // NPCs — never inside grass
   const npcs=[
-    {x:W/2+80, y:H/2-90, emoji:'👴', label:'MERCHANT'},
-    {x:W*0.25, y:H*0.25, emoji:'🧝', label:'RANGER'},
-    {x:W*0.75, y:H*0.25, emoji:'🧙', label:'MAGE'},
-    {x:W*0.25, y:H*0.75, emoji:'⚔️', label:'WARRIOR'},
+    {x:W/2+80,  y:H/2-90, emoji:'👴', label:'MERCHANT'},
+    {x:W*0.25,  y:H*0.25, emoji:'🧝', label:'RANGER'},
+    {x:W*0.75,  y:H*0.25, emoji:'🧙', label:'MAGE'},
+    {x:W*0.25,  y:H*0.75, emoji:'⚔️', label:'WARRIOR'},
   ];
   npcs.forEach(n=>{
+    if(inGrass(n.x,n.y,40,40)) return;
     const npc=document.createElement('div'); npc.className='npc';
     npc.style.cssText=`left:${n.x}px;top:${n.y}px;font-size:28px;`;
     npc.innerHTML=`<div>${n.emoji}</div><div style="font-size:5px;color:#FFD700;font-family:'Press Start 2P'">${n.label}</div>`;
@@ -1648,7 +1722,7 @@ function spawnDecorations(){
     world.appendChild(npc);
   });
 
-  // Boss marker
+  // Boss marker (always in bottom-right, outside all grass)
   const bossMarker=document.createElement('div'); bossMarker.id='boss-marker';
   bossMarker.style.cssText=`position:absolute;left:${W-150}px;top:${H-160}px;font-size:36px;text-align:center;z-index:13;animation:enemyBob 1.8s ease-in-out infinite;cursor:pointer;`;
   bossMarker.innerHTML=`<div>🧙</div><div style="font-size:5px;color:#aa44ff;font-family:'Press Start 2P'">⚠️ BOSS</div>`;
@@ -1657,12 +1731,348 @@ function spawnDecorations(){
 }
 
 function addDeco(world, x, y, type){
+  if(type==='tree'){ spawnTree(world, x, y, 56+Math.floor(Math.random()*24)); return; }
   const el=document.createElement('div'); el.className=type;
   el.style.cssText=`left:${x}px;top:${y}px;`;
-  if(type==='tree') el.textContent=['🌲','🌳','🌴','🌵'][Math.floor(Math.random()*4)];
-  else if(type==='flower'){ el.textContent=['🌸','🌼','🌺','🌻','🌷'][Math.floor(Math.random()*5)]; el.style.animationDelay=Math.random()*4+'s'; }
+  if(type==='flower'){ el.textContent=['🌸','🌼','🌺','🌻','🌷'][Math.floor(Math.random()*5)]; el.style.animationDelay=Math.random()*4+'s'; }
   else el.textContent='🪨';
   world.appendChild(el);
+}
+
+// ── PIXEL TREE ──────────────────────────────────────────────────
+// Draws a 32×40 pixel art tree matching the reference image
+// frame 0 = no fruit, frame 1 = fruit visible
+function drawPixelTree(ctx, hasFruit){
+  const p = (x,y,w,h,c) => { ctx.fillStyle=c; ctx.fillRect(x,y,w,h); };
+  // Palette — reference image colors
+  const TK  = '#3d1f00'; // trunk dark
+  const TM  = '#5c3010'; // trunk mid
+  const TL  = '#7a4820'; // trunk light
+  const TH  = '#9a6030'; // trunk highlight
+  const GO  = '#1a4d00'; // foliage darkest outline
+  const GD  = '#2a7a10'; // dark green
+  const GM  = '#3ca020'; // mid green
+  const GL  = '#58c830'; // light green
+  const GH  = '#78e840'; // bright highlight
+  const GB  = '#96ff50'; // brightest
+  const FR  = '#ff2020'; // fruit red
+  const FO  = '#cc1010'; // fruit shadow
+  const FH  = '#ff7070'; // fruit highlight
+  const FS  = '#1a3a00'; // fruit stem
+
+  ctx.clearRect(0,0,32,40);
+
+  // ── TRUNK ──
+  p(13,28,6,12, TK);   // outline
+  p(14,29,4,10, TM);   // body
+  p(15,29,2,9,  TL);   // center light
+  p(16,30,1,7,  TH);   // highlight streak
+  // Roots flare
+  p(11,36,4,4,  TK);
+  p(17,36,4,4,  TK);
+  p(12,37,3,3,  TM);
+  p(17,37,3,3,  TM);
+
+  // ── FOLIAGE — layered rounded shape ──
+  // Bottom layer (widest)
+  p(4,22, 24,10, GO);
+  p(5,23, 22,8,  GD);
+  p(6,24, 20,6,  GM);
+  p(8,25, 16,4,  GL);
+  p(10,26,12,2,  GH);
+  // Mid layer
+  p(6,14, 20,10, GO);
+  p(7,15, 18,8,  GD);
+  p(8,16, 16,6,  GM);
+  p(10,17,12,4,  GL);
+  p(12,18,8,2,   GH);
+  // Top layer (narrowest)
+  p(9,7,  14,9,  GO);
+  p(10,8, 12,7,  GD);
+  p(11,9, 10,5,  GM);
+  p(13,10,6,3,   GL);
+  p(14,11,4,1,   GH);
+  // Top cap
+  p(13,4, 6,5,   GO);
+  p(14,5, 4,3,   GD);
+  p(15,6, 2,2,   GM);
+  p(15,5, 2,1,   GL);
+
+  // ── HIGHLIGHT BLOBS (bright spots like reference) ──
+  p(8,15, 3,3,  GH);
+  p(20,16,3,3,  GH);
+  p(6,23, 4,3,  GL);
+  p(22,23,4,3,  GL);
+  p(14,9, 4,3,  GB);
+  p(11,16,3,2,  GB);
+  p(19,22,3,2,  GB);
+
+  // ── DARK SHADOW PATCHES ──
+  p(5,25,  4,3, GO);
+  p(23,25, 4,3, GO);
+  p(10,21, 3,2, GO);
+  p(19,20, 3,2, GO);
+
+  // ── FRUIT (animated — only drawn when hasFruit) ──
+  if(hasFruit){
+    // 3 fruit scattered in foliage
+    const fruits = [[8,20],[16,13],[22,21]];
+    fruits.forEach(([fx,fy])=>{
+      p(fx+1, fy-1, 1,1, FS);   // stem
+      p(fx,   fy,   4,4, FO);   // shadow
+      p(fx,   fy,   3,3, FR);   // body
+      p(fx+1, fy,   1,1, FH);   // highlight
+    });
+  }
+}
+
+// Creates canvas tree with fruit animation and collision
+function spawnTree(world, x, y, sizePx){
+  sizePx = sizePx||64;
+  const GW=32, GH=40;
+  const dispW = sizePx;
+  const dispH = Math.round(sizePx*(GH/GW));
+
+  // Container div for sway animation
+  const wrap = document.createElement('div');
+  wrap.className = 'tree';
+  wrap.style.cssText = `left:${x}px;top:${y}px;width:${dispW}px;height:${dispH}px;animation:treeSway ${3+Math.random()*2}s ease-in-out infinite;animation-delay:${Math.random()*3}s;`;
+
+  const cv = document.createElement('canvas');
+  cv.width=GW; cv.height=GH;
+  cv.style.cssText=`width:${dispW}px;height:${dispH}px;display:block;`;
+  wrap.appendChild(cv);
+
+  // Fruit overlay canvas (separate for animation)
+  const cvFruit = document.createElement('canvas');
+  cvFruit.width=GW; cvFruit.height=GH;
+  cvFruit.style.cssText=`width:${dispW}px;height:${dispH}px;position:absolute;top:0;left:0;`;
+  wrap.appendChild(cvFruit);
+
+  world.appendChild(wrap);
+
+  // Draw base tree (no fruit)
+  drawPixelTree(cv.getContext('2d'), false);
+
+  // Fruit animation cycle
+  let fruitVisible = false;
+  function cycleFruit(){
+    const ctx2 = cvFruit.getContext('2d');
+    ctx2.clearRect(0,0,GW,GH);
+    fruitVisible = !fruitVisible;
+    if(fruitVisible){
+      drawPixelTree(ctx2, true); // draw only fruit layer
+      // Apply pop animation via style
+      cvFruit.style.animation='none';
+      void cvFruit.offsetWidth;
+      cvFruit.style.animation='fruitPop 0.4s ease forwards';
+    } else {
+      cvFruit.style.animation='fruitFall 0.5s ease forwards';
+      setTimeout(()=>{ ctx2.clearRect(0,0,GW,GH); cvFruit.style.animation='none'; }, 500);
+    }
+    // Schedule next fruit event: visible 3-6s, hidden 4-8s
+    const delay = fruitVisible ? (3000+Math.random()*3000) : (4000+Math.random()*4000);
+    setTimeout(cycleFruit, delay);
+  }
+  setTimeout(cycleFruit, 2000+Math.random()*6000); // stagger initial fruit appearance
+
+  // Collision obstacle: trunk base
+  const hitW = Math.round(dispW*0.22);
+  const hitX = x + Math.round(dispW*0.39);
+  const hitY = y + Math.round(dispH*0.68);
+  const hitH = Math.round(dispH*0.32);
+  obstacles.push({x:hitX, y:hitY, w:hitW, h:hitH});
+}
+
+// Draw pixel art cactus onto a canvas (based on reference image)
+function drawPixelCactus(ctx){
+  // 20×32 pixel grid matching reference image closely
+  // Colors: dark outline, mid green body, light highlight, bright hi, dark spots
+  const _ = null; // transparent
+  const K = '#0d3d0d'; // darkest outline
+  const D = '#1a6b1a'; // dark green shadow
+  const M = '#2e9e2e'; // main mid green
+  const L = '#3cc83c'; // lighter green
+  const H = '#55ee55'; // bright highlight
+  const B = '#7fff7f'; // brightest corner
+  const S = '#186018'; // dark spot texture
+  const T = '#c8f0c8'; // thorn tip (light)
+
+  // Each row = 20 pixels wide, 32 rows tall
+  // Encoded as color keys per pixel
+  const map = [
+    //0123456789012345678 9
+    '____KKKKKKKKK______', // 0
+    '____KMMMMMMMMK_____', // 1
+    '___KMMMHHMMMMK_____', // 2
+    '___KMMHHHMMMMK_____', // 3
+    '___KMMHMMMMMMK_____', // 4
+    '___KMMMMMMDMMK_____', // 5
+    '__KKMMMMMMDMMKK____', // 6  left arm starts
+    '__KMLMMMMMMDMDK____', // 7
+    '__KMLMMMSDMDMDMK___', // 8  right arm starts
+    '__KMLMSSDMDMDMMK___', // 9
+    'KKKMMLMSDMDMDMMK___', // 10 left arm extends
+    'KMLMMLMSDMDMDMMKK__', // 11
+    'KMLMMLMSDMDMDMMMK__', // 12
+    'KDLMMLMSDMDMDMMMK__', // 13
+    'KDLMMLMSDSDMDMMMKK_', // 14 right arm mid
+    'KKMMMLMSDSDMDMMMMK_', // 15
+    '___KMMMSDSDMDMMMMKK', // 16 right arm extends
+    '___KMMMSDSDSDDMMMDK', // 17
+    '___KMMMSDSDSDMMMMDK', // 18
+    '___KMMMSDSDSDDMMMMK', // 19
+    '___KMMMSDSDSDMMMMKK', // 20
+    '___KMMMSDSDSDMMMKK_', // 21
+    '___KMMMSDSDSDMMKK__', // 22 right arm ends
+    '___KMMMSDSDDMMK____', // 23
+    '___KMMMSDSDMMK_____', // 24
+    '___KMMMSDSMMK______', // 25
+    '___KMMMSDSMMK______', // 26
+    '___KMMMSDDMMK______', // 27
+    '___KMMMDMMMK_______', // 28
+    '__KKMMMMMMKK_______', // 29
+    '__KMMMMMMMK________', // 30
+    '__KKKKKKKK_________', // 31
+  ];
+
+  // Replace with more accurate cactus shape
+  // Using direct pixel-rect approach for accuracy
+  const p = (x,y,w,h,c)=>{ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); };
+
+  // ── OUTLINE / BACKGROUND fill ──
+  ctx.clearRect(0,0,20,32);
+
+  // Colors
+  const c0 = '#0d3d0d'; // darkest outline
+  const c1 = '#1d6b1d'; // dark body shadow
+  const c2 = '#2d9e2d'; // main body
+  const c3 = '#3dbe3d'; // lighter body
+  const c4 = '#55dd55'; // highlight
+  const c5 = '#80ff80'; // bright highlight corners
+  const cs = '#1a4f1a'; // dark spot/texture
+  const ct = '#d0f0d0'; // thorn light tip
+  const ch = '#206020'; // shadow side
+
+  // ── MAIN TRUNK (col 7-12, row 0-31) ──
+  p(7,0, 6,32, c2);       // trunk fill
+  p(7,0, 1,32, ch);       // left shadow
+  p(12,0,1,32, c3);       // right light
+  p(8,0, 3,2,  c4);       // top highlight
+  p(7,0, 6,1,  c0);       // top outline
+  p(7,31,6,1,  c0);       // bottom outline
+  p(7,0, 1,32, c0);       // left outline — actually shadow color
+  p(12,0,1,32, c0);       // right outline
+
+  // re-draw trunk interior clean
+  p(8,1, 4,30, c2);       // main
+  p(8,1, 1,30, ch);       // left shade
+  p(11,1,1,30, c3);       // right light
+  p(9,1, 2,3,  c4);       // top hi
+
+  // Trunk outline
+  p(7,0, 6,1,  c0);
+  p(7,31,6,1,  c0);
+  p(7,1, 1,30, c0);
+  p(12,1,1,30, c0);
+
+  // ── LEFT ARM (cols 1-7, rows 7-17) — extends left then up ──
+  // Horizontal part
+  p(1,10, 7,6, c2);
+  p(1,10, 1,6, c0);       // left outline
+  p(1,10, 6,1, c0);       // top outline
+  p(1,15, 6,1, c0);       // bottom outline
+  p(2,11, 1,4, ch);       // left shade
+  p(6,11, 1,4, c3);       // right light
+  p(2,11, 4,1, c4);       // top hi
+  // Vertical tip (going up)
+  p(1,4,  6,7, c2);
+  p(1,4,  1,7, c0);
+  p(6,4,  1,7, c0);
+  p(1,4,  6,1, c0);
+  p(2,5,  1,5, ch);
+  p(5,5,  1,5, c3);
+  p(2,5,  3,1, c4);
+  // Junction fill (connect arm to trunk)
+  p(7,10, 1,6, c2);
+
+  // Thorn on left arm
+  p(0,7,  1,1, ct);
+  p(0,12, 1,1, ct);
+  p(0,5,  1,1, ct);
+
+  // ── RIGHT ARM (cols 12-18, rows 11-22) ──
+  // Horizontal part
+  p(12,14, 7,6, c2);
+  p(18,14, 1,6, c0);
+  p(12,14, 7,1, c0);
+  p(12,19, 7,1, c0);
+  p(13,15, 1,4, ch);
+  p(17,15, 1,4, c3);
+  p(13,15, 4,1, c4);
+  // Vertical tip
+  p(13,7, 6,8, c2);
+  p(13,7, 1,8, c0);
+  p(18,7, 1,8, c0);
+  p(13,7, 6,1, c0);
+  p(14,8, 1,6, ch);
+  p(17,8, 1,6, c3);
+  p(14,8, 3,1, c4);
+  // Junction
+  p(12,14,1,6, c2);
+
+  // Thorn on right arm
+  p(19,10,1,1, ct);
+  p(19,15,1,1, ct);
+  p(19,7, 1,1, ct);
+
+  // ── TEXTURE DOTS (reference has dark spots all over) ──
+  const dots=[
+    [9,3],[9,7],[9,11],[9,15],[9,19],[9,23],[9,27],
+    [10,5],[10,9],[10,13],[10,17],[10,21],[10,25],[10,29],
+    [3,6],[3,9],[3,12],
+    [15,10],[15,13],[15,16]
+  ];
+  dots.forEach(([x,y])=>p(x,y,1,1,cs));
+
+  // ── THORN SPIKES on trunk ──
+  const tspikes=[[6,5],[6,10],[6,15],[6,20],[6,25],[6,28],[13,8],[13,12],[13,18],[13,24]];
+  tspikes.forEach(([x,y])=>p(x,y,1,1,ct));
+
+  // ── BASE WIDER ──
+  p(6,29, 8,2, c2);
+  p(6,29, 1,2, c0);
+  p(13,29,1,2, c0);
+  p(6,31, 8,1, c0);
+
+  // ── GROUND SHADOW ──
+  ctx.fillStyle='rgba(0,40,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(10,32,7,2,0,0,Math.PI*2);
+  ctx.fill();
+}
+
+function spawnCactus(world, x, y, sizePx){
+  sizePx = sizePx || 80;
+  const gridW = 20, gridH = 32;
+  // Display size: keep aspect ratio
+  const canvasW = sizePx;
+  const canvasH = Math.round(sizePx * (gridH / gridW));
+
+  const cv = document.createElement('canvas');
+  cv.width  = gridW;
+  cv.height = gridH;
+  cv.style.cssText = `position:absolute;left:${x}px;top:${y}px;width:${canvasW}px;height:${canvasH}px;image-rendering:pixelated;image-rendering:crisp-edges;z-index:4;`;
+
+  drawPixelCactus(cv.getContext('2d'));
+  world.appendChild(cv);
+
+  // Collision hitbox: trunk base area (lower 45% of height, center 30% of width)
+  const hitW = Math.round(canvasW * 0.30);
+  const hitX = x + Math.round(canvasW * 0.35);
+  const hitY = y + Math.round(canvasH * 0.55);
+  const hitH = Math.round(canvasH * 0.45);
+  obstacles.push({ x:hitX, y:hitY, w:hitW, h:hitH });
 }
 
 // ==============================================
@@ -2057,8 +2467,35 @@ function gameLoop() {
     const moving = dx !== 0 || dy !== 0;
 
     if (moving) {
-      state.player.x = Math.max(0,  Math.min(WORLD_W - 48, state.player.x + dx));
-      state.player.y = Math.max(45, Math.min(WORLD_H - 64, state.player.y + dy));
+      const oldX = state.player.x;
+      const oldY = state.player.y;
+
+      // Try X movement
+      const newX = Math.max(0, Math.min(WORLD_W - 48, oldX + dx));
+      const newY = Math.max(45, Math.min(WORLD_H - 64, oldY + dy));
+
+      // Player hitbox: feet area (24px wide, 12px tall at bottom of sprite)
+      const PW = 24, PH = 16;
+      const pFeetXoff = 12, pFeetYoff = 52; // offset from sprite top-left
+
+      function collidesObstacle(px, py){
+        const left  = px + pFeetXoff;
+        const right = left + PW;
+        const top   = py + pFeetYoff;
+        const bot   = top + PH;
+        for(const ob of obstacles){
+          if(right > ob.x && left < ob.x+ob.w &&
+             bot   > ob.y && top  < ob.y+ob.h) return true;
+        }
+        return false;
+      }
+
+      // Slide collision: try X and Y separately for smooth sliding
+      const canX = !collidesObstacle(newX, oldY);
+      const canY = !collidesObstacle(oldX, newY);
+
+      state.player.x = canX ? newX : oldX;
+      state.player.y = canY ? newY : oldY;
       updatePlayerPos();
       checkGrass();
 
@@ -3430,43 +3867,86 @@ function confirmLoad(){
   if(!save){ closeSaveScreen(); return; }
   const p = state.player;
 
-  // Restore core stats
-  p.level = save.lv||1;
-  p.hp    = save.hp||100;
-  p.maxHp = save.mhp||100;
-  p.attack  = save.atk||15;
-  p.defense = save.def||5;
-  p.exp     = save.exp||0;
-  p.expToLevel = save.exl||50;
-  p.coins   = save.coins||0;
-  p.potions = save.pot||3;
-  if(save.px) p.x = save.px;
-  if(save.py) p.y = save.py;
+  // ── 1. Restore core stats ──
+  p.level      = save.lv  || 1;
+  p.maxHp      = save.mhp || 100;
+  p.hp         = Math.min(save.hp || p.maxHp, p.maxHp);
+  p.attack     = save.atk || 15;
+  p.defense    = save.def || 5;
+  p.exp        = save.exp || 0;
+  p.expToLevel = save.exl || 50;
+  p.coins      = save.coins || 0;
+  p.potions    = save.pot || 3;
+  p.x          = save.px  || WORLD_W/2 - 24;
+  p.y          = save.py  || WORLD_H/2 - 32;
   bossDefeated = !!save.bd;
 
-  // Restore partner
+  // ── 2. Restore partner ──
   if(save.pt && PARTNER_EVOLUTIONS[save.pt]){
     pType = save.pt;
-    const stage = save.ps||1;
-    applyPartnerStage(pType, Math.min(stage, PARTNER_EVOLUTIONS[pType].length));
+    const stage = Math.min(save.ps||1, PARTNER_EVOLUTIONS[pType].length);
+    // Manually set partner without stat delta (stats already restored above)
+    partner = PARTNER_EVOLUTIONS[pType][stage - 1];
+    partnerStage = stage;
   }
 
-  // Restore inventory from IDs
-  const allWeapons = WEAPONS; const allArmors = ARMORS;
-  inventory.weapons = (save.winv||[]).map(id=>allWeapons.find(w=>w.id===id)).filter(Boolean);
-  inventory.armors  = (save.ainv||[]).map(id=>allArmors.find(a=>a.id===id)).filter(Boolean);
+  // ── 3. Restore inventory ──
+  inventory.weapons = (save.winv||[]).map(id => WEAPONS.find(w=>w.id===id)).filter(Boolean);
+  inventory.armors  = (save.ainv||[]).map(id => ARMORS.find(a=>a.id===id)).filter(Boolean);
 
-  // Restore equipped
+  // ── 4. Restore equipped (ids reference the restored inventory objects) ──
   equipped.weapon = save.weq ? inventory.weapons.find(w=>w.id===save.weq)||null : null;
   equipped.armor  = save.aeq ? inventory.armors.find(a=>a.id===save.aeq)||null  : null;
 
   pendingLoad = null;
+
+  const gameRunning = document.getElementById('game-screen').style.display === 'block';
+
+  if(!gameRunning){
+    // ── Game not started yet — hide title/select screens and boot game ──
+    const ts = document.getElementById('title-screen');
+    const ss = document.getElementById('select-screen');
+    if(ts) ts.style.display='none';
+    if(ss) ss.style.display='none';
+    // initGame will render everything fresh with the restored state
+    initGame(true);
+    // After initGame, override with saved position
+    p.x = save.px || WORLD_W/2 - 24;
+    p.y = save.py || WORLD_H/2 - 32;
+    updatePlayerPos();
+    updateCamera();
+  } else {
+    // ── Game already running — just refresh all live UI ──
+    // End any ongoing battle
+    if(state.inBattle){
+      state.inBattle = false;
+      state.currentEnemy = null;
+      const bs = document.getElementById('battle-screen');
+      if(bs) bs.style.display='none';
+    }
+  }
+
+  // ── 5. Refresh all HUD elements ──
   updateHUD();
   updatePlayerPos();
+  updateCamera();
+
+  // Partner HUD
+  if(partner){
+    const hp2 = document.getElementById('hud-partner');
+    if(hp2) hp2.innerHTML = `${partner.emoji} ${partner.name} <span style="color:#888;font-size:6px">★${partnerStage}</span>`;
+    const bs2 = document.getElementById('btn-special');
+    if(bs2) bs2.textContent = partner.specialName;
+  }
+
+  // ── 6. Close screens & notify ──
   const prev = document.getElementById('load-preview');
   if(prev) prev.style.display='none';
   setSaveLog('✅ Game loaded successfully!', 'ok');
-  setTimeout(closeSaveScreen, 1500);
+  setTimeout(()=>{
+    closeSaveScreen();
+    showDialog(`💾 Save loaded! Welcome back, LV${p.level} Gozo!`);
+  }, 1200);
 }
 
 function cancelLoad(){
