@@ -145,6 +145,11 @@
   @keyframes particleBurst{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0.3)}}
   @keyframes resultPop{0%{opacity:0;transform:scale(0.3) rotate(-8deg)}60%{transform:scale(1.15) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
   @keyframes arenaShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(3px,-2px)}}
+  @keyframes questPop{0%{opacity:0;transform:translateX(-50%) translateY(-20px)}60%{transform:translateX(-50%) translateY(4px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+  @keyframes questFadeOut{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-16px)}}
+  #quest-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #quest-btn{display:none;position:fixed;bottom:24px;right:110px;z-index:61;background:var(--panel);border:2px solid #44aaff;color:#44aaff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,170,255,.25);transition:box-shadow .2s;}
+  #quest-btn:hover{box-shadow:0 0 20px rgba(68,170,255,.6);}
 
   /* LEVEL UP */
   #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
@@ -2504,6 +2509,8 @@ function initGame(fromLoad){
   document.getElementById('game-screen').style.display='block';
   const _bagBtn = document.getElementById('bag-btn'); if(_bagBtn) _bagBtn.style.display='block';
   const _saveBtn = document.getElementById('save-hud-btn'); if(_saveBtn) _saveBtn.style.display='block';
+  const _questBtn = document.getElementById('quest-btn'); if(_questBtn) _questBtn.style.display='block';
+  initQuests();
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
   if(!fromLoad){
@@ -3606,6 +3613,8 @@ function checkGrass(){
     // Activate back layer glow
     state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
     if(zone.back) zone.back.classList.add('active');
+    // Track grass entry for quests (only on fresh entry)
+    if(!wasIn) questTrackGrass();
 
     // Rustle sound while walking through grass
     maybeRustle();
@@ -3876,6 +3885,8 @@ function winBattle(){
   if(e.name===BOSS.name)bossDefeated=true;
   p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(5,p.potions+1);
   playSoundVictory();
+  questTrackKill();
+  questTrackCoins(e.coins);
   // Victory flash + particles
   flashArena('rgba(255,215,0,0.4)');
   spawnBattleParticles(10,['⭐','✨','💫','🌟'],200,120);
@@ -4461,9 +4472,9 @@ function addToInventory(item){
   if(!item) return;
   if(item.type==='weapon') inventory.weapons.push(item);
   else inventory.armors.push(item);
-  // Keep inventory max 30 per type
   if(inventory.weapons.length > 30) inventory.weapons.shift();
   if(inventory.armors.length > 30) inventory.armors.shift();
+  questTrackDrop(item.rarity);
 }
 
 // Equip an item — updates player stats
@@ -4941,9 +4952,272 @@ window.addEventListener('resize',()=>{
   state.world.w=document.getElementById('world').offsetWidth;
   state.world.h=document.getElementById('world').offsetHeight;
 });
+
+// ==============================================
+// QUEST SYSTEM — Daily + Main Quests
+// ==============================================
+
+const MAIN_QUESTS = [
+  { id:'mq1', title:'First Blood',       desc:'Defeat your first monster',           type:'kill',    target:1,   reward:{coins:30,  exp:20},  icon:'⚔️' },
+  { id:'mq2', title:'Monster Hunter',    desc:'Defeat 10 monsters',                  type:'kill',    target:10,  reward:{coins:80,  exp:60},  icon:'🗡️' },
+  { id:'mq3', title:'Veteran Fighter',   desc:'Defeat 50 monsters',                  type:'kill',    target:50,  reward:{coins:250, exp:200}, icon:'💀' },
+  { id:'mq4', title:'Coin Collector',    desc:'Accumulate 200 coins',                type:'coins',   target:200, reward:{coins:100, exp:50},  icon:'💰' },
+  { id:'mq5', title:'Rich Adventurer',   desc:'Accumulate 1000 coins',               type:'coins',   target:1000,reward:{coins:300, exp:150}, icon:'👑' },
+  { id:'mq6', title:'Grass Explorer',    desc:'Enter tall grass 20 times',           type:'grass',   target:20,  reward:{coins:60,  exp:40},  icon:'🌿' },
+  { id:'mq7', title:'Nature Walker',     desc:'Enter tall grass 100 times',          type:'grass',   target:100, reward:{coins:200, exp:120}, icon:'🌳' },
+  { id:'mq8', title:'Lucky Find',        desc:'Get an Uncommon or better item drop', type:'rarity',  target:'Uncommon', reward:{coins:50, exp:30}, icon:'🎒' },
+  { id:'mq9', title:'Rare Treasure',     desc:'Get a Rare or better item drop',      type:'rarity',  target:'Rare',     reward:{coins:150,exp:100}, icon:'💎' },
+  { id:'mq10',title:'Epic Hunter',       desc:'Get an Epic or better item drop',     type:'rarity',  target:'Epic',     reward:{coins:400,exp:250}, icon:'🔮' },
+];
+
+const DAILY_POOL = [
+  { id:'d_kill3',   title:'Daily Slayer',     desc:'Defeat 3 monsters today',       type:'kill',  target:3,  reward:{coins:40, exp:25},  icon:'⚔️' },
+  { id:'d_kill8',   title:'Monster Blitz',    desc:'Defeat 8 monsters today',       type:'kill',  target:8,  reward:{coins:80, exp:60},  icon:'💥' },
+  { id:'d_kill15',  title:'Rampage',          desc:'Defeat 15 monsters today',      type:'kill',  target:15, reward:{coins:150,exp:120}, icon:'🔥' },
+  { id:'d_coins50', title:'Daily Earner',     desc:'Earn 50 coins today',           type:'coins', target:50, reward:{coins:30, exp:20},  icon:'💰' },
+  { id:'d_coins150',title:'Coin Rush',        desc:'Earn 150 coins today',          type:'coins', target:150,reward:{coins:80, exp:50},  icon:'🪙' },
+  { id:'d_grass5',  title:'Grass Stroller',   desc:'Enter tall grass 5 times today',type:'grass', target:5,  reward:{coins:25, exp:15},  icon:'🌿' },
+  { id:'d_grass15', title:'Grass Fanatic',    desc:'Enter grass 15 times today',    type:'grass', target:15, reward:{coins:60, exp:40},  icon:'🌾' },
+  { id:'d_unc',     title:'Uncommon Hunt',    desc:'Get an Uncommon drop today',    type:'rarity',target:'Uncommon',reward:{coins:50,exp:30},icon:'🎒'},
+  { id:'d_rare',    title:'Rare Hunt',        desc:'Get a Rare drop today',         type:'rarity',target:'Rare',    reward:{coins:120,exp:80},icon:'💎'},
+];
+
+const RARITY_RANK = {Common:0,Uncommon:1,Rare:2,Epic:3,Legendary:4};
+
+let questState = {
+  main: {},      // {[id]: progress}
+  mainDone: {},  // {[id]: true}
+  daily: [],     // today's 3 quests [{...quest, progress}]
+  dailyDate: '', // YYYY-MM-DD
+  dailyDone: {}, // {[id]: true}
+  stats: { kills:0, coinsEarned:0, grassEntries:0, bestRarity:'Common' }
+};
+
+function getTodayStr(){
+  const d=new Date(); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function initQuests(){
+  // Load from sessionStorage if available
+  try{
+    const saved = sessionStorage.getItem('gozo_quests');
+    if(saved) questState = JSON.parse(saved);
+  }catch(e){}
+  refreshDailyQuests();
+  updateQuestDot();
+}
+
+function saveQuestState(){
+  try{ sessionStorage.setItem('gozo_quests', JSON.stringify(questState)); }catch(e){}
+}
+
+function refreshDailyQuests(){
+  const today = getTodayStr();
+  if(questState.dailyDate === today && questState.daily.length === 3) return;
+  // New day — pick 3 random daily quests
+  questState.dailyDate = today;
+  questState.dailyDone = {};
+  const pool = [...DAILY_POOL];
+  const picked = [];
+  while(picked.length < 3 && pool.length){
+    const i = Math.floor(Math.random()*pool.length);
+    picked.push({...pool.splice(i,1)[0], progress:0});
+  }
+  questState.daily = picked;
+  saveQuestState();
+}
+
+function questTrackKill(){
+  questState.stats.kills++;
+  questState.stats.coinsEarned; // already updated via coins tracking
+  _trackMain('kill', questState.stats.kills);
+  _trackDaily('kill', 1);
+  saveQuestState();
+  updateQuestDot();
+}
+
+function questTrackCoins(amount){
+  questState.stats.coinsEarned += amount;
+  _trackMain('coins', questState.stats.coinsEarned);
+  _trackDaily('coins', amount);
+  saveQuestState();
+  updateQuestDot();
+}
+
+function questTrackGrass(){
+  questState.stats.grassEntries++;
+  _trackMain('grass', questState.stats.grassEntries);
+  _trackDaily('grass', 1);
+  saveQuestState();
+  updateQuestDot();
+}
+
+function questTrackDrop(rarity){
+  const rank = RARITY_RANK[rarity]||0;
+  const bestRank = RARITY_RANK[questState.stats.bestRarity]||0;
+  if(rank > bestRank) questState.stats.bestRarity = rarity;
+  // Main quests — check if this rarity meets threshold
+  MAIN_QUESTS.filter(q=>q.type==='rarity').forEach(q=>{
+    if(!questState.mainDone[q.id] && rank >= (RARITY_RANK[q.target]||0)){
+      questState.main[q.id] = 1;
+      checkMainComplete(q);
+    }
+  });
+  // Daily rarity quests
+  questState.daily.forEach(q=>{
+    if(q.type==='rarity' && !questState.dailyDone[q.id] && rank>=(RARITY_RANK[q.target]||0)){
+      q.progress=1;
+      checkDailyComplete(q);
+    }
+  });
+  saveQuestState();
+  updateQuestDot();
+}
+
+function _trackMain(type, total){
+  MAIN_QUESTS.filter(q=>q.type===type).forEach(q=>{
+    if(questState.mainDone[q.id]) return;
+    questState.main[q.id] = Math.min(q.target, total);
+    checkMainComplete(q);
+  });
+}
+
+function _trackDaily(type, addAmount){
+  questState.daily.forEach(q=>{
+    if(q.type!==type || questState.dailyDone[q.id]) return;
+    q.progress = Math.min(q.target, (q.progress||0) + addAmount);
+    checkDailyComplete(q);
+  });
+}
+
+function checkMainComplete(q){
+  if((questState.main[q.id]||0) >= q.target && !questState.mainDone[q.id]){
+    questState.mainDone[q.id] = true;
+    giveQuestReward(q);
+    showQuestComplete(q, false);
+  }
+}
+
+function checkDailyComplete(q){
+  if((q.progress||0) >= q.target && !questState.dailyDone[q.id]){
+    questState.dailyDone[q.id] = true;
+    giveQuestReward(q);
+    showQuestComplete(q, true);
+  }
+}
+
+function giveQuestReward(q){
+  state.player.coins += q.reward.coins;
+  state.player.exp   += q.reward.exp;
+  updateHUD();
+}
+
+function showQuestComplete(q, isDaily){
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);
+    background:#111;border:3px solid #FFD700;color:#FFD700;
+    font-family:'Press Start 2P',monospace;font-size:7px;padding:10px 16px;
+    z-index:200;pointer-events:none;text-align:center;line-height:2;
+    animation:questPop .4s ease forwards;white-space:nowrap;
+    box-shadow:0 0 20px rgba(255,215,0,0.5);`;
+  el.innerHTML = `${q.icon} QUEST COMPLETE!<br><span style="color:#fff">${q.title}</span><br><span style="color:#44ff88">+${q.reward.coins} coins  +${q.reward.exp} EXP</span>`;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.animation='questFadeOut .5s ease forwards'; setTimeout(()=>el.remove(),500); }, 3000);
+}
+
+function updateQuestDot(){
+  const btn = document.getElementById('quest-btn');
+  if(!btn) return;
+  // Check if any quest is completeable (progress >= target, not yet claimed)
+  let hasNew = false;
+  MAIN_QUESTS.forEach(q=>{
+    if(!questState.mainDone[q.id] && (questState.main[q.id]||0)>=q.target) hasNew=true;
+  });
+  questState.daily.forEach(q=>{
+    if(!questState.dailyDone[q.id] && (q.progress||0)>=q.target) hasNew=true;
+  });
+  let dot = document.getElementById('quest-dot');
+  if(hasNew && !dot){
+    dot=document.createElement('span'); dot.id='quest-dot';
+    dot.style.cssText='position:fixed;bottom:64px;right:90px;width:10px;height:10px;background:#ff4444;border-radius:50%;border:2px solid #ff8888;z-index:62;pointer-events:none;';
+    document.body.appendChild(dot);
+  } else if(!hasNew && dot){ dot.remove(); }
+}
+
+function openQuestScreen(){
+  refreshDailyQuests();
+  const sc = document.getElementById('quest-screen');
+  if(!sc) return;
+  renderQuestScreen();
+  sc.style.display='flex';
+}
+
+function closeQuestScreen(){
+  const sc = document.getElementById('quest-screen');
+  if(sc) sc.style.display='none';
+}
+
+function renderQuestScreen(){
+  const sc = document.getElementById('quest-screen');
+  if(!sc) return;
+
+  const dailyHtml = questState.daily.map(q=>{
+    const done = questState.dailyDone[q.id];
+    const prog = q.type==='rarity' ? (q.progress||0) : Math.min(q.target, q.progress||0);
+    const pct  = q.type==='rarity' ? (prog?100:0) : Math.round(prog/q.target*100);
+    const col  = done?'#44ff88':'#FFD700';
+    return `<div style="background:#0d0d1a;border:2px solid ${done?'#44ff88':'#333'};padding:10px 12px;margin-bottom:8px;position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="color:${col};font-size:8px;">${q.icon} ${q.title}</span>
+        <span style="font-size:7px;color:${done?'#44ff88':'#888'}">${done?'✅ DONE':`${q.type==='rarity'?(prog?'✓':'✗'):prog+'/'+q.target}`}</span>
+      </div>
+      <div style="color:#555;font-size:6px;margin-bottom:6px;">${q.desc}</div>
+      <div style="background:#1a1a2e;height:6px;width:100%;position:relative;">
+        <div style="background:${done?'#44ff88':'#FFD700'};height:100%;width:${pct}%;transition:width .3s;"></div>
+      </div>
+      <div style="margin-top:4px;font-size:6px;color:#888;">Reward: <span style="color:#FFD700">+${q.reward.coins}💰</span> <span style="color:#44aaff">+${q.reward.exp}EXP</span></div>
+    </div>`;
+  }).join('');
+
+  const mainHtml = MAIN_QUESTS.map(q=>{
+    const done = questState.mainDone[q.id];
+    const prog = q.type==='rarity' ? ((questState.main[q.id]||0)) : Math.min(q.target, questState.main[q.id]||0);
+    const pct  = q.type==='rarity' ? (prog?100:0) : Math.round(prog/q.target*100);
+    const col  = done?'#aaa':pct>=100?'#FFD700':'#aaa';
+    return `<div style="background:#0d0d1a;border:2px solid ${done?'#333':pct>=100?'#FFD700':'#222'};padding:10px 12px;margin-bottom:8px;opacity:${done?0.5:1};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="color:${done?'#555':'#ddd'};font-size:8px;">${q.icon} ${q.title}</span>
+        <span style="font-size:7px;color:${done?'#44ff88':pct>=100?'#FFD700':'#555'}">${done?'✅ DONE':`${q.type==='rarity'?(prog?'✓':'✗'):prog+'/'+q.target}`}</span>
+      </div>
+      <div style="color:#444;font-size:6px;margin-bottom:6px;">${q.desc}</div>
+      <div style="background:#1a1a2e;height:6px;width:100%;">
+        <div style="background:${done?'#333':pct>=100?'#FFD700':'#4488ff'};height:100%;width:${pct}%;transition:width .3s;"></div>
+      </div>
+      <div style="margin-top:4px;font-size:6px;color:#666;">Reward: <span style="color:#FFD700">+${q.reward.coins}💰</span> <span style="color:#44aaff">+${q.reward.exp}EXP</span></div>
+    </div>`;
+  }).join('');
+
+  const doneMQ = Object.keys(questState.mainDone).length;
+  const doneD  = Object.keys(questState.dailyDone).length;
+
+  sc.innerHTML = `
+    <div style="width:100%;max-width:600px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #222;padding-bottom:12px;">
+        <span style="font-family:'Orbitron',sans-serif;font-size:18px;color:#FFD700;">📋 QUESTS</span>
+        <button onclick="closeQuestScreen()" style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      <div style="font-size:7px;color:#FFD700;margin-bottom:8px;letter-spacing:2px;">🌅 DAILY QUESTS &nbsp;<span style="color:#555">(${doneD}/3 done · resets tomorrow)</span></div>
+      ${dailyHtml}
+      <div style="font-size:7px;color:#aaaaff;margin:16px 0 8px;letter-spacing:2px;">📜 MAIN QUESTS &nbsp;<span style="color:#555">(${doneMQ}/${MAIN_QUESTS.length} done)</span></div>
+      ${mainHtml}
+    </div>`;
+}
+
 </script>
-<!-- SAVE + BAG buttons — outside game-screen so fixed positioning always works -->
+<!-- SAVE + BAG + QUEST buttons — outside game-screen so fixed positioning always works -->
 <button onclick="openSaveScreen()" id="save-hud-btn" style="display:none;">💾 SAVE</button>
 <button onclick="openInventory()" id="bag-btn" style="display:none;position:fixed;bottom:24px;right:20px;z-index:61;background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 12px rgba(255,215,0,.3);transition:box-shadow .2s;" onmouseenter="this.style.boxShadow='0 0 20px rgba(255,215,0,.7)'" onmouseleave="this.style.boxShadow='0 0 12px rgba(255,215,0,.3)'">🎒 BAG</button>
+<button onclick="openQuestScreen()" id="quest-btn">📋 QUEST</button>
+<div id="quest-screen"></div>
 </body>
 </html>
