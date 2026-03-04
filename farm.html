@@ -102,13 +102,13 @@ header{
 .plot[data-s=empty] .pt::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 35%,rgba(0,0,0,0.2) 2px,transparent 2px),radial-gradient(circle at 72% 65%,rgba(0,0,0,0.15) 2px,transparent 2px)}
 .plot[data-s=tilled] .pt{background:repeating-linear-gradient(0deg,#4a2808 0,#4a2808 6px,#3a1e06 6px,#3a1e06 12px);box-shadow:inset -3px -3px 0 rgba(0,0,0,0.4)}
 .plot[data-s=planted] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
-.plot[data-s=ready] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px);animation:readyGlow 0.7s ease-in-out infinite}
+.plot[data-s=ready] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
 .plot[data-s=regrowing] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
 @keyframes readyGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5) saturate(1.6)}}
 .cs{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:1.4rem;line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.5));z-index:2;pointer-events:none}
 .plot[data-s=planted] .cs{font-size:1rem;animation:plantBob 1.4s ease-in-out infinite}
 @keyframes plantBob{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.1)}}
-.plot[data-s=ready] .cs{font-size:1.5rem;animation:readyBounce 0.6s ease-in-out infinite}
+.plot[data-s=ready] .cs{font-size:1.5rem}
 @keyframes readyBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
 .pw{position:absolute;bottom:0;left:0;right:0;height:5px;background:#1a0800}
 .pb{height:100%;background:linear-gradient(90deg,#40b000,#80e020);transition:width 0.5s linear}
@@ -1412,98 +1412,298 @@ const JAGUNG_TREE_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0
   <rect x="16" y="22" width="3" height="2" fill="#3a9a20"/>
 </svg>`;
 
-// CHILI PIXEL ART SVG
-const CABE_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+// EGGPLANT (TERONG) PIXEL ART SVG - 4 growth stages
+// Stage 1: sprout/seedling
+const TERONG_STAGE1_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
   <!-- soil -->
-  <rect x="4" y="17" width="8" height="3" fill="#6b3a2a"/>
-  <rect x="3" y="18" width="10" height="2" fill="#7a4530"/>
-  <!-- main stem -->
-  <rect x="7" y="10" width="2" height="7" fill="#4a6b1a"/>
-  <!-- left branch lower -->
-  <rect x="4" y="13" width="3" height="1" fill="#3d5a14"/>
-  <rect x="3" y="12" width="2" height="1" fill="#3d5a14"/>
-  <!-- right branch lower -->
-  <rect x="9" y="13" width="3" height="1" fill="#3d5a14"/>
-  <rect x="11" y="12" width="2" height="1" fill="#3d5a14"/>
-  <!-- left branch upper -->
-  <rect x="5" y="10" width="2" height="1" fill="#3d5a14"/>
-  <rect x="3" y="9" width="3" height="1" fill="#3d5a14"/>
-  <!-- right branch upper -->
-  <rect x="9" y="10" width="2" height="1" fill="#3d5a14"/>
-  <rect x="10" y="9" width="3" height="1" fill="#3d5a14"/>
-  <!-- top branch -->
-  <rect x="6" y="8" width="4" height="1" fill="#3d5a14"/>
-  <rect x="7" y="7" width="2" height="1" fill="#3d5a14"/>
-  <!-- leaves (oval shapes) -->
-  <rect x="2" y="8" width="4" height="3" fill="#5a8a20"/>
-  <rect x="3" y="7" width="3" height="1" fill="#6aaa28"/>
-  <rect x="3" y="11" width="2" height="1" fill="#4a7a18"/>
-  <rect x="10" y="8" width="4" height="3" fill="#5a8a20"/>
-  <rect x="10" y="7" width="3" height="1" fill="#6aaa28"/>
-  <rect x="11" y="11" width="2" height="1" fill="#4a7a18"/>
-  <rect x="5" y="6" width="6" height="3" fill="#5a8a20"/>
-  <rect x="6" y="5" width="4" height="1" fill="#6aaa28"/>
-  <rect x="5" y="9" width="2" height="1" fill="#4a7a18"/>
-  <rect x="9" y="9" width="2" height="1" fill="#4a7a18"/>
-  <!-- chili fruits (hanging down - pointed bottom) -->
-  <!-- left lower chili -->
-  <rect x="3" y="13" width="2" height="3" fill="#dd2010"/>
-  <rect x="4" y="16" width="1" height="1" fill="#bb1a0a"/>
-  <rect x="3" y="13" width="1" height="1" fill="#ff4030"/>
-  <!-- right lower chili -->
-  <rect x="11" y="13" width="2" height="3" fill="#dd2010"/>
-  <rect x="11" y="16" width="1" height="1" fill="#bb1a0a"/>
-  <rect x="11" y="13" width="1" height="1" fill="#ff4030"/>
-  <!-- left upper chili -->
-  <rect x="2" y="10" width="2" height="3" fill="#e82818"/>
-  <rect x="2" y="13" width="1" height="1" fill="#bb1a0a"/>
-  <rect x="2" y="10" width="1" height="1" fill="#ff4030"/>
-  <!-- right upper chili -->
-  <rect x="12" y="10" width="2" height="3" fill="#e82818"/>
-  <rect x="13" y="13" width="1" height="1" fill="#bb1a0a"/>
-  <rect x="12" y="10" width="1" height="1" fill="#ff4030"/>
-  <!-- top chili -->
-  <rect x="6" y="8" width="2" height="3" fill="#e03020"/>
-  <rect x="7" y="11" width="1" height="1" fill="#bb1a0a"/>
-  <rect x="6" y="8" width="1" height="1" fill="#ff4030"/>
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
+  <!-- tiny sprout stem -->
+  <rect x="11" y="24" width="2" height="8" fill="#4a7a20"/>
+  <!-- two small seed leaves -->
+  <rect x="7" y="26" width="4" height="3" fill="#5a9a28"/>
+  <rect x="6" y="27" width="3" height="2" fill="#4a8a20"/>
+  <rect x="13" y="26" width="4" height="3" fill="#5a9a28"/>
+  <rect x="15" y="27" width="3" height="2" fill="#4a8a20"/>
+  <!-- tiny tip -->
+  <rect x="11" y="23" width="2" height="2" fill="#6aaa30"/>
 </svg>`;
 
-const CABE_TREE_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 20" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+// Stage 2: small plant with true leaves
+const TERONG_STAGE2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
   <!-- soil -->
-  <rect x="4" y="17" width="8" height="3" fill="#6b3a2a"/>
-  <rect x="3" y="18" width="10" height="2" fill="#7a4530"/>
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
+  <!-- stem -->
+  <rect x="11" y="16" width="2" height="16" fill="#4a7a20"/>
+  <rect x="10" y="17" width="1" height="14" fill="#3a6010"/>
+  <!-- lower leaves -->
+  <rect x="5" y="24" width="7" height="4" fill="#5a9a28"/>
+  <rect x="4" y="25" width="4" height="3" fill="#4a8a20"/>
+  <rect x="5" y="23" width="5" height="2" fill="#6aaa30"/>
+  <rect x="12" y="24" width="7" height="4" fill="#5a9a28"/>
+  <rect x="16" y="25" width="4" height="3" fill="#4a8a20"/>
+  <rect x="14" y="23" width="5" height="2" fill="#6aaa30"/>
+  <!-- upper leaves -->
+  <rect x="7" y="17" width="5" height="4" fill="#5a9a28"/>
+  <rect x="6" y="18" width="3" height="3" fill="#4a8a20"/>
+  <rect x="12" y="17" width="5" height="4" fill="#5a9a28"/>
+  <rect x="15" y="18" width="3" height="3" fill="#4a8a20"/>
+  <!-- top bud -->
+  <rect x="10" y="14" width="4" height="3" fill="#6aaa30"/>
+  <rect x="11" y="13" width="2" height="2" fill="#5a9a28"/>
+</svg>`;
+
+// Stage 3: tall plant, no fruit yet
+const TERONG_STAGE3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
   <!-- main stem -->
-  <rect x="7" y="10" width="2" height="7" fill="#4a6b1a"/>
-  <!-- left branch lower -->
-  <rect x="4" y="13" width="3" height="1" fill="#3d5a14"/>
-  <rect x="3" y="12" width="2" height="1" fill="#3d5a14"/>
-  <!-- right branch lower -->
-  <rect x="9" y="13" width="3" height="1" fill="#3d5a14"/>
-  <rect x="11" y="12" width="2" height="1" fill="#3d5a14"/>
-  <!-- left branch upper -->
-  <rect x="5" y="10" width="2" height="1" fill="#3d5a14"/>
-  <rect x="3" y="9" width="3" height="1" fill="#3d5a14"/>
-  <!-- right branch upper -->
-  <rect x="9" y="10" width="2" height="1" fill="#3d5a14"/>
-  <rect x="10" y="9" width="3" height="1" fill="#3d5a14"/>
-  <!-- top branch -->
-  <rect x="6" y="8" width="4" height="1" fill="#3d5a14"/>
-  <rect x="7" y="7" width="2" height="1" fill="#3d5a14"/>
-  <!-- leaves (oval shapes) -->
-  <rect x="2" y="8" width="4" height="3" fill="#5a8a20"/>
-  <rect x="3" y="7" width="3" height="1" fill="#6aaa28"/>
-  <rect x="3" y="11" width="2" height="1" fill="#4a7a18"/>
-  <rect x="10" y="8" width="4" height="3" fill="#5a8a20"/>
-  <rect x="10" y="7" width="3" height="1" fill="#6aaa28"/>
-  <rect x="11" y="11" width="2" height="1" fill="#4a7a18"/>
-  <rect x="5" y="6" width="6" height="3" fill="#5a8a20"/>
-  <rect x="6" y="5" width="4" height="1" fill="#6aaa28"/>
-  <!-- small buds (tiny green nubs where chili will grow) -->
-  <rect x="3" y="13" width="2" height="1" fill="#7acc30"/>
-  <rect x="11" y="13" width="2" height="1" fill="#7acc30"/>
-  <rect x="2" y="10" width="2" height="1" fill="#7acc30"/>
-  <rect x="12" y="10" width="2" height="1" fill="#7acc30"/>
-  <rect x="6" y="8" width="2" height="1" fill="#7acc30"/>
+  <rect x="11" y="5" width="2" height="27" fill="#4a7a20"/>
+  <rect x="10" y="6" width="1" height="25" fill="#3a6010"/>
+  <rect x="13" y="6" width="1" height="25" fill="#5a8a28"/>
+  <!-- stem nodes -->
+  <rect x="10" y="13" width="4" height="2" fill="#3a6010"/>
+  <rect x="10" y="21" width="4" height="2" fill="#3a6010"/>
+  <!-- branches -->
+  <rect x="5" y="20" width="6" height="2" fill="#3a6010"/>
+  <rect x="13" y="20" width="6" height="2" fill="#3a6010"/>
+  <rect x="6" y="12" width="5" height="2" fill="#3a6010"/>
+  <rect x="13" y="12" width="5" height="2" fill="#3a6010"/>
+  <!-- lower leaves -->
+  <rect x="2" y="18" width="9" height="5" fill="#5a9a28"/>
+  <rect x="1" y="19" width="5" height="4" fill="#4a8a20"/>
+  <rect x="3" y="17" width="6" height="2" fill="#6aaa30"/>
+  <rect x="13" y="18" width="9" height="5" fill="#5a9a28"/>
+  <rect x="18" y="19" width="5" height="4" fill="#4a8a20"/>
+  <rect x="15" y="17" width="6" height="2" fill="#6aaa30"/>
+  <!-- upper leaves -->
+  <rect x="3" y="10" width="9" height="5" fill="#5a9a28"/>
+  <rect x="2" y="11" width="5" height="4" fill="#4a8a20"/>
+  <rect x="4" y="9" width="6" height="2" fill="#6aaa30"/>
+  <rect x="12" y="10" width="9" height="5" fill="#5a9a28"/>
+  <rect x="17" y="11" width="5" height="4" fill="#4a8a20"/>
+  <rect x="14" y="9" width="6" height="2" fill="#6aaa30"/>
+  <!-- top leaves -->
+  <rect x="7" y="3" width="10" height="5" fill="#5a9a28"/>
+  <rect x="6" y="4" width="4" height="4" fill="#4a8a20"/>
+  <rect x="14" y="4" width="4" height="4" fill="#4a8a20"/>
+  <rect x="9" y="2" width="6" height="3" fill="#6aaa30"/>
+  <!-- flower buds (purple) -->
+  <rect x="4" y="19" width="3" height="3" fill="#8844cc"/>
+  <rect x="4" y="19" width="2" height="1" fill="#aa66ee"/>
+  <rect x="17" y="19" width="3" height="3" fill="#8844cc"/>
+  <rect x="17" y="19" width="2" height="1" fill="#aa66ee"/>
+</svg>`;
+
+// Stage 4: full plant with eggplants (ready to harvest)
+const TERONG_STAGE4_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
+  <!-- main stem -->
+  <rect x="11" y="5" width="2" height="27" fill="#4a7a20"/>
+  <rect x="10" y="6" width="1" height="25" fill="#3a6010"/>
+  <rect x="13" y="6" width="1" height="25" fill="#5a8a28"/>
+  <!-- stem nodes -->
+  <rect x="10" y="13" width="4" height="2" fill="#3a6010"/>
+  <rect x="10" y="21" width="4" height="2" fill="#3a6010"/>
+  <!-- branches -->
+  <rect x="5" y="20" width="6" height="2" fill="#3a6010"/>
+  <rect x="13" y="20" width="6" height="2" fill="#3a6010"/>
+  <rect x="6" y="12" width="5" height="2" fill="#3a6010"/>
+  <rect x="13" y="12" width="5" height="2" fill="#3a6010"/>
+  <!-- lower leaves -->
+  <rect x="2" y="18" width="9" height="5" fill="#5a9a28"/>
+  <rect x="1" y="19" width="5" height="4" fill="#4a8a20"/>
+  <rect x="3" y="17" width="6" height="2" fill="#6aaa30"/>
+  <rect x="13" y="18" width="9" height="5" fill="#5a9a28"/>
+  <rect x="18" y="19" width="5" height="4" fill="#4a8a20"/>
+  <rect x="15" y="17" width="6" height="2" fill="#6aaa30"/>
+  <!-- upper leaves -->
+  <rect x="3" y="10" width="9" height="5" fill="#5a9a28"/>
+  <rect x="2" y="11" width="5" height="4" fill="#4a8a20"/>
+  <rect x="4" y="9" width="6" height="2" fill="#6aaa30"/>
+  <rect x="12" y="10" width="9" height="5" fill="#5a9a28"/>
+  <rect x="17" y="11" width="5" height="4" fill="#4a8a20"/>
+  <rect x="14" y="9" width="6" height="2" fill="#6aaa30"/>
+  <!-- top leaves -->
+  <rect x="7" y="3" width="10" height="5" fill="#5a9a28"/>
+  <rect x="6" y="4" width="4" height="4" fill="#4a8a20"/>
+  <rect x="14" y="4" width="4" height="4" fill="#4a8a20"/>
+  <rect x="9" y="2" width="6" height="3" fill="#6aaa30"/>
+  <!-- EGGPLANT fruit lower left (oval, deep purple) -->
+  <rect x="2" y="21" width="5" height="7" fill="#5a1a8a"/>
+  <rect x="3" y="20" width="3" height="2" fill="#4a1478"/>
+  <rect x="2" y="27" width="5" height="1" fill="#3a0e60"/>
+  <rect x="2" y="21" width="2" height="3" fill="#7a3aaa"/>
+  <rect x="3" y="19" width="2" height="2" fill="#2a6010"/>
+  <!-- EGGPLANT fruit lower right -->
+  <rect x="17" y="21" width="5" height="7" fill="#5a1a8a"/>
+  <rect x="18" y="20" width="3" height="2" fill="#4a1478"/>
+  <rect x="17" y="27" width="5" height="1" fill="#3a0e60"/>
+  <rect x="17" y="21" width="2" height="3" fill="#7a3aaa"/>
+  <rect x="19" y="19" width="2" height="2" fill="#2a6010"/>
+  <!-- EGGPLANT fruit upper left -->
+  <rect x="3" y="13" width="5" height="7" fill="#6a1a9a"/>
+  <rect x="4" y="12" width="3" height="2" fill="#4a1478"/>
+  <rect x="3" y="19" width="5" height="1" fill="#3a0e60"/>
+  <rect x="3" y="13" width="2" height="3" fill="#8a3aba"/>
+  <rect x="5" y="11" width="2" height="2" fill="#2a6010"/>
+  <!-- EGGPLANT fruit upper right -->
+  <rect x="16" y="13" width="5" height="7" fill="#6a1a9a"/>
+  <rect x="17" y="12" width="3" height="2" fill="#4a1478"/>
+  <rect x="16" y="19" width="5" height="1" fill="#3a0e60"/>
+  <rect x="16" y="13" width="2" height="3" fill="#8a3aba"/>
+  <rect x="18" y="11" width="2" height="2" fill="#2a6010"/>
+  <!-- purple flower on top -->
+  <rect x="10" y="5" width="4" height="3" fill="#9944dd"/>
+  <rect x="9" y="6" width="2" height="2" fill="#7722bb"/>
+  <rect x="13" y="6" width="2" height="2" fill="#7722bb"/>
+  <rect x="10" y="4" width="4" height="2" fill="#bb66ff"/>
+  <rect x="11" y="3" width="2" height="2" fill="#ffddff"/>
+</svg>`;
+
+// CHILI PIXEL ART SVG
+const CABE_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
+  <!-- main tall stem -->
+  <rect x="11" y="4" width="2" height="28" fill="#4a6b1a"/>
+  <rect x="10" y="5" width="1" height="26" fill="#3a5510"/>
+  <rect x="13" y="5" width="1" height="26" fill="#5a7a22"/>
+  <!-- stem nodes -->
+  <rect x="10" y="11" width="4" height="2" fill="#3a5510"/>
+  <rect x="10" y="19" width="4" height="2" fill="#3a5510"/>
+  <rect x="10" y="26" width="4" height="2" fill="#3a5510"/>
+  <!-- lower left branch -->
+  <rect x="5" y="25" width="6" height="2" fill="#3d5a14"/>
+  <rect x="4" y="24" width="3" height="1" fill="#4a7a20"/>
+  <!-- lower right branch -->
+  <rect x="13" y="25" width="6" height="2" fill="#3d5a14"/>
+  <rect x="17" y="24" width="3" height="1" fill="#4a7a20"/>
+  <!-- mid left branch -->
+  <rect x="5" y="17" width="6" height="2" fill="#3d5a14"/>
+  <rect x="4" y="16" width="3" height="1" fill="#4a7a20"/>
+  <!-- mid right branch -->
+  <rect x="13" y="17" width="6" height="2" fill="#3d5a14"/>
+  <rect x="17" y="16" width="3" height="1" fill="#4a7a20"/>
+  <!-- upper left branch -->
+  <rect x="6" y="10" width="5" height="2" fill="#3d5a14"/>
+  <!-- upper right branch -->
+  <rect x="13" y="10" width="5" height="2" fill="#3d5a14"/>
+  <!-- top -->
+  <rect x="10" y="4" width="4" height="3" fill="#3d5a14"/>
+  <!-- leaves lower left -->
+  <rect x="2" y="22" width="8" height="5" fill="#5a8a20"/>
+  <rect x="1" y="23" width="4" height="3" fill="#4a7a18"/>
+  <rect x="3" y="21" width="5" height="2" fill="#6aaa28"/>
+  <rect x="2" y="25" width="5" height="2" fill="#4a7a18"/>
+  <!-- leaves lower right -->
+  <rect x="14" y="22" width="8" height="5" fill="#5a8a20"/>
+  <rect x="19" y="23" width="4" height="3" fill="#4a7a18"/>
+  <rect x="16" y="21" width="5" height="2" fill="#6aaa28"/>
+  <rect x="17" y="25" width="5" height="2" fill="#4a7a18"/>
+  <!-- leaves mid left -->
+  <rect x="3" y="14" width="8" height="5" fill="#5a8a20"/>
+  <rect x="2" y="15" width="4" height="3" fill="#4a7a18"/>
+  <rect x="4" y="13" width="5" height="2" fill="#6aaa28"/>
+  <!-- leaves mid right -->
+  <rect x="13" y="14" width="8" height="5" fill="#5a8a20"/>
+  <rect x="19" y="15" width="4" height="3" fill="#4a7a18"/>
+  <rect x="15" y="13" width="5" height="2" fill="#6aaa28"/>
+  <!-- leaves top -->
+  <rect x="7" y="5" width="10" height="6" fill="#5a8a20"/>
+  <rect x="6" y="6" width="4" height="4" fill="#4a7a18"/>
+  <rect x="14" y="6" width="4" height="4" fill="#4a7a18"/>
+  <rect x="8" y="3" width="8" height="3" fill="#6aaa28"/>
+  <rect x="9" y="2" width="6" height="2" fill="#5a8a20"/>
+  <!-- CHILI lower left (hanging, pointed tip) -->
+  <rect x="3" y="24" width="3" height="5" fill="#dd2010"/>
+  <rect x="4" y="28" width="1" height="2" fill="#aa1008"/>
+  <rect x="3" y="24" width="1" height="2" fill="#ff4030"/>
+  <rect x="4" y="23" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI lower right -->
+  <rect x="18" y="24" width="3" height="5" fill="#dd2010"/>
+  <rect x="19" y="28" width="1" height="2" fill="#aa1008"/>
+  <rect x="18" y="24" width="1" height="2" fill="#ff4030"/>
+  <rect x="19" y="23" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI mid left -->
+  <rect x="4" y="16" width="3" height="5" fill="#e82818"/>
+  <rect x="5" y="20" width="1" height="2" fill="#aa1008"/>
+  <rect x="4" y="16" width="1" height="2" fill="#ff4030"/>
+  <rect x="5" y="15" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI mid right -->
+  <rect x="17" y="16" width="3" height="5" fill="#e82818"/>
+  <rect x="18" y="20" width="1" height="2" fill="#aa1008"/>
+  <rect x="17" y="16" width="1" height="2" fill="#ff4030"/>
+  <rect x="18" y="15" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI upper left -->
+  <rect x="6" y="8" width="3" height="5" fill="#e03020"/>
+  <rect x="7" y="12" width="1" height="2" fill="#aa1008"/>
+  <rect x="6" y="8" width="1" height="2" fill="#ff4030"/>
+  <rect x="7" y="7" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI upper right -->
+  <rect x="15" y="8" width="3" height="5" fill="#e03020"/>
+  <rect x="16" y="12" width="1" height="2" fill="#aa1008"/>
+  <rect x="15" y="8" width="1" height="2" fill="#ff4030"/>
+  <rect x="16" y="7" width="1" height="1" fill="#2a6010"/>
+  <!-- CHILI top center -->
+  <rect x="10" y="4" width="3" height="5" fill="#e03020"/>
+  <rect x="11" y="8" width="1" height="2" fill="#aa1008"/>
+  <rect x="10" y="4" width="1" height="2" fill="#ff5040"/>
+  <rect x="11" y="3" width="1" height="1" fill="#2a6010"/>
+</svg>`;
+
+const CABE_TREE_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="6" y="31" width="12" height="5" fill="#5a2e10"/>
+  <rect x="4" y="32" width="16" height="4" fill="#6b3a1a"/>
+  <rect x="5" y="33" width="14" height="2" fill="#7a4525"/>
+  <!-- main tall stem -->
+  <rect x="11" y="4" width="2" height="28" fill="#4a6b1a"/>
+  <rect x="10" y="5" width="1" height="26" fill="#3a5510"/>
+  <rect x="13" y="5" width="1" height="26" fill="#5a7a22"/>
+  <!-- stem nodes -->
+  <rect x="10" y="11" width="4" height="2" fill="#3a5510"/>
+  <rect x="10" y="19" width="4" height="2" fill="#3a5510"/>
+  <rect x="10" y="26" width="4" height="2" fill="#3a5510"/>
+  <!-- branches -->
+  <rect x="5" y="25" width="6" height="2" fill="#3d5a14"/>
+  <rect x="13" y="25" width="6" height="2" fill="#3d5a14"/>
+  <rect x="5" y="17" width="6" height="2" fill="#3d5a14"/>
+  <rect x="13" y="17" width="6" height="2" fill="#3d5a14"/>
+  <rect x="6" y="10" width="5" height="2" fill="#3d5a14"/>
+  <rect x="13" y="10" width="5" height="2" fill="#3d5a14"/>
+  <!-- leaves lower -->
+  <rect x="2" y="22" width="8" height="5" fill="#5a8a20"/>
+  <rect x="1" y="23" width="4" height="3" fill="#4a7a18"/>
+  <rect x="14" y="22" width="8" height="5" fill="#5a8a20"/>
+  <rect x="19" y="23" width="4" height="3" fill="#4a7a18"/>
+  <!-- leaves mid -->
+  <rect x="3" y="14" width="8" height="5" fill="#5a8a20"/>
+  <rect x="2" y="15" width="4" height="3" fill="#4a7a18"/>
+  <rect x="13" y="14" width="8" height="5" fill="#5a8a20"/>
+  <rect x="19" y="15" width="4" height="3" fill="#4a7a18"/>
+  <!-- leaves top -->
+  <rect x="7" y="5" width="10" height="6" fill="#5a8a20"/>
+  <rect x="6" y="6" width="4" height="4" fill="#4a7a18"/>
+  <rect x="14" y="6" width="4" height="4" fill="#4a7a18"/>
+  <rect x="8" y="3" width="8" height="3" fill="#6aaa28"/>
+  <!-- small green buds (regrowing) -->
+  <rect x="4" y="25" width="2" height="3" fill="#7acc30"/>
+  <rect x="18" y="25" width="2" height="3" fill="#7acc30"/>
+  <rect x="4" y="17" width="2" height="3" fill="#7acc30"/>
+  <rect x="18" y="17" width="2" height="3" fill="#7acc30"/>
+  <rect x="10" y="9" width="2" height="3" fill="#7acc30"/>
+  <rect x="14" y="9" width="2" height="3" fill="#7acc30"/>
 </svg>`;
 
 const FIELD_DEFS = [
@@ -1773,7 +1973,20 @@ function buildTile(fid, pid, p){
   else if(p.state === 'planted'){
     const c = CROPS[p.plant];
     if(p.watered){
-      sp = c.gs; lb = c.name.toUpperCase();
+      // Growth stage display for terong
+      if(p.plant === 'terong'){
+        const total = c.grow;
+        const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
+        const pct = Math.min(1, elapsed / total);
+        let stageSvg;
+        if(pct < 0.25) stageSvg = TERONG_STAGE1_SVG;
+        else if(pct < 0.55) stageSvg = TERONG_STAGE2_SVG;
+        else stageSvg = TERONG_STAGE3_SVG;
+        sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
+      } else {
+        sp = c.gs;
+      }
+      lb = c.name.toUpperCase();
       pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
       const left = p.plantedAt ? Math.max(0,(p.plantedAt+c.grow)-Date.now()) : c.grow;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left)}</div>`;
@@ -1788,11 +2001,14 @@ function buildTile(fid, pid, p){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TOMAT_TREE_SVG}</span>`;
       lb = (p.harvestCount||0) >= 4 ? 'HARVEST! (LAST)' : `HARVEST! (${5-(p.harvestCount||0)}x left)`;
     } else if(p.plant === 'cabe'){
-      sp = `<span style="display:inline-block;width:2.2rem;height:2.8rem;vertical-align:middle">${CABE_TREE_SVG}</span>`;
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${CABE_TREE_SVG}</span>`;
       lb = (p.harvestCount||0) >= 4 ? 'HARVEST! (LAST)' : `HARVEST! (${5-(p.harvestCount||0)}x left)`;
     } else if(p.plant === 'jagung'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.5rem;vertical-align:bottom">${JAGUNG_TREE_SVG}</span>`;
       lb = (p.harvestCount||0) >= 4 ? 'HARVEST! (LAST)' : `HARVEST! (${5-(p.harvestCount||0)}x left)`;
+    } else if(p.plant === 'terong'){
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TERONG_STAGE4_SVG}</span>`;
+      lb = 'HARVEST!';
     } else { sp = c.emoji; lb = 'HARVEST!'; }
   }
   else if(p.state === 'regrowing'){
@@ -1803,7 +2019,7 @@ function buildTile(fid, pid, p){
       const left2 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 30000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left2)}</div>`;
     } else if(p.plant === 'cabe'){
-      sp = `<span style="display:inline-block;width:2.2rem;height:2.8rem;vertical-align:middle">${CABE_TREE_BARE_SVG}</span>`;
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${CABE_TREE_BARE_SVG}</span>`;
       lb = 'REGROWING...';
       pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
       const left3 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 25000;
@@ -1821,7 +2037,7 @@ function buildTile(fid, pid, p){
     sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TOMAT_TREE_BARE_SVG}</span>`;
   }
   if(p.state === 'planted' && p.plant === 'cabe' && p.watered){
-    sp = `<span style="display:inline-block;width:2.2rem;height:2.8rem;vertical-align:middle">${CABE_TREE_BARE_SVG}</span>`;
+    sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${CABE_TREE_BARE_SVG}</span>`;
   }
   if(p.state === 'planted' && p.plant === 'jagung' && p.watered){
     sp = `<span style="display:inline-block;width:2.8rem;height:4.5rem;vertical-align:bottom">${JAGUNG_TREE_BARE_SVG}</span>`;
