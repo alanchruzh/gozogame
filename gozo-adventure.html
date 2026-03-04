@@ -92,7 +92,12 @@
   .tree{position:absolute;z-index:12;pointer-events:none;image-rendering:pixelated;image-rendering:crisp-edges;}
   .flower{position:absolute;font-size:12px;z-index:3;pointer-events:none;animation:flowerSway 4s ease-in-out infinite;}
   .rock{position:absolute;font-size:18px;z-index:5;pointer-events:none;}
-  .npc{position:absolute;cursor:pointer;z-index:13;text-align:center;animation:enemyBob 2.2s ease-in-out infinite;}
+  .npc{position:absolute;cursor:pointer;z-index:20;text-align:center;image-rendering:pixelated;}
+  .npc:hover .npc-label{opacity:1;}
+  .npc-label{font-size:5px;color:#FFD700;font-family:'Press Start 2P',monospace;margin-top:2px;white-space:nowrap;opacity:0.85;text-shadow:1px 1px 0 #000,0 0 6px rgba(255,215,0,.6);}
+  @keyframes npcBreathe{0%,100%{transform:scaleY(1) translateY(0)}50%{transform:scaleY(0.97) translateY(1px)}}
+  .npc-bubble::after{content:'';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#333;}
+  .npc-bubble::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:#ffffee;z-index:1;}
 
   /* HUD */
   #hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);z-index:50;}
@@ -155,6 +160,7 @@
   #stats-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
   #bgm-btn{display:none;position:fixed;bottom:58px;right:20px;z-index:61;background:var(--panel);border:2px solid #44cc88;color:#44cc88;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,204,136,.2);transition:box-shadow .2s;}
   #bgm-btn:hover{box-shadow:0 0 20px rgba(68,204,136,.5);}
+  #shop-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
 
   /* LEVEL UP */
   #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
@@ -2883,20 +2889,95 @@ function spawnDecorations(){
     pd.textContent=e; world.appendChild(pd);
   });
 
-  // NPCs — never inside grass
-  const npcs=[
-    {x:W/2+80,  y:H/2-90, emoji:'👴', label:'MERCHANT'},
-    {x:W*0.25,  y:H*0.25, emoji:'🧝', label:'RANGER'},
-    {x:W*0.75,  y:H*0.25, emoji:'🧙', label:'MAGE'},
-    {x:W*0.25,  y:H*0.75, emoji:'⚔️', label:'WARRIOR'},
+  // Shop NPCs — full-size Gozo-sized pixel art, collision, idle anim, speech bubble
+  function makeNpcSvg(s,h,sk){
+    return `<svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="48" height="64" shape-rendering="crispEdges">
+      <rect x="11" y="56" width="11" height="14" fill="#1a1a2e"/><rect x="28" y="56" width="11" height="14" fill="#1a1a2e"/>
+      <rect x="9" y="62" width="14" height="8" fill="#252540"/><rect x="27" y="62" width="14" height="8" fill="#252540"/>
+      <rect x="12" y="38" width="12" height="20" fill="#3a5080"/><rect x="26" y="38" width="12" height="20" fill="#3a5080"/>
+      <rect x="23" y="38" width="4" height="20" fill="#334470"/>
+      <rect x="10" y="35" width="30" height="4" fill="#2a2a2a"/><rect x="22" y="34" width="6" height="6" fill="#aaa"/>
+      <rect x="9" y="17" width="32" height="20" fill="${s}"/>
+      <rect x="21" y="17" width="8" height="20" fill="${s}dd"/>
+      <rect x="1" y="18" width="9" height="18" fill="${s}"/><rect x="40" y="18" width="9" height="18" fill="${s}"/>
+      <rect x="2" y="36" width="7" height="6" fill="${sk}"/><rect x="41" y="36" width="7" height="6" fill="${sk}"/>
+      <rect x="22" y="10" width="6" height="7" fill="${sk}"/>
+      <rect x="13" y="3" width="24" height="18" fill="${sk}"/>
+      <rect x="9" y="8" width="5" height="8" fill="${sk}cc"/><rect x="36" y="8" width="5" height="8" fill="${sk}cc"/>
+      <rect x="11" y="0" width="28" height="8" fill="${h}"/><rect x="9" y="1" width="32" height="6" fill="${h}"/>
+      <rect x="9" y="6" width="5" height="10" fill="${h}"/><rect x="36" y="6" width="5" height="10" fill="${h}"/>
+      <rect x="16" y="9" width="8" height="7" fill="#fff"/><rect x="26" y="9" width="8" height="7" fill="#fff"/>
+      <rect x="18" y="10" width="5" height="5" fill="#3a2a1a"/><rect x="28" y="10" width="5" height="5" fill="#3a2a1a"/>
+      <rect x="19" y="11" width="3" height="3" fill="#0d0500"/><rect x="29" y="11" width="3" height="3" fill="#0d0500"/>
+      <rect x="21" y="11" width="2" height="2" fill="#fff"/><rect x="31" y="11" width="2" height="2" fill="#fff"/>
+      <rect x="16" y="9" width="8" height="2" fill="#1a1a1a"/><rect x="26" y="9" width="8" height="2" fill="#1a1a1a"/>
+      <rect x="23" y="15" width="4" height="4" fill="${sk}cc"/>
+      <rect x="17" y="19" width="16" height="2" fill="#9a5535"/>
+    </svg>`;
+  }
+
+  const NPC_DATA=[
+    {shirt:'#cc3322',hair:'#1a1010',skin:'#d4a574', label:'SHOP',    type:'general',
+     lines:['Welcome! Best deals in town!','Buy weapons, armor & potions!','Come back anytime, friend!']},
+    {shirt:'#335577',hair:'#5c3a1e',skin:'#d4a574', label:'ARMORY',  type:'weapons',
+     lines:['Fine blades for fine warriors!','A sharp sword saves lives!','These weapons are legendary!']},
+    {shirt:'#336644',hair:'#1a0a00',skin:'#c49060', label:'ARMORER', type:'armors',
+     lines:['Best armor in the land!','Defense wins battles!','Stay protected, adventurer!']},
+    {shirt:'#773388',hair:'#111122',skin:'#d4a574', label:'MAGE',    type:'upgrade',
+     lines:['I can enhance your gear!','Magic upgrades, cheap price!','The arcane arts serve you!']},
   ];
-  npcs.forEach(n=>{
-    if(inGrass(n.x,n.y,40,40)) return;
-    const npc=document.createElement('div'); npc.className='npc';
-    npc.style.cssText=`left:${n.x}px;top:${n.y}px;font-size:28px;`;
-    npc.innerHTML=`<div>${n.emoji}</div><div style="font-size:5px;color:#FFD700;font-family:'Press Start 2P'">${n.label}</div>`;
-    npc.onclick=()=>showDialog(DIALOGS[Math.floor(Math.random()*DIALOGS.length)]);
-    world.appendChild(npc);
+  const NPC_XOFF = [-240, -100, 50, 200];
+
+  NPC_DATA.forEach((n,i)=>{
+    const nx = W/2 + NPC_XOFF[i];
+    const ny = H/2 - 68;
+
+    // Wrapper div
+    const wrap = document.createElement('div');
+    wrap.className = 'npc';
+    wrap.style.cssText = `left:${nx}px;top:${ny}px;width:48px;`;
+
+    // Speech bubble
+    const bubble = document.createElement('div');
+    bubble.className = 'npc-bubble';
+    bubble.style.cssText = `display:none;position:absolute;bottom:72px;left:50%;transform:translateX(-50%);
+      background:#ffffee;border:2px solid #333;color:#111;font-family:'Press Start 2P',monospace;
+      font-size:5px;padding:4px 6px;white-space:nowrap;z-index:30;line-height:1.8;text-align:center;
+      box-shadow:2px 2px 0 #333;max-width:120px;white-space:normal;width:max-content;max-width:110px;`;
+    bubble.innerHTML = n.lines[0];
+
+    // Sprite with idle breathing animation
+    const spriteWrap = document.createElement('div');
+    spriteWrap.style.cssText = 'animation:npcBreathe 2.5s ease-in-out infinite;display:inline-block;';
+    spriteWrap.innerHTML = makeNpcSvg(n.shirt, n.hair, n.skin);
+
+    // Label
+    const lbl = document.createElement('div');
+    lbl.className = 'npc-label';
+    lbl.textContent = n.label;
+
+    wrap.appendChild(bubble);
+    wrap.appendChild(spriteWrap);
+    wrap.appendChild(lbl);
+
+    // Auto-show bubble, cycle speech every few seconds
+    let lineIdx = 0;
+    bubble.style.display = 'block';
+    setInterval(()=>{
+      lineIdx = (lineIdx+1) % n.lines.length;
+      bubble.style.animation='none'; void bubble.offsetWidth;
+      bubble.style.animation='fadeIn .3s ease';
+      bubble.innerHTML = n.lines[lineIdx];
+    }, 3000 + i*700);
+
+    wrap.onmouseenter = ()=>{ bubble.style.display='block'; };
+    wrap.onmouseleave = ()=>{ bubble.style.display='block'; }; // always visible
+    wrap.onclick = ()=>openShop(n.type, n.lines[0]);
+
+    world.appendChild(wrap);
+
+    // Collision — block player at NPC feet
+    obstacles.push({ x:nx+8, y:ny+52, w:32, h:14 });
   });
 
   // Boss marker (always in bottom-right, outside all grass)
@@ -5397,6 +5478,212 @@ function closeStatsScreen(){
   if(sc) sc.style.display='none';
 }
 
+// ==============================================
+// SHOP SYSTEM
+// ==============================================
+// Buy price: based on rarity + tier
+const SHOP_BUY_MULT = {Common:3, Uncommon:6, Rare:14, Epic:35, Legendary:90};
+function getBuyPrice(item){ return Math.floor((SHOP_BUY_MULT[item.rarity]||3)*(item.t||1)); }
+function getUpgradePrice(item){
+  const base = item.type==='weapon' ? (item.atk||0) : ((item.def||0)+(item.hp||0));
+  return Math.max(20, base * 8);
+}
+
+let _shopType = 'general';
+let _shopTab  = 'weapons';
+
+function openShop(type, desc){
+  _shopType = type;
+  _shopTab  = type==='armors' ? 'armors' : type==='upgrade' ? 'upgrade' : 'weapons';
+  const sc = document.getElementById('shop-screen');
+  if(!sc) return;
+  renderShop();
+  sc.style.display='flex';
+  bgmStop(); // pause music while in shop
+}
+
+function closeShop(){
+  const sc = document.getElementById('shop-screen');
+  if(sc) sc.style.display='none';
+  bgmFadeTo('explore');
+}
+
+function switchShopTab(tab){
+  _shopTab = tab;
+  renderShop();
+}
+
+function renderShop(){
+  const sc = document.getElementById('shop-screen');
+  if(!sc) return;
+  const p = state.player;
+  const tabs = {
+    weapons: _shopType!=='armors' && _shopType!=='upgrade',
+    armors:  _shopType!=='weapons' && _shopType!=='upgrade',
+    potions: _shopType==='general' || _shopType==='upgrade',
+    upgrade: _shopType==='upgrade' || _shopType==='general',
+  };
+  const tabBtns = Object.entries(tabs).filter(([,v])=>v).map(([k])=>
+    `<button onclick="switchShopTab('${k}')" style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 10px;cursor:pointer;
+      background:${_shopTab===k?'var(--yellow)':'var(--panel)'};color:${_shopTab===k?'#000':'#888'};
+      border:2px solid ${_shopTab===k?'var(--yellow)':'#333'};">${
+      k==='weapons'?'⚔️ WEAPONS':k==='armors'?'🛡️ ARMORS':k==='potions'?'💊 POTIONS':'🔮 UPGRADE'
+    }</button>`
+  ).join('');
+
+  let content = '';
+  if(_shopTab==='weapons'){
+    const tier = Math.min(10, Math.max(1, p.level));
+    const pool = WEAPONS.filter(w=> w.t<=tier && w.t>=Math.max(1,tier-2));
+    content = pool.map(w=>{
+      const price = getBuyPrice(w);
+      const canAfford = p.coins >= price;
+      const col = RARITY_COLOR[w.rarity];
+      return `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:9px 12px;margin-bottom:6px;">
+        <span style="font-size:26px;">${w.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-size:8px;color:${col};">${w.name}</div>
+          <div style="font-size:6px;color:#888;margin-top:2px;">T${w.t} · ⚔️ ATK +${w.atk} · <span style="color:${col}">${w.rarity}</span>${w.element?' · ['+w.element.toUpperCase()+']':''}</div>
+          <div style="font-size:6px;color:#555;">${w.desc}</div>
+        </div>
+        <button onclick="shopBuy('weapon','${w.id}')" ${canAfford?'':'disabled'}
+          style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:${canAfford?'pointer':'not-allowed'};
+          background:${canAfford?'var(--panel)':'#111'};color:${canAfford?'#FFD700':'#444'};border:2px solid ${canAfford?'#FFD700':'#333'};">
+          💰 ${price}g</button>
+      </div>`;
+    }).join('') || '<div style="color:#444;font-size:7px;text-align:center;padding:20px;">No weapons available for your level.</div>';
+
+  } else if(_shopTab==='armors'){
+    const tier = Math.min(10, Math.max(1, p.level));
+    const pool = ARMORS.filter(a=> a.t<=tier && a.t>=Math.max(1,tier-2));
+    content = pool.map(a=>{
+      const price = getBuyPrice(a);
+      const canAfford = p.coins >= price;
+      const col = RARITY_COLOR[a.rarity];
+      return `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:9px 12px;margin-bottom:6px;">
+        <span style="font-size:26px;">${a.emoji}</span>
+        <div style="flex:1;">
+          <div style="font-size:8px;color:${col};">${a.name}</div>
+          <div style="font-size:6px;color:#888;margin-top:2px;">T${a.t} · 🛡️ DEF +${a.def} · ❤️ HP +${a.hp} · <span style="color:${col}">${a.rarity}</span></div>
+          <div style="font-size:6px;color:#555;">${a.desc}</div>
+        </div>
+        <button onclick="shopBuy('armor','${a.id}')" ${canAfford?'':'disabled'}
+          style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:${canAfford?'pointer':'not-allowed'};
+          background:${canAfford?'var(--panel)':'#111'};color:${canAfford?'#FFD700':'#444'};border:2px solid ${canAfford?'#FFD700':'#333'};">
+          💰 ${price}g</button>
+      </div>`;
+    }).join('') || '<div style="color:#444;font-size:7px;text-align:center;padding:20px;">No armor available for your level.</div>';
+
+  } else if(_shopTab==='potions'){
+    const potPrice = 25;
+    const canAfford = p.coins >= potPrice;
+    content = `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:12px;margin-bottom:6px;">
+      <span style="font-size:32px;">💊</span>
+      <div style="flex:1;">
+        <div style="font-size:9px;color:#44ffaa;">Health Potion</div>
+        <div style="font-size:6px;color:#888;margin-top:3px;">Restores 30-50 HP in battle · Max 5 potions</div>
+        <div style="font-size:6px;color:#555;">You have: ${p.potions}/5 potions</div>
+      </div>
+      <button onclick="shopBuyPotion()" ${canAfford && p.potions<5?'':'disabled'}
+        style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:pointer;
+        background:var(--panel);color:#44ffaa;border:2px solid #44ffaa;">
+        💰 ${potPrice}g</button>
+    </div>`;
+
+  } else if(_shopTab==='upgrade'){
+    const allItems = [
+      ...inventory.weapons.map(i=>({...i,type:'weapon'})),
+      ...inventory.armors.map(i=>({...i,type:'armor'}))
+    ];
+    if(!allItems.length){
+      content = '<div style="color:#444;font-size:7px;text-align:center;padding:20px;">No items in your bag to upgrade!</div>';
+    } else {
+      content = allItems.map((item,idx)=>{
+        const price = getUpgradePrice(item);
+        const canAfford = p.coins >= price;
+        const col = RARITY_COLOR[item.rarity];
+        const isW = item.type==='weapon';
+        const realIdx = isW ? inventory.weapons.indexOf(item) : inventory.armors.indexOf(item);
+        return `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:9px 12px;margin-bottom:6px;">
+          <span style="font-size:26px;">${item.emoji}</span>
+          <div style="flex:1;">
+            <div style="font-size:8px;color:${col};">${item.name}</div>
+            <div style="font-size:6px;color:#888;margin-top:2px;">${isW?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+' ❤️ HP +'+item.hp} · <span style="color:${col}">${item.rarity}</span></div>
+            <div style="font-size:6px;color:#44ff88;margin-top:2px;">After upgrade: ${isW?'⚔️ ATK +'+(item.atk+3):'🛡️ DEF +'+(item.def+2)+' ❤️ HP +'+(item.hp+10)}</div>
+          </div>
+          <button onclick="shopUpgrade('${item.type}',${realIdx})" ${canAfford?'':'disabled'}
+            style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:${canAfford?'pointer':'not-allowed'};
+            background:${canAfford?'var(--panel)':'#111'};color:${canAfford?'#cc88ff':'#444'};border:2px solid ${canAfford?'#cc88ff':'#333'};">
+            🔮 ${price}g</button>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  sc.innerHTML = `
+    <div style="width:100%;max-width:580px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🏪 SHOP</div>
+          <div style="font-size:6px;color:#555;margin-top:3px;">${_shopType==='weapons'?'⚔️ Armory':_shopType==='armors'?'🛡️ Armorer':_shopType==='upgrade'?'🔮 Mage Shop':'🧑‍💼 General Store'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#FFD700;">💰 ${p.coins}g</span>
+          <button onclick="closeShop()" style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">${tabBtns}</div>
+      <div id="shop-content">${content}</div>
+    </div>`;
+}
+
+function shopBuy(type, itemId){
+  const pool = type==='weapon' ? WEAPONS : ARMORS;
+  const template = pool.find(i=>i.id===itemId);
+  if(!template) return;
+  const item = {...template, type};
+  const price = getBuyPrice(item);
+  if(state.player.coins < price){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
+  state.player.coins -= price;
+  addToInventory(item);
+  updateHUD();
+  showSellToast(`✅ Bought ${item.emoji} ${item.name}!`, RARITY_COLOR[item.rarity]);
+  renderShop();
+}
+
+function shopBuyPotion(){
+  const price = 25;
+  const p = state.player;
+  if(p.coins < price){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
+  if(p.potions >= 5){ showSellToast('❌ Already at max potions!','#ff8844'); return; }
+  p.coins -= price;
+  p.potions++;
+  updateHUD();
+  showSellToast(`✅ Bought a potion! (${p.potions}/5)`,'#44ffaa');
+  renderShop();
+}
+
+function shopUpgrade(type, idx){
+  const arr = type==='weapon' ? inventory.weapons : inventory.armors;
+  const item = arr[idx];
+  if(!item) return;
+  const price = getUpgradePrice(item);
+  if(state.player.coins < price){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
+  state.player.coins -= price;
+  // Apply upgrade
+  if(type==='weapon'){
+    item.atk += 3;
+    if(equipped.weapon===item) state.player.attack += 3;
+  } else {
+    item.def += 2; item.hp += 10;
+    if(equipped.armor===item){ state.player.defense+=2; state.player.maxHp+=10; state.player.hp=Math.min(state.player.hp+10,state.player.maxHp); }
+  }
+  updateHUD();
+  showSellToast(`🔮 ${item.name} upgraded!`,'#cc88ff');
+  spawnCoinBurst(price, '#cc88ff');
+  renderShop();
+}
+
 function openQuestScreen(){
   refreshDailyQuests();
   const sc = document.getElementById('quest-screen');
@@ -5475,5 +5762,6 @@ function renderQuestScreen(){
 <button onclick="bgmToggleMute()" id="bgm-btn">🎵 MUSIC</button>
 <div id="quest-screen"></div>
 <div id="stats-screen"></div>
+<div id="shop-screen"></div>
 </body>
 </html>
