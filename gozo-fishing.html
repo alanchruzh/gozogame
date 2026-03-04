@@ -31,16 +31,24 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 
 /* ── GAME ── */
 #gameScreen{flex-direction:column;}
-.topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 14px;
-  display:flex;align-items:center;justify-content:space-between;height:48px;flex-shrink:0;}
-.tbrand{font-size:14px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;}
-.tstats{display:flex;gap:12px;}
-.stat{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,.07);
-  border:1px solid rgba(255,215,0,.2);padding:3px 9px;font-size:7px;color:#FFD700;}
-.tbtns{display:flex;gap:7px;}
+.topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  min-height:48px;flex-shrink:0;flex-wrap:nowrap;gap:6px;overflow:visible;position:relative;z-index:50;}
+.tbrand{font-size:11px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;white-space:nowrap;flex-shrink:0;}
+.tstats{display:flex;gap:8px;flex-shrink:1;min-width:0;}
+.stat{display:flex;align-items:center;gap:4px;background:rgba(255,215,0,.07);
+  border:1px solid rgba(255,215,0,.2);padding:3px 7px;font-size:6px;color:#FFD700;white-space:nowrap;}
+.tbtns{display:flex;gap:5px;flex-shrink:0;position:relative;}
 .hbtn{background:#1a5c35;border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P';
-  font-size:6px;padding:4px 8px;cursor:pointer;transition:all .1s;}
+  font-size:5px;padding:4px 7px;cursor:pointer;transition:all .1s;white-space:nowrap;}
 .hbtn:hover{background:#FFD700;color:#0d3320;}
+/* More dropdown */
+.more-menu{display:none;position:absolute;top:100%;right:0;background:#030a04;
+  border:2px solid #FFD700;z-index:9999;min-width:120px;flex-direction:column;gap:0;}
+.more-menu.open{display:flex;}
+.more-menu .hbtn{width:100%;text-align:left;border:none;border-bottom:1px solid rgba(255,215,0,.2);
+  padding:7px 10px;font-size:5px;}
+.more-menu .hbtn:last-child{border-bottom:none;}
 
 /* ── WORLD CANVAS ── */
 #worldCanvas{display:block;flex:1;cursor:crosshair;}
@@ -316,10 +324,13 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
       <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
       <button class="hbtn" onclick="openMarket()">💱 MARKET</button>
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
-      <button class="hbtn" onclick="saveGame()">💾 SAVE</button>
-      <button class="hbtn" onclick="triggerLoad()">📂 LOAD</button>
+      <button class="hbtn" onclick="toggleMoreMenu()" id="moreBtn">▼ MORE</button>
+      <div class="more-menu" id="moreMenu">
+        <button class="hbtn" onclick="saveGame();closeMoreMenu()">💾 SAVE</button>
+        <button class="hbtn" onclick="triggerLoad();closeMoreMenu()">📂 LOAD</button>
+        <button class="hbtn" onclick="goTitle();closeMoreMenu()">🏠 MENU</button>
+      </div>
       <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadFromFile(event)">
-      <button class="hbtn" onclick="goTitle()">🏠 MENU</button>
     </div>
   </div>
 
@@ -3011,6 +3022,24 @@ async function buyGold(gozoAmount, goldAmount){
   document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
   mkBuying = false;
 }
+
+
+// ── More menu (topbar dropdown) ──────────────────────────
+function toggleMoreMenu(){
+  const m = document.getElementById('moreMenu');
+  m.classList.toggle('open');
+}
+function closeMoreMenu(){
+  document.getElementById('moreMenu').classList.remove('open');
+}
+// Close when clicking outside
+document.addEventListener('click', function(e){
+  const btn = document.getElementById('moreBtn');
+  const menu = document.getElementById('moreMenu');
+  if(btn && menu && !btn.contains(e.target) && !menu.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
 
 // ═══════════════════════════════════════════════════════════
 //  SAVE / LOAD  — download/upload JSON file to local computer
