@@ -4561,7 +4561,7 @@ function showDropPopup(item){
     <div style="color:#888;font-size:7px;margin-top:3px;">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+'  ❤️ HP +'+item.hp}</div>
     <div style="color:${col};font-size:7px;margin-top:2px;">${item.rarity} · T${item.t}</div>
     <div style="display:flex;gap:6px;margin-top:10px">
-      <button class="inv-btn" onclick="equipItem(window._lastDrop);document.getElementById('drop-popup').style.display='none'">⚡ EQUIP</button>
+      <button class="inv-btn" onclick="(function(){const it=window._lastDrop;if(!it)return;const inv=it.type==='weapon'?inventory.weapons:inventory.armors;if(!inv.includes(it))addToInventory(it);equipItem(it);document.getElementById('drop-popup').style.display='none';})()">⚡ EQUIP</button>
       <button class="inv-btn" style="border-color:#555;color:#555" onclick="document.getElementById('drop-popup').style.display='none'">✓ OK</button>
     </div>`;
   window._lastDrop = item;
