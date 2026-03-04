@@ -33,7 +33,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 #gameScreen{flex-direction:column;}
 .topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 10px;
   display:flex;align-items:center;justify-content:space-between;
-  min-height:48px;flex-shrink:0;flex-wrap:nowrap;gap:6px;overflow:visible;position:relative;z-index:50;}
+  min-height:48px;flex-shrink:0;flex-wrap:nowrap;gap:6px;overflow:visible;position:relative;z-index:9999;}
 .tbrand{font-size:11px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;white-space:nowrap;flex-shrink:0;}
 .tstats{display:flex;gap:8px;flex-shrink:1;min-width:0;}
 .stat{display:flex;align-items:center;gap:4px;background:rgba(255,215,0,.07);
@@ -43,8 +43,8 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   font-size:5px;padding:4px 7px;cursor:pointer;transition:all .1s;white-space:nowrap;}
 .hbtn:hover{background:#FFD700;color:#0d3320;}
 /* More dropdown */
-.more-menu{display:none;position:absolute;top:100%;right:0;background:#030a04;
-  border:2px solid #FFD700;z-index:9999;min-width:120px;flex-direction:column;gap:0;}
+.more-menu{display:none;position:fixed;top:48px;right:0;background:#030a04;
+  border:2px solid #FFD700;z-index:99999;min-width:120px;flex-direction:column;gap:0;}
 .more-menu.open{display:flex;}
 .more-menu .hbtn{width:100%;text-align:left;border:none;border-bottom:1px solid rgba(255,215,0,.2);
   padding:7px 10px;font-size:5px;}
@@ -117,6 +117,8 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   font-family:'Press Start 2P';font-size:5px;padding:4px 8px;cursor:pointer;width:100%;margin-top:6px;}
 .sbuy-gozo:hover{background:#FF8C00;color:#fff;}
 .sbuy-gozo:disabled{background:#1a2a1a;color:#2a3a2a;border-color:#0a1a0a;cursor:not-allowed;}
+.sbuy-gozo.connect{background:#1a5c35;color:#FFD700;border-color:#FFD700;}
+.sbuy-gozo.connect:hover{background:#FFD700;color:#0d3320;}
 .shop-status{font-size:5px;text-align:center;margin-top:8px;min-height:12px;color:#FFD700;}
 .shop-status.err{color:#ff4444;}
 .shop-status.ok{color:#44ff88;}
@@ -2320,8 +2322,7 @@ async function openShop(){
       <div class="sname">${b.name}</div>
       <div class="sdesc">${b.desc}</div>
       <div class="sprice">💎 ${b.gozo} $GOZO / 10 pcs</div>
-      <button class="sbuy-gozo" id="sbtn${i}" onclick="buyBait(${i})"
-        ${gWallet?'':'disabled title="Connect wallet first"'}>
+      <button class="sbuy-gozo ${gWallet?'':'connect'}" id="sbtn${i}" onclick="buyBait(${i})">
         ${gWallet?'BUY 10':'🔌 CONNECT WALLET'}
       </button>`;
     g.appendChild(d);
@@ -2676,6 +2677,25 @@ function showSaveToast(msg, isErr=false){
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(()=> el.classList.remove('show'), 2800);
 }
+
+
+// ── More menu (topbar dropdown) ──────────────────────────
+function toggleMoreMenu(){
+  const m = document.getElementById('moreMenu');
+  if(!m) return;
+  m.classList.toggle('open');
+}
+function closeMoreMenu(){
+  const m = document.getElementById('moreMenu');
+  if(m) m.classList.remove('open');
+}
+document.addEventListener('click', function(e){
+  const btn  = document.getElementById('moreBtn');
+  const menu = document.getElementById('moreMenu');
+  if(btn && menu && !btn.contains(e.target) && !menu.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
 
 </script>
 </body>
