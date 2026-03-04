@@ -499,25 +499,9 @@ function enterFarm(){
   document.getElementById('overlay').classList.remove('hidden');
 }
 
-// Auto-connect if already authorized
-window.addEventListener('load', async ()=>{
-  if(window.ethereum){
-    try {
-      const accounts = await window.ethereum.request({method:'eth_accounts'});
-      if(accounts.length){
-        walletAddress = accounts[0];
-        const short = walletAddress.slice(0,6)+'...'+walletAddress.slice(-4);
-        document.getElementById('burnWalletAddr').textContent = short;
-        document.getElementById('burnWalletSection').style.display = 'none';
-        document.getElementById('burnActionSection').style.display = 'block';
-        const wb = document.getElementById('walletBtn');
-        if(wb){ wb.textContent = '✅ '+short; wb.className = 'wallet-btn connected'; }
-        if(sessionStorage.getItem('gozofarm_burned') === walletAddress.toLowerCase()){
-          enterFarm();
-        }
-      }
-    } catch(e){}
-  }
+// Auto-start game directly (no wallet needed)
+window.addEventListener('load', ()=>{
+  startFarm();
 });
 
 
