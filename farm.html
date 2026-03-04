@@ -110,8 +110,7 @@ header{
 @keyframes plantBob{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.1)}}
 .plot[data-s=ready] .cs{font-size:1.5rem}
 @keyframes readyBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
-.pw{position:absolute;bottom:0;left:0;right:0;height:5px;background:#1a0800}
-.pb{height:100%;background:linear-gradient(90deg,#40b000,#80e020);transition:width 0.5s linear}
+
 .pl{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:0.22rem;color:rgba(255,255,255,0.75);text-shadow:1px 1px 0 #000;pointer-events:none}
 .pt-timer{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:0.2rem;color:var(--yellow);text-shadow:1px 1px 0 #000;pointer-events:none;z-index:3}
 
@@ -1569,6 +1568,107 @@ const TERONG_STAGE4_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
   <rect x="11" y="3" width="2" height="2" fill="#ffddff"/>
 </svg>`;
 
+// WORTEL (CARROT) PIXEL ART SVG - 3 growth stages
+// Stage 1: tiny green sprouts only, no carrot visible
+const WORTEL_STAGE1_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="3" y="26" width="18" height="10" fill="#6b3a1a"/>
+  <rect x="2" y="27" width="20" height="9" fill="#7a4525"/>
+  <rect x="4" y="28" width="16" height="8" fill="#8a5530"/>
+  <rect x="3" y="32" width="18" height="4" fill="#6b3a1a"/>
+  <!-- tiny sprout stems -->
+  <rect x="9" y="21" width="2" height="6" fill="#4a7a20"/>
+  <rect x="13" y="22" width="2" height="5" fill="#4a7a20"/>
+  <rect x="11" y="20" width="2" height="7" fill="#5a8a28"/>
+  <!-- small leaf pairs -->
+  <rect x="6" y="20" width="4" height="3" fill="#5a9a28"/>
+  <rect x="5" y="21" width="3" height="2" fill="#4a8a20"/>
+  <rect x="7" y="19" width="3" height="2" fill="#6aaa30"/>
+  <rect x="14" y="21" width="4" height="3" fill="#5a9a28"/>
+  <rect x="15" y="22" width="3" height="2" fill="#4a8a20"/>
+  <rect x="14" y="20" width="3" height="2" fill="#6aaa30"/>
+  <rect x="9" y="18" width="6" height="4" fill="#5a9a28"/>
+  <rect x="8" y="19" width="4" height="3" fill="#4a8a20"/>
+  <rect x="12" y="19" width="4" height="3" fill="#4a8a20"/>
+  <rect x="10" y="17" width="4" height="2" fill="#6aaa30"/>
+</svg>`;
+
+// Stage 2: leaves bigger, small orange carrot starting to show
+const WORTEL_STAGE2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="3" y="24" width="18" height="12" fill="#6b3a1a"/>
+  <rect x="2" y="25" width="20" height="11" fill="#7a4525"/>
+  <rect x="4" y="26" width="16" height="10" fill="#8a5530"/>
+  <rect x="3" y="30" width="18" height="6" fill="#6b3a1a"/>
+  <!-- stem -->
+  <rect x="10" y="15" width="2" height="10" fill="#4a7a20"/>
+  <rect x="12" y="16" width="2" height="9" fill="#5a8a28"/>
+  <!-- bigger leaf cluster left -->
+  <rect x="4" y="15" width="7" height="5" fill="#5a9a28"/>
+  <rect x="3" y="16" width="5" height="4" fill="#4a8a20"/>
+  <rect x="5" y="14" width="5" height="2" fill="#6aaa30"/>
+  <rect x="3" y="19" width="4" height="2" fill="#3a7818"/>
+  <!-- bigger leaf cluster right -->
+  <rect x="13" y="15" width="7" height="5" fill="#5a9a28"/>
+  <rect x="16" y="16" width="5" height="4" fill="#4a8a20"/>
+  <rect x="14" y="14" width="5" height="2" fill="#6aaa30"/>
+  <rect x="17" y="19" width="4" height="2" fill="#3a7818"/>
+  <!-- top leaves -->
+  <rect x="8" y="12" width="8" height="5" fill="#5a9a28"/>
+  <rect x="7" y="13" width="5" height="4" fill="#4a8a20"/>
+  <rect x="12" y="13" width="5" height="4" fill="#4a8a20"/>
+  <rect x="9" y="11" width="6" height="3" fill="#6aaa30"/>
+  <rect x="10" y="10" width="4" height="2" fill="#5a9a28"/>
+  <!-- small carrot body peeking out of soil (pale orange) -->
+  <rect x="9" y="22" width="6" height="4" fill="#e87820"/>
+  <rect x="9" y="22" width="3" height="2" fill="#ffaa44"/>
+  <rect x="10" y="25" width="4" height="1" fill="#c05810"/>
+</svg>`;
+
+// Stage 3: full big carrot, lush leaves (ready to harvest)
+const WORTEL_STAGE3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="3" y="22" width="18" height="14" fill="#6b3a1a"/>
+  <rect x="2" y="23" width="20" height="13" fill="#7a4525"/>
+  <rect x="4" y="24" width="16" height="12" fill="#8a5530"/>
+  <rect x="3" y="28" width="18" height="8" fill="#6b3a1a"/>
+  <!-- stem -->
+  <rect x="10" y="10" width="3" height="13" fill="#4a7a20"/>
+  <rect x="9" y="11" width="1" height="11" fill="#3a6010"/>
+  <rect x="13" y="11" width="1" height="11" fill="#5a8a28"/>
+  <!-- lush left leaves -->
+  <rect x="2" y="10" width="9" height="7" fill="#5a9a28"/>
+  <rect x="1" y="11" width="6" height="6" fill="#4a8a20"/>
+  <rect x="3" y="9" width="6" height="3" fill="#6aaa30"/>
+  <rect x="2" y="15" width="5" height="3" fill="#3a7818"/>
+  <!-- lush right leaves -->
+  <rect x="13" y="10" width="9" height="7" fill="#5a9a28"/>
+  <rect x="17" y="11" width="6" height="6" fill="#4a8a20"/>
+  <rect x="15" y="9" width="6" height="3" fill="#6aaa30"/>
+  <rect x="17" y="15" width="5" height="3" fill="#3a7818"/>
+  <!-- top center leaves -->
+  <rect x="7" y="7" width="10" height="6" fill="#5a9a28"/>
+  <rect x="6" y="8" width="5" height="5" fill="#4a8a20"/>
+  <rect x="13" y="8" width="5" height="5" fill="#4a8a20"/>
+  <rect x="8" y="5" width="8" height="4" fill="#6aaa30"/>
+  <rect x="9" y="3" width="6" height="3" fill="#5a9a28"/>
+  <rect x="10" y="2" width="4" height="2" fill="#4a8a20"/>
+  <!-- FULL CARROT body -->
+  <rect x="8" y="21" width="8" height="10" fill="#e87820"/>
+  <rect x="8" y="21" width="4" height="4" fill="#ffaa44"/>
+  <rect x="10" y="24" width="6" height="2" fill="#ffaa44"/>
+  <!-- carrot tip (pointed bottom) -->
+  <rect x="9" y="30" width="6" height="2" fill="#d06010"/>
+  <rect x="10" y="32" width="4" height="2" fill="#c05010"/>
+  <rect x="11" y="34" width="2" height="1" fill="#b04010"/>
+  <!-- carrot ridges -->
+  <rect x="8" y="23" width="8" height="1" fill="#d06818"/>
+  <rect x="8" y="26" width="8" height="1" fill="#d06818"/>
+  <rect x="8" y="29" width="8" height="1" fill="#c05810"/>
+  <!-- carrot highlight -->
+  <rect x="8" y="21" width="2" height="8" fill="#ffbb55"/>
+</svg>`;
+
 // CHILI PIXEL ART SVG
 const CABE_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
   <!-- soil -->
@@ -1983,11 +2083,20 @@ function buildTile(fid, pid, p){
         else if(pct < 0.55) stageSvg = TERONG_STAGE2_SVG;
         else stageSvg = TERONG_STAGE3_SVG;
         sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
+      } else if(p.plant === 'wortel'){
+        const total = c.grow;
+        const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
+        const pct = Math.min(1, elapsed / total);
+        let stageSvg;
+        if(pct < 0.35) stageSvg = WORTEL_STAGE1_SVG;
+        else if(pct < 0.7) stageSvg = WORTEL_STAGE2_SVG;
+        else stageSvg = WORTEL_STAGE3_SVG;
+        sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
       } else {
         sp = c.gs;
       }
       lb = c.name.toUpperCase();
-      pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
+
       const left = p.plantedAt ? Math.max(0,(p.plantedAt+c.grow)-Date.now()) : c.grow;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left)}</div>`;
     } else {
@@ -2009,25 +2118,28 @@ function buildTile(fid, pid, p){
     } else if(p.plant === 'terong'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TERONG_STAGE4_SVG}</span>`;
       lb = 'HARVEST!';
+    } else if(p.plant === 'wortel'){
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${WORTEL_STAGE3_SVG}</span>`;
+      lb = 'HARVEST!';
     } else { sp = c.emoji; lb = 'HARVEST!'; }
   }
   else if(p.state === 'regrowing'){
     if(p.plant === 'tomat'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TOMAT_TREE_BARE_SVG}</span>`;
       lb = 'REGROWING...';
-      pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
+
       const left2 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 30000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left2)}</div>`;
     } else if(p.plant === 'cabe'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${CABE_TREE_BARE_SVG}</span>`;
       lb = 'REGROWING...';
-      pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
+
       const left3 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 25000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left3)}</div>`;
     } else if(p.plant === 'jagung'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.5rem;vertical-align:bottom">${JAGUNG_TREE_BARE_SVG}</span>`;
       lb = 'REGROWING...';
-      pg = `<div class="pw"><div class="pb" id="pb-${fid}-${pid}" style="width:0%"></div></div>`;
+
       const left4 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 35000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left4)}</div>`;
     }
@@ -2128,9 +2240,6 @@ function startRegrowTimer(fid, pid, remainMs){
   const total = remainMs;
   timers[tk] = setInterval(()=>{
     const left = endAt - Date.now();
-    const pct = Math.min(100, (total - Math.max(0, left)) / total * 100);
-    const bar = document.getElementById(`pb-${fid}-${pid}`);
-    if(bar) bar.style.width = pct + '%';
     const tmrEl = document.getElementById(`tmr-${fid}-${pid}`);
     if(tmrEl) tmrEl.textContent = left > 0 ? fmtTime(left) : 'HARVEST!';
     if(left <= 0){
@@ -2151,9 +2260,6 @@ function startGrowTimer(fid, pid, remainMs){
 
   timers[tk] = setInterval(()=>{
     const left = endAt - Date.now();
-    const pct = Math.min(100, (total - Math.max(0, left)) / total * 100);
-    const bar = document.getElementById(`pb-${fid}-${pid}`);
-    if(bar) bar.style.width = pct + '%';
     const tmrEl = document.getElementById(`tmr-${fid}-${pid}`);
     if(tmrEl) tmrEl.textContent = left > 0 ? fmtTime(left) : 'READY!';
     if(left <= 0){
