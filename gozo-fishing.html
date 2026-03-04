@@ -16,26 +16,43 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 
 /* ── TITLE ── */
 #titleScreen{flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 55% 45%,#1a5c35 0%,#060f07 100%);gap:18px;}
-.tlogo{font-size:40px;color:#FFD700;text-shadow:5px 5px 0 #8B1A1A,9px 9px 0 #3a0808;
-  animation:logoBounce 2s ease-in-out infinite;}
-@keyframes logoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.tsub{font-size:10px;color:#FF8C00;letter-spacing:3px;}
-.tinfo{font-size:6px;color:#4a8a55;text-align:center;line-height:2.6;max-width:420px;}
-.startbtn{background:#FFD700;color:#0d3320;border:4px solid #FF8C00;padding:14px 42px;
-  font-family:'Press Start 2P';font-size:12px;cursor:pointer;box-shadow:5px 5px 0 #8B1A1A;
-  animation:pulse 1.5s ease-in-out infinite;transition:all .1s;}
+  background:linear-gradient(180deg,#050e1f 0%,#0a1a3a 40%,#0d2a18 100%);gap:14px;
+  position:relative;overflow:hidden;}
+/* Pixel star bg on title */
+#titleScreen::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(1px 1px at 10% 15%,#fff 0%,transparent 100%),
+    radial-gradient(1px 1px at 30% 8%,#fff 0%,transparent 100%),
+    radial-gradient(1px 1px at 55% 20%,#ddf 0%,transparent 100%),
+    radial-gradient(1px 1px at 75% 10%,#fff 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 18%,#fff 0%,transparent 100%),
+    radial-gradient(1px 1px at 20% 30%,#aaf 0%,transparent 100%),
+    radial-gradient(1px 1px at 45% 5%,#fff 0%,transparent 100%),
+    radial-gradient(1px 1px at 65% 28%,#fff 0%,transparent 100%);
+  opacity:0.7;}
+.tlogo{font-size:36px;color:#FFD700;text-shadow:4px 4px 0 #8B1A1A,7px 7px 0 #3a0808;
+  animation:logoBounce 2s ease-in-out infinite;position:relative;z-index:1;}
+@keyframes logoBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.tsub{font-size:8px;color:#FF8C00;letter-spacing:4px;position:relative;z-index:1;}
+.title-mid{display:flex;align-items:flex-end;gap:24px;position:relative;z-index:1;}
+.title-stats{display:flex;flex-direction:column;gap:6px;}
+.tstat-item{font-size:6px;color:#4aaa55;border-left:2px solid #FFD700;padding-left:8px;line-height:2;}
+.tinfo{font-size:5px;color:#3a6a3a;text-align:center;line-height:2.8;max-width:380px;position:relative;z-index:1;}
+.startbtn{background:#FFD700;color:#0d3320;border:4px solid #FF8C00;padding:12px 36px;
+  font-family:'Press Start 2P';font-size:11px;cursor:pointer;box-shadow:5px 5px 0 #8B1A1A;
+  animation:pulse 1.4s ease-in-out infinite;transition:all .1s;position:relative;z-index:1;}
 .startbtn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 #8B1A1A;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.8}}
-.keyhint{font-size:6px;color:#2a5a35;text-align:center;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:5px 5px 0 #8B1A1A}50%{opacity:.85;box-shadow:5px 5px 14px #FFD700}}
+.keyhint{font-size:5px;color:#2a4a2a;text-align:center;position:relative;z-index:1;}
+.title-version{position:absolute;bottom:8px;right:12px;font-size:5px;color:#1a3a1a;z-index:1;}
 
 /* ── GAME ── */
 #gameScreen{flex-direction:column;}
-.topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 10px;
+.topbar{background:#030a04;border-bottom:3px solid #FFD700;padding:0 8px;
   display:flex;align-items:center;justify-content:space-between;
-  min-height:48px;flex-shrink:0;flex-wrap:nowrap;gap:6px;overflow:visible;position:relative;z-index:9999;}
-.tbrand{font-size:11px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;white-space:nowrap;flex-shrink:0;}
-.tstats{display:flex;gap:8px;flex-shrink:1;min-width:0;}
+  min-height:44px;flex-shrink:0;flex-wrap:nowrap;gap:4px;overflow:visible;position:relative;z-index:9999;}
+.tbrand{font-size:9px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;white-space:nowrap;flex-shrink:0;}
+.tstats{display:flex;gap:5px;flex-shrink:1;min-width:0;flex-wrap:wrap;}
+@media(max-width:600px){.tbrand{font-size:7px;}.stat{font-size:5px;padding:2px 4px;}.hbtn{font-size:4px;padding:3px 5px;}}
 .stat{display:flex;align-items:center;gap:4px;background:rgba(255,215,0,.07);
   border:1px solid rgba(255,215,0,.2);padding:3px 7px;font-size:6px;color:#FFD700;white-space:nowrap;}
 .tbtns{display:flex;gap:5px;flex-shrink:0;position:relative;}
@@ -71,7 +88,10 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 .msg{font-size:6px;color:#5a8a5a;flex:1;line-height:2;}
 .castbtn{background:#FFD700;color:#0d3320;border:3px solid #FF8C00;font-family:'Press Start 2P';
   font-size:9px;padding:9px 20px;cursor:pointer;box-shadow:4px 4px 0 #8B1A1A;
-  white-space:nowrap;transition:all .1s;flex-shrink:0;}
+  white-space:nowrap;transition:all .1s;flex-shrink:0;position:relative;overflow:hidden;}
+.castbtn::after{content:'';position:absolute;left:0;top:0;height:100%;width:0%;
+  background:rgba(255,140,0,0.35);transition:width 0.7s linear;pointer-events:none;}
+.castbtn.casting::after{width:100%;}
 .castbtn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #8B1A1A;}
 .castbtn.waiting{background:#ff6600;color:#fff;border-color:#cc3300;
   animation:waitp .55s ease-in-out infinite;}
@@ -196,16 +216,22 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 <!-- TITLE SCREEN -->
 <div id="titleScreen" class="screen active">
   <div class="tlogo">🎣 GOZO FISHING</div>
-  <div class="tsub">RIVER ADVENTURE</div>
-  <canvas id="titleGozo" width="160" height="220" style="image-rendering:pixelated;
-    filter:drop-shadow(0 12px 28px rgba(0,0,0,.8))"></canvas>
-  <div class="tinfo">
-    50 FRESHWATER FISH · 5 BAIT TYPES · EARN GOLD<br>
-    🎮 WASD / ARROW KEYS TO MOVE GOZO<br>
-    SPACE / CLICK CAST BUTTON TO FISH
+  <div class="tsub">PIXEL RIVER ADVENTURE</div>
+  <div class="title-mid">
+    <canvas id="titleGozo" width="160" height="200" style="image-rendering:pixelated;
+      filter:drop-shadow(0 8px 20px rgba(0,0,0,.9));width:100px;height:125px"></canvas>
+    <div class="title-stats">
+      <div class="tstat-item">🐟 50 FRESHWATER SPECIES</div>
+      <div class="tstat-item">🪱 5 BAIT TYPES</div>
+      <div class="tstat-item">🎣 5 ROD TIERS</div>
+      <div class="tstat-item">🪙 EARN GOLD PER CATCH</div>
+      <div class="tstat-item">💾 SAVE & LOAD PROGRESS</div>
+    </div>
   </div>
   <button class="startbtn" onclick="startGame()">▶ START FISHING</button>
-  <div class="keyhint">← → move · ↑ ↓ move · SPACE = cast / reel</div>
+  <div class="tinfo">WASD / ARROWS — MOVE &nbsp;·&nbsp; SPACE / CAST BTN — FISH</div>
+  <div class="keyhint">Walk to the river edge, then press CAST!</div>
+  <div class="title-version">v1.0 · GOZO FISHING</div>
 </div>
 
 <!-- GAME SCREEN -->
@@ -215,6 +241,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="tstats">
       
       <div class="stat">🐟 <span id="catchD">0</span> CAUGHT</div>
+      <div class="stat" id="rodStat" style="cursor:pointer" onclick="openShop()">🎣 <span id="rodD">Bamboo</span></div>
       <div class="prog">
         <div class="plabel" id="progLbl">0/50 SPECIES</div>
         <div class="pbar"><div class="pfill" id="progF" style="width:0%"></div></div>
@@ -241,7 +268,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="divid"></div>
     <div class="msg" id="msg">Use WASD / arrows to move. Walk to river edge, then CAST!</div>
     <button class="castbtn" id="castBtn" onclick="handleCast()">🎣 CAST</button>
-    <div class="movekeys">WASD<br>MOVE</div>
+    <div class="movekeys" style="cursor:pointer" onclick="openTut()" title="How to play">WASD<br>MOVE<br><span style="color:#FFD700;font-size:4px">❓HELP</span></div>
   </div>
 </div>
 
@@ -276,15 +303,38 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 
 <!-- INVENTORY MODAL -->
 <div id="invModal">
-  <div class="mbox">
-    <div class="mtitle">🎒 FISH COLLECTION</div>
-    <div style="font-size:6px;color:#3a5a3a;text-align:center;margin-bottom:10px" id="invSub">0/50 discovered</div>
-    <div class="invgrid" id="invGrid"></div>
+  <div class="mbox" style="max-width:520px">
+    <div class="mtitle">🎒 COLLECTION</div>
+    <div class="shop-tabs">
+      <button class="stab active" id="invTabFish" onclick="invTab('fish')">🐟 FISH</button>
+      <button class="stab" id="invTabRod" onclick="invTab('rod')">🎣 RODS</button>
+    </div>
+    <div style="font-size:6px;color:#3a5a3a;text-align:center;margin-bottom:8px" id="invSub">0/50 discovered</div>
+    <div id="invContent">
+      <div class="invgrid" id="invGrid"></div>
+    </div>
+    <div id="invStats" style="font-size:5px;color:#3a5a3a;text-align:center;margin-top:10px;line-height:2.5;border-top:1px solid rgba(255,215,0,0.1);padding-top:8px"></div>
     <button class="mclose" onclick="closeInv()">✕ CLOSE</button>
   </div>
 </div>
 
 <div class="notif" id="notif"></div>
+
+<!-- TUTORIAL OVERLAY -->
+<div id="tutOverlay">
+  <div class="tutbox">
+    <h2>🎣 HOW TO FISH</h2>
+    <div class="tutstep">
+      <span>① MOVE</span> — WASD or Arrow Keys<br>
+      <span>② WALK UP</span> — reach the river edge<br>
+      <span>③ SELECT BAIT</span> — click bait slot below<br>
+      <span>④ CAST</span> — press SPACE or CAST button<br>
+      <span>⑤ WAIT</span> — watch the bobber...<br>
+      <span>⑥ REEL IN!</span> — press CAST again when it bites!
+    </div>
+    <button class="tutclose" onclick="closeTut()">▶ GOT IT!</button>
+  </div>
+</div>
 <div class="save-toast" id="saveToast"></div>
 
 <script>
@@ -1141,6 +1191,8 @@ let G={
   bob:{active:false, x:0, y:0, alert:false, phase:0},
   // World particles (river current)
   particles:[],
+  // Splash particles for cast
+  splashP:[],
   // Time
   t:0,
 };
@@ -1181,12 +1233,15 @@ function resizeCanvas(){
   GROUND_Y = RIVER_Y + RIVER_H;
   // Set gozo start y
   G.gz.y = GROUND_Y + 2;
+  // Pre-render static sky to offscreen canvas
+  rebuildStaticBg();
 }
 
 // ═══════════════════════════════════════════
 // TREE GENERATOR (anime-style: mango, banyan)
 // ═══════════════════════════════════════════
 let treeCache = null;
+let offscreenBg = null;   // cached static background
 // Simple deterministic pseudo-random from a seed
 function seededRand(seed){ return ((seed*9301+49297)%233280)/233280; }
 
@@ -1210,7 +1265,7 @@ function buildTrees(){
     const r2 = seededRand(x+4);
     const variant = (r1*3)|0;
     const scale   = 0.75 + r2*0.4;
-    treeCache.push({x, y: GROUND_Y, variant, scale, layer:'near'});
+    treeCache.push({x, y: GROUND_Y+4, variant, scale:scale*0.75, layer:'near'});
   });
 }
 
@@ -1908,7 +1963,7 @@ function update(dt){
   gz.x=Math.max(30,Math.min(WORLD_W-30,gz.x));
 
   // Vertical: clamp between just above river and bottom of screen
-  const minY=GROUND_Y+4;
+  const minY=GROUND_Y+6; // keep player on stone ground
   const maxY=H-2;
   gz.y=Math.max(minY,Math.min(maxY,gz.y));
 
@@ -1924,80 +1979,141 @@ function update(dt){
   updateParticles(dt);
 
   // Update bobber animation
+  // Update splash particles
+  G.splashP=G.splashP.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.15; p.life-=dt*2.5;
+    return p.life>0;
+  });
   if(G.bob.active){
     G.bob.phase+=dt*3;
   }
+}
+
+function rebuildStaticBg(){
+  offscreenBg = document.createElement('canvas');
+  offscreenBg.width = W; offscreenBg.height = H;
+  const oc = offscreenBg.getContext('2d');
+  oc.imageSmoothingEnabled = false;
+
+  // SKY gradient
+  const skyGrad=oc.createLinearGradient(0,0,0,SKY_H+FAR_BANK_H);
+  skyGrad.addColorStop(0,'#0A1A3A');
+  skyGrad.addColorStop(0.35,'#102448');
+  skyGrad.addColorStop(0.7,'#1A3A6A');
+  skyGrad.addColorStop(1,'#1E5A6A');
+  oc.fillStyle=skyGrad;
+  oc.fillRect(0,0,W,SKY_H+FAR_BANK_H);
+
+  // Stars (static positions)
+  const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4],[130,11],[270,9],[450,4],[680,7],[870,2],[55,12],[180,2],[350,11]];
+  starList.forEach(([sx,sy])=>{
+    oc.fillStyle='rgba(255,255,255,0.7)';
+    oc.fillRect(sx%W, sy, 2, 2);
+  });
+
+  // Far bank base
+  const fbGrad=oc.createLinearGradient(0,FAR_BANK_Y,0,FAR_BANK_Y+FAR_BANK_H);
+  fbGrad.addColorStop(0,'#0A3020'); fbGrad.addColorStop(1,'#071A10');
+  oc.fillStyle=fbGrad;
+  oc.fillRect(0,FAR_BANK_Y,W,FAR_BANK_H);
+  oc.fillStyle='#1A5A30'; oc.fillRect(0,FAR_BANK_Y,W,3);
+  oc.fillStyle='#226638'; oc.fillRect(0,FAR_BANK_Y,W,1);
+
+  // Ground base only (bricks drawn in render with scroll offset)
+  oc.fillStyle = '#5A6070';
+  oc.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 }
 
 function render(){
   ctx.clearRect(0,0,W,H);
 
   const cx=Math.round(G.camX);
+  const activeRod = RODS[G.rod] || RODS[0];
 
-  // ══════════════════════════════════════════
-  //  SKY  — deep dusk-blue pixel gradient
-  // ══════════════════════════════════════════
-  const skyGrad = ctx.createLinearGradient(0,0,0,SKY_H+FAR_BANK_H);
-  skyGrad.addColorStop(0,'#0A1A3A');
-  skyGrad.addColorStop(0.35,'#102448');
-  skyGrad.addColorStop(0.7,'#1A3A6A');
-  skyGrad.addColorStop(1,'#1E5A6A');
-  ctx.fillStyle = skyGrad;
-  ctx.fillRect(0,0,W,SKY_H+FAR_BANK_H);
+  // ── Draw cached static background (sky + base ground color) ──
+  if(offscreenBg) ctx.drawImage(offscreenBg,0,0);
+  else { ctx.fillStyle='#0A1A3A'; ctx.fillRect(0,0,W,H); }
 
-  // Stars — tiny pixel dots
+  // ── STONE BRICKS — scroll with camera ──
+  {
+    const BW=32, BH=16;
+    const bGrout='#2E3440', bBase='#5C6472', bLight='#7A8494';
+    const bMid='#6A7482', bDark='#3E4450', bCrack='#4A5260', bHi='#8A94A4';
+    for(let by=GROUND_Y; by<H; by+=BH){
+      const row=Math.floor((by-GROUND_Y)/BH);
+      const rowOff=(row%2===0)?0:BW/2;
+      // World X of first brick in this row aligned to cx
+      const startWX = Math.floor((cx-rowOff)/BW)*BW + rowOff;
+      for(let wx=startWX; wx<cx+W+BW; wx+=BW){
+        const sx=Math.round(wx-cx); // screen x
+        const by2=Math.round(by);
+        // Use world position for deterministic cracks
+        const seed=((wx>>5)*7+(by2>>4)*13)%100;
+
+        ctx.fillStyle=bGrout;
+        ctx.fillRect(sx,by2,BW,2);
+        ctx.fillRect(sx,by2,2,BH);
+
+        ctx.fillStyle=bBase;
+        ctx.fillRect(sx+2,by2+2,BW-3,BH-3);
+
+        ctx.fillStyle=bLight;
+        ctx.fillRect(sx+3,by2+3,BW-5,3);
+        ctx.fillRect(sx+3,by2+3,3,BH-5);
+
+        ctx.fillStyle=bMid;
+        ctx.fillRect(sx+3,by2+6,BW-5,BH-9);
+
+        ctx.fillStyle=bDark;
+        ctx.fillRect(sx+3,by2+BH-4,BW-4,3);
+        ctx.fillRect(sx+BW-4,by2+3,2,BH-6);
+
+        ctx.fillStyle=bHi;
+        ctx.fillRect(sx+3,by2+3,2,2);
+
+        if(seed<35){
+          ctx.fillStyle=bCrack;
+          const crx=sx+8+(seed%12), cry=by2+5+(seed%6);
+          ctx.fillRect(crx,cry,3,1); ctx.fillRect(crx+1,cry+1,2,1); ctx.fillRect(crx+2,cry+2,2,1);
+        }
+        if(seed>65){
+          ctx.fillStyle=bCrack;
+          const crx=sx+16+(seed%8), cry=by2+7+(seed%4);
+          ctx.fillRect(crx,cry,1,3); ctx.fillRect(crx+1,cry+1,1,2);
+        }
+        if(seed>80){
+          ctx.fillStyle='#3A5428';
+          ctx.fillRect(sx+5+(seed%8),by2+BH-5,2,2);
+        }
+      }
+    }
+    // Top stone edge line
+    ctx.fillStyle='#3E4450';
+    ctx.fillRect(0,GROUND_Y,W,2);
+  }
+
+  // Stars twinkle (just alpha changes on existing positions — cheap)
   ctx.save();
-  const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4],[950,6],[1100,3],[1300,7],[1500,4],[1700,6],[1900,3],[55,12],[180,2],[350,11],[600,6],[900,2],[1200,9],[1600,5]];
+  const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4]];
   starList.forEach(([wx,wy])=>{
     const sx=(wx-cx*0.04+WORLD_W)%WORLD_W;
     if(sx>W+4) return;
     const twinkle=Math.abs(Math.sin(G.t*1.2+wx*0.3));
-    ctx.globalAlpha=0.4+twinkle*0.5;
+    ctx.globalAlpha=twinkle*0.6;
     ctx.fillStyle='#FFFFFF';
     ctx.fillRect(sx,wy,2,2);
   });
-  // Moon
-  {
-    const mx=(WORLD_W*0.15-cx*0.03+WORLD_W)%WORLD_W;
-    if(mx>-30&&mx<W+30){
-      ctx.globalAlpha=0.9;
-      ctx.fillStyle='#EEF0C8'; ctx.beginPath(); ctx.arc(mx,14,10,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#D4D8A0'; ctx.beginPath(); ctx.arc(mx+2,16,7,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#EEF0C8'; ctx.fillRect(mx-3,9,4,4); ctx.fillRect(mx+2,6,3,3);
-      // shadow crescent
-      ctx.fillStyle='#1A3A6A'; ctx.beginPath(); ctx.arc(mx+4,13,9,0,Math.PI*2); ctx.fill();
-    }
-  }
-  ctx.restore();
+  ctx.restore(); // end star section
 
-  // Pixel clouds — chunky block style
+  // Clouds — simple pixel blocks, few rects each
   ctx.save();
-  const cloudData=[[80,9,56,20],[280,6,72,24],[520,11,48,18],[780,7,64,22],[1080,8,56,20],[1380,5,68,24],[1650,10,52,18]];
-  cloudData.forEach(([wx,wy,cw,ch])=>{
-    const sx=(wx-cx*0.08+WORLD_W)%WORLD_W - 0;
-    if(sx<-cw-10||sx>W+cw) return;
-    const P=4;
-    // Shadow
-    ctx.fillStyle='rgba(10,20,60,0.35)';
-    [[0,ch/P,cw/P,2],[1,ch/P,cw/P,2],[0,0,cw/P,ch/P+2]].forEach(()=>{});
-    ctx.fillRect(sx+P, wy+P, cw, Math.round(ch*0.4));
-    // Dark base
-    ctx.fillStyle='#2A4A7A';
-    ctx.fillRect(sx, wy+Math.round(ch*0.5), cw, Math.round(ch*0.5));
-    // Mid cloud
-    ctx.fillStyle='#3A5A9A';
-    ctx.fillRect(sx+P, wy+Math.round(ch*0.2), cw-P*2, Math.round(ch*0.6));
-    // Bright top
-    ctx.fillStyle='#4A6AAA';
-    ctx.fillRect(sx+P*2, wy, cw-P*4, Math.round(ch*0.5));
-    // Highlight edge
-    ctx.fillStyle='#5A7ABB';
-    ctx.fillRect(sx+P*2, wy, cw-P*4, P);
-    ctx.fillRect(sx+P, wy+P, P, P);
-    // Pixel bumps on top
-    ctx.fillStyle='#4A6AAA';
-    ctx.fillRect(sx+P*3, wy-P, P*3, P);
-    ctx.fillRect(sx+cw-P*5, wy-P*2, P*2, P*2);
+  [[80,9,56,20],[520,11,48,18],[1080,8,56,20],[1650,10,52,18]].forEach(([wx,wy,cw,ch])=>{
+    const sx=(wx-cx*0.08+WORLD_W)%WORLD_W;
+    if(sx<-cw||sx>W+cw) return;
+    ctx.fillStyle='#2A4A7A'; ctx.fillRect(sx,wy+ch*0.5,cw,ch*0.5);
+    ctx.fillStyle='#3A5A9A'; ctx.fillRect(sx+4,wy+ch*0.2,cw-8,ch*0.6);
+    ctx.fillStyle='#4A6AAA'; ctx.fillRect(sx+8,wy,cw-16,ch*0.5);
+    ctx.fillStyle='#5A7ABB'; ctx.fillRect(sx+8,wy,cw-16,4);
   });
   ctx.restore();
 
@@ -2011,16 +2127,12 @@ function render(){
   ctx.fillStyle=fbGrad;
   ctx.fillRect(0,FAR_BANK_Y,W,FAR_BANK_H);
 
-  // Pixel jagged treeline silhouette on far bank
+  // Jagged treeline — light version
   ctx.fillStyle='#0D2818';
-  ctx.save();
-  for(let tx2=0; tx2<W+16; tx2+=8){
-    const wx2=tx2+Math.floor(cx*0.25)%8;
-    const seed=(tx2+Math.floor(cx*0.25))*137%100;
-    const th2=4+(seed%8);
-    ctx.fillRect(tx2-4, FAR_BANK_Y, 9, th2);
+  for(let tx2=0;tx2<W;tx2+=8){
+    const seed=((tx2+Math.floor(cx*0.25))>>3)*7%13;
+    ctx.fillRect(tx2, FAR_BANK_Y, 8, 3+(seed%6));
   }
-  ctx.restore();
 
   // Top edge glow
   ctx.fillStyle='#1A5A30';
@@ -2034,7 +2146,7 @@ function render(){
       ctx.save();
       ctx.globalAlpha=0.55;
       // Blue-shift for distance
-      ctx.filter='hue-rotate(30deg) brightness(0.55) saturate(0.7)';
+      ctx.globalAlpha=0.55;
       const sx=tr.x-cx*0.3;
       if(sx>-150&&sx<W+150)
         drawTreeByVariant(ctx,sx,tr.y,tr.scale*0.75,G.t,tr.variant);
@@ -2045,27 +2157,24 @@ function render(){
   // ══════════════════════════════════════════
   //  RIVER — deep night water with reflections
   // ══════════════════════════════════════════
-  const riverGrad=ctx.createLinearGradient(0,RIVER_Y,0,RIVER_Y+RIVER_H);
-  riverGrad.addColorStop(0,'#0A2A4A');
-  riverGrad.addColorStop(0.25,'#0A2040');
-  riverGrad.addColorStop(0.6,'#071830');
-  riverGrad.addColorStop(1,'#040E20');
-  ctx.fillStyle=riverGrad;
-  ctx.fillRect(0,RIVER_Y,W,RIVER_H);
+  // River — 2 flat fills instead of gradient (faster)
+  ctx.fillStyle='#0A2040'; ctx.fillRect(0,RIVER_Y,W,Math.round(RIVER_H*0.4));
+  ctx.fillStyle='#071428'; ctx.fillRect(0,RIVER_Y+Math.round(RIVER_H*0.4),W,Math.round(RIVER_H*0.6));
 
-  // Moon reflection ripple
+  // Moon reflection — simple bright strip
   {
-    const mx=(WORLD_W*0.15-cx*0.05+WORLD_W)%WORLD_W;
-    const rg=ctx.createRadialGradient(mx,RIVER_Y+RIVER_H*0.15,2,mx,RIVER_Y+RIVER_H*0.15,80);
-    rg.addColorStop(0,'rgba(238,240,200,0.22)');
-    rg.addColorStop(1,'rgba(238,240,200,0)');
-    ctx.fillStyle=rg;
-    ctx.fillRect(0,RIVER_Y,W,RIVER_H*0.4);
+    const mx=Math.round((WORLD_W*0.15-cx*0.05+WORLD_W)%WORLD_W);
+    ctx.save(); ctx.globalAlpha=0.12;
+    ctx.fillStyle='#EEF0C8';
+    ctx.fillRect(mx-30,RIVER_Y,60,RIVER_H*0.35);
+    ctx.globalAlpha=0.06;
+    ctx.fillRect(mx-60,RIVER_Y,120,RIVER_H*0.2);
+    ctx.restore();
   }
 
   // Pixel wave lines
   ctx.save();
-  for(let i=0;i<10;i++){
+  for(let i=0;i<5;i++){
     const wy=RIVER_Y+8+i*(RIVER_H/10);
     const spd=20+i*6;
     ctx.globalAlpha=0.06+Math.sin(G.t*0.5+i)*0.03;
@@ -2082,7 +2191,7 @@ function render(){
 
   // Water sparkles — star glints
   ctx.save();
-  for(let g=0;g<8;g++){
+  for(let g=0;g<4;g++){
     const gx2=((cx*0.06+g*160+G.t*15)%(W+120))-60;
     const gy2=RIVER_Y+8+g*14;
     const gA=Math.abs(Math.sin(G.t*2+g*1.3))*0.7;
@@ -2125,81 +2234,14 @@ function render(){
     ctx.fillStyle='#4A5A6A'; ctx.fillRect(bsx-bW/2,bY2-bH-12,bW,2);
   }
 
-  // ── WATER EDGE — pixel transition bank ──
-  // Dark mud strip
-  ctx.fillStyle='#142A14';
-  ctx.fillRect(0,GROUND_Y-6,W,8);
-  // Wet sand/mud pixel row
-  ctx.save();
-  ctx.imageSmoothingEnabled=false;
-  for(let tx2=0;tx2<W;tx2+=4){
-    const seed=(tx2+Math.floor(cx))%7;
-    ctx.fillStyle=seed<2?'#1A3A1A':seed<4?'#163014':'#122810';
-    ctx.fillRect(tx2,GROUND_Y-4,4,4);
-  }
-  ctx.restore();
-  // Bright grass edge top strip
-  ctx.fillStyle='#4AB820';
-  ctx.fillRect(0,GROUND_Y,W,3);
-  ctx.fillStyle='#5ED028';
-  ctx.fillRect(0,GROUND_Y,W,1);
+  // Clean stone edge at river bank
+  ctx.fillStyle='#3E4450';
+  ctx.fillRect(0,GROUND_Y-2,W,4);
 
   // ══════════════════════════════════════════
   //  GROUND — pixel art tiled grass
   // ══════════════════════════════════════════
-  ctx.fillStyle='#2A7810';
-  ctx.fillRect(0,GROUND_Y,W,H-GROUND_Y);
-
-  ctx.save();
-  ctx.imageSmoothingEnabled=false;
-  const GP=2;
-  const tileW=16*GP, tileH=16*GP;
-
-  // 3 shades of green for variation — pick by world X column
-  const GCOL2={
-    '_':null,
-    'D':'#1A5808','M':'#2E8010','L':'#44AA18','B':'#60CC28','b':'#7AE030',
-    'E':'#226010','F':'#358A14',
-  };
-  // 16x16 tile — more organic, less grid-like
-  const TILE2=[
-    '_','_','D','_','_','_','E','_','_','_','D','_','_','E','_','_',
-    '_','D','M','D','_','D','M','E','_','D','M','D','D','M','D','_',
-    'D','M','L','M','_','M','L','M','D','M','L','M','M','L','M','D',
-    'M','L','B','L','D','L','B','L','M','L','B','L','L','B','L','M',
-    'D','M','L','M','_','M','L','M','D','M','L','M','M','L','M','D',
-    '_','D','M','D','_','D','M','D','_','D','M','D','D','M','D','_',
-    '_','_','D','_','_','_','D','_','_','_','D','_','_','D','_','_',
-    '_','_','_','_','_','_','_','_','_','_','_','_','_','_','_','_',
-    '_','E','_','_','D','_','_','_','E','_','_','D','_','_','_','E',
-    'D','M','E','D','M','D','D','E','M','D','D','M','D','E','D','M',
-    'M','L','M','M','L','M','M','L','L','M','M','L','M','L','M','L',
-    'L','B','L','L','B','L','L','B','B','L','L','B','L','B','L','B',
-    'M','L','M','M','L','M','M','L','L','M','M','L','M','L','M','L',
-    'D','M','E','D','M','D','D','E','M','D','D','M','D','E','D','M',
-    '_','E','_','_','D','_','_','_','E','_','_','D','_','_','_','E',
-    '_','_','_','_','_','_','_','_','_','_','_','_','_','_','_','_',
-  ];
-
-  const scrollOff=Math.floor(cx/GP)%tileW;
-  for(let ty=GROUND_Y;ty<H+tileH;ty+=tileH){
-    // Darken rows further from top for depth
-    const depthT=(ty-GROUND_Y)/(H-GROUND_Y);
-    ctx.globalAlpha=1-depthT*0.18;
-    for(let tx2=-tileW+(((-scrollOff*GP)%tileW+tileW)%tileW);tx2<W+tileW;tx2+=tileW){
-      for(let row=0;row<16;row++){
-        for(let col=0;col<16;col++){
-          const key=TILE2[row*16+col];
-          if(!key||key==='_') continue;
-          const col2=GCOL2[key]; if(!col2) continue;
-          ctx.fillStyle=col2;
-          ctx.fillRect(tx2+col*GP, ty+row*GP, GP, GP);
-        }
-      }
-    }
-  }
-  ctx.globalAlpha=1;
-  ctx.restore();
+  // Ground (stone bricks) already in offscreenBg cache
 
   // Rocks
   [[180,4,26,15],[310,2,20,12],[560,3,32,18],[800,1,22,13],[1100,4,28,16],[1450,2,18,11],[1700,3,24,14],[2000,1,30,17]].forEach(([wx,rb,rw,rh])=>{
@@ -2222,7 +2264,7 @@ function render(){
       if(sx<-200||sx>W+200) return;
       ctx.save();
       // Slight night tint
-      ctx.filter='brightness(0.82) saturate(1.1)';
+      // no filter - use alpha instead
       drawTreeByVariant(ctx, sx, t.y, t.scale, G.t, t.variant);
       ctx.restore();
     });
@@ -2260,106 +2302,96 @@ function render(){
     const rodTipSX = gzsx + tipLX * G.gz.facing;
     const rodTipSY = gzsy + tipLY;
 
-    // Bobber screen pos with gentle bob animation
-    const bsx = G.bob.x;
-    const bsy = G.bob.y + Math.sin(G.bob.phase)*4;
+    // Bobber — animated
+    const alertShake = G.bob.alert ? (Math.sin(G.t*28)*3) : 0;
+    const bsx = G.bob.x + alertShake;
+    const bsy = G.bob.y + Math.sin(G.bob.phase)*(G.bob.alert ? 6 : 2.5);
 
-    // Draw fishing line: catenary curve, sags with gravity
+    // Splash particles
+    G.splashP.forEach(p=>{
+      ctx.save();ctx.globalAlpha=p.life*0.8;
+      ctx.fillStyle='#8ABEEE';
+      ctx.fillRect(Math.round(p.x)-1,Math.round(p.y)-1,2,2);
+      ctx.restore();
+    });
+
+    // Fishing line
     ctx.save();
     ctx.strokeStyle=activeRod.lineColor; ctx.lineWidth=1.2;
-    ctx.shadowBlur=3; ctx.shadowColor=activeRod.tipColor;
-    const dx = bsx - rodTipSX;
-    const dy = bsy - rodTipSY;
-    const dist = Math.sqrt(dx*dx+dy*dy);
-    // Control point: midpoint + sag downward proportional to horizontal distance
-    const cpx = rodTipSX + dx*0.5;
-    const cpy = rodTipSY + dy*0.5 + Math.abs(dx)*0.2 + dist*0.12;
-    ctx.beginPath();
-    ctx.moveTo(rodTipSX, rodTipSY);
-    ctx.quadraticCurveTo(cpx, cpy, bsx, bsy);
-    ctx.stroke();
+    const dx=bsx-rodTipSX, dy=bsy-rodTipSY;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const cpx=rodTipSX+dx*0.5, cpy=rodTipSY+dy*0.5+Math.abs(dx)*0.18+dist*0.1;
+    ctx.beginPath();ctx.moveTo(rodTipSX,rodTipSY);
+    ctx.quadraticCurveTo(cpx,cpy,bsx,bsy);ctx.stroke();
     ctx.restore();
 
-    // Bobber
-    if(G.bob.alert){
-      const pulse=Math.abs(Math.sin(G.t*12));
-      ctx.save();
-      ctx.shadowBlur=10;ctx.shadowColor='#ffcc00';
-      ctx.fillStyle=`rgb(255,${200+Math.round(pulse*55)},0)`;
-      ctx.beginPath();ctx.arc(bsx,bsy,5,0,Math.PI*2);ctx.fill();
-      ctx.strokeStyle='white';ctx.lineWidth=1.2;ctx.stroke();
-      ctx.restore();
-    } else {
-      // Pixel-art bobber — small, crisp
-      ctx.save();
-      const _br=4;
-      ctx.fillStyle='#cc2222';
-      ctx.beginPath();ctx.arc(bsx,bsy,_br,Math.PI,0);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#eeeeee';
-      ctx.beginPath();ctx.arc(bsx,bsy,_br,0,Math.PI);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=0.8;
-      ctx.beginPath();ctx.arc(bsx,bsy,_br,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=0.8;
-      ctx.beginPath();ctx.moveTo(bsx-_br,bsy);ctx.lineTo(bsx+_br,bsy);ctx.stroke();
-      ctx.strokeStyle='#777';ctx.lineWidth=1.2;
-      ctx.beginPath();ctx.moveTo(bsx,bsy+_br);ctx.lineTo(bsx,bsy+_br+6);ctx.stroke();
+    // Splash rings on water surface around bobber
+    if(G.bob.active && !G.bob.alert){
+      const ringSz=4+Math.sin(G.bob.phase*0.5)*2;
+      ctx.save();ctx.globalAlpha=0.2;
+      ctx.strokeStyle='#8ABEEE';ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(bsx,bsy+4,ringSz*2,ringSz*0.6,0,0,Math.PI*2);ctx.stroke();
+      ctx.globalAlpha=0.1;
+      ctx.beginPath();ctx.ellipse(bsx,bsy+4,ringSz*3.5,ringSz,0,0,Math.PI*2);ctx.stroke();
       ctx.restore();
     }
+
+    // Pixel-art bobber body
+    ctx.save();
+    const P=2; // pixel size
+    if(G.bob.alert){
+      // Alert: bright orange flash
+      const fl=Math.abs(Math.sin(G.t*10));
+      // Outer glow ring
+      ctx.globalAlpha=0.3+fl*0.4;
+      ctx.fillStyle='#FF6600';
+      ctx.beginPath();ctx.arc(bsx,bsy,9,0,Math.PI*2);ctx.fill();
+      ctx.globalAlpha=1;
+      // Top (orange)
+      ctx.fillStyle=`rgb(255,${Math.round(100+fl*120)},0)`;
+      ctx.fillRect(bsx-4,bsy-5,8,5);
+      // Bottom (white flash)
+      ctx.fillStyle=fl>0.5?'#FFE0A0':'#FFFFFF';
+      ctx.fillRect(bsx-4,bsy,8,5);
+      // Outline
+      ctx.strokeStyle='#000';ctx.lineWidth=1;
+      ctx.strokeRect(bsx-4,bsy-5,8,10);
+      // Center line
+      ctx.fillStyle='#000';ctx.fillRect(bsx-4,bsy-1,8,2);
+      // Exclamation mark above
+      ctx.fillStyle='#FFD700';ctx.font='bold 8px monospace';
+      ctx.textAlign='center';ctx.fillText('!',bsx,bsy-9);
+    } else {
+      // Normal: red top, white bottom, pixel art
+      ctx.fillStyle='#CC2020';ctx.fillRect(bsx-4*P/2,bsy-4*P/2,4*P,4*P/2); // top red
+      ctx.fillStyle='#EEEEEE';ctx.fillRect(bsx-4*P/2,bsy,4*P,4*P/2);         // bottom white
+      ctx.strokeStyle='#222';ctx.lineWidth=1;
+      ctx.strokeRect(bsx-4*P/2,bsy-4*P/2,4*P,4*P);
+      ctx.fillStyle='#111';ctx.fillRect(bsx-4*P/2,bsy-1,4*P,2); // midline
+      // Antenna
+      ctx.strokeStyle='#888';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(bsx,bsy+4*P/2);ctx.lineTo(bsx,bsy+4*P/2+6);ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // ── WATER INDICATOR ──
   if(G.gz.atWater && !G.casting && !G.waiting){
     ctx.save();
-    ctx.fillStyle='rgba(255,215,0,0.9)';
-    ctx.font='7px "Press Start 2P"';
-    ctx.textAlign='center';
     const gzsx=G.gz.x-cx;
-    ctx.fillText('AT RIVER! PRESS CAST',gzsx,GROUND_Y-8);
+    // Animated arrow
+    const arrowBob=Math.sin(G.t*4)*3;
+    ctx.fillStyle='rgba(255,215,0,'+(0.7+Math.sin(G.t*3)*0.3)+')';
+    ctx.font='8px "Press Start 2P"';
+    ctx.textAlign='center';
+    ctx.fillText('▲ CAST! ▲',gzsx,GROUND_Y-14+arrowBob);
+    ctx.font='5px "Press Start 2P"';
+    ctx.fillStyle='rgba(255,200,0,0.6)';
+    ctx.fillText('PRESS SPACE',gzsx,GROUND_Y-4+arrowBob);
     ctx.restore();
   }
 
-  // ── FOREGROUND GRASS — pixel tufts over character feet ──
-  {
-    ctx.save();
-    ctx.imageSmoothingEnabled=false;
-    const PS2=2;
-    const by2=GROUND_Y;
-    // Night-tinted grass colors
-    const fG0='#0E3A08', fG1='#1A5C0E', fG2='#2A8A18', fG3='#3AAA22', fG4='#50C030';
-
-    for(let gx=0; gx<WORLD_W; gx+=14){
-      const sx=gx-cx;
-      if(sx<-24||sx>W+24) continue;
-      const seed=(gx*191+4513)%100;
-      const h=3+(seed%3); // 3-5px — covers ankles
-      const sway=Math.sin(G.t*1.0+gx*0.055)*(seed%2===0?1:-1);
-      const sw=Math.round(sway);
-
-      [
-        {dx:-2,h:h-1,lean:-1},
-        {dx:-1,h:h,  lean:-1},
-        {dx: 0,h:h+1,lean:sw},
-        {dx: 1,h:h,  lean: 1},
-        {dx: 2,h:h-1,lean: 1},
-      ].forEach(bl=>{
-        if(bl.h<=0) return;
-        const bx=sx+bl.dx*PS2;
-        for(let p=0;p<=bl.h;p++){
-          const t=p/bl.h;
-          const lx=p===bl.h?bl.lean:0;
-          let col;
-          if(p===0)       col=fG0;
-          else if(t<0.3)  col=fG1;
-          else if(t<0.6)  col=fG2;
-          else if(t<0.85) col=fG3;
-          else            col=fG4;
-          ctx.fillStyle=col;
-          ctx.fillRect(bx+lx*PS2, by2-p*PS2, PS2, PS2);
-        }
-      });
-    }
-    ctx.restore();
-  }
+  // (foreground grass removed)
 
   // ── MINI MAP ──
   const mmW=100,mmH=18;
@@ -2410,10 +2442,19 @@ function doCast(){
   const cx=G.camX;
   const gzsx=G.gz.x-cx;
   // Cast forward in direction gozo is facing
-  const bx=gzsx + G.gz.facing*(80+Math.random()*120);
-  const by=RIVER_Y + 30 + Math.random()*(RIVER_H*0.5);
+  const rod2 = RODS[G.rod] || RODS[0];
+  const baseReach = 80 + Math.random()*120;
+  const bx=gzsx + G.gz.facing*(baseReach * rod2.reach);
+  const by=RIVER_Y + 20 + Math.random()*(RIVER_H * Math.min(0.8, 0.4 + rod2.reach*0.2));
 
-  G.bob={active:true, x: Math.max(20,Math.min(W-20,bx)), y:by, alert:false, phase:0};
+  const bobX=Math.max(20,Math.min(W-20,bx));
+  G.bob={active:true, x:bobX, y:by, alert:false, phase:0};
+  // Spawn splash particles
+  G.splashP=[];
+  for(let i=0;i<8;i++){
+    const ang=Math.random()*Math.PI*2, spd=1+Math.random()*2.5;
+    G.splashP.push({x:bobX,y:by,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-2,life:1,maxLife:1});
+  }
 
   setMsg('🎣 Line in water! Waiting for a bite...');
 
@@ -2436,7 +2477,8 @@ function reel(){
   if(!G.waiting)return;G.waiting=false;clearTimeout(G.timer);resetRod();
   const fish=rollFish(BAITS[G.sel].pw);
   if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
-  G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;G.gold+=fish.g;
+  G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;
+  // Gold added in showCatch with rod bonus applied
   updateHUD();showCatch(fish);
 }
 function rollFish(pw){
@@ -2463,8 +2505,9 @@ function showCatch(f){
   document.getElementById('cpInfo').textContent=`Weight: ${rnd(f.w[0],f.w[1])} kg · Length: ${Math.round(rnd(f.l[0],f.l[1]))} cm`;
   const rod = RODS[G.rod] || RODS[0];
   const goldEarned = Math.round(f.g * rod.bonus);
-  G.gold += (goldEarned - f.g); // adjust (f.g already added in reel)
-  document.getElementById('cpGold').textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ('+rod.name+')':''}`;
+  G.gold += goldEarned; // add full gold with rod bonus here (not in reel)
+  updateHUD();
+  document.getElementById('cpGold').textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ×'+rod.bonus:''}`;
   document.getElementById('catchPopup').classList.add('show');
 }
 function closeCatch(){document.getElementById('catchPopup').classList.remove('show');setMsg('Select bait and cast!');}
@@ -2488,6 +2531,8 @@ function renderBaits(){
   });
 }
 function updateHUD(){
+  const rodEl=document.getElementById('rodD');
+  if(rodEl){ const r=RODS[G.rod]||RODS[0]; rodEl.textContent=r.icon+' '+r.name; }
   const goldEl=document.getElementById('goldD'); if(goldEl) goldEl.textContent=G.gold;
   document.getElementById('catchD').textContent=G.total;
   const u=Object.keys(G.caught).length;
@@ -2713,39 +2758,84 @@ async function buyBait(i){
   shopBuying=false;
 }
 function openInv(){
+  document.getElementById('invModal').classList.add('show');
+  document.getElementById('invTabFish').classList.add('active');
+  document.getElementById('invTabRod').classList.remove('active');
+  renderInvFish();
+  // Stats bar
+  const sEl=document.getElementById('invStats');
+  if(sEl){
+    const bf=G.stats.biggestFish?`${G.stats.biggestFish} (${G.stats.biggestWeight}kg)`:'—';
+    sEl.innerHTML=`🪙 Total Gold: <b style="color:#FFD700">${G.stats.totalGold}</b> &nbsp;|&nbsp; 🏆 Biggest: <b style="color:#FFD700">${bf}</b> &nbsp;|&nbsp; 🎣 Casts: <b style="color:#FFD700">${G.stats.castCount}</b>`;
+  }
+}
+function invTab(tab){
+  document.getElementById('invTabFish').classList.toggle('active',tab==='fish');
+  document.getElementById('invTabRod').classList.toggle('active',tab==='rod');
+  if(tab==='fish') renderInvFish();
+  else renderInvRods();
+}
+function renderInvFish(){
   const u=Object.keys(G.caught).length;
   document.getElementById('invSub').textContent=`${u}/50 species discovered`;
-  const g=document.getElementById('invGrid');g.innerHTML='';
+  const el=document.getElementById('invContent');
+  el.innerHTML='<div class="invgrid" id="invGrid"></div>';
+  const g=document.getElementById('invGrid');
   FISH.forEach(f=>{
     const cnt=G.caught[f.id]||0;
     const d=document.createElement('div');d.className='iitem';
     d.style.borderColor=cnt>0?RCOL[f.r]:'rgba(255,255,255,0.05)';
     const cvs=document.createElement('canvas');
-    cvs.width=52; cvs.height=38;
-    cvs.style.cssText='image-rendering:pixelated;image-rendering:crisp-edges;';
-    if(cnt>0){
-      renderFishCanvas(cvs, f.id, RCOL[f.r], 'transparent');
-    } else {
-      const cx2=cvs.getContext('2d');
-      cx2.fillStyle='rgba(255,255,255,0.08)';
-      cx2.font='bold 20px monospace';
-      cx2.textAlign='center'; cx2.textBaseline='middle';
-      cx2.fillText('?', 26, 19);
+    cvs.width=52;cvs.height=38;
+    cvs.style.cssText='image-rendering:pixelated;';
+    if(cnt>0) renderFishCanvas(cvs,f.id,RCOL[f.r],'transparent');
+    else{
+      const c2=cvs.getContext('2d');c2.fillStyle='rgba(255,255,255,0.08)';
+      c2.font='bold 20px monospace';c2.textAlign='center';c2.textBaseline='middle';
+      c2.fillText('?',26,19);
     }
     d.appendChild(cvs);
-    const nameDiv=document.createElement('div');
-    nameDiv.className='iname';
-    nameDiv.style.color=cnt>0?RCOL[f.r]:'#1a2a1a';
-    nameDiv.textContent=cnt>0?f.n:'???';
-    d.appendChild(nameDiv);
-    if(cnt>0){
-      const cntDiv=document.createElement('div');
-      cntDiv.className='icount'; cntDiv.textContent='x'+cnt;
-      d.appendChild(cntDiv);
-    }
+    const nd=document.createElement('div');nd.className='iname';
+    nd.style.color=cnt>0?RCOL[f.r]:'#1a2a1a';
+    nd.textContent=cnt>0?f.n:'???';
+    d.appendChild(nd);
+    if(cnt>0){const cd=document.createElement('div');cd.className='icount';cd.textContent='×'+cnt;d.appendChild(cd);}
     g.appendChild(d);
   });
-  document.getElementById('invModal').classList.add('show');
+}
+function renderInvRods(){
+  const ownedCount = G.ownedRods.length;
+  document.getElementById('invSub').textContent=`${ownedCount}/5 rods owned`;
+  const el=document.getElementById('invContent');
+  el.innerHTML='<div class="rod-grid" id="invRodGrid"></div>';
+  const g=document.getElementById('invRodGrid');
+  const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+  const rarNames=['Common','Uncommon','Rare','Epic','Legendary'];
+  RODS.forEach(rod=>{
+    const owned=G.ownedRods.includes(rod.id);
+    const equipped=G.rod===rod.id;
+    const d=document.createElement('div');
+    d.className='rod-item'+(equipped?' equipped':owned?' owned':'');
+    d.style.opacity=owned?'1':'0.35';
+    const cvs=document.createElement('canvas');
+    cvs.id='invRodCvs_'+rod.id;
+    cvs.width=64;cvs.height=96;
+    cvs.style='image-rendering:pixelated;width:42px;height:64px;flex-shrink:0';
+    d.innerHTML=`
+      <div class="rod-info">
+        <div class="rod-name">${rod.name}
+          <span class="rar" style="color:${rarColors[rod.rarity]}">[${rarNames[rod.rarity]}]</span>
+        </div>
+        <div class="rod-desc">${owned?rod.desc:'???'}</div>
+        <div class="rod-stats">${owned?`💰 ×${rod.bonus} &nbsp;|&nbsp; 🎯 ×${rod.reach}`:''}</div>
+      </div>
+      ${equipped?'<span style="font-size:5px;color:#FFD700">✓ EQUIPPED</span>':
+        owned?`<button class="rod-btn equip" onclick="equipRod(${rod.id});renderInvRods()">EQUIP</button>`:'<span style="font-size:5px;color:#444">🔒 LOCKED</span>'}
+    `;
+    d.prepend(cvs);
+    g.appendChild(d);
+    requestAnimationFrame(()=>{ const c=document.getElementById('invRodCvs_'+rod.id); if(c) drawRodPixelArt(c,rod.id); });
+  });
 }
 function closeInv(){document.getElementById('invModal').classList.remove('show');}
 function setMsg(t){document.getElementById('msg').textContent=t;}
@@ -2784,9 +2874,16 @@ function startGame(){
   G.gz.y=GROUND_Y+20;
   setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
   notify('🎁 Starter bonus: 10 Free Earthworms!');
+  if(!localStorage.getItem('gozoTutDone')) setTimeout(openTut, 600);
   requestAnimationFrame(t=>{lastTime=t;gameLoop(t);});
 }
+function openTut(){ document.getElementById('tutOverlay').classList.add('show'); }
+function closeTut(){
+  document.getElementById('tutOverlay').classList.remove('show');
+  localStorage.setItem('gozoTutDone','1');
+}
 function goTitle(){
+  if(!confirm('Go back to main menu? Unsaved progress will be lost!')) return;
   resetRod();
   document.getElementById('gameScreen').classList.remove('active');
   document.getElementById('titleScreen').classList.add('active');
