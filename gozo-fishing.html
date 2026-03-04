@@ -122,6 +122,12 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   padding:7px 12px;font-size:7px;color:#FFD700;z-index:300;
   transform:translateX(200%);transition:transform .3s;pointer-events:none;}
 .notif.show{transform:translateX(0);}
+.save-toast{position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-80px);
+  background:#030a04;border:2px solid #FFD700;padding:10px 20px;font-size:7px;
+  color:#FFD700;z-index:400;transition:transform .35s cubic-bezier(.175,.885,.32,1.275);
+  pointer-events:none;text-align:center;white-space:nowrap;}
+.save-toast.show{transform:translateX(-50%) translateY(0);}
+.save-toast.err{border-color:#ff4444;color:#ff4444;}
 
 .prog{margin-left:4px;}
 .plabel{font-size:5px;color:#3a5a3a;}
@@ -313,6 +319,9 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="tbtns">
       <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
+      <button class="hbtn" onclick="saveGame()">💾 SAVE</button>
+      <button class="hbtn" onclick="triggerLoad()">📂 LOAD</button>
+      <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadFromFile(event)">
       <button class="hbtn" onclick="goTitle()">🏠 MENU</button>
     </div>
   </div>
@@ -363,6 +372,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 </div>
 
 <div class="notif" id="notif"></div>
+<div class="save-toast" id="saveToast"></div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -2089,6 +2099,113 @@ if(window.ethereum){
   window.ethereum.on('chainChanged', ()=>location.reload());
 }
 // ═══════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE / LOAD  — download/upload JSON file to local computer
+// ═══════════════════════════════════════════════════════════
+
+const SAVE_VERSION = 1;
+
+function getSaveData(){
+  return {
+    version : SAVE_VERSION,
+    savedAt : new Date().toISOString(),
+    gold    : G.gold,
+    total   : G.total,
+    caught  : G.caught,
+    bait    : G.bait,
+    sel     : G.sel,
+    pos     : { x: Math.round(G.gz.x), camX: Math.round(G.camX) },
+  };
+}
+
+function applySaveData(data){
+  if(!data || data.version !== SAVE_VERSION) throw new Error('Format save tidak dikenali.');
+  G.gold   = Number(data.gold)  || 0;
+  G.total  = Number(data.total) || 0;
+  G.caught = data.caught && typeof data.caught === 'object' ? data.caught : {};
+  G.bait   = Array.isArray(data.bait) && data.bait.length===5 ? data.bait.map(Number) : [10,0,0,0,0];
+  G.sel    = Number(data.sel) || 0;
+  if(data.pos){
+    G.gz.x = data.pos.x || 220;
+    G.camX = data.pos.camX || 0;
+  }
+  updateHUD();
+  renderBaits();
+}
+
+// ── Save: create JSON → download as file ──────────────────
+function saveGame(){
+  try {
+    const data = getSaveData();
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    // Filename includes wallet address and timestamp
+    const wallet = (typeof gWallet === 'string' && gWallet.length > 0)
+      ? gWallet.slice(0,6) + gWallet.slice(-4)
+      : 'gozo';
+    const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.download = `gozo-fishing-${wallet}-${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showSaveToast('💾 SAVE BERHASIL!', false);
+  } catch(e) {
+    showSaveToast('❌ SAVE GAGAL: ' + e.message.slice(0,30), true);
+    console.error('saveGame error:', e);
+  }
+}
+
+// ── Load: trigger file picker ─────────────────────────────
+function triggerLoad(){
+  document.getElementById('loadFileInput').value = ''; // reset so same file can reload
+  document.getElementById('loadFileInput').click();
+}
+
+// ── Load: read file and apply ─────────────────────────────
+function loadFromFile(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  // Basic validation — must be .json
+  if(!file.name.endsWith('.json')){
+    showSaveToast('❌ HARUS FILE .JSON!', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = JSON.parse(e.target.result);
+      applySaveData(data);
+      const ts = data.savedAt ? ' (' + data.savedAt.slice(0,10) + ')' : '';
+      showSaveToast('📂 LOAD BERHASIL' + ts, false);
+    } catch(err) {
+      showSaveToast('❌ FILE RUSAK: ' + err.message.slice(0,28), true);
+      console.error('loadFromFile error:', err);
+    }
+  };
+  reader.onerror = function(){
+    showSaveToast('❌ GAGAL BACA FILE', true);
+  };
+  reader.readAsText(file);
+}
+
+// ── Toast notification ────────────────────────────────────
+let _toastTimer = null;
+function showSaveToast(msg, isErr=false){
+  const el = document.getElementById('saveToast');
+  if(!el) return;
+  el.textContent = msg;
+  el.className   = 'save-toast' + (isErr ? ' err' : '') + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=> el.classList.remove('show'), 2800);
+}
 
 </script>
 </body>
