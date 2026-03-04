@@ -269,14 +269,9 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
         <span class="gstep-status" id="gs1">○</span>
       </div>
       <div class="gstep" id="gStep2">
-        <span class="gstep-icon">✅</span>
-        <span style="flex:1">Approve 10 GOZO</span>
-        <span class="gstep-status" id="gs2">○</span>
-      </div>
-      <div class="gstep" id="gStep3">
         <span class="gstep-icon">🔥</span>
         <span style="flex:1">Burn 10 GOZO</span>
-        <span class="gstep-status" id="gs3">○</span>
+        <span class="gstep-status" id="gs2">○</span>
       </div>
     </div>
 
@@ -1790,9 +1785,11 @@ function gSetStatus(msg, type=''){
 }
 function gSetStep(n, state){
   const el=document.getElementById('gStep'+n);
+  if(!el) return; // step may not exist (e.g. step3 removed)
   el.className='gstep '+state;
   const icons={active:'⟳',done:'✓',error:'✗','':'○'};
   const si=document.getElementById('gs'+n);
+  if(!si) return;
   si.textContent=icons[state]||'○';
   if(state==='active') si.classList.add('spin');
   else si.classList.remove('spin');
@@ -1815,9 +1812,8 @@ function gShowRetry(show){
 
 // ── Main button handler ─────────────────────────────────
 async function gHandleBtn(){
-  if (!gWallet)        return gConnect();
-  if (gFlowStep===1)   return gApprove();
-  if (gFlowStep===2)   return gBurn();
+  if (!gWallet)       return gConnect();
+  if (gFlowStep===1)  return gBurn();
 }
 
 // ── Step 1: Connect Wallet ──────────────────────────────
@@ -1874,9 +1870,9 @@ async function gConnect(){
   try { await gFetchBalance(); } catch(e){ document.getElementById('gBalVal').textContent='—'; }
 
   gFlowStep=1;
-  gSetBtn('APPROVE 10 GOZO →');
+  gSetBtn('🔥 BURN 10 GOZO & MAIN!');
   gSetStep(2,'');
-  gSetStatus('CONNECTED! KLIK APPROVE UNTUK LANJUT.','ok');
+  gSetStatus('CONNECTED! KLIK BURN UNTUK MULAI.','ok');
   gShowRetry(false);
 }
 
@@ -1923,63 +1919,39 @@ async function gFetchBalance(){
   return BigInt(res);
 }
 
-// ── Step 2: Approve ─────────────────────────────────────
-async function gApprove(){
-  gSetBtn('APPROVING...',true); gSetStep(2,'active');
-  gSetStatus('KONFIRMASI APPROVE DI WALLET...'); gSetProgress(10); gShowRetry(false);
-  try {
-    const data='0x'+FNS.approve+gAddr(W3.BURN_ADDR)+gUint(W3.BURN_WEI);
-    const txHash=await gProvider.request({
-      method:'eth_sendTransaction',
-      params:[{from:gWallet,to:W3.GOZO_ADDR,data}],
-    });
-    gSetStatus('APPROVE TX TERKIRIM — MENUNGGU KONFIRMASI...');
-    gSetProgress(40); gShowTx(txHash);
-    await gWaitTx(txHash);
-    gSetStep(2,'done'); gSetProgress(60);
-    gSetStatus('APPROVED! SEKARANG BAKAR GOZO 🔥','ok');
-    gFlowStep=2;
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!');
-    gSetStep(3,'');
-  } catch(e){
-    gSetStep(2,'error');
-    if(e.code===4001)        gSetStatus('APPROVE DITOLAK USER.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
-    else                     gSetStatus('APPROVE GAGAL: '+(e.message||'').slice(0,50),'err');
-    gSetBtn('APPROVE 10 GOZO →',false); gShowRetry(true);
-  }
-}
+// Approve step removed — transfer() to dead address needs no approval
 
-// ── Step 3: Burn ────────────────────────────────────────
+// ── Step 2: Burn (langsung tanpa approve) ───────────────
 async function gBurn(){
-  if(gBurning)return;
+  if(gBurning) return;
   gBurning=true;
-  gSetBtn('BURNING...',true); gSetStep(3,'active');
-  gSetStatus('KONFIRMASI BURN DI WALLET...'); gSetProgress(65); gShowRetry(false);
+  gSetBtn('BURNING...',true); gSetStep(2,'active');
+  gSetStatus('KONFIRMASI BURN DI WALLET...'); gSetProgress(20); gShowRetry(false);
 
-  // Check balance
+  // Check balance dulu
   let bal;
   try { bal=await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal<BigInt(W3.BURN_WEI)){
-    gSetStep(3,'error');
-    gSetStatus('SALDO GOZO TIDAK CUKUP!','err');
+    gSetStep(2,'error');
+    gSetStatus('SALDO $GOZO TIDAK CUKUP! MIN 10 GOZO.','err');
     gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurning=false;
     return;
   }
 
   try {
+    // transfer() langsung ke dead address — no approve needed
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(W3.BURN_WEI);
     const txHash=await gProvider.request({
       method:'eth_sendTransaction',
       params:[{from:gWallet,to:W3.GOZO_ADDR,data}],
     });
-    gSetStatus('BURN TX TERKIRIM — MENUNGGU KONFIRMASI...');
-    gSetProgress(80); gShowTx(txHash);
+    gSetStatus('TX TERKIRIM — MENUNGGU KONFIRMASI...');
+    gSetProgress(60); gShowTx(txHash);
     await gWaitTx(txHash);
-    gSetStep(3,'done'); gSetProgress(100);
+    gSetStep(2,'done'); gSetProgress(100);
     gSetStatus('🔥 10 GOZO TERBAKAR! LAUNCHING GAME...','ok');
 
-    // Show burn notification
+    // Burn notification
     const n=document.createElement('div');
     n.className='gburn-notify'; n.textContent='🔥 -10 $GOZO BURNED! 🔥';
     document.body.appendChild(n);
@@ -1989,7 +1961,7 @@ async function gBurn(){
     gLaunchGame();
   } catch(e){
     gBurning=false;
-    gSetStep(3,'error');
+    gSetStep(2,'error');
     if(e.code===4001)        gSetStatus('BURN DITOLAK USER.','err');
     else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
     else if(e.code===-32603) gSetStatus('INTERNAL ERROR — COBA LAGI.','err');
@@ -2018,13 +1990,12 @@ async function gRetry(){
   gShowRetry(false); gBurning=false;
   if(!gWallet||gFlowStep===0){
     gWallet=null; gProvider=null;
-    gSetStep(1,''); gSetStep(2,''); gSetStep(3,'');
+    gSetStep(1,''); gSetStep(2,'');
     gSetBtn('CONNECT WALLET',false);
     gSetStatus('CONNECT YOUR WALLET TO START');
     return;
   }
-  if(gFlowStep===1){ gSetStep(2,''); gSetBtn('APPROVE 10 GOZO →',false); gApprove(); }
-  else if(gFlowStep===2){ gSetStep(3,''); gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurn(); }
+  if(gFlowStep===1){ gSetStep(2,''); gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurn(); }
 }
 
 // ── Launch fishing game ─────────────────────────────────
