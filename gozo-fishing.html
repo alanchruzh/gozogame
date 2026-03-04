@@ -143,87 +143,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 .pbar{width:80px;height:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.15);margin-top:3px;}
 .pfill{height:100%;background:#FFD700;transition:width .5s;}
 
-/* ══════════════════════════════════════
-   WEB3 GATE SCREEN
-══════════════════════════════════════ */
-#gateScreen{
-  flex-direction:column;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 50% 40%,#1a4a1a 0%,#040d04 100%);
-  gap:0;z-index:999;
-}
-#gateScreen.active{display:flex;}
 
-.gate-logo{font-size:9px;color:#FFD700;letter-spacing:4px;
-  text-shadow:0 0 20px #FFD70066;margin-bottom:4px;
-  animation:pulse 2s ease-in-out infinite;}
-.gate-title{font-size:28px;color:#fff;text-shadow:4px 4px 0 #8B1A1A,7px 7px 0 #3a0808;
-  margin-bottom:4px;animation:logoBounce 2s ease-in-out infinite;}
-.gate-sub{font-size:7px;color:#FF8C00;letter-spacing:3px;margin-bottom:20px;}
-
-#previewFishCanvas{image-rendering:pixelated;margin-bottom:20px;
-  filter:drop-shadow(0 0 20px rgba(255,215,0,0.3));}
-
-.gate-panel{
-  background:#060f07;border:2px solid rgba(255,215,0,0.25);
-  padding:18px 26px;width:100%;max-width:420px;
-  display:flex;flex-direction:column;gap:12px;
-}
-.gate-panel-title{font-size:7px;color:#FFD700;letter-spacing:2px;text-align:center;
-  border-bottom:1px solid rgba(255,215,0,0.15);padding-bottom:10px;}
-
-.ginfo-row{display:flex;justify-content:space-between;align-items:center;font-size:5px;letter-spacing:1px;}
-.ginfo-row .gl{color:#3a5a3a;}
-.ginfo-row .gv{color:#aaa;}
-.ginfo-row .gv.hi{color:#FFD700;}
-
-.g-wallet-addr{font-size:5px;color:#2a4a2a;text-align:center;word-break:break-all;
-  padding:6px 8px;background:#030804;border:1px solid #0a1a0a;display:none;}
-.g-wallet-addr.show{display:block;}
-
-.gsteps{display:flex;flex-direction:column;gap:7px;}
-.gstep{display:flex;align-items:center;gap:8px;font-size:5px;color:#2a4a2a;
-  letter-spacing:1px;padding:7px 9px;border:1px solid #0a1a0a;transition:all .3s;}
-.gstep.active{color:#FFD700;border-color:#3a2a00;background:#1a1200;}
-.gstep.done{color:#4caf50;border-color:#0a2a0a;background:#030d03;}
-.gstep.error{color:#ff4444;border-color:#2a0a0a;background:#0d0303;}
-.gstep-icon{font-size:10px;min-width:16px;text-align:center;}
-.gstep-status{font-size:10px;}
-.gstep-status.spin{animation:gspin 1s linear infinite;display:inline-block;}
-@keyframes gspin{to{transform:rotate(360deg)}}
-
-.gprogress{width:100%;height:4px;background:#0a1a0a;display:none;}
-.gprogress.show{display:block;}
-.gpfill{height:100%;background:linear-gradient(90deg,#FF8C00,#FFD700);width:0%;transition:width .3s;
-  box-shadow:0 0 8px #FFD700;}
-
-.gstatus{font-size:5px;text-align:center;min-height:14px;color:#3a5a3a;letter-spacing:1px;
-  animation:pulse 1s step-end infinite;}
-.gstatus.ok{color:#4caf50;animation:none;}
-.gstatus.err{color:#ff4444;animation:none;}
-
-.gtx-link{font-size:4px;color:#2a4a2a;text-align:center;text-decoration:none;
-  letter-spacing:1px;display:none;word-break:break-all;}
-.gtx-link.show{display:block;color:#42a5f5;}
-.gtx-link:hover{color:#FFD700;}
-
-.g-mainbtn{font-family:'Press Start 2P';font-size:9px;letter-spacing:2px;
-  padding:13px 20px;border:none;cursor:pointer;width:100%;
-  background:#FFD700;color:#0d3320;box-shadow:4px 4px 0 #8B1A1A,0 0 20px #FFD70033;
-  transition:all .1s;}
-.g-mainbtn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #8B1A1A,0 0 30px #FFD70055;}
-.g-mainbtn:active{transform:translate(1px,1px);box-shadow:2px 2px 0 #8B1A1A;}
-.g-mainbtn:disabled{background:#1a2a1a;color:#2a3a2a;box-shadow:none;cursor:not-allowed;transform:none;}
-
-.g-retrybtn{font-family:'Press Start 2P';font-size:6px;letter-spacing:1px;
-  padding:8px 14px;cursor:pointer;width:100%;background:transparent;
-  color:#FFD700;border:1px solid rgba(255,215,0,0.4);display:none;}
-.g-retrybtn:hover{background:rgba(255,215,0,0.08);}
-
-.gnet-badge{display:inline-flex;align-items:center;gap:4px;font-size:5px;
-  color:#ff4444;letter-spacing:1px;}
-.gnet-badge.ok{color:#4caf50;}
-.gnet-dot{width:5px;height:5px;background:currentColor;border-radius:50%;
-  box-shadow:0 0 5px currentColor;animation:pulse 1.5s ease infinite;}
 
 .gburn-notify{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
   font-family:'Press Start 2P';font-size:14px;color:#FFD700;
@@ -236,65 +156,9 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     WEB3 GATE SCREEN
-══════════════════════════════════════ -->
-<div id="gateScreen" class="screen active">
-  <div class="gate-logo">⬡ MONAD CHAIN</div>
-  <div class="gate-title">🎣 GOZO FISHING</div>
-  <div class="gate-sub">BURN 10 $GOZO TO PLAY</div>
-
-  <canvas id="previewFishCanvas" width="88" height="132" style="image-rendering:pixelated;"></canvas>
-
-  <div class="gate-panel">
-    <div class="gate-panel-title">🔥 GAME ENTRY — 10 $GOZO</div>
-
-    <div class="ginfo-row">
-      <span class="gl">TOKEN</span>
-      <span class="gv hi">$GOZO</span>
-    </div>
-    <div class="ginfo-row">
-      <span class="gl">CONTRACT</span>
-      <span class="gv" style="font-size:4px;color:#2a4a2a">0xc655797B4FDdE40B4c68CA41C29aadd672d77777</span>
-    </div>
-    <div class="ginfo-row">
-      <span class="gl">NETWORK</span>
-      <span id="gNetBadge" class="gnet-badge">
-        <span class="gnet-dot"></span>
-        <span id="gNetName">NOT CONNECTED</span>
-      </span>
-    </div>
-    <div class="ginfo-row">
-      <span class="gl">BALANCE</span>
-      <span id="gBalVal" class="gv">—</span>
-    </div>
-
-    <div id="gWalletAddr" class="g-wallet-addr"></div>
-
-    <div class="gsteps">
-      <div class="gstep" id="gStep1">
-        <span class="gstep-icon">🔌</span>
-        <span style="flex:1">Connect Wallet</span>
-        <span class="gstep-status" id="gs1">○</span>
-      </div>
-      <div class="gstep" id="gStep2">
-        <span class="gstep-icon">🔥</span>
-        <span style="flex:1">Burn 10 GOZO</span>
-        <span class="gstep-status" id="gs2">○</span>
-      </div>
-    </div>
-
-    <div class="gprogress" id="gProgress"><div class="gpfill" id="gPFill"></div></div>
-    <div class="gstatus" id="gStatus">CONNECT YOUR WALLET TO START</div>
-    <a id="gTxLink" class="gtx-link" target="_blank" rel="noopener noreferrer">VIEW TX ON MONADVISION ↗</a>
-
-    <button class="g-mainbtn" id="gMainBtn" onclick="gHandleBtn()">CONNECT WALLET</button>
-    <button class="g-retrybtn" id="gRetryBtn" onclick="gRetry()">↺ RETRY</button>
-  </div>
-</div>
 
 <!-- TITLE SCREEN -->
-<div id="titleScreen" class="screen">
+<div id="titleScreen" class="screen active">
   <div class="tlogo">🎣 GOZO FISHING</div>
   <div class="tsub">RIVER ADVENTURE</div>
   <canvas id="titleGozo" width="160" height="220" style="image-rendering:pixelated;
@@ -2582,21 +2446,19 @@ window.addEventListener('load',()=>{
 });
 
 // ═══════════════════════════════════════════════════════
-//  WEB3 GATE — $GOZO BURN TO PLAY
+//  WEB3 CONFIG  — for Gold Market
 // ═══════════════════════════════════════════════════════
 const W3 = {
   GOZO_ADDR    : '0xc655797B4FDdE40B4c68CA41C29aadd672d77777',
   BURN_ADDR    : '0x000000000000000000000000000000000000dEaD',
-  CHAIN_ID     : '0x8F',      // 143 = Monad Mainnet
+  CHAIN_ID     : '0x8F',
   CHAIN_ID_DEC : 143,
-  BURN_WEI     : '10000000000000000000', // 10 * 10^18
   EXPLORER     : 'https://monadvision.com/tx/',
   RPC_URLS     : ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz'],
 };
 
 const FNS = {
   balanceOf : '70a08231',
-  approve   : '095ea7b3',
   transfer  : 'a9059cbb',
 };
 
@@ -2604,298 +2466,57 @@ function gPad(hex, bytes=32){ return hex.replace('0x','').padStart(bytes*2,'0');
 function gAddr(a){ return gPad(a.toLowerCase().replace('0x',''), 32); }
 function gUint(v){ return BigInt(v).toString(16).padStart(64,'0'); }
 
-let gWallet=null, gProvider=null, gFlowStep=0, gBurning=false;
+let gWallet=null, gProvider=null;
 
-// ── UI helpers ──────────────────────────────────────────
-function gSetStatus(msg, type=''){
-  const el=document.getElementById('gStatus');
-  el.textContent=msg; el.className='gstatus'+(type?' '+type:'');
-}
-function gSetStep(n, state){
-  const el=document.getElementById('gStep'+n);
-  if(!el) return; // step may not exist (e.g. step3 removed)
-  el.className='gstep '+state;
-  const icons={active:'⟳',done:'✓',error:'✗','':'○'};
-  const si=document.getElementById('gs'+n);
-  if(!si) return;
-  si.textContent=icons[state]||'○';
-  if(state==='active') si.classList.add('spin');
-  else si.classList.remove('spin');
-}
-function gSetProgress(pct){
-  document.getElementById('gProgress').classList.add('show');
-  document.getElementById('gPFill').style.width=pct+'%';
-}
-function gShowTx(hash){
-  const el=document.getElementById('gTxLink');
-  el.href=W3.EXPLORER+hash; el.classList.add('show');
-}
-function gSetBtn(text, disabled=false){
-  const b=document.getElementById('gMainBtn');
-  b.textContent=text; b.disabled=disabled;
-}
-function gShowRetry(show){
-  document.getElementById('gRetryBtn').style.display=show?'block':'none';
-}
-
-// ── Main button handler ─────────────────────────────────
-async function gHandleBtn(){
-  if (!gWallet)       return gConnect();
-  if (gFlowStep===1)  return gBurn();
-}
-
-// ── Step 1: Connect Wallet ──────────────────────────────
-async function gConnect(){
-  const eth=window.ethereum;
-  if(!eth){
-    gSetStatus('⚠ WALLET TIDAK DITEMUKAN. INSTALL METAMASK / RABBY.','err');
-    gSetBtn('CONNECT WALLET',false);
-    gSetStep(1,'error');
-    return;
-  }
-  gSetBtn('CONNECTING...',true);
-  gSetStep(1,'active');
-  gSetStatus('MEMINTA AKSES WALLET...');
-
-  let accounts;
+// ── Auto-connect MetaMask if available ─────────────────
+(async function gAutoConnect(){
+  const eth = window.ethereum;
+  if(!eth) return;
   try {
-    accounts=await eth.request({method:'eth_requestAccounts'});
-  } catch(e) {
-    gSetStep(1,'error');
-    if(e.code===4001)       gSetStatus('DITOLAK USER. COBA LAGI.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
-    else                    gSetStatus('GAGAL: '+(e.message||'').slice(0,50),'err');
-    gSetBtn('CONNECT WALLET',false); gShowRetry(true);
-    return;
+    const accounts = await eth.request({method:'eth_accounts'});
+    if(accounts && accounts.length){
+      gWallet   = accounts[0];
+      gProvider = eth;
+    }
+  } catch(e){}
+  if(window.ethereum){
+    window.ethereum.on('accountsChanged', a=>{ gWallet = a[0]||null; gProvider = gWallet?window.ethereum:null; });
+    window.ethereum.on('chainChanged', ()=>location.reload());
   }
-
-  if(!accounts||!accounts.length){
-    gSetStep(1,'error');
-    gSetStatus('TIDAK ADA AKUN TERDETEKSI.','err');
-    gSetBtn('CONNECT WALLET',false);
-    return;
-  }
-
-  gWallet=accounts[0]; gProvider=eth;
-  const short=gWallet.slice(0,6)+'…'+gWallet.slice(-4);
-  const addrEl=document.getElementById('gWalletAddr');
-  addrEl.textContent=gWallet; addrEl.classList.add('show');
-
-  gSetStep(1,'done');
-  gSetStatus('WALLET TERHUBUNG! MENGECEK JARINGAN...','ok');
-
-  // Switch to Monad
-  try { await gEnsureNetwork(); }
-  catch(e){
-    gSetStep(1,'error');
-    if(e.code===4001) gSetStatus('SWITCH JARINGAN DITOLAK. PINDAH KE MONAD MANUAL.','err');
-    else              gSetStatus('GAGAL SWITCH JARINGAN: '+(e.message||'').slice(0,50),'err');
-    gSetBtn('CONNECT WALLET',false); gShowRetry(true);
-    return;
-  }
-
-  // Fetch balance (non-blocking)
-  try { await gFetchBalance(); } catch(e){ document.getElementById('gBalVal').textContent='—'; }
-
-  gFlowStep=1;
-  gSetBtn('🔥 BURN 10 GOZO & MAIN!');
-  gSetStep(2,'');
-  gSetStatus('CONNECTED! KLIK BURN UNTUK MULAI.','ok');
-  gShowRetry(false);
-}
-
-// ── Ensure Monad Mainnet ────────────────────────────────
-async function gEnsureNetwork(){
-  const chainId=await gProvider.request({method:'eth_chainId'});
-  if(chainId.toLowerCase()===W3.CHAIN_ID.toLowerCase()){
-    document.getElementById('gNetBadge').className='gnet-badge ok';
-    document.getElementById('gNetName').textContent='MONAD MAINNET';
-    return;
-  }
-  gSetStatus('SWITCHING KE MONAD MAINNET...');
-  try {
-    await gProvider.request({method:'wallet_switchEthereumChain',params:[{chainId:W3.CHAIN_ID}]});
-  } catch(sw){
-    if(sw.code===4902||sw.code===-32603){
-      gSetStatus('MENAMBAHKAN MONAD MAINNET...');
-      await gProvider.request({
-        method:'wallet_addEthereumChain',
-        params:[{
-          chainId:W3.CHAIN_ID,
-          chainName:'Monad Mainnet',
-          nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
-          rpcUrls:W3.RPC_URLS,
-          blockExplorerUrls:['https://monadvision.com','https://monadscan.com'],
-        }],
-      });
-    } else throw sw;
-  }
-  const newId=await gProvider.request({method:'eth_chainId'});
-  if(newId.toLowerCase()!==W3.CHAIN_ID.toLowerCase())
-    throw new Error('Masih di jaringan yang salah setelah switch.');
-  document.getElementById('gNetBadge').className='gnet-badge ok';
-  document.getElementById('gNetName').textContent='MONAD MAINNET';
-}
-
-// ── Fetch GOZO balance ──────────────────────────────────
-async function gFetchBalance(){
-  const data='0x'+FNS.balanceOf+gAddr(gWallet);
-  const res=await gProvider.request({method:'eth_call',params:[{to:W3.GOZO_ADDR,data},'latest']});
-  const bal=(Number(BigInt(res))/1e18).toFixed(2);
-  const el=document.getElementById('gBalVal');
-  el.textContent=bal+' GOZO'; el.className='gv hi';
-  return BigInt(res);
-}
-
-// Approve step removed — transfer() to dead address needs no approval
-
-// ── Step 2: Burn (langsung tanpa approve) ───────────────
-async function gBurn(){
-  if(gBurning) return;
-  gBurning=true;
-  gSetBtn('BURNING...',true); gSetStep(2,'active');
-  gSetStatus('KONFIRMASI BURN DI WALLET...'); gSetProgress(20); gShowRetry(false);
-
-  // Check balance dulu
-  let bal;
-  try { bal=await gFetchBalance(); } catch(e){ bal=0n; }
-  if(bal<BigInt(W3.BURN_WEI)){
-    gSetStep(2,'error');
-    gSetStatus('SALDO $GOZO TIDAK CUKUP! MIN 10 GOZO.','err');
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurning=false;
-    return;
-  }
-
-  try {
-    // transfer() langsung ke dead address — no approve needed
-    const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(W3.BURN_WEI);
-    const txHash=await gProvider.request({
-      method:'eth_sendTransaction',
-      params:[{from:gWallet,to:W3.GOZO_ADDR,data}],
-    });
-    gSetStatus('TX TERKIRIM — MENUNGGU KONFIRMASI...');
-    gSetProgress(60); gShowTx(txHash);
-    await gWaitTx(txHash);
-    gSetStep(2,'done'); gSetProgress(100);
-    gSetStatus('🔥 10 GOZO TERBAKAR! LAUNCHING GAME...','ok');
-
-    // Burn notification
-    const n=document.createElement('div');
-    n.className='gburn-notify'; n.textContent='🔥 -10 $GOZO BURNED! 🔥';
-    document.body.appendChild(n);
-    setTimeout(()=>n.remove(),2500);
-
-    await new Promise(r=>setTimeout(r,1500));
-    gLaunchGame();
-  } catch(e){
-    gBurning=false;
-    gSetStep(2,'error');
-    if(e.code===4001)        gSetStatus('BURN DITOLAK USER.','err');
-    else if(e.code===-32002) gSetStatus('PERMINTAAN PENDING — CEK POPUP WALLET.','err');
-    else if(e.code===-32603) gSetStatus('INTERNAL ERROR — COBA LAGI.','err');
-    else                     gSetStatus('BURN GAGAL: '+(e.message||'').slice(0,50),'err');
-    gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gShowRetry(true);
-  }
-}
-
-// ── Wait for TX receipt ─────────────────────────────────
-async function gWaitTx(hash, max=60, interval=2000){
-  for(let i=0;i<max;i++){
-    await new Promise(r=>setTimeout(r,interval));
-    try {
-      const r=await gProvider.request({method:'eth_getTransactionReceipt',params:[hash]});
-      if(r&&r.status){
-        if(r.status==='0x1') return r;
-        if(r.status==='0x0') throw new Error('Transaction reverted');
-      }
-    } catch(e){ if(e.message==='Transaction reverted') throw e; }
-  }
-  throw new Error('TX timeout');
-}
-
-// ── Retry handler ───────────────────────────────────────
-async function gRetry(){
-  gShowRetry(false); gBurning=false;
-  if(!gWallet||gFlowStep===0){
-    gWallet=null; gProvider=null;
-    gSetStep(1,''); gSetStep(2,'');
-    gSetBtn('CONNECT WALLET',false);
-    gSetStatus('CONNECT YOUR WALLET TO START');
-    return;
-  }
-  if(gFlowStep===1){ gSetStep(2,''); gSetBtn('🔥 BURN 10 GOZO & MAIN!',false); gBurn(); }
-}
-
-// ── Launch fishing game ─────────────────────────────────
-function gLaunchGame(){
-  document.getElementById('gateScreen').classList.remove('active');
-  // Show title screen (existing game flow)
-  document.getElementById('titleScreen').classList.add('active');
-  // Draw the title preview character
-  setTimeout(()=>{
-    try {
-      const c=document.getElementById('titleGozo');
-      const x=c.getContext('2d');
-      canvas=c; ctx=x; W=160; H=220;
-      SKY_H=30; FAR_BANK_Y=30; FAR_BANK_H=20; RIVER_Y=50; RIVER_H=60; GROUND_Y=110;
-      drawGozoCharacter(x,80,205,1,false,0,false,0);
-    } catch(e){}
-  }, 100);
-}
-
-// ── Preview character on gate ───────────────────────────
-(function gPreview(){
-  const c=document.getElementById('previewFishCanvas');
-  if(!c) return;
-  const x=c.getContext('2d');
-  x.imageSmoothingEnabled=false;
-  const S=8;
-  const P={
-    _:null, Y:'#F5C542', Yd:'#C89A20', R:'#8B1A1A', Rd:'#5C0F0F',
-    K:'#111', W:'#FFF', E:'#1A8FFF', Ew:'#FFF', H:'#1A1A1A',
-    C:'#CCC', Cd:'#888', T:'#F0EE3A', Ts:'#C8A500',
-    B:'#1A2F50', Bl:'#2B4A7A',
-  };
-  const SPR=[
-    ['_','_','_','R','R','R','R','R','_','_','_'],
-    ['_','_','R','R','R','R','R','R','R','_','_'],
-    ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
-    ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
-    ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
-    ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
-    ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
-    ['_','_','C','C','C','C','C','C','C','_','_'],
-    ['_','T','T','Y','Y','Y','Y','Y','T','T','_'],
-    ['_','Y','T','Y','Cd','Y','Cd','Y','T','Y','_'],
-    ['_','Y','T','Y','Y','Cd','Cd','Y','T','Y','_'],
-    ['_','Yd','Ts','Y','Y','Y','Y','Y','Ts','Yd','_'],
-    ['_','K','K','K','K','K','K','K','K','K','_'],
-    ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
-    ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
-    ['_','Bl','B','_','_','_','_','B','Bl','_','_'],
-  ];
-  let tick=0;
-  function draw(){
-    x.clearRect(0,0,c.width,c.height);
-    const bob=Math.sin(tick*0.05)*3;
-    SPR.forEach((row,r)=>row.forEach((k,col)=>{
-      if(!k||k==='_') return;
-      const color=P[k]; if(!color) return;
-      x.fillStyle=color;
-      x.fillRect(col*S, r*S+bob+8, S, S);
-    }));
-    // shadow
-    x.fillStyle='rgba(0,0,0,0.2)';
-    x.beginPath(); x.ellipse(44,c.height-10+bob,18,4,0,0,Math.PI*2); x.fill();
-    tick++; requestAnimationFrame(draw);
-  }
-  draw();
 })();
 
-// ── Account/chain listeners ─────────────────────────────
-if(window.ethereum){
-  window.ethereum.on('accountsChanged', a=>{ if(!a.length) location.reload(); else gWallet=a[0]; });
-  window.ethereum.on('chainChanged', ()=>location.reload());
+async function gConnectWallet(){
+  const eth = window.ethereum;
+  if(!eth){ showSaveToast('❌ Install MetaMask dulu!', true); return null; }
+  try {
+    const accounts = await eth.request({method:'eth_requestAccounts'});
+    gWallet = accounts[0]; gProvider = eth;
+    return gWallet;
+  } catch(e){
+    showSaveToast('❌ Wallet tidak terconnect.', true);
+    return null;
+  }
+}
+
+async function gFetchBalance(){
+  if(!gWallet||!gProvider) return 0n;
+  const data='0x'+FNS.balanceOf+gAddr(gWallet);
+  const res=await gProvider.request({method:'eth_call',params:[{to:W3.GOZO_ADDR,data},'latest']});
+  return res&&res!=='0x'?BigInt(res):0n;
+}
+
+async function gWaitTx(hash, maxTries=60){
+  for(let i=0;i<maxTries;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    try{
+      const r=await gProvider.request({method:'eth_getTransactionReceipt',params:[hash]});
+      if(r&&r.blockNumber){
+        if(r.status==='0x0') throw new Error('Transaction reverted');
+        return r;
+      }
+    }catch(e){ if(e.message?.includes('reverted')) throw e; }
+  }
+  throw new Error('TX timeout');
 }
 // ═══════════════════════════════════════════════════════
 
