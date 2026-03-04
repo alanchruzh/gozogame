@@ -2898,23 +2898,30 @@ if(window.ethereum){
 let mkBuying = false;
 
 async function openMarket(){
-  if(!gWallet){
-    notify('❌ Connect wallet dulu di gate screen!');
-    return;
-  }
   document.getElementById('marketModal').classList.add('show');
   mkSetStatus('');
   mkSetTx('');
+  mkBuying = false;
+  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
+
+  if(!gWallet){
+    document.getElementById('mkBalVal').textContent = '—';
+    mkSetStatus('⚠ Wallet belum terhubung. Kembali ke menu & connect wallet untuk membeli.', 'err');
+    document.querySelectorAll('.mkbuy').forEach(b => b.disabled = true);
+    return;
+  }
+
   // Refresh balance display
+  document.getElementById('mkBalVal').textContent = 'Loading...';
   try {
     const bal = await gFetchBalance();
     const gozo = Number(bal / BigInt('1000000000000000000'));
     document.getElementById('mkBalVal').textContent = gozo.toLocaleString() + ' $GOZO';
+    mkSetStatus('');
   } catch(e) {
     document.getElementById('mkBalVal').textContent = '—';
+    mkSetStatus('⚠ Gagal fetch saldo.', 'err');
   }
-  // Enable all buy buttons
-  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
 }
 
 function closeMarket(){
@@ -2937,7 +2944,8 @@ function mkSetTx(hash){
 async function buyGold(gozoAmount, goldAmount){
   if(mkBuying) return;
   if(!gWallet){
-    notify('❌ Wallet tidak terdeteksi!');
+    mkSetStatus('❌ Wallet belum terhubung! Kembali ke menu → Connect Wallet → Burn untuk masuk.', 'err');
+    mkBuying = false;
     return;
   }
 
