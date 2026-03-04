@@ -314,6 +314,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     </div>
     <div class="tbtns">
       <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
+      <button class="hbtn" onclick="openMarket()">💱 MARKET</button>
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
       <button class="hbtn" onclick="saveGame()">💾 SAVE</button>
       <button class="hbtn" onclick="triggerLoad()">📂 LOAD</button>
@@ -354,6 +355,59 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="sgrid" id="sgrid"></div>
     <div style="margin-top:10px;font-size:5px;color:#2a4a2a;text-align:center">Higher power bait = better rarity chances</div>
     <button class="mclose" onclick="closeShop()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- MARKET MODAL -->
+<div id="marketModal">
+  <div class="mbox" style="max-width:420px">
+    <div class="mtitle">💱 GOLD MARKET</div>
+    <div style="font-size:5px;color:#3a5a3a;text-align:center;margin-bottom:8px">
+      Tukar $GOZO jadi in-game GOLD<br>
+      <span style="color:#666">1 $GOZO = 100 🪙 GOLD</span>
+    </div>
+    <div class="mk-bal">Saldo $GOZO: <span id="mkBalVal">—</span></div>
+    <div class="mkgrid">
+      <div class="mkitem">
+        <div class="mkgold">🪙</div>
+        <span class="mklabel">100 GOLD</span>
+        <span class="mkcost">1 $GOZO</span>
+        <button class="mkbuy" onclick="buyGold(1,100)">BUY</button>
+      </div>
+      <div class="mkitem">
+        <div class="mkgold">🪙🪙</div>
+        <span class="mklabel">500 GOLD</span>
+        <span class="mkcost">5 $GOZO</span>
+        <button class="mkbuy" onclick="buyGold(5,500)">BUY</button>
+      </div>
+      <div class="mkitem">
+        <div class="mkgold">🪙🪙🪙</div>
+        <span class="mklabel">1000 GOLD</span>
+        <span class="mkcost">10 $GOZO</span>
+        <button class="mkbuy" onclick="buyGold(10,1000)">BUY</button>
+      </div>
+      <div class="mkitem">
+        <div class="mkgold">💰</div>
+        <span class="mklabel">2500 GOLD</span>
+        <span class="mkcost">25 $GOZO</span>
+        <button class="mkbuy" onclick="buyGold(25,2500)">BUY</button>
+      </div>
+      <div class="mkitem">
+        <div class="mkgold">💰💰</div>
+        <span class="mklabel">5500 GOLD</span>
+        <span class="mkcost">50 $GOZO <span style="color:#44ff88;font-size:4px">+10%</span></span>
+        <button class="mkbuy" onclick="buyGold(50,5500)">BUY</button>
+      </div>
+      <div class="mkitem">
+        <div class="mkgold">👑</div>
+        <span class="mklabel">12000 GOLD</span>
+        <span class="mkcost">100 $GOZO <span style="color:#44ff88;font-size:4px">+20%</span></span>
+        <button class="mkbuy" onclick="buyGold(100,12000)">BUY</button>
+      </div>
+    </div>
+    <div class="mk-status" id="mkStatus"></div>
+    <div class="mk-tx" id="mkTx"></div>
+    <button class="mclose" onclick="closeMarket()">✕ CLOSE</button>
   </div>
 </div>
 
@@ -2834,6 +2888,121 @@ if(window.ethereum){
 }
 // ═══════════════════════════════════════════════════════
 
+
+
+// ═══════════════════════════════════════════════════════════
+//  GOLD MARKET  — buy in-game gold with $GOZO tokens
+//  1 GOZO = 100 gold  (transfer to dead address = burn)
+// ═══════════════════════════════════════════════════════════
+
+let mkBuying = false;
+
+async function openMarket(){
+  if(!gWallet){
+    notify('❌ Connect wallet dulu di gate screen!');
+    return;
+  }
+  document.getElementById('marketModal').classList.add('show');
+  mkSetStatus('');
+  mkSetTx('');
+  // Refresh balance display
+  try {
+    const bal = await gFetchBalance();
+    const gozo = Number(bal / BigInt('1000000000000000000'));
+    document.getElementById('mkBalVal').textContent = gozo.toLocaleString() + ' $GOZO';
+  } catch(e) {
+    document.getElementById('mkBalVal').textContent = '—';
+  }
+  // Enable all buy buttons
+  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
+}
+
+function closeMarket(){
+  document.getElementById('marketModal').classList.remove('show');
+  mkBuying = false;
+}
+
+function mkSetStatus(msg, type=''){
+  const el = document.getElementById('mkStatus');
+  el.textContent = msg;
+  el.className = 'mk-status' + (type ? ' '+type : '');
+}
+
+function mkSetTx(hash){
+  const el = document.getElementById('mkTx');
+  if(!hash){ el.innerHTML = ''; return; }
+  el.innerHTML = `<a href="${W3.EXPLORER}${hash}" target="_blank">🔗 Lihat TX</a>`;
+}
+
+async function buyGold(gozoAmount, goldAmount){
+  if(mkBuying) return;
+  if(!gWallet){
+    notify('❌ Wallet tidak terdeteksi!');
+    return;
+  }
+
+  mkBuying = true;
+  mkSetTx('');
+  // Disable all buy buttons while processing
+  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = true);
+  mkSetStatus('Cek saldo $GOZO...');
+
+  // Check balance
+  let bal;
+  try { bal = await gFetchBalance(); } catch(e){ bal = 0n; }
+  const needed = BigInt(gozoAmount) * BigInt('1000000000000000000');
+  if(bal < needed){
+    const have = Number(bal / BigInt('1000000000000000000'));
+    mkSetStatus(`❌ Saldo tidak cukup! Punya: ${have} $GOZO, butuh: ${gozoAmount} $GOZO`, 'err');
+    document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
+    mkBuying = false;
+    return;
+  }
+
+  mkSetStatus(`Konfirmasi di wallet — kirim ${gozoAmount} $GOZO...`);
+
+  try {
+    // transfer(deadAddress, amount) — burn GOZO to buy gold
+    const weiHex = gUint(needed.toString());
+    const data = '0x' + FNS.transfer + gAddr(W3.BURN_ADDR) + weiHex;
+    const txHash = await gProvider.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: gWallet, to: W3.GOZO_ADDR, data }],
+    });
+
+    mkSetStatus('TX terkirim, menunggu konfirmasi...');
+    mkSetTx(txHash);
+
+    // Wait for confirmation
+    await gWaitTx(txHash);
+
+    // Grant gold
+    G.gold += goldAmount;
+    updateHUD();
+
+    mkSetStatus(`✅ Berhasil! +${goldAmount.toLocaleString()} 🪙 GOLD ditambahkan!`, 'ok');
+    mkSetTx(txHash);
+
+    // Refresh balance display
+    try {
+      const newBal = await gFetchBalance();
+      const gozo = Number(newBal / BigInt('1000000000000000000'));
+      document.getElementById('mkBalVal').textContent = gozo.toLocaleString() + ' $GOZO';
+    } catch(e){}
+
+    // Success flash notification
+    showSaveToast(`🪙 +${goldAmount.toLocaleString()} GOLD!`, false);
+
+  } catch(e) {
+    if(e.code === 4001)        mkSetStatus('❌ Transaksi dibatalkan.', 'err');
+    else if(e.code === -32002) mkSetStatus('❌ Permintaan pending — cek popup wallet.', 'err');
+    else if(e.code === -32603) mkSetStatus('❌ Internal error — coba lagi.', 'err');
+    else                       mkSetStatus('❌ Gagal: ' + (e.message||'').slice(0,40), 'err');
+  }
+
+  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
+  mkBuying = false;
+}
 
 // ═══════════════════════════════════════════════════════════
 //  SAVE / LOAD  — download/upload JSON file to local computer
