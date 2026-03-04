@@ -250,17 +250,26 @@
   }
 
   /* LEVEL UP */
-  #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
-  .levelup-title{font-family:'Orbitron',sans-serif;font-size:36px;color:var(--yellow);text-shadow:0 0 30px var(--yellow);animation:pulse .5s ease infinite alternate;}
+  #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,0);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:16px;animation:luBgFade .5s ease forwards;}
+  .levelup-title{font-family:'Orbitron',sans-serif;font-size:clamp(28px,8vw,52px);color:transparent;
+    background:linear-gradient(135deg,#FFD700,#ffaa00,#ff6600);-webkit-background-clip:text;background-clip:text;
+    text-shadow:none;filter:drop-shadow(0 0 20px #FFD700aa);
+    animation:luTitlePop .6s cubic-bezier(.175,.885,.32,1.275) both;}
+  .levelup-rays{position:absolute;inset:0;pointer-events:none;animation:luRays 1s ease forwards;}
+  @keyframes luBgFade{0%{background:rgba(0,0,0,0)}100%{background:rgba(0,0,5,.92)}}
+  @keyframes luTitlePop{0%{transform:scale(0) rotate(-10deg);opacity:0}70%{transform:scale(1.15) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes luRays{0%{opacity:0;transform:scale(.5) rotate(0deg)}50%{opacity:.15}100%{opacity:0;transform:scale(2) rotate(45deg)}}
+  @keyframes luStatIn{0%{opacity:0;transform:translateX(-20px)}100%{opacity:1;transform:translateX(0)}}
+  .lu-stat{animation:luStatIn .4s ease both;font-size:10px;color:#44ffaa;text-shadow:0 0 10px #44ffaa88;}
 
   /* DIALOG */
-  #dialog{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:16px 20px;max-width:500px;width:90%;font-size:9px;line-height:2;z-index:70;clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0% calc(100% - 12px),0% 12px);}
+  #dialog{display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:16px 20px;max-width:500px;width:90%;font-size:9px;line-height:2;z-index:70;clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0% calc(100% - 12px),0% 12px);}
 
-  /* D-PAD */
-  #dpad{position:fixed;bottom:20px;left:20px;z-index:60;display:none;}
-  .dpad-grid{display:grid;grid-template-columns:40px 40px 40px;grid-template-rows:40px 40px 40px;gap:2px;}
-  .dpad-btn{background:rgba(255,215,0,.25);border:2px solid var(--yellow);color:var(--yellow);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;user-select:none;}
-  .dpad-btn:active{background:rgba(255,215,0,.55);}
+  /* D-PAD — above toolbar, left side */
+  #dpad{position:fixed;bottom:62px;left:12px;z-index:62;display:none;}
+  .dpad-grid{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:3px;}
+  .dpad-btn{background:rgba(0,0,0,.6);border:2px solid rgba(255,215,0,.4);color:rgba(255,215,0,.8);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;user-select:none;backdrop-filter:blur(4px);}
+  .dpad-btn:active{background:rgba(255,215,0,.25);border-color:#FFD700;}
 
   .stars{position:fixed;inset:0;pointer-events:none;overflow:hidden;}
   .star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle var(--d,3s) ease-in-out infinite var(--delay,0s);}
@@ -279,25 +288,40 @@
   #inv-screen::-webkit-scrollbar{width:4px;}
   #inv-screen::-webkit-scrollbar-track{background:#111;}
   #inv-screen::-webkit-scrollbar-thumb{background:#444;border-radius:2px;}
-  .inv-tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #333;}
-  .inv-tab{flex:1;padding:8px 4px;font-family:'Press Start 2P',monospace;font-size:7px;color:#666;background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;transition:all .15s;text-align:center;}
-  .inv-tab.active{color:var(--yellow);border-bottom-color:var(--yellow);}
-  .inv-tab:hover:not(.active){color:#999;}
+  .inv-tab-bar{display:flex;gap:4px;margin-bottom:14px;padding:0 4px;}
+  .inv-tab{flex:1;padding:9px 4px;font-family:'Press Start 2P',monospace;font-size:6px;color:#555;
+    background:#0a0a14;border:2px solid #1a1a2a;cursor:pointer;transition:all .15s;text-align:center;
+    clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  .inv-tab.active{color:#FFD700;background:#14120a;border-color:#FFD70066;box-shadow:0 0 8px #FFD70033;}
+  .inv-tab:hover:not(.active){color:#999;border-color:#333;}
   .inv-panel{display:none;}
   .inv-panel.active{display:block;}
-  .inv-item{display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #2a2a3a;padding:9px 10px;transition:all .15s;position:relative;}
-  .inv-item.equipped{border-color:var(--yellow);background:#14140a;}
-  .inv-item.equipped::before{content:'EQ';position:absolute;top:4px;right:4px;font-size:5px;color:var(--yellow);font-family:'Press Start 2P',monospace;}
-  .inv-item:hover{border-color:#555;background:#111122;}
+  .inv-item{display:flex;align-items:center;gap:12px;background:#080810;border:2px solid #181825;
+    padding:10px 12px;transition:all .15s;position:relative;margin-bottom:4px;}
+  .inv-item.equipped{border-color:#FFD70088;background:#100f04;
+    box-shadow:inset 0 0 12px rgba(255,215,0,.06),0 0 8px rgba(255,215,0,.15);}
+  .inv-item.equipped::before{content:'✦ EQ';position:absolute;top:4px;right:6px;font-size:5px;color:#FFD700;font-family:'Press Start 2P',monospace;}
+  .inv-item:hover{border-color:#303048;background:#0d0d1a;transform:translateX(2px);}
+  .inv-item-emoji{font-size:28px;width:36px;text-align:center;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));}
   .inv-item-info{flex:1;line-height:1.8;min-width:0;}
   .inv-item-name{font-size:8px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .inv-item-stats{font-size:7px;color:#888;margin-top:1px;}
-  .inv-item-desc{font-size:6px;color:#555;margin-top:1px;}
-  .inv-compare{font-size:6px;margin-top:2px;}
+  .inv-item-stats{font-size:6px;color:#777;margin-top:2px;}
+  .inv-item-desc{font-size:5px;color:#444;margin-top:1px;font-style:italic;}
+  .inv-compare{font-size:6px;margin-top:3px;padding:2px 6px;background:#0d0d1a;border-left:2px solid #333;display:inline-block;}
   .inv-compare .up{color:#44ff88;}
   .inv-compare .down{color:#ff4444;}
-  .inv-compare .same{color:#888;}
-  .inv-btn{background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:pointer;white-space:nowrap;clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  .inv-compare .same{color:#666;}
+  .inv-btn{background:#0a0a14;border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 9px;cursor:pointer;white-space:nowrap;transition:all .12s;
+    clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px);}
+  .inv-btn:hover{background:#FFD700;color:#000;}
+  .inv-btn.sell-btn{border-color:#f0a03066;color:#f0a030;}
+  .inv-btn.sell-btn:hover{background:#f0a030;color:#000;}
+  .inv-header{font-family:'Orbitron',sans-serif;font-size:18px;color:#FFD700;padding:16px 16px 4px;letter-spacing:2px;border-bottom:1px solid #FFD70022;margin-bottom:4px;}
+  .inv-equipped-section{background:linear-gradient(135deg,#0a0a00,#100f04);border:2px solid #FFD70033;padding:12px;margin-bottom:12px;}
+  .inv-equipped-title{font-size:6px;color:#FFD70088;letter-spacing:3px;margin-bottom:8px;}
+  .inv-equipped-row{display:flex;gap:10px;align-items:center;font-size:7px;color:#888;}
+  .inv-equipped-slot{background:#0d0d1a;border:1px solid #222;padding:6px 10px;flex:1;min-height:36px;display:flex;align-items:center;gap:6px;}
+  @keyframes invSellOut{0%{opacity:1;transform:translateX(0) scaleY(1);max-height:80px;margin-bottom:4px}70%{opacity:0;transform:translateX(60px) scaleY(0.8)}100%{opacity:0;transform:translateX(80px) scaleY(0);max-height:0;margin-bottom:0;padding:0;border:none;}}
   .inv-btn:hover{background:var(--yellow);color:#000;}
   .inv-btn.danger{border-color:#cc4444;color:#cc4444;}
   .inv-btn.danger:hover{background:#cc4444;color:#fff;}
@@ -343,9 +367,12 @@
   #save-hud-btn:hover{box-shadow:0 0 20px rgba(68,136,255,.6);}
   @keyframes grassSwayFast{0%,100%{transform:translateX(0) skewX(0deg)}25%{transform:translateX(-3px) skewX(-2deg)}75%{transform:translateX(3px) skewX(2deg)}}
   @keyframes exclamPop{0%{transform:scale(0) translateY(10px);opacity:0}60%{transform:scale(1.4) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
-  /* MINIMAP */
-  #minimap{position:fixed;top:12px;right:12px;width:120px;height:90px;background:rgba(0,0,0,.75);border:2px solid var(--border);z-index:55;overflow:hidden;}
-  #minimap-player{position:absolute;width:4px;height:5px;background:var(--yellow);border-radius:1px;transform:translate(-50%,-50%);}
+  /* MINIMAP — below HUD, top-right */
+  #minimap{position:fixed;top:64px;right:12px;width:110px;height:82px;
+    background:rgba(0,0,0,.8);border:2px solid #FFD70044;z-index:51;overflow:hidden;
+    box-shadow:0 4px 12px rgba(0,0,0,.6);}
+  #minimap::before{content:'MAP';position:absolute;bottom:2px;left:4px;font-size:4px;color:#FFD70066;font-family:'Press Start 2P',monospace;z-index:2;}
+  #minimap-player{position:absolute;width:5px;height:5px;background:#FFD700;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px #FFD700;z-index:2;}
   #minimap canvas{position:absolute;inset:0;}
 
   @keyframes grassBlade{0%,100%{transform:rotate(-4deg) scaleY(1)}50%{transform:rotate(4deg) scaleY(1.05)}}
@@ -828,7 +855,7 @@
 </div>
 
 <!-- DROP POPUP -->
-<div id="drop-popup" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:14px 20px;z-index:91;flex-direction:column;align-items:center;gap:4px;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);animation:fadeIn .3s ease;min-width:180px;text-align:center;"></div>
+<div id="drop-popup" style="display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:14px 20px;z-index:91;flex-direction:column;align-items:center;gap:4px;clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);animation:fadeIn .3s ease;min-width:180px;text-align:center;box-shadow:0 0 20px rgba(255,215,0,.2);"></div>
 
 <!-- LEVEL UP -->
   <div class="levelup-title">✨ LEVEL UP! ✨</div>
@@ -4320,15 +4347,34 @@ function levelUp(){
   const p=state.player;
   p.level++; p.exp-=p.expToLevel; p.expToLevel=Math.floor(p.expToLevel*1.6);
   p.maxHp+=20; p.hp=p.maxHp; p.attack+=5; p.defense+=2;
-  const lutxt=document.getElementById('levelup-text'); if(lutxt) lutxt.textContent=`LV ${p.level}! HP +20, ATK +5, DEF +2`;
-  const lubox=document.getElementById('levelup'); if(lubox) lubox.style.display='flex';
   playLevelUpSound();
   updateHUD();
+
+  const lubox=document.getElementById('levelup');
+  if(lubox){
+    lubox.style.display='flex';
+    // Build dramatic content
+    lubox.innerHTML = `
+      <div class="levelup-rays">
+        <svg viewBox="0 0 400 400" width="400" height="400" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);">
+          ${Array.from({length:16},(_,i)=>{const a=i*22.5; return `<line x1="200" y1="200" x2="${200+Math.cos(a*Math.PI/180)*300}" y2="${200+Math.sin(a*Math.PI/180)*300}" stroke="#FFD700" stroke-width="2" opacity="0.3"/>`;}).join('')}
+        </svg>
+      </div>
+      <div style="font-size:11px;color:#FFD70088;letter-spacing:4px;animation:luStatIn .3s .1s both;">LEVEL UP!</div>
+      <div class="levelup-title">LV ${p.level}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+        <div class="lu-stat" style="animation-delay:.3s">❤️ MAX HP +20 → ${p.maxHp}</div>
+        <div class="lu-stat" style="animation-delay:.45s">⚔️ ATTACK +5 → ${p.attack}</div>
+        <div class="lu-stat" style="animation-delay:.6s">🛡️ DEFENSE +2 → ${p.defense}</div>
+      </div>
+      <button class="press-start" style="animation:none;margin-top:20px;font-size:9px;padding:10px 24px;" onclick="closeLevelUp()">CONTINUE ▶</button>`;
+    // Spawn particles
+    spawnBattleParticles(12,['⭐','✨','💫','🌟'], 200, 200);
+  }
 
   // Check evolution at LV 30 and LV 60
   const newStage = getPartnerStage(p.level);
   if (newStage > partnerStage && pType) {
-    // Schedule evolution after level-up screen closes
     state._pendingEvolution = newStage;
   }
 }
