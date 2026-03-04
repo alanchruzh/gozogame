@@ -150,6 +150,9 @@
   #quest-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
   #quest-btn{display:none;position:fixed;bottom:24px;right:110px;z-index:61;background:var(--panel);border:2px solid #44aaff;color:#44aaff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,170,255,.25);transition:box-shadow .2s;}
   #quest-btn:hover{box-shadow:0 0 20px rgba(68,170,255,.6);}
+  #stats-btn{display:none;position:fixed;bottom:58px;right:110px;z-index:61;background:var(--panel);border:2px solid #cc88ff;color:#cc88ff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(200,136,255,.2);transition:box-shadow .2s;}
+  #stats-btn:hover{box-shadow:0 0 20px rgba(200,136,255,.5);}
+  #stats-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
 
   /* LEVEL UP */
   #levelup{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:90;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
@@ -2510,6 +2513,7 @@ function initGame(fromLoad){
   const _bagBtn = document.getElementById('bag-btn'); if(_bagBtn) _bagBtn.style.display='block';
   const _saveBtn = document.getElementById('save-hud-btn'); if(_saveBtn) _saveBtn.style.display='block';
   const _questBtn = document.getElementById('quest-btn'); if(_questBtn) _questBtn.style.display='block';
+  const _statsBtn = document.getElementById('stats-btn'); if(_statsBtn) _statsBtn.style.display='block';
   initQuests();
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
@@ -3684,6 +3688,7 @@ function startBattle(enemy){
   state.inBattle=true;
   state.currentEnemy={...enemy};
   state.battleTurn='player';
+  if(questState) questState.stats.battles++;
 
   const bscr=document.getElementById('battle-screen');
   if(!bscr) return;
@@ -3759,6 +3764,7 @@ function battleAction(action){
       flashArena('rgba(255,80,80,0.25)');
       if(dmg>=40) arenaShake();
     },180);
+    if(questState) questState.stats.damageDealt += dmg;
     log=`Gozo attacks! Dealt ${dmg} damage to ${e.name}!`;
 
   }else if(action==='special'){
@@ -3824,11 +3830,12 @@ function battleAction(action){
     p.potions--;
     playSoundHeal();
     showDmgPopup(heal,true);
+    if(questState) questState.stats.potionsUsed++;
     log=`💊 Used a potion! HP +${heal}! (Left: ${p.potions})`;
 
   }else if(action==='run'){
     playSoundRun();
-    if(Math.random()>0.4){setBattleLog('🏃 Got away safely!');updateBattleHP();setTimeout(()=>endBattle(false),1400);return;}
+    if(Math.random()>0.4){setBattleLog('🏃 Got away safely!');updateBattleHP();if(questState)questState.stats.fled++;setTimeout(()=>endBattle(false),1400);return;}
     log='❌ Could not escape!';
   }
 
@@ -3843,6 +3850,7 @@ function enemyTurn(){
   const p=state.player,e=state.currentEnemy;
   const dmg=Math.max(1,e.atk+Math.floor(Math.random()*6)-p.defense);
   p.hp-=dmg;
+  if(questState) questState.stats.damageTaken += dmg;
   playSoundPlayerHurt();
   showDmgPopup(dmg,false,true);
   shakeSprite('player-battle-sprite');
@@ -4150,6 +4158,7 @@ function sellItem(type, idx){
     state.player.coins += price;
     arr.splice(idx, 1);
     updateHUD();
+    if(questState){ questState.stats.itemsSold++; questState.stats.coinsFromSells+=price; saveQuestState(); }
     showSellToast('💰 Sold ' + item.name + ' for ' + price + ' coins!', RARITY_COLOR[item.rarity]);
     spawnCoinBurst(price, RARITY_COLOR[item.rarity]);
     renderInventory();
@@ -4990,7 +4999,7 @@ let questState = {
   daily: [],     // today's 3 quests [{...quest, progress}]
   dailyDate: '', // YYYY-MM-DD
   dailyDone: {}, // {[id]: true}
-  stats: { kills:0, coinsEarned:0, grassEntries:0, bestRarity:'Common' }
+  stats: { kills:0, coinsEarned:0, grassEntries:0, bestRarity:'Common', damageDealt:0, damageTaken:0, itemsSold:0, coinsFromSells:0, itemsEquipped:0, battles:0, fled:0, potionsUsed:0 }
 };
 
 function getTodayStr(){
@@ -5144,6 +5153,68 @@ function updateQuestDot(){
   } else if(!hasNew && dot){ dot.remove(); }
 }
 
+function openStatsScreen(){
+  const sc = document.getElementById('stats-screen');
+  if(!sc) return;
+  const p = state.player;
+  // Ensure all stat fields have defaults
+  const s = Object.assign({
+    kills:0, coinsEarned:0, grassEntries:0, bestRarity:'Common',
+    damageDealt:0, damageTaken:0, itemsSold:0, coinsFromSells:0,
+    itemsEquipped:0, battles:0, fled:0, potionsUsed:0
+  }, questState.stats);
+  const inv = inventory.weapons.length + inventory.armors.length;
+  const doneMQ = Object.keys(questState.mainDone).length;
+  const doneD  = Object.keys(questState.dailyDone).length;
+
+  const row = (icon, label, val, color='#ddd') =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #1a1a2a;">
+      <span style="font-size:7px;color:#888;">${icon} ${label}</span>
+      <span style="font-size:8px;color:${color};font-family:'Press Start 2P',monospace;">${val}</span>
+    </div>`;
+
+  sc.innerHTML = `
+    <div style="width:100%;max-width:560px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:2px solid #222;padding-bottom:12px;">
+        <span style="font-family:'Orbitron',sans-serif;font-size:18px;color:#FFD700;">📊 STATISTICS</span>
+        <button onclick="closeStatsScreen()" style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+
+      <div style="font-size:6px;color:#4488ff;letter-spacing:2px;margin-bottom:8px;">👤 PLAYER</div>
+      ${row('⚡','Level', 'LV '+p.level, '#FFD700')}
+      ${row('❤️','HP', p.hp+' / '+p.maxHp, '#ff6666')}
+      ${row('⚔️','Attack', p.attack, '#ff8844')}
+      ${row('🛡️','Defense', p.defense, '#4488ff')}
+      ${row('💰','Current Coins', p.coins, '#FFD700')}
+      ${row('🎒','Items in Bag', inv)}
+
+      <div style="font-size:6px;color:#44ff88;letter-spacing:2px;margin:14px 0 8px;">⚔️ BATTLE</div>
+      ${row('💀','Monsters Killed', s.kills, '#ff6666')}
+      ${row('⚔️','Battles Started', s.battles)}
+      ${row('🏃','Times Fled', s.fled, '#888')}
+      ${row('💥','Total Damage Dealt', s.damageDealt, '#ff8844')}
+      ${row('🩸','Total Damage Taken', s.damageTaken, '#cc4444')}
+      ${row('💊','Potions Used', s.potionsUsed, '#44ffaa')}
+
+      <div style="font-size:6px;color:#cc88ff;letter-spacing:2px;margin:14px 0 8px;">🎒 ITEMS</div>
+      ${row('💰','Total Coins Earned', s.coinsEarned, '#FFD700')}
+      ${row('🏷️','Items Sold', s.itemsSold)}
+      ${row('💵','Coins from Sells', s.coinsFromSells, '#f0a030')}
+      ${row('🌟','Best Drop Rarity', s.bestRarity, RARITY_COLOR[s.bestRarity]||'#aaa')}
+
+      <div style="font-size:6px;color:#aaaaff;letter-spacing:2px;margin:14px 0 8px;">📋 QUESTS</div>
+      ${row('📜','Main Quests Done', doneMQ+' / '+MAIN_QUESTS.length, '#aaaaff')}
+      ${row('🌅','Daily Quests Done', doneD+' / 3', '#44aaff')}
+      ${row('🌿','Grass Entries', s.grassEntries, '#44cc44')}
+    </div>`;
+  sc.style.display = 'flex';
+}
+
+function closeStatsScreen(){
+  const sc = document.getElementById('stats-screen');
+  if(sc) sc.style.display='none';
+}
+
 function openQuestScreen(){
   refreshDailyQuests();
   const sc = document.getElementById('quest-screen');
@@ -5218,6 +5289,8 @@ function renderQuestScreen(){
 <button onclick="openSaveScreen()" id="save-hud-btn" style="display:none;">💾 SAVE</button>
 <button onclick="openInventory()" id="bag-btn" style="display:none;position:fixed;bottom:24px;right:20px;z-index:61;background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 12px rgba(255,215,0,.3);transition:box-shadow .2s;" onmouseenter="this.style.boxShadow='0 0 20px rgba(255,215,0,.7)'" onmouseleave="this.style.boxShadow='0 0 12px rgba(255,215,0,.3)'">🎒 BAG</button>
 <button onclick="openQuestScreen()" id="quest-btn">📋 QUEST</button>
+<button onclick="openStatsScreen()" id="stats-btn">📊 STATS</button>
 <div id="quest-screen"></div>
+<div id="stats-screen"></div>
 </body>
 </html>
