@@ -56,36 +56,58 @@ header{
 .bd2{top:15%;font-size:8px;animation-duration:44s;animation-delay:-18s}
 @keyframes birdFly{0%{left:-20px}100%{left:calc(100% + 30px)}}
 
-.horizon{flex-shrink:0;height:48px;background:linear-gradient(180deg,var(--sky3) 0%,var(--grass) 50%);position:relative;overflow:visible;z-index:5}
-.tree-row{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:0;pointer-events:none}
-.px-tree{display:flex;flex-direction:column;align-items:center;margin-right:12px}
-.px-tree .tc{width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-bottom:28px solid #2a7020;filter:drop-shadow(0 -2px 0 #1a5010)}
-.px-tree .tc2{width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-bottom:22px solid #3a8030;margin-top:-12px}
-.px-tree .tt{width:8px;height:18px;background:#8a5018;box-shadow:inset -2px 0 0 rgba(0,0,0,0.4)}
+.horizon{flex-shrink:0;height:68px;background:linear-gradient(180deg,var(--sky3) 0%,var(--grass) 55%);position:relative;overflow:visible;z-index:5}
+.tree-row{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:1px;pointer-events:none;padding-left:2px}
+.px-tree{display:inline-block;flex-shrink:0;image-rendering:pixelated;vertical-align:bottom}
 
 .fence-strip{flex-shrink:0;height:22px;background:#7a4010;display:flex;align-items:stretch;position:relative;z-index:6;box-shadow:0 3px 0 #000}
 .fp{width:8px;height:100%;background:#9a5018;box-shadow:inset -2px 0 0 rgba(0,0,0,0.35);flex-shrink:0}
 .fr{flex:1;height:7px;margin-top:4px;background:#c07030;box-shadow:0 2px 0 rgba(0,0,0,0.3)}
 
-.ground-area{flex:1;overflow:hidden;background:repeating-linear-gradient(90deg,var(--grass) 0,var(--grass) 12px,var(--grass2) 12px,var(--grass2) 24px);position:relative;z-index:7;display:flex;gap:0;padding:12px 12px 8px}
+.ground-area{flex:1;overflow:hidden;background:
+  /* subtle grass blade pattern */
+  repeating-linear-gradient(90deg, var(--grass) 0, var(--grass) 8px, var(--grass2) 8px, var(--grass2) 16px),
+  linear-gradient(180deg, var(--grass2) 0%, var(--grass) 100%);
+  position:relative;z-index:7;display:flex;gap:0;padding:10px 10px 6px}
 
 .fields-container{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
 .field-label-top{font-size:0.55rem;color:var(--yellow);text-shadow:2px 2px 0 #000;letter-spacing:2px;text-align:center;flex-shrink:0}
-.fields-rows{flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.fields-row{flex:1;display:flex;gap:8px;align-items:stretch;overflow:hidden}
+.fields-rows{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.fields-row{flex:1;display:flex;gap:10px;align-items:stretch;overflow:hidden}
 
-.field-block{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
-.field-title{font-size:0.28rem;color:#c0e8c0;text-shadow:1px 1px 0 #000;white-space:nowrap}
+.field-block{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
+/* small field name label, Stardew-style subtle sign */
+.field-title{font-size:0.24rem;color:#d4b87a;text-shadow:1px 1px 0 #000;white-space:nowrap;background:#5a3010;border:1px solid #8a5020;padding:1px 4px;border-radius:1px}
 
-.field-grid{flex:1;width:100%;height:100%;display:grid;gap:3px;background:#3a1a08;border:4px solid #6a2e10;box-shadow:4px 4px 0 #000,inset 1px 1px 0 rgba(255,255,255,0.05);padding:4px;align-content:stretch}
-.field-grid.cols2{grid-template-columns:repeat(2,1fr)}
-.field-grid.cols3{grid-template-columns:repeat(3,1fr)}
+/* ── Stardew-style field: one big land patch containing 4 plot tiles ── */
+.field-grid{
+  flex:1;width:100%;height:100%;
+  display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);
+  gap:2px;
+  /* outer dirt border — the "field edge" */
+  background:#8b5e2a;
+  border:3px solid #5a3510;
+  box-shadow:3px 3px 0 #000, inset 0 0 0 2px #a07040;
+  padding:3px;
+  position:relative;
+  border-radius:2px;
+}
+/* Stardew-like corner pebble accents */
+.field-grid::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 10% 12%, #6a3c18 2px, transparent 2px),
+    radial-gradient(circle at 88% 10%, #6a3c18 2px, transparent 2px),
+    radial-gradient(circle at 12% 88%, #6a3c18 2px, transparent 2px),
+    radial-gradient(circle at 90% 90%, #6a3c18 2px, transparent 2px);
+}
 
-.field-locked{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#2a1a08 0%,#1a0e04 100%);border:4px solid var(--lock);box-shadow:4px 4px 0 #000,inset 0 0 20px rgba(0,0,0,0.5);gap:6px;padding:8px;cursor:pointer;transition:all 0.1s;position:relative;overflow:hidden}
+/* locked field */
+.field-locked{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#2a1a08 0%,#1a0e04 100%);border:3px solid var(--lock);box-shadow:3px 3px 0 #000,inset 0 0 20px rgba(0,0,0,0.5);gap:6px;padding:8px;cursor:pointer;transition:all 0.1s;position:relative;overflow:hidden;border-radius:2px}
 .field-locked::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent 0,transparent 8px,rgba(0,0,0,0.15) 8px,rgba(0,0,0,0.15) 10px)}
-.field-locked:hover{border-color:var(--yellow);box-shadow:4px 4px 0 #000,0 0 12px rgba(247,201,72,0.2)}
+.field-locked:hover{border-color:var(--yellow);box-shadow:3px 3px 0 #000,0 0 12px rgba(247,201,72,0.2)}
 .field-locked.next-unlock{border-color:#7b61ff;animation:nextGlow 2s ease-in-out infinite}
-@keyframes nextGlow{0%,100%{box-shadow:4px 4px 0 #000,0 0 8px rgba(123,97,255,0.2)}50%{box-shadow:4px 4px 0 #000,0 0 20px rgba(123,97,255,0.5)}}
+@keyframes nextGlow{0%,100%{box-shadow:3px 3px 0 #000,0 0 8px rgba(123,97,255,0.2)}50%{box-shadow:3px 3px 0 #000,0 0 20px rgba(123,97,255,0.5)}}
 .lock-icon{font-size:1.4rem;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.6));z-index:1}
 .lock-cost{font-size:0.28rem;color:#80c8f0;text-shadow:1px 1px 0 #000;text-align:center;line-height:1.8;z-index:1}
 .lock-name{font-size:0.24rem;color:#a09070;text-shadow:1px 1px 0 #000;z-index:1}
@@ -94,22 +116,107 @@ header{
 .unlock-now-btn{font-family:var(--font);font-size:0.24rem;background:#5dc85d;color:#fff;border:3px solid #2a7a2a;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s}
 .unlock-now-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #000}
 
-.plot{cursor:pointer;position:relative;transition:filter 0.1s;user-select:none;min-height:0;overflow:hidden}
-.plot:hover{filter:brightness(1.35)}
-.plot:active{transform:scale(0.93)}
+/* Buy land button */
+.buy-field-btn{font-family:var(--font);font-size:0.26rem;background:#2a1a08;color:#a09070;border:2px solid #6a4020;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s;margin-top:2px;white-space:nowrap}
+.buy-field-btn.can-afford{background:#2a5a10;color:#c0f080;border-color:#4a9020;animation:buyGlow 1.6s ease-in-out infinite}
+.buy-field-btn.can-afford:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #000;filter:brightness(1.2)}
+@keyframes buyGlow{0%,100%{box-shadow:2px 2px 0 #000}50%{box-shadow:2px 2px 0 #000,0 0 8px rgba(100,220,50,0.6)}}
+
+/* ── individual plot tile ── */
+.plot{
+  cursor:pointer;position:relative;
+  transition:filter 0.12s;user-select:none;
+  min-height:0;overflow:hidden;
+  z-index:1;
+}
+.plot:hover{filter:brightness(1.4) saturate(1.2)}
+.plot:active{filter:brightness(0.85)}
+
 .pt{width:100%;height:100%;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:3px}
-.plot[data-s=empty] .pt{background:linear-gradient(180deg,#7a4a28,#8b5c32 40%,#6a3e1a);box-shadow:inset -3px -3px 0 rgba(0,0,0,0.3),inset 2px 2px 0 rgba(255,255,255,0.07)}
-.plot[data-s=empty] .pt::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 35%,rgba(0,0,0,0.2) 2px,transparent 2px),radial-gradient(circle at 72% 65%,rgba(0,0,0,0.15) 2px,transparent 2px)}
-.plot[data-s=tilled] .pt{background:repeating-linear-gradient(0deg,#4a2808 0,#4a2808 6px,#3a1e06 6px,#3a1e06 12px);box-shadow:inset -3px -3px 0 rgba(0,0,0,0.4)}
-.plot[data-s=planted] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
-.plot[data-s=ready] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
-.plot[data-s=regrowing] .pt{background:repeating-linear-gradient(0deg,#3a1e06 0,#3a1e06 6px,#4a2808 6px,#4a2808 12px)}
-@keyframes readyGlow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5) saturate(1.6)}}
+
+/* EMPTY — dry cracked earth like Stardew untilled soil */
+.plot[data-s=empty] .pt{
+  background:#c8874a;
+  box-shadow:inset -2px -2px 0 #8a5020, inset 1px 1px 0 #e0a870;
+}
+.plot[data-s=empty] .pt::before{
+  content:'';position:absolute;inset:0;
+  background:
+    /* crack lines */
+    linear-gradient(112deg, transparent 45%, #a06830 45.5%, transparent 46%),
+    linear-gradient(68deg,  transparent 55%, #a06830 55.5%, transparent 56%),
+    /* pebbles */
+    radial-gradient(circle at 22% 30%, #9a5a20 1.5px, transparent 1.5px),
+    radial-gradient(circle at 75% 65%, #9a5a20 1.5px, transparent 1.5px),
+    radial-gradient(circle at 55% 22%, #b07840 1px, transparent 1px);
+}
+
+/* TILLED — dark brown rows like Stardew freshly hoed dirt */
+.plot[data-s=tilled] .pt{
+  background:#6b3c14;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.45), inset 1px 1px 0 rgba(255,255,255,0.06);
+}
+.plot[data-s=tilled] .pt::before{
+  content:'';position:absolute;inset:0;
+  /* horizontal furrows like a hoed field */
+  background:repeating-linear-gradient(
+    180deg,
+    #7a4820 0px, #7a4820 3px,
+    #5a2e0c 3px, #5a2e0c 7px,
+    #6a3818 7px, #6a3818 8px,
+    #5a2e0c 8px, #5a2e0c 12px
+  );
+  opacity:0.9;
+}
+
+/* PLANTED / REGROWING — moist dark tilled soil */
+.plot[data-s=planted] .pt,
+.plot[data-s=regrowing] .pt{
+  background:#4e2508;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5);
+}
+.plot[data-s=planted] .pt::before,
+.plot[data-s=regrowing] .pt::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    180deg,
+    #5a2e0c 0px, #5a2e0c 3px,
+    #3e1a06 3px, #3e1a06 7px,
+    #4a2208 7px, #4a2208 8px,
+    #3e1a06 8px, #3e1a06 12px
+  );
+  opacity:0.85;
+}
+/* watered plot gets a blue-tint overlay */
+.plot[data-watered=true] .pt::after{
+  content:'';position:absolute;inset:0;
+  background:rgba(40,100,180,0.12);
+  pointer-events:none;
+}
+
+/* READY — glowing golden soil */
+.plot[data-s=ready] .pt{
+  background:#4e2508;
+  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5), 0 0 6px rgba(255,210,60,0.5);
+  animation:readyGlow 1.4s ease-in-out infinite;
+}
+.plot[data-s=ready] .pt::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(
+    180deg,
+    #5a2e0c 0px, #5a2e0c 3px,
+    #3e1a06 3px, #3e1a06 7px,
+    #4a2208 7px, #4a2208 8px,
+    #3e1a06 8px, #3e1a06 12px
+  );
+  opacity:0.85;
+}
+@keyframes readyGlow{0%,100%{box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5),0 0 4px rgba(255,210,60,0.3)}50%{box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5),0 0 10px rgba(255,210,60,0.75)}}
+
 .cs{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:1.4rem;line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.5));z-index:2;pointer-events:none}
 .plot[data-s=planted] .cs{font-size:1rem;animation:plantBob 1.4s ease-in-out infinite}
-@keyframes plantBob{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.1)}}
+@keyframes plantBob{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.08)}}
 .plot[data-s=ready] .cs{font-size:1.5rem}
-@keyframes readyBounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
 
 .pl{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:0.22rem;color:rgba(255,255,255,0.75);text-shadow:1px 1px 0 #000;pointer-events:none}
 .pt-timer{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:0.2rem;color:var(--yellow);text-shadow:1px 1px 0 #000;pointer-events:none;z-index:3}
@@ -304,15 +411,23 @@ header{
     <!-- Harvest Basket -->
     <div class="sb-card">
       <h3>🧺 HARVEST BASKET</h3>
-      <div id="goldDisplay" style="display:flex;align-items:center;gap:6px;background:rgba(255,200,50,0.12);border:1px solid #c8962a;border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:0.28rem;font-weight:bold;color:#f5c842;text-shadow:1px 1px 0 #000">🪙 <span style="color:#fff;font-weight:normal">Gold:</span> <span id="goldAmount">0</span></div>
+      <div id="goldDisplay" style="display:flex;flex-direction:column;gap:4px;background:rgba(255,200,50,0.10);border:1px solid #c8962a;border-radius:6px;padding:6px 10px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:6px;font-size:0.28rem;font-weight:bold;color:#f5c842;text-shadow:1px 1px 0 #000">🪙 <span style="color:#fff;font-weight:normal">Gold:</span> <span id="goldAmount">0</span></div>
+        <div style="font-size:0.18rem;color:#6a7a6a">Earned from selling crops · used for seeds</div>
+      </div>
       <div id="harvestList"></div>
     </div>
 
     <!-- Unlock Fields -->
     <div class="sb-card">
       <h3>🏡 FIELDS</h3>
-      <div style="font-size:0.26rem;color:#8ab88a;text-shadow:1px 1px 0 #000;line-height:1.8">
-        Harvest <span style="color:var(--yellow)">5 crops</span> to unlock next field!
+      <div style="font-size:0.24rem;color:#8ab88a;text-shadow:1px 1px 0 #000;line-height:1.9">
+        Buy land with <span style="color:#f7c948">GOZO token</span> 🔥<br>
+        <span style="color:#a09070;font-size:0.2rem">Token burned on purchase</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:5px;font-size:0.24rem;color:#80d0ff;text-shadow:1px 1px 0 #000">
+        ⛓️ GOZO: <span id="chainGozoAmt" style="color:#f7c948;font-weight:bold">—</span>
+        <button onclick="refreshGozoBalance()" style="font-family:var(--font);font-size:0.18rem;background:#162416;color:#80c8a0;border:1px solid #2a4a2a;padding:1px 5px;cursor:pointer;margin-left:2px">↻</button>
       </div>
       <div style="font-size:0.24rem;color:#6a8a6a;margin-top:4px">Unlocked: <span id="fieldsUnlocked">1</span>/10</div>
     </div>
@@ -394,40 +509,68 @@ header{
 // ═══════════════════════════════════════════════════
 // WALLET & BURN GATE
 // ═══════════════════════════════════════════════════
-const GOZO_TOKEN = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
-const DEAD_ADDR  = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x279F'; // 10143 decimal (Monad testnet)
+const GOZO_TOKEN     = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const DEAD_ADDR      = '0x000000000000000000000000000000000000dEaD';
+const MONAD_CHAIN_ID = '0x279F'; // 10143 — Monad Mainnet
 const BURN_AMOUNT_WEI = '0x' + (BigInt('10000000000000000000')).toString(16); // 10 * 10^18
 
-// ERC20 transfer(address,uint256) selector = 0xa9059cbb
+// ERC20 ABI selectors
 function encERC20Transfer(to, amountHex){
-  const fn  = 'a9059cbb';
+  const fn   = 'a9059cbb';
   const addr = to.replace('0x','').padStart(64,'0');
   const amt  = amountHex.replace('0x','').padStart(64,'0');
   return '0x' + fn + addr + amt;
 }
+function encBalanceOf(addr){
+  const fn  = '70a08231';
+  const a   = addr.replace('0x','').padStart(64,'0');
+  return '0x' + fn + a;
+}
+// Convert GOZO amount (18 decimals) to wei hex
+function gozoToWei(amount){
+  return '0x' + (BigInt(amount) * BigInt('1000000000000000000')).toString(16);
+}
+// Convert wei hex to GOZO integer (floor)
+function weiToGozo(hexStr){
+  if(!hexStr || hexStr === '0x') return 0;
+  return Number(BigInt(hexStr) / BigInt('1000000000000000000'));
+}
+
+// Read on-chain GOZO balance
+async function fetchGozoBalance(addr){
+  try {
+    const result = await window.ethereum.request({
+      method: 'eth_call',
+      params: [{ to: GOZO_TOKEN, data: encBalanceOf(addr) }, 'latest']
+    });
+    return weiToGozo(result);
+  } catch(e){ return 0; }
+}
 
 let walletAddress = null;
+let onChainGozo = 0; // real on-chain balance
 
 async function connectWallet(){
   if(!window.ethereum){ setBurnStatus('❌ MetaMask not found! Please install MetaMask.', false); return; }
   try {
     const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
     walletAddress = accounts[0];
-    // Switch to Monad
+    // Switch to Monad Mainnet
     try {
       await window.ethereum.request({method:'wallet_switchEthereumChain', params:[{chainId: MONAD_CHAIN_ID}]});
     } catch(sw){
       if(sw.code === 4902){
         await window.ethereum.request({method:'wallet_addEthereumChain', params:[{
           chainId: MONAD_CHAIN_ID,
-          chainName: 'Monad Testnet',
+          chainName: 'Monad',
           nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
-          rpcUrls:['https://testnet-rpc.monad.xyz'],
-          blockExplorerUrls:['https://testnet.monadexplorer.com']
+          rpcUrls:['https://rpc.monad.xyz'],
+          blockExplorerUrls:['https://monadexplorer.com']
         }]});
       }
     }
+    // Read on-chain GOZO balance
+    onChainGozo = await fetchGozoBalance(walletAddress);
     // Update UI
     const short = walletAddress.slice(0,6)+'...'+walletAddress.slice(-4);
     document.getElementById('burnWalletAddr').textContent = short;
@@ -436,12 +579,14 @@ async function connectWallet(){
     // Header button
     const wb = document.getElementById('walletBtn');
     if(wb){ wb.textContent = '✅ '+short; wb.className = 'wallet-btn connected'; }
-    setBurnStatus('✅ Wallet connected! Ready to burn.', true);
+    setBurnStatus(`✅ Wallet connected! Balance: ${onChainGozo.toLocaleString()} GOZO`, true);
 
-    // Check if already burned (session flag so user doesn't re-burn each refresh within same session)
+    // Check if already burned this session
     if(sessionStorage.getItem('gozofarm_burned') === walletAddress.toLowerCase()){
       enterFarm();
     }
+    // Listen for account changes
+    window.ethereum.on('accountsChanged', accs => { if(accs.length) location.reload(); });
   } catch(e){
     setBurnStatus('❌ '+( e.message||'Connection failed'), false);
   }
@@ -496,6 +641,8 @@ async function waitForTx(hash){
 function enterFarm(){
   document.getElementById('burnOverlay').classList.add('hidden');
   document.getElementById('overlay').classList.remove('hidden');
+  // Load on-chain GOZO balance
+  if(walletAddress) setTimeout(refreshGozoBalance, 500);
 }
 
 // Auto-start game directly (no wallet needed)
@@ -1669,6 +1816,404 @@ const WORTEL_STAGE3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
   <rect x="8" y="21" width="2" height="8" fill="#ffbb55"/>
 </svg>`;
 
+// PUMPKIN PIXEL ART SVG - 3 growth stages + harvest
+// Stage 1: Small seedling with tiny vine
+const LABU_STAGE1_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="3" y="28" width="18" height="8" fill="#6b3a1a"/>
+  <rect x="2" y="30" width="20" height="6" fill="#7a4525"/>
+  <!-- tiny vine stem -->
+  <rect x="11" y="22" width="2" height="7" fill="#3a7a20"/>
+  <rect x="10" y="23" width="1" height="5" fill="#2a6010"/>
+  <!-- tiny first leaf left -->
+  <rect x="7" y="22" width="4" height="3" fill="#4a9a28"/>
+  <rect x="6" y="23" width="3" height="2" fill="#3a8820"/>
+  <rect x="8" y="21" width="2" height="2" fill="#5aaa30"/>
+  <!-- tiny first leaf right -->
+  <rect x="13" y="22" width="4" height="3" fill="#4a9a28"/>
+  <rect x="15" y="23" width="3" height="2" fill="#3a8820"/>
+  <rect x="14" y="21" width="2" height="2" fill="#5aaa30"/>
+  <!-- top leaf -->
+  <rect x="9" y="19" width="6" height="4" fill="#5aaa30"/>
+  <rect x="10" y="18" width="4" height="2" fill="#4a9a28"/>
+  <!-- small tendril curl left -->
+  <rect x="5" y="21" width="2" height="1" fill="#3a7a20"/>
+  <rect x="5" y="20" width="1" height="1" fill="#3a7a20"/>
+</svg>`;
+
+// Stage 2: Vine spreading with small bud
+const LABU_STAGE2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="3" y="28" width="18" height="8" fill="#6b3a1a"/>
+  <rect x="2" y="30" width="20" height="6" fill="#7a4525"/>
+  <!-- main vine horizontal spreading -->
+  <rect x="3" y="25" width="18" height="2" fill="#3a7a20"/>
+  <rect x="4" y="24" width="16" height="1" fill="#2a6010"/>
+  <!-- vertical stem up from center -->
+  <rect x="11" y="14" width="2" height="12" fill="#3a7a20"/>
+  <rect x="10" y="15" width="1" height="10" fill="#2a6010"/>
+  <!-- big left leaf -->
+  <rect x="2" y="20" width="8" height="6" fill="#4a9a28"/>
+  <rect x="1" y="21" width="5" height="5" fill="#3a8820"/>
+  <rect x="3" y="19" width="5" height="3" fill="#5aaa30"/>
+  <rect x="2" y="24" width="4" height="2" fill="#3a7818"/>
+  <!-- lobed shape left leaf -->
+  <rect x="4" y="18" width="3" height="2" fill="#5aaa30"/>
+  <rect x="2" y="22" width="2" height="2" fill="#3a7818"/>
+  <!-- big right leaf -->
+  <rect x="14" y="20" width="8" height="6" fill="#4a9a28"/>
+  <rect x="17" y="21" width="5" height="5" fill="#3a8820"/>
+  <rect x="16" y="19" width="5" height="3" fill="#5aaa30"/>
+  <rect x="18" y="24" width="4" height="2" fill="#3a7818"/>
+  <rect x="17" y="18" width="3" height="2" fill="#5aaa30"/>
+  <rect x="20" y="22" width="2" height="2" fill="#3a7818"/>
+  <!-- top center leaves -->
+  <rect x="8" y="11" width="8" height="6" fill="#5aaa30"/>
+  <rect x="7" y="12" width="4" height="5" fill="#4a9a28"/>
+  <rect x="13" y="12" width="4" height="5" fill="#4a9a28"/>
+  <rect x="9" y="9" width="6" height="4" fill="#5aaa30"/>
+  <!-- small pumpkin bud forming (green, tiny) -->
+  <rect x="10" y="25" width="4" height="3" fill="#5a9a28"/>
+  <rect x="11" y="24" width="2" height="1" fill="#4a8820"/>
+  <!-- tendril left -->
+  <rect x="2" y="23" width="1" height="2" fill="#3a7a20"/>
+  <rect x="1" y="22" width="1" height="2" fill="#3a7a20"/>
+  <!-- tendril right -->
+  <rect x="21" y="23" width="1" height="2" fill="#3a7a20"/>
+  <rect x="22" y="22" width="1" height="2" fill="#3a7a20"/>
+  <!-- yellow flower bud -->
+  <rect x="16" y="22" width="3" height="3" fill="#c8a000"/>
+  <rect x="17" y="21" width="1" height="1" fill="#e8c000"/>
+</svg>`;
+
+// Stage 3 (growing) - vine lush + pumpkin growing small orange
+const LABU_STAGE3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="3" y="29" width="18" height="7" fill="#6b3a1a"/>
+  <rect x="2" y="31" width="20" height="5" fill="#7a4525"/>
+  <!-- vine ground horizontal -->
+  <rect x="1" y="27" width="22" height="2" fill="#3a7a20"/>
+  <rect x="2" y="26" width="20" height="1" fill="#2a6010"/>
+  <!-- vertical stem -->
+  <rect x="11" y="12" width="2" height="16" fill="#3a7a20"/>
+  <rect x="10" y="13" width="1" height="14" fill="#2a6010"/>
+  <!-- left spreading vine -->
+  <rect x="1" y="23" width="11" height="2" fill="#3a7a20"/>
+  <rect x="2" y="22" width="9" height="1" fill="#2a6010"/>
+  <!-- right spreading vine -->
+  <rect x="12" y="23" width="11" height="2" fill="#3a7a20"/>
+  <rect x="13" y="22" width="9" height="1" fill="#2a6010"/>
+  <!-- left big lobed leaf -->
+  <rect x="1" y="17" width="9" height="7" fill="#4a9a28"/>
+  <rect x="0" y="18" width="6" height="6" fill="#3a8820"/>
+  <rect x="2" y="16" width="6" height="3" fill="#5aaa30"/>
+  <rect x="1" y="22" width="5" height="2" fill="#3a7818"/>
+  <rect x="3" y="15" width="3" height="2" fill="#5aaa30"/>
+  <rect x="0" y="20" width="2" height="2" fill="#3a7818"/>
+  <!-- right big lobed leaf -->
+  <rect x="14" y="17" width="9" height="7" fill="#4a9a28"/>
+  <rect x="18" y="18" width="6" height="6" fill="#3a8820"/>
+  <rect x="16" y="16" width="6" height="3" fill="#5aaa30"/>
+  <rect x="18" y="22" width="5" height="2" fill="#3a7818"/>
+  <rect x="18" y="15" width="3" height="2" fill="#5aaa30"/>
+  <rect x="22" y="20" width="2" height="2" fill="#3a7818"/>
+  <!-- top leaves -->
+  <rect x="7" y="8" width="10" height="7" fill="#5aaa30"/>
+  <rect x="6" y="9" width="5" height="6" fill="#4a9a28"/>
+  <rect x="13" y="9" width="5" height="6" fill="#4a9a28"/>
+  <rect x="8" y="6" width="8" height="4" fill="#5aaa30"/>
+  <rect x="9" y="4" width="6" height="3" fill="#4a9a28"/>
+  <!-- small pumpkin (growing, orange) -->
+  <rect x="9" y="25" width="6" height="4" fill="#e07020"/>
+  <rect x="8" y="26" width="8" height="3" fill="#e87828"/>
+  <rect x="9" y="25" width="3" height="2" fill="#ffaa44"/>
+  <rect x="11" y="24" width="2" height="1" fill="#4a8820"/>
+  <!-- yellow flower open left -->
+  <rect x="3" y="20" width="2" height="2" fill="#f0c000"/>
+  <rect x="2" y="19" width="4" height="1" fill="#f0c000"/>
+  <rect x="3" y="21" width="2" height="1" fill="#d0a000"/>
+  <rect x="3" y="18" width="2" height="1" fill="#d0a000"/>
+  <!-- yellow flower open right -->
+  <rect x="19" y="20" width="2" height="2" fill="#f0c000"/>
+  <rect x="18" y="19" width="4" height="1" fill="#f0c000"/>
+  <rect x="19" y="21" width="2" height="1" fill="#d0a000"/>
+  <rect x="19" y="18" width="2" height="1" fill="#d0a000"/>
+  <!-- tendrils -->
+  <rect x="0" y="24" width="1" height="3" fill="#3a7a20"/>
+  <rect x="23" y="24" width="1" height="3" fill="#3a7a20"/>
+</svg>`;
+
+// Stage 4 (harvest) - Full large pumpkin with blooming flowers and lush vine
+const LABU_STAGE4_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil -->
+  <rect x="3" y="30" width="18" height="6" fill="#6b3a1a"/>
+  <rect x="2" y="32" width="20" height="4" fill="#7a4525"/>
+  <!-- vine ground -->
+  <rect x="0" y="28" width="24" height="2" fill="#3a7a20"/>
+  <rect x="1" y="27" width="22" height="1" fill="#2a6010"/>
+  <!-- left vine branch -->
+  <rect x="0" y="23" width="10" height="2" fill="#3a7a20"/>
+  <rect x="1" y="22" width="8" height="1" fill="#2a6010"/>
+  <!-- right vine branch -->
+  <rect x="14" y="23" width="10" height="2" fill="#3a7a20"/>
+  <rect x="15" y="22" width="8" height="1" fill="#2a6010"/>
+  <!-- center vertical stem -->
+  <rect x="11" y="10" width="2" height="18" fill="#3a7a20"/>
+  <rect x="10" y="11" width="1" height="16" fill="#2a6010"/>
+  <!-- left lobed leaf big -->
+  <rect x="0" y="16" width="10" height="8" fill="#4a9a28"/>
+  <rect x="0" y="17" width="6" height="7" fill="#3a8820"/>
+  <rect x="1" y="15" width="7" height="3" fill="#5aaa30"/>
+  <rect x="0" y="22" width="6" height="2" fill="#3a7818"/>
+  <rect x="2" y="14" width="4" height="2" fill="#5aaa30"/>
+  <rect x="0" y="19" width="2" height="3" fill="#3a7818"/>
+  <!-- right lobed leaf big -->
+  <rect x="14" y="16" width="10" height="8" fill="#4a9a28"/>
+  <rect x="18" y="17" width="6" height="7" fill="#3a8820"/>
+  <rect x="16" y="15" width="7" height="3" fill="#5aaa30"/>
+  <rect x="18" y="22" width="6" height="2" fill="#3a7818"/>
+  <rect x="18" y="14" width="4" height="2" fill="#5aaa30"/>
+  <rect x="22" y="19" width="2" height="3" fill="#3a7818"/>
+  <!-- top center lush leaves -->
+  <rect x="6" y="7" width="12" height="7" fill="#5aaa30"/>
+  <rect x="5" y="8" width="6" height="6" fill="#4a9a28"/>
+  <rect x="13" y="8" width="6" height="6" fill="#4a9a28"/>
+  <rect x="7" y="5" width="10" height="4" fill="#5aaa30"/>
+  <rect x="8" y="3" width="8" height="3" fill="#4a9a28"/>
+  <rect x="9" y="2" width="6" height="2" fill="#5aaa30"/>
+  <!-- BIG PUMPKIN body - ribs -->
+  <rect x="7" y="24" width="10" height="6" fill="#e07020"/>
+  <rect x="6" y="25" width="12" height="5" fill="#e87828"/>
+  <rect x="7" y="24" width="4" height="3" fill="#ffaa44"/>
+  <rect x="13" y="25" width="3" height="2" fill="#ffaa44"/>
+  <!-- pumpkin ribs vertical -->
+  <rect x="10" y="24" width="1" height="6" fill="#c85a10"/>
+  <rect x="13" y="24" width="1" height="6" fill="#c85a10"/>
+  <rect x="7" y="24" width="1" height="6" fill="#c85a10"/>
+  <rect x="16" y="25" width="1" height="5" fill="#c85a10"/>
+  <!-- pumpkin top rounded -->
+  <rect x="8" y="23" width="8" height="2" fill="#e87828"/>
+  <rect x="9" y="22" width="6" height="2" fill="#f08830"/>
+  <!-- pumpkin stem -->
+  <rect x="11" y="20" width="2" height="3" fill="#4a6010"/>
+  <rect x="10" y="21" width="1" height="2" fill="#3a5010"/>
+  <!-- full yellow flower left blooming -->
+  <rect x="2" y="19" width="3" height="3" fill="#f0c000"/>
+  <rect x="1" y="20" width="5" height="1" fill="#f0c000"/>
+  <rect x="3" y="18" width="1" height="1" fill="#f0c000"/>
+  <rect x="3" y="22" width="1" height="1" fill="#f0c000"/>
+  <rect x="3" y="20" width="1" height="1" fill="#804400"/>
+  <!-- full yellow flower right blooming -->
+  <rect x="19" y="19" width="3" height="3" fill="#f0c000"/>
+  <rect x="18" y="20" width="5" height="1" fill="#f0c000"/>
+  <rect x="20" y="18" width="1" height="1" fill="#f0c000"/>
+  <rect x="20" y="22" width="1" height="1" fill="#f0c000"/>
+  <rect x="20" y="20" width="1" height="1" fill="#804400"/>
+  <!-- small flower top center -->
+  <rect x="11" y="7" width="2" height="2" fill="#f0c000"/>
+  <rect x="10" y="8" width="4" height="1" fill="#f0c000"/>
+  <rect x="11" y="8" width="2" height="1" fill="#804400"/>
+  <!-- tendrils curling -->
+  <rect x="0" y="25" width="1" height="3" fill="#3a7a20"/>
+  <rect x="23" y="25" width="1" height="3" fill="#3a7a20"/>
+  <rect x="0" y="21" width="1" height="2" fill="#3a7a20"/>
+  <rect x="23" y="21" width="1" height="2" fill="#3a7a20"/>
+</svg>`;
+
+// STRAWBERRY PIXEL ART SVG - 4 growth stages + bare (regrowing)
+// Stage 1: tiny seedling sprout
+const STROBERI_STAGE1_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="2" y="28" width="20" height="8" fill="#5a2e10"/>
+  <rect x="3" y="27" width="18" height="9" fill="#6b3a1a"/>
+  <rect x="4" y="29" width="16" height="7" fill="#7a4525"/>
+  <!-- tiny stem -->
+  <rect x="11" y="22" width="2" height="6" fill="#3a7a20"/>
+  <rect x="10" y="23" width="1" height="5" fill="#2a6010"/>
+  <!-- two small leaves -->
+  <rect x="7" y="20" width="4" height="4" fill="#2a8020"/>
+  <rect x="6" y="21" width="3" height="3" fill="#1a6a10"/>
+  <rect x="8" y="19" width="3" height="2" fill="#3a9028"/>
+  <rect x="13" y="20" width="4" height="4" fill="#2a8020"/>
+  <rect x="15" y="21" width="3" height="3" fill="#1a6a10"/>
+  <rect x="13" y="19" width="3" height="2" fill="#3a9028"/>
+  <!-- center top leaf -->
+  <rect x="10" y="17" width="4" height="4" fill="#3a9028"/>
+  <rect x="11" y="16" width="2" height="2" fill="#2a8020"/>
+</svg>`;
+
+// Stage 2: small bush, no fruit yet
+const STROBERI_STAGE2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="2" y="29" width="20" height="7" fill="#5a2e10"/>
+  <rect x="1" y="30" width="22" height="6" fill="#6b3a1a"/>
+  <rect x="3" y="31" width="18" height="5" fill="#7a4525"/>
+  <!-- bush body left -->
+  <rect x="2" y="20" width="9" height="10" fill="#2a8020"/>
+  <rect x="1" y="21" width="7" height="9" fill="#1a6a10"/>
+  <rect x="3" y="19" width="7" height="4" fill="#3a9028"/>
+  <rect x="2" y="24" width="5" height="5" fill="#1a6a10"/>
+  <!-- bush body right -->
+  <rect x="13" y="20" width="9" height="10" fill="#2a8020"/>
+  <rect x="16" y="21" width="7" height="9" fill="#1a6a10"/>
+  <rect x="14" y="19" width="7" height="4" fill="#3a9028"/>
+  <rect x="17" y="24" width="5" height="5" fill="#1a6a10"/>
+  <!-- bush center top -->
+  <rect x="8" y="14" width="8" height="9" fill="#3a9028"/>
+  <rect x="7" y="15" width="5" height="8" fill="#2a8020"/>
+  <rect x="12" y="15" width="5" height="8" fill="#2a8020"/>
+  <rect x="9" y="12" width="6" height="4" fill="#3a9028"/>
+  <rect x="10" y="11" width="4" height="2" fill="#2a8020"/>
+  <!-- leaf highlights -->
+  <rect x="4" y="20" width="4" height="2" fill="#4aaa30"/>
+  <rect x="16" y="20" width="4" height="2" fill="#4aaa30"/>
+  <rect x="9" y="13" width="6" height="2" fill="#4aaa30"/>
+</svg>`;
+
+// Stage 3: bush with white flowers
+const STROBERI_STAGE3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="2" y="29" width="20" height="7" fill="#5a2e10"/>
+  <rect x="1" y="30" width="22" height="6" fill="#6b3a1a"/>
+  <rect x="3" y="31" width="18" height="5" fill="#7a4525"/>
+  <!-- bush body left -->
+  <rect x="1" y="18" width="11" height="12" fill="#2a8020"/>
+  <rect x="0" y="19" width="8" height="11" fill="#1a6a10"/>
+  <rect x="2" y="17" width="8" height="4" fill="#3a9028"/>
+  <rect x="1" y="23" width="6" height="6" fill="#1a6a10"/>
+  <!-- bush body right -->
+  <rect x="12" y="18" width="11" height="12" fill="#2a8020"/>
+  <rect x="16" y="19" width="8" height="11" fill="#1a6a10"/>
+  <rect x="14" y="17" width="8" height="4" fill="#3a9028"/>
+  <rect x="17" y="23" width="6" height="6" fill="#1a6a10"/>
+  <!-- bush center -->
+  <rect x="7" y="12" width="10" height="10" fill="#3a9028"/>
+  <rect x="6" y="13" width="6" height="9" fill="#2a8020"/>
+  <rect x="12" y="13" width="6" height="9" fill="#2a8020"/>
+  <rect x="8" y="10" width="8" height="4" fill="#3a9028"/>
+  <rect x="9" y="9" width="6" height="2" fill="#2a8020"/>
+  <!-- leaf highlights -->
+  <rect x="3" y="18" width="5" height="2" fill="#4aaa30"/>
+  <rect x="16" y="18" width="5" height="2" fill="#4aaa30"/>
+  <rect x="9" y="11" width="6" height="2" fill="#4aaa30"/>
+  <!-- white flower left -->
+  <rect x="3" y="16" width="3" height="3" fill="#ffffff"/>
+  <rect x="2" y="17" width="5" height="1" fill="#ffffff"/>
+  <rect x="4" y="17" width="1" height="1" fill="#f0e000"/>
+  <!-- white flower right -->
+  <rect x="18" y="16" width="3" height="3" fill="#ffffff"/>
+  <rect x="17" y="17" width="5" height="1" fill="#ffffff"/>
+  <rect x="19" y="17" width="1" height="1" fill="#f0e000"/>
+  <!-- white flower top -->
+  <rect x="10" y="8" width="3" height="3" fill="#ffffff"/>
+  <rect x="9" y="9" width="5" height="1" fill="#ffffff"/>
+  <rect x="11" y="9" width="1" height="1" fill="#f0e000"/>
+</svg>`;
+
+// Stage 4 (HARVEST): Full bush with red strawberries + white flowers
+const STROBERI_HARVEST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="2" y="30" width="20" height="6" fill="#5a2e10"/>
+  <rect x="1" y="31" width="22" height="5" fill="#6b3a1a"/>
+  <rect x="3" y="32" width="18" height="4" fill="#7a4525"/>
+  <!-- main bush body -->
+  <rect x="1" y="17" width="22" height="14" fill="#2a8020"/>
+  <rect x="0" y="19" width="9" height="12" fill="#1a6a10"/>
+  <rect x="15" y="19" width="9" height="12" fill="#1a6a10"/>
+  <rect x="2" y="16" width="20" height="4" fill="#3a9028"/>
+  <!-- top dome -->
+  <rect x="6" y="10" width="12" height="9" fill="#3a9028"/>
+  <rect x="5" y="11" width="7" height="8" fill="#2a8020"/>
+  <rect x="12" y="11" width="7" height="8" fill="#2a8020"/>
+  <rect x="7" y="8" width="10" height="4" fill="#3a9028"/>
+  <rect x="8" y="7" width="8" height="3" fill="#2a8020"/>
+  <rect x="9" y="6" width="6" height="2" fill="#3a9028"/>
+  <!-- leaf highlights -->
+  <rect x="2" y="17" width="7" height="2" fill="#4aaa30"/>
+  <rect x="15" y="17" width="7" height="2" fill="#4aaa30"/>
+  <rect x="8" y="9" width="8" height="2" fill="#4aaa30"/>
+  <rect x="4" y="21" width="4" height="2" fill="#4aaa30"/>
+  <rect x="16" y="21" width="4" height="2" fill="#4aaa30"/>
+  <!-- white flower top left -->
+  <rect x="3" y="14" width="3" height="3" fill="#ffffff"/>
+  <rect x="2" y="15" width="5" height="1" fill="#ffffff"/>
+  <rect x="4" y="15" width="1" height="1" fill="#f0e000"/>
+  <!-- white flower top right -->
+  <rect x="18" y="14" width="3" height="3" fill="#ffffff"/>
+  <rect x="17" y="15" width="5" height="1" fill="#ffffff"/>
+  <rect x="19" y="15" width="1" height="1" fill="#f0e000"/>
+  <!-- white flower top center -->
+  <rect x="10" y="6" width="3" height="3" fill="#ffffff"/>
+  <rect x="9" y="7" width="5" height="1" fill="#ffffff"/>
+  <rect x="11" y="7" width="1" height="1" fill="#f0e000"/>
+  <!-- STRAWBERRY fruit 1 (left hanging) -->
+  <rect x="2" y="24" width="4" height="5" fill="#cc2020"/>
+  <rect x="3" y="23" width="2" height="1" fill="#2a8020"/>
+  <rect x="2" y="24" width="2" height="2" fill="#ee4040"/>
+  <rect x="3" y="28" width="2" height="1" fill="#aa1010"/>
+  <rect x="2" y="26" width="1" height="2" fill="#ffaaaa"/>
+  <!-- tiny seeds -->
+  <rect x="3" y="25" width="1" height="1" fill="#ffdddd"/>
+  <rect x="4" y="27" width="1" height="1" fill="#ffdddd"/>
+  <!-- STRAWBERRY fruit 2 (right hanging) -->
+  <rect x="18" y="24" width="4" height="5" fill="#cc2020"/>
+  <rect x="19" y="23" width="2" height="1" fill="#2a8020"/>
+  <rect x="18" y="24" width="2" height="2" fill="#ee4040"/>
+  <rect x="19" y="28" width="2" height="1" fill="#aa1010"/>
+  <rect x="21" y="26" width="1" height="2" fill="#ffaaaa"/>
+  <rect x="20" y="25" width="1" height="1" fill="#ffdddd"/>
+  <rect x="19" y="27" width="1" height="1" fill="#ffdddd"/>
+  <!-- STRAWBERRY fruit 3 (center) -->
+  <rect x="10" y="19" width="4" height="6" fill="#cc2020"/>
+  <rect x="11" y="18" width="2" height="1" fill="#2a8020"/>
+  <rect x="10" y="19" width="2" height="2" fill="#ee4040"/>
+  <rect x="11" y="24" width="2" height="1" fill="#aa1010"/>
+  <rect x="10" y="21" width="1" height="2" fill="#ffaaaa"/>
+  <rect x="11" y="20" width="1" height="1" fill="#ffdddd"/>
+  <rect x="12" y="22" width="1" height="1" fill="#ffdddd"/>
+  <!-- STRAWBERRY fruit 4 (small, partially hidden) -->
+  <rect x="6" y="22" width="3" height="4" fill="#cc2020"/>
+  <rect x="7" y="21" width="2" height="1" fill="#2a8020"/>
+  <rect x="6" y="22" width="2" height="1" fill="#ee4040"/>
+  <rect x="7" y="25" width="1" height="1" fill="#aa1010"/>
+  <!-- STRAWBERRY fruit 5 (small right) -->
+  <rect x="15" y="22" width="3" height="4" fill="#cc2020"/>
+  <rect x="16" y="21" width="2" height="1" fill="#2a8020"/>
+  <rect x="15" y="22" width="2" height="1" fill="#ee4040"/>
+  <rect x="16" y="25" width="1" height="1" fill="#aa1010"/>
+</svg>`;
+
+// BARE bush after harvest (regrowing state)
+const STROBERI_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
+  <!-- soil mound -->
+  <rect x="2" y="29" width="20" height="7" fill="#5a2e10"/>
+  <rect x="1" y="30" width="22" height="6" fill="#6b3a1a"/>
+  <rect x="3" y="31" width="18" height="5" fill="#7a4525"/>
+  <!-- sparse bare bush left -->
+  <rect x="2" y="22" width="8" height="8" fill="#1a5a10"/>
+  <rect x="1" y="23" width="6" height="7" fill="#144808"/>
+  <rect x="3" y="21" width="5" height="3" fill="#2a7018"/>
+  <!-- sparse bare bush right -->
+  <rect x="14" y="22" width="8" height="8" fill="#1a5a10"/>
+  <rect x="17" y="23" width="6" height="7" fill="#144808"/>
+  <rect x="16" y="21" width="5" height="3" fill="#2a7018"/>
+  <!-- sparse center -->
+  <rect x="8" y="16" width="8" height="8" fill="#2a7018"/>
+  <rect x="7" y="17" width="5" height="7" fill="#1a5a10"/>
+  <rect x="12" y="17" width="5" height="7" fill="#1a5a10"/>
+  <rect x="9" y="14" width="6" height="4" fill="#2a7018"/>
+  <!-- bare twigs -->
+  <rect x="5" y="18" width="1" height="4" fill="#3a2a10"/>
+  <rect x="4" y="17" width="2" height="1" fill="#3a2a10"/>
+  <rect x="18" y="18" width="1" height="4" fill="#3a2a10"/>
+  <rect x="18" y="17" width="2" height="1" fill="#3a2a10"/>
+  <rect x="11" y="13" width="1" height="3" fill="#3a2a10"/>
+  <!-- few remaining small leaves -->
+  <rect x="4" y="20" width="3" height="2" fill="#3a8020"/>
+  <rect x="17" y="20" width="3" height="2" fill="#3a8020"/>
+  <rect x="10" y="14" width="4" height="2" fill="#3a8020"/>
+</svg>`;
+
 // CHILI PIXEL ART SVG
 const CABE_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="100%" height="100%" image-rendering="pixelated" style="display:block">
   <!-- soil -->
@@ -1807,16 +2352,16 @@ const CABE_TREE_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 </svg>`;
 
 const FIELD_DEFS = [
-  {id:0, name:'Field 1',  cols:2, rows:2, unlockAt:0},
-  {id:1, name:'Field 2',  cols:2, rows:2, unlockAt:5},
-  {id:2, name:'Field 3',  cols:2, rows:2, unlockAt:10},
-  {id:3, name:'Field 4',  cols:2, rows:2, unlockAt:20},
-  {id:4, name:'Field 5',  cols:2, rows:2, unlockAt:30},
-  {id:5, name:'Field 6',  cols:2, rows:2, unlockAt:40},
-  {id:6, name:'Field 7',  cols:2, rows:2, unlockAt:55},
-  {id:7, name:'Field 8',  cols:2, rows:2, unlockAt:70},
-  {id:8, name:'Field 9',  cols:2, rows:2, unlockAt:90},
-  {id:9, name:'Field 10', cols:2, rows:2, unlockAt:120},
+  {id:0, name:'Field 1',  cols:2, rows:2, price:0},
+  {id:1, name:'Field 2',  cols:2, rows:2, price:1000},
+  {id:2, name:'Field 3',  cols:2, rows:2, price:2000},
+  {id:3, name:'Field 4',  cols:2, rows:2, price:4000},
+  {id:4, name:'Field 5',  cols:2, rows:2, price:8000},
+  {id:5, name:'Field 6',  cols:2, rows:2, price:16000},
+  {id:6, name:'Field 7',  cols:2, rows:2, price:32000},
+  {id:7, name:'Field 8',  cols:2, rows:2, price:64000},
+  {id:8, name:'Field 9',  cols:2, rows:2, price:128000},
+  {id:9, name:'Field 10', cols:2, rows:2, price:256000},
 ];
 
 // ═══════════════════════════════════════════════════
@@ -1829,7 +2374,8 @@ let fieldData = {};
 let timers = {};
 let inventory = {};
 let harvestBasket = {};
-let gold = 0;
+let gold = 0;          // in-game gold (earn by selling crops, spend on seeds)
+let gozoBalance = 0;   // on-chain GOZO — only used for buying land (burn)
 let totalHarvested = 0; // total ever harvested (for unlock progression)
 CROP_KEYS.forEach(k=>{inventory[k]=0; harvestBasket[k]=0;});
 
@@ -1913,7 +2459,7 @@ function loadState(){
     if(!raw){
       // Fresh start — give starting seeds and unlock field 1
       inventory.tomat = 5; // Fresh start — 5 tomato seeds
-      FIELD_DEFS.forEach(f => initField(f.id, f.unlockAt === 0));
+      FIELD_DEFS.forEach(f => initField(f.id, f.price === 0));
       lastRefillTime = Date.now();
       startWaterRegen();
       renderAllFields();
@@ -1955,7 +2501,7 @@ function loadState(){
     if(data.lastRefillTime) lastRefillTime = data.lastRefillTime;
     if(typeof data.totalHarvested === 'number') totalHarvested = data.totalHarvested;
   } catch(e){
-    FIELD_DEFS.forEach(f => initField(f.id, f.unlockAt === 0));
+    FIELD_DEFS.forEach(f => initField(f.id, f.price === 0));
   }
   renderAllFields();
   renderSeedShop();
@@ -1984,22 +2530,58 @@ function initField(fid, unlocked){
   }
 }
 
-function checkFieldUnlocks(){
-  let anyNew = false;
-  FIELD_DEFS.forEach(f => {
-    if(!fieldData[f.id]?.unlocked && totalHarvested >= f.unlockAt){
-      initField(f.id, true);
-      anyNew = true;
-      showToast(`🏡 ${f.name} UNLOCKED! ${f.cols*f.rows} new plots!`);
-      sfx('coin');
-      parts(null, ['🏡','⭐','✨','💜'], window.innerWidth/2, window.innerHeight*0.5);
-    }
-  });
-  if(anyNew){
+async function buyField(fid){
+  const cfg = FIELD_DEFS[fid];
+  if(!cfg || cfg.price === 0) return;
+  if(fieldData[fid]?.unlocked){ showToast('✅ Already unlocked!'); return; }
+  if(fid > 0 && !fieldData[fid-1]?.unlocked){ showToast('🔒 Unlock the previous field first!'); return; }
+
+  // Must have wallet connected
+  if(!walletAddress){
+    showToast('🦊 Connect your wallet first!');
+    return;
+  }
+
+  // Check on-chain GOZO balance
+  const chainBal = await fetchGozoBalance(walletAddress);
+  if(chainBal < cfg.price){
+    showToast(`💸 Not enough GOZO! Need ${cfg.price.toLocaleString()} GOZO on-chain (you have ${chainBal.toLocaleString()})`);
+    sfx('error');
+    return;
+  }
+
+  // Send burn transaction: transfer GOZO → DEAD_ADDR
+  const btn = document.querySelector(`button[onclick="buyField(${fid})"]`);
+  if(btn){ btn.textContent = '⏳ Confirm in wallet...'; btn.disabled = true; }
+  showToast(`⏳ Confirm ${cfg.price.toLocaleString()} GOZO burn in your wallet...`);
+
+  try {
+    const weiAmt = gozoToWei(cfg.price);
+    const txData = encERC20Transfer(DEAD_ADDR, weiAmt);
+    const txHash = await window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params:[{ from: walletAddress, to: GOZO_TOKEN, data: txData, gas: '0x15F90' }]
+    });
+    showToast('⏳ Tx sent! Waiting for confirmation...');
+    await waitForTx(txHash);
+
+    // Unlock field
+    initField(fid, true);
+    showToast(`🏡 ${cfg.name} UNLOCKED! Burned ${cfg.price.toLocaleString()} GOZO 🔥`);
+    sfx('coin');
+    parts(null, ['🏡','⭐','✨','🪙','🔥'], window.innerWidth/2, window.innerHeight*0.5);
     renderAllFields();
     updateScoreUI();
+    updateGoldUI();
     saveState();
+  } catch(e){
+    showToast('❌ ' + (e.message || 'Transaction failed'));
+    if(btn){ btn.textContent = gozoBalance >= cfg.price ? '✅ BUY LAND' : '💸 NOT ENOUGH'; btn.disabled = false; }
   }
+}
+
+function checkFieldUnlocks(){
+  // Fields now purchased with GOZO via buyField()
 }
 
 function updateScoreUI(){
@@ -2028,7 +2610,7 @@ function renderAllFields(){
 
     if(fd?.unlocked){
       const grid = document.createElement('div');
-      grid.className = `field-grid cols${cfg.cols}`;
+      grid.className = `field-grid`;
       grid.id = `grid-${cfg.id}`;
       fd.plots.forEach((p,pi) => {
         const el = makePlotEl(cfg.id, pi, p);
@@ -2036,16 +2618,17 @@ function renderAllFields(){
       });
       block.appendChild(grid);
     } else {
-      const isNext = fieldData[cfg.id-1]?.unlocked && !fd?.unlocked || cfg.id === 0;
       const isPrevUnlocked = cfg.id === 0 || fieldData[cfg.id-1]?.unlocked;
       const lockDiv = document.createElement('div');
-      lockDiv.className = 'field-locked' + (isNext ? ' next-unlock' : '');
+      lockDiv.className = 'field-locked' + (isPrevUnlocked ? ' next-unlock' : '');
       if(isPrevUnlocked){
         lockDiv.innerHTML = `
           <div class="lock-icon">🔒</div>
           <div class="lock-name">${cfg.name}</div>
-          <div class="lock-plots">${cfg.cols}×${cfg.rows} plots</div>
-          <div class="lock-cost">Harvest ${cfg.unlockAt} crops<br>to unlock!</div>`;
+          <div class="lock-plots">4 plots (2×2)</div>
+          <div class="lock-price" style="font-size:0.32rem;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">${cfg.price.toLocaleString()} GOZO 🔥</div>
+          <div style="font-size:0.2rem;color:#a09070;text-shadow:1px 1px 0 #000;margin-top:1px">Burns on purchase</div>
+          <button class="buy-field-btn can-afford" onclick="buyField(${cfg.id})">🔥 BUY WITH GOZO</button>`;
       } else {
         lockDiv.innerHTML = `
           <div class="lock-icon" style="font-size:1rem;opacity:0.4">🔒</div>
@@ -2061,6 +2644,7 @@ function makePlotEl(fid, pid, p){
   const div = document.createElement('div');
   div.className = 'plot'; div.id = `plot-${fid}-${pid}`;
   div.setAttribute('data-s', p.state);
+  div.setAttribute('data-watered', p.watered ? 'true' : 'false');
   div.onclick = () => handleClick(fid, pid);
   div.innerHTML = buildTile(fid, pid, p);
   return div;
@@ -2092,6 +2676,24 @@ function buildTile(fid, pid, p){
         else if(pct < 0.7) stageSvg = WORTEL_STAGE2_SVG;
         else stageSvg = WORTEL_STAGE3_SVG;
         sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
+      } else if(p.plant === 'labu'){
+        const total = c.grow;
+        const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
+        const pct = Math.min(1, elapsed / total);
+        let stageSvg;
+        if(pct < 0.3) stageSvg = LABU_STAGE1_SVG;
+        else if(pct < 0.65) stageSvg = LABU_STAGE2_SVG;
+        else stageSvg = LABU_STAGE3_SVG;
+        sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
+      } else if(p.plant === 'stroberi'){
+        const total = c.grow;
+        const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
+        const pct = Math.min(1, elapsed / total);
+        let stageSvg;
+        if(pct < 0.3) stageSvg = STROBERI_STAGE1_SVG;
+        else if(pct < 0.6) stageSvg = STROBERI_STAGE2_SVG;
+        else stageSvg = STROBERI_STAGE3_SVG;
+        sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
       } else {
         sp = c.gs;
       }
@@ -2121,6 +2723,12 @@ function buildTile(fid, pid, p){
     } else if(p.plant === 'wortel'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${WORTEL_STAGE3_SVG}</span>`;
       lb = 'HARVEST!';
+    } else if(p.plant === 'labu'){
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${LABU_STAGE4_SVG}</span>`;
+      lb = 'HARVEST!';
+    } else if(p.plant === 'stroberi'){
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${STROBERI_HARVEST_SVG}</span>`;
+      lb = (p.harvestCount||0) >= 4 ? 'HARVEST! (LAST)' : `HARVEST! (${5-(p.harvestCount||0)}x left)`;
     } else { sp = c.emoji; lb = 'HARVEST!'; }
   }
   else if(p.state === 'regrowing'){
@@ -2142,6 +2750,12 @@ function buildTile(fid, pid, p){
 
       const left4 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 35000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left4)}</div>`;
+    } else if(p.plant === 'stroberi'){
+      sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${STROBERI_BARE_SVG}</span>`;
+      lb = 'REGROWING...';
+
+      const left5 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 20000;
+      tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left5)}</div>`;
     }
   }
   // planted tomat/cabe: show bare tree
@@ -2162,6 +2776,7 @@ function refreshPlot(fid, pid){
   const el = document.getElementById(`plot-${fid}-${pid}`);
   if(!el || !p) return;
   el.setAttribute('data-s', p.state);
+  el.setAttribute('data-watered', p.watered ? 'true' : 'false');
   el.innerHTML = buildTile(fid, pid, p);
   el.onclick = () => handleClick(fid, pid);
 }
@@ -2182,7 +2797,7 @@ function handleClick(fid, pid){
     } else { showToast('⛏️ CANNOT HOE THIS!'); }
   } else if(selectedTool === 'sickle'){
     if(p.state === 'ready'){ doHarvest(fid, pid); }
-    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast(p.plant === 'cabe' ? '⏳ NOT READY YET! Chili plant is regrowing...' : p.plant === 'jagung' ? '⏳ NOT READY YET! Corn is regrowing...' : '⏳ NOT READY YET! Tomato tree is regrowing...'); }
+    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast(p.plant === 'cabe' ? '⏳ NOT READY YET! Chili plant is regrowing...' : p.plant === 'jagung' ? '⏳ NOT READY YET! Corn is regrowing...' : p.plant === 'stroberi' ? '⏳ NOT READY YET! Strawberry bush is regrowing...' : '⏳ NOT READY YET! Tomato tree is regrowing...'); }
     else { showToast('🔪 NOTHING TO HARVEST!'); }
   } else if(selectedTool === 'water'){
     if(p.state === 'planted' && !p.watered){
@@ -2353,6 +2968,20 @@ function doHarvest(fid, pid){
       setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
         showToast('🌽 Corn stalk exhausted! Plant a new one.'); }, 500);
     }
+  } else if(plantKey === 'stroberi'){
+    p.harvestCount = (p.harvestCount || 0) + 1;
+    if(p.harvestCount < 5){
+      setTimeout(()=>{
+        p.state = 'regrowing';
+        p.regrowAt = Date.now() + 20000;
+        refreshPlot(fid, pid);
+        startRegrowTimer(fid, pid, 20000);
+        showToast('🍓 Strawberry bush regrowing in 20s! (' + (5 - p.harvestCount) + 'x harvest left)');
+      }, 500);
+    } else {
+      setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
+        showToast('🍓 Strawberry bush exhausted! Plant a new one.'); }, 500);
+    }
   } else {
     setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; refreshPlot(fid, pid); }, 500);
   }
@@ -2409,7 +3038,7 @@ function renderHarvestList(){
       <span class="h-emoji">${c.emoji}</span>
       <span class="h-name" style="flex:1">${c.name}</span>
       <span class="h-count" id="h-${key}">${qty}</span>
-      <button onclick="sellCrop('${key}',1)" style="background:#c8962a;border:none;border-radius:5px;color:#fff;font-size:0.2rem;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell 1 for ${c.price}🪙">Sell 1</button>
+      <button onclick="sellCrop('${key}',1)" style="background:#c8962a;border:none;border-radius:5px;color:#fff;font-size:0.2rem;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell 1 for ${c.price} 🪙">Sell 1</button>
       <button onclick="sellCrop('${key}', harvestBasket['${key}'])" style="background:#a05a10;border:none;border-radius:5px;color:#ffe;font-size:0.2rem;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell all">All</button>`;
     el.appendChild(row);
   });
@@ -2426,13 +3055,28 @@ function sellCrop(key, qty){
   sfx('coin');
   updateGoldUI();
   renderHarvestList();
-  saveGame();
-  showGoldFloat('+' + earned + '🪙');
+  saveState();
+  showGoldFloat('+' + earned.toLocaleString() + ' 🪙');
 }
 
 function updateGoldUI(){
   const el = document.getElementById('goldAmount');
-  if(el) el.textContent = gold;
+  if(el) el.textContent = gold.toLocaleString();
+  // Refresh on-chain GOZO display if wallet connected
+  const elChain = document.getElementById('chainGozoAmt');
+  if(elChain && walletAddress){
+    fetchGozoBalance(walletAddress).then(b => { elChain.textContent = b.toLocaleString(); });
+  }
+}
+
+function refreshGozoBalance(){
+  if(!walletAddress){ showToast('🦊 Connect wallet first!'); return; }
+  const el = document.getElementById('chainGozoAmt');
+  if(el) el.textContent = '...';
+  fetchGozoBalance(walletAddress).then(b => {
+    if(el) el.textContent = b.toLocaleString();
+    showToast(`⛓️ GOZO Balance: ${b.toLocaleString()}`);
+  });
 }
 
 function showGoldFloat(text){
@@ -2540,17 +3184,98 @@ function parts(n, emojis, cx, cy){
 // ═══════════════════════════════════════════════════
 (function buildWorld(){
   const tr = document.getElementById('treeRow');
-  const treeTypes = [{c:'#2a7020',c2:'#3a8030'},{c:'#1a6010',c2:'#2a7020'},{c:'#3a8030',c2:'#4a9040'}];
-  for(let i=0; i<22; i++){
-    const tt = treeTypes[i%treeTypes.length];
-    const t = document.createElement('div'); t.className = 'px-tree';
-    const h = 20 + Math.random()*16;
-    t.innerHTML = `
-      <div class="tc2" style="border-bottom-color:${tt.c2};border-left-width:${Math.round(h*0.55)}px;border-right-width:${Math.round(h*0.55)}px;border-bottom-width:${Math.round(h*0.8)}px;margin-top:${-Math.round(h*0.45)}px"></div>
-      <div class="tc" style="border-bottom-color:${tt.c};border-left-width:${Math.round(h*0.7)}px;border-right-width:${Math.round(h*0.7)}px;border-bottom-width:${Math.round(h)}px"></div>
-      <div class="tt" style="height:${Math.round(h*0.6)}px"></div>`;
-    tr.appendChild(t);
+
+  // ── Pixel-art "fluffy cluster" tree matching the reference image ──
+  // Canopy = many overlapping circles arranged like a bouquet
+  // Trunk  = thick tapered column with visible roots/flare
+  function makeClusterTree(dark, mid, lite, trunkDark, trunkMid, trunkLite, W, H){
+    // W = total width, H = total height
+    // Trunk occupies bottom ~38% of H, canopy fills the rest
+    const TH = Math.round(H * 0.40);   // trunk height
+    const TW = Math.round(W * 0.26);   // trunk top width
+    const TBW= Math.round(W * 0.34);   // trunk base width (flared)
+    const TX = Math.round((W - TW)/2);
+    const TY = H - TH;                 // trunk starts here
+    const CY = TY;                     // canopy bottom baseline
+
+    // ── trunk: tapered trapezoid + shadow stripe + highlight + roots ──
+    const trunkPts = `${TX},${TY} ${TX+TW},${TY} ${TX+TW+Math.round((TBW-TW)/2)},${H} ${TX-Math.round((TBW-TW)/2)},${H}`;
+
+    // ── canopy: 7 overlapping circles in pixel-art style ──
+    // Centre circle sits at top-centre; 6 surround it
+    const CR  = Math.round(W * 0.285);  // main radius
+    const CR2 = Math.round(W * 0.240);  // satellite radius
+    const CX  = Math.round(W / 2);
+    const CCY = Math.round(TY - CR * 0.55); // centre circle Y
+    // satellite positions (clock-like: top-L, top-R, mid-L, mid-R, bot-L, bot-R)
+    const sats = [
+      [CX - Math.round(CR*0.78), CCY - Math.round(CR*0.45)],
+      [CX + Math.round(CR*0.78), CCY - Math.round(CR*0.45)],
+      [CX - Math.round(CR*1.00), CCY + Math.round(CR*0.18)],
+      [CX + Math.round(CR*1.00), CCY + Math.round(CR*0.18)],
+      [CX - Math.round(CR*0.58), CCY + Math.round(CR*0.72)],
+      [CX + Math.round(CR*0.58), CCY + Math.round(CR*0.72)],
+    ];
+
+    // Build circle elements (dark base first, then mid overlay, then lite highlight spot)
+    let circles = '';
+    // shadow/base layer for each satellite
+    sats.forEach(([sx,sy]) => {
+      circles += `<circle cx="${sx}" cy="${sy}" r="${CR2}" fill="${dark}"/>`;
+    });
+    // centre large circle (base)
+    circles += `<circle cx="${CX}" cy="${CCY}" r="${CR}" fill="${dark}"/>`;
+    // mid-tone top halves (gives 3D depth)
+    sats.forEach(([sx,sy]) => {
+      circles += `<circle cx="${sx}" cy="${sy-Math.round(CR2*0.15)}" r="${Math.round(CR2*0.80)}" fill="${mid}"/>`;
+    });
+    circles += `<circle cx="${CX}" cy="${CCY-Math.round(CR*0.12)}" r="${Math.round(CR*0.82)}" fill="${mid}"/>`;
+    // lite highlight top-left quarter of each circle
+    sats.forEach(([sx,sy]) => {
+      circles += `<circle cx="${sx-Math.round(CR2*0.22)}" cy="${sy-Math.round(CR2*0.28)}" r="${Math.round(CR2*0.48)}" fill="${lite}" opacity="0.75"/>`;
+    });
+    circles += `<circle cx="${CX-Math.round(CR*0.22)}" cy="${CCY-Math.round(CR*0.28)}" r="${Math.round(CR*0.46)}" fill="${lite}" opacity="0.8"/>`;
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" image-rendering="pixelated" style="display:block">
+  <!-- trunk shadow (right side) -->
+  <polygon points="${TX+Math.round(TW*0.55)},${TY} ${TX+TW},${TY} ${TX+TW+Math.round((TBW-TW)/2)},${H} ${TX+Math.round(TW*0.55)+Math.round((TBW-TW)/2*0.6)},${H}" fill="${trunkDark}"/>
+  <!-- trunk base -->
+  <polygon points="${trunkPts}" fill="${trunkMid}"/>
+  <!-- trunk highlight (left stripe) -->
+  <polygon points="${TX},${TY} ${TX+Math.round(TW*0.38)},${TY} ${TX+Math.round(TW*0.38)+Math.round((TBW-TW)/2*0.4)},${H} ${TX-Math.round((TBW-TW)/2)},${H}" fill="${trunkLite}" opacity="0.55"/>
+  <!-- canopy circles -->
+  ${circles}
+</svg>`;
   }
+
+  // ── Palette: [dark, mid, lite,  trunkDark, trunkMid, trunkLite] ──
+  const palettes = [
+    // greens
+    ['#1a6010','#2e9020','#5ed040', '#3a1a06','#6b3510','#a06030'],
+    ['#186618','#28a028','#50d050', '#3a1a06','#6b3510','#a06030'],
+    ['#0e5818','#1e8828','#44c848', '#3a1a06','#6b3510','#a06030'],
+    // pinks (cherry blossom)
+    ['#c05878','#e890a8','#ffd0e0', '#3a1a06','#6b3510','#a06030'],
+    ['#b84870','#de80a0','#ffc0d8', '#3a1a06','#6b3510','#a06030'],
+    // golds / autumn
+    ['#a87010','#d0a020','#f0d858', '#3a1a06','#6b3510','#a06030'],
+    ['#b06010','#d88820','#f0c048', '#3a1a06','#6b3510','#a06030'],
+  ];
+
+  // sequence: mostly green, some pink, some gold — like the reference image
+  const seq = [0,3,1,5,2,4,0,6,1,3,0,5,2,4,1,6,0,3,2,5,1,4,0,6];
+  const sizes= [1.0,0.88,1.05,0.92,0.98,0.85,1.08,0.90,1.02,0.95,0.87,1.0,0.93,1.06,0.88,0.97,1.03,0.90,0.85,1.05,0.92,0.98,1.0,0.87];
+
+  seq.forEach((pi, i) => {
+    const t = document.createElement('div');
+    t.className = 'px-tree';
+    const sc = sizes[i] || 1.0;
+    const W = Math.round(54 * sc);
+    const H = Math.round(72 * sc);
+    const p = palettes[pi];
+    t.innerHTML = makeClusterTree(p[0],p[1],p[2],p[3],p[4],p[5], W, H);
+    tr.appendChild(t);
+  });
   const f = document.getElementById('fence');
   for(let i=0; i<120; i++){
     if(i%4===0){const p=document.createElement('div');p.className='fp';f.appendChild(p)}
