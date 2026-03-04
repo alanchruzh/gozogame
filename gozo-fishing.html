@@ -103,11 +103,23 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 /* ── MODALS ── */
 #shopModal,#invModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;
   align-items:center;justify-content:center;z-index:200;}
-#shopModal.show,#invModal.show,#marketModal.show{display:flex;}
+#shopModal.show,#invModal.show{display:flex;}
 .mbox{background:#0a2014;border:4px solid #FFD700;box-shadow:6px 6px 0 #FF8C00;
   padding:20px;width:520px;max-height:80vh;overflow-y:auto;}
 .mtitle{font-size:12px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;text-align:center;margin-bottom:16px;}
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.shop-wallet{font-size:5px;text-align:center;padding:6px 8px;margin-bottom:8px;
+  border:1px solid rgba(255,215,0,.2);background:rgba(255,215,0,.04);}
+.shop-wallet span{color:#FFD700;}
+.shop-wallet.ok{border-color:rgba(80,200,80,.3);background:rgba(80,200,80,.05);}
+.shop-wallet.ok span{color:#4caf50;}
+.sbuy-gozo{background:#FFD700;color:#0d3320;border:2px solid #FF8C00;
+  font-family:'Press Start 2P';font-size:5px;padding:4px 8px;cursor:pointer;width:100%;margin-top:6px;}
+.sbuy-gozo:hover{background:#FF8C00;color:#fff;}
+.sbuy-gozo:disabled{background:#1a2a1a;color:#2a3a2a;border-color:#0a1a0a;cursor:not-allowed;}
+.shop-status{font-size:5px;text-align:center;margin-top:8px;min-height:12px;color:#FFD700;}
+.shop-status.err{color:#ff4444;}
+.shop-status.ok{color:#44ff88;}
 .sitem{background:rgba(255,215,0,.04);border:2px solid rgba(255,215,0,.18);
   padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;}
 .sicon{font-size:24px;}.sname{font-size:6px;color:#FFD700;}
@@ -177,7 +189,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   <div class="topbar">
     <div class="tbrand">🎣 GOZO FISHING</div>
     <div class="tstats">
-      <div class="stat">🪙 <span id="goldD">0</span> GOLD</div>
+      
       <div class="stat">🐟 <span id="catchD">0</span> CAUGHT</div>
       <div class="prog">
         <div class="plabel" id="progLbl">0/50 SPECIES</div>
@@ -186,7 +198,6 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     </div>
     <div class="tbtns">
       <button class="hbtn" onclick="openShop()">🏪 SHOP</button>
-      <button class="hbtn" onclick="openMarket()">💱 MARKET</button>
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
       <button class="hbtn" onclick="toggleMoreMenu()" id="moreBtn">▼ MORE</button>
       <div class="more-menu" id="moreMenu">
@@ -227,62 +238,11 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 <div id="shopModal">
   <div class="mbox">
     <div class="mtitle">🏪 BAIT SHOP</div>
+    <div class="shop-wallet" id="shopWalletBar">Wallet: <span id="shopWalletTxt">—</span></div>
     <div class="sgrid" id="sgrid"></div>
-    <div style="margin-top:10px;font-size:5px;color:#2a4a2a;text-align:center">Higher power bait = better rarity chances</div>
+    <div class="shop-status" id="shopStatus"></div>
+    <div style="margin-top:6px;font-size:5px;color:#2a4a2a;text-align:center">Price in $GOZO token · Higher power = better fish</div>
     <button class="mclose" onclick="closeShop()">✕ CLOSE</button>
-  </div>
-</div>
-
-<!-- MARKET MODAL -->
-<div id="marketModal">
-  <div class="mbox" style="max-width:420px">
-    <div class="mtitle">💱 GOLD MARKET</div>
-    <div style="font-size:5px;color:#3a5a3a;text-align:center;margin-bottom:8px">
-      Tukar $GOZO jadi in-game GOLD<br>
-      <span style="color:#666">1 $GOZO = 100 🪙 GOLD</span>
-    </div>
-    <div class="mk-bal">Saldo $GOZO: <span id="mkBalVal">—</span></div>
-    <div class="mkgrid">
-      <div class="mkitem">
-        <div class="mkgold">🪙</div>
-        <span class="mklabel">100 GOLD</span>
-        <span class="mkcost">1 $GOZO</span>
-        <button class="mkbuy" onclick="buyGold(1,100)">BUY</button>
-      </div>
-      <div class="mkitem">
-        <div class="mkgold">🪙🪙</div>
-        <span class="mklabel">500 GOLD</span>
-        <span class="mkcost">5 $GOZO</span>
-        <button class="mkbuy" onclick="buyGold(5,500)">BUY</button>
-      </div>
-      <div class="mkitem">
-        <div class="mkgold">🪙🪙🪙</div>
-        <span class="mklabel">1000 GOLD</span>
-        <span class="mkcost">10 $GOZO</span>
-        <button class="mkbuy" onclick="buyGold(10,1000)">BUY</button>
-      </div>
-      <div class="mkitem">
-        <div class="mkgold">💰</div>
-        <span class="mklabel">2500 GOLD</span>
-        <span class="mkcost">25 $GOZO</span>
-        <button class="mkbuy" onclick="buyGold(25,2500)">BUY</button>
-      </div>
-      <div class="mkitem">
-        <div class="mkgold">💰💰</div>
-        <span class="mklabel">5500 GOLD</span>
-        <span class="mkcost">50 $GOZO <span style="color:#44ff88;font-size:4px">+10%</span></span>
-        <button class="mkbuy" onclick="buyGold(50,5500)">BUY</button>
-      </div>
-      <div class="mkitem">
-        <div class="mkgold">👑</div>
-        <span class="mklabel">12000 GOLD</span>
-        <span class="mkcost">100 $GOZO <span style="color:#44ff88;font-size:4px">+20%</span></span>
-        <button class="mkbuy" onclick="buyGold(100,12000)">BUY</button>
-      </div>
-    </div>
-    <div class="mk-status" id="mkStatus"></div>
-    <div class="mk-tx" id="mkTx"></div>
-    <button class="mclose" onclick="closeMarket()">✕ CLOSE</button>
   </div>
 </div>
 
@@ -304,15 +264,16 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 // DATA
 // ═══════════════════════════════════════════
 const BAITS=[
-  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  price:5,  pw:1,
+  // gozo = harga dalam $GOZO token (integer, 10^18 per token)
+  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:10,  pw:1,
    rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
-  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',price:15, pw:2,
+  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:20,  pw:2,
    rodColor:'#5a3a10',lineColor:'rgba(180,200,150,.8)',tipColor:'#adb'},
-  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',price:30,pw:3,
+  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:50, pw:3,
    rodColor:'#2a4a7a',lineColor:'rgba(150,200,255,.85)',tipColor:'#7be'},
-  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',price:50, pw:4,
+  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:100, pw:4,
    rodColor:'#1a1a1a',lineColor:'rgba(220,220,100,.9)',tipColor:'#ff0'},
-  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',price:100,pw:5,
+  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:250, pw:5,
    rodColor:'#7a5a00',lineColor:'rgba(255,215,0,.95)',tipColor:'#ffd700'},
 ];
 const RARITY=['Common','Uncommon','Rare','Epic','Legendary'];
@@ -2322,28 +2283,115 @@ function renderBaits(){
   });
 }
 function updateHUD(){
-  document.getElementById('goldD').textContent=G.gold;
+  const goldEl=document.getElementById('goldD'); if(goldEl) goldEl.textContent=G.gold;
   document.getElementById('catchD').textContent=G.total;
   const u=Object.keys(G.caught).length;
   document.getElementById('progLbl').textContent=`${u}/50 SPECIES`;
   document.getElementById('progF').style.width=`${(u/50)*100}%`;
 }
-function openShop(){
-  const g=document.getElementById('sgrid');g.innerHTML='';
+async function openShop(){
+  document.getElementById('shopModal').classList.add('show');
+  shopSetStatus('');
+  // Wallet status bar
+  const bar = document.getElementById('shopWalletBar');
+  const txt = document.getElementById('shopWalletTxt');
+  if(gWallet){
+    bar.className = 'shop-wallet ok';
+    txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4);
+  } else {
+    bar.className = 'shop-wallet';
+    txt.textContent = 'Not connected';
+  }
+  // Build grid
+  const g=document.getElementById('sgrid'); g.innerHTML='';
+  // Try fetch balance
+  let balGozo = 0;
+  if(gWallet){
+    try {
+      const bal = await gFetchBalance();
+      balGozo = Number(bal / BigInt('1000000000000000000'));
+      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+balGozo+' $GOZO';
+    } catch(e){}
+  }
   BAITS.forEach((b,i)=>{
-    const d=document.createElement('div');d.className='sitem';
-    d.innerHTML=`<div class="sicon">${b.icon}</div><div class="sname">${b.name}</div>
-      <div class="sdesc">${b.desc}</div><div class="sprice">🪙 ${b.price} GOLD / 10 pcs</div>
-      <button class="sbuy" onclick="buyBait(${i})">BUY 10</button>`;
+    const d=document.createElement('div'); d.className='sitem';
+    const canAfford = gWallet && balGozo >= b.gozo;
+    d.innerHTML=`<div class="sicon">${b.icon}</div>
+      <div class="sname">${b.name}</div>
+      <div class="sdesc">${b.desc}</div>
+      <div class="sprice">💎 ${b.gozo} $GOZO / 10 pcs</div>
+      <button class="sbuy-gozo" id="sbtn${i}" onclick="buyBait(${i})"
+        ${gWallet?'':'disabled title="Connect wallet first"'}>
+        ${gWallet?'BUY 10':'🔌 CONNECT WALLET'}
+      </button>`;
     g.appendChild(d);
   });
-  document.getElementById('shopModal').classList.add('show');
+  // If no wallet, show connect button
+  if(!gWallet){
+    shopSetStatus('⚠ Connect wallet to buy bait with $GOZO', 'err');
+  }
 }
 function closeShop(){document.getElementById('shopModal').classList.remove('show');}
-function buyBait(i){
-  const cost=BAITS[i].price*10;
-  if(G.gold<cost){notify(`❌ Need ${cost} 🪙 gold!`);return;}
-  G.gold-=cost;G.bait[i]+=10;updateHUD();renderBaits();notify(`✅ 10x ${BAITS[i].icon} ${BAITS[i].name} bought!`);
+let shopBuying = false;
+function shopSetStatus(msg, type=''){
+  const el=document.getElementById('shopStatus');
+  if(!el) return;
+  el.textContent=msg;
+  el.className='shop-status'+(type?' '+type:'');
+}
+
+async function buyBait(i){
+  if(shopBuying) return;
+  if(!gWallet){
+    // Try connect wallet first
+    shopSetStatus('Connecting wallet...','');
+    const w = await gConnectWallet();
+    if(!w){ shopSetStatus('❌ Wallet not connected.','err'); return; }
+    await openShop(); // refresh shop with wallet
+    return;
+  }
+  shopBuying = true;
+  document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=true);
+  const bait = BAITS[i];
+  const weiAmt = BigInt(bait.gozo) * BigInt('1000000000000000000');
+  shopSetStatus(`Checking $GOZO balance...`,'');
+  // Check balance
+  let bal;
+  try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
+  if(bal < weiAmt){
+    const have = Number(bal/BigInt('1000000000000000000'));
+    shopSetStatus(`❌ Insufficient balance! Have ${have} $GOZO, need ${bait.gozo} $GOZO.`,'err');
+    document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
+    shopBuying=false; return;
+  }
+  shopSetStatus(`Confirm in wallet — send ${bait.gozo} $GOZO...`,'');
+  try {
+    const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
+    const txHash=await gProvider.request({
+      method:'eth_sendTransaction',
+      params:[{from:gWallet, to:W3.GOZO_ADDR, data}],
+    });
+    shopSetStatus('TX sent, waiting for confirmation...','');
+    await gWaitTx(txHash);
+    // Grant bait
+    G.bait[i]+=10; renderBaits();
+    shopSetStatus(`✅ 10x ${bait.icon} ${bait.name} added!`,'ok');
+    showSaveToast(`${bait.icon} +10 ${bait.name}!`, false);
+    notify(`✅ 10x ${bait.icon} ${bait.name} bought!`);
+    // Refresh balance display
+    try {
+      const newBal = await gFetchBalance();
+      const gozo = Number(newBal/BigInt('1000000000000000000'));
+      document.getElementById('shopWalletTxt').textContent =
+        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' $GOZO';
+    } catch(e){}
+  } catch(e){
+    if(e.code===4001)        shopSetStatus('❌ Transaction cancelled.','err');
+    else if(e.code===-32002) shopSetStatus('❌ Request pending — check wallet popup.','err');
+    else                     shopSetStatus('❌ Failed: '+(e.message||'').slice(0,40),'err');
+  }
+  document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
+  shopBuying=false;
 }
 function openInv(){
   const u=Object.keys(G.caught).length;
@@ -2493,7 +2541,7 @@ async function gConnectWallet(){
     gWallet = accounts[0]; gProvider = eth;
     return gWallet;
   } catch(e){
-    showSaveToast('❌ Wallet tidak terconnect.', true);
+    showSaveToast('❌ Wallet not connected.', true);
     return null;
   }
 }
@@ -2522,145 +2570,6 @@ async function gWaitTx(hash, maxTries=60){
 
 
 
-// ═══════════════════════════════════════════════════════════
-//  GOLD MARKET  — buy in-game gold with $GOZO tokens
-//  1 GOZO = 100 gold  (transfer to dead address = burn)
-// ═══════════════════════════════════════════════════════════
-
-let mkBuying = false;
-
-async function openMarket(){
-  document.getElementById('marketModal').classList.add('show');
-  mkSetStatus('');
-  mkSetTx('');
-  mkBuying = false;
-  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
-
-  if(!gWallet){
-    document.getElementById('mkBalVal').textContent = '—';
-    mkSetStatus('⚠ Wallet belum terhubung. Kembali ke menu & connect wallet untuk membeli.', 'err');
-    document.querySelectorAll('.mkbuy').forEach(b => b.disabled = true);
-    return;
-  }
-
-  // Refresh balance display
-  document.getElementById('mkBalVal').textContent = 'Loading...';
-  try {
-    const bal = await gFetchBalance();
-    const gozo = Number(bal / BigInt('1000000000000000000'));
-    document.getElementById('mkBalVal').textContent = gozo.toLocaleString() + ' $GOZO';
-    mkSetStatus('');
-  } catch(e) {
-    document.getElementById('mkBalVal').textContent = '—';
-    mkSetStatus('⚠ Gagal fetch saldo.', 'err');
-  }
-}
-
-function closeMarket(){
-  document.getElementById('marketModal').classList.remove('show');
-  mkBuying = false;
-}
-
-function mkSetStatus(msg, type=''){
-  const el = document.getElementById('mkStatus');
-  el.textContent = msg;
-  el.className = 'mk-status' + (type ? ' '+type : '');
-}
-
-function mkSetTx(hash){
-  const el = document.getElementById('mkTx');
-  if(!hash){ el.innerHTML = ''; return; }
-  el.innerHTML = `<a href="${W3.EXPLORER}${hash}" target="_blank">🔗 Lihat TX</a>`;
-}
-
-async function buyGold(gozoAmount, goldAmount){
-  if(mkBuying) return;
-  if(!gWallet){
-    mkSetStatus('❌ Wallet belum terhubung! Kembali ke menu → Connect Wallet → Burn untuk masuk.', 'err');
-    mkBuying = false;
-    return;
-  }
-
-  mkBuying = true;
-  mkSetTx('');
-  // Disable all buy buttons while processing
-  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = true);
-  mkSetStatus('Cek saldo $GOZO...');
-
-  // Check balance
-  let bal;
-  try { bal = await gFetchBalance(); } catch(e){ bal = 0n; }
-  const needed = BigInt(gozoAmount) * BigInt('1000000000000000000');
-  if(bal < needed){
-    const have = Number(bal / BigInt('1000000000000000000'));
-    mkSetStatus(`❌ Saldo tidak cukup! Punya: ${have} $GOZO, butuh: ${gozoAmount} $GOZO`, 'err');
-    document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
-    mkBuying = false;
-    return;
-  }
-
-  mkSetStatus(`Konfirmasi di wallet — kirim ${gozoAmount} $GOZO...`);
-
-  try {
-    // transfer(deadAddress, amount) — burn GOZO to buy gold
-    const weiHex = gUint(needed.toString());
-    const data = '0x' + FNS.transfer + gAddr(W3.BURN_ADDR) + weiHex;
-    const txHash = await gProvider.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: gWallet, to: W3.GOZO_ADDR, data }],
-    });
-
-    mkSetStatus('TX terkirim, menunggu konfirmasi...');
-    mkSetTx(txHash);
-
-    // Wait for confirmation
-    await gWaitTx(txHash);
-
-    // Grant gold
-    G.gold += goldAmount;
-    updateHUD();
-
-    mkSetStatus(`✅ Berhasil! +${goldAmount.toLocaleString()} 🪙 GOLD ditambahkan!`, 'ok');
-    mkSetTx(txHash);
-
-    // Refresh balance display
-    try {
-      const newBal = await gFetchBalance();
-      const gozo = Number(newBal / BigInt('1000000000000000000'));
-      document.getElementById('mkBalVal').textContent = gozo.toLocaleString() + ' $GOZO';
-    } catch(e){}
-
-    // Success flash notification
-    showSaveToast(`🪙 +${goldAmount.toLocaleString()} GOLD!`, false);
-
-  } catch(e) {
-    if(e.code === 4001)        mkSetStatus('❌ Transaksi dibatalkan.', 'err');
-    else if(e.code === -32002) mkSetStatus('❌ Permintaan pending — cek popup wallet.', 'err');
-    else if(e.code === -32603) mkSetStatus('❌ Internal error — coba lagi.', 'err');
-    else                       mkSetStatus('❌ Gagal: ' + (e.message||'').slice(0,40), 'err');
-  }
-
-  document.querySelectorAll('.mkbuy').forEach(b => b.disabled = false);
-  mkBuying = false;
-}
-
-
-// ── More menu (topbar dropdown) ──────────────────────────
-function toggleMoreMenu(){
-  const m = document.getElementById('moreMenu');
-  m.classList.toggle('open');
-}
-function closeMoreMenu(){
-  document.getElementById('moreMenu').classList.remove('open');
-}
-// Close when clicking outside
-document.addEventListener('click', function(e){
-  const btn = document.getElementById('moreBtn');
-  const menu = document.getElementById('moreMenu');
-  if(btn && menu && !btn.contains(e.target) && !menu.contains(e.target)){
-    menu.classList.remove('open');
-  }
-});
 
 // ═══════════════════════════════════════════════════════════
 //  SAVE / LOAD  — download/upload JSON file to local computer
@@ -2715,9 +2624,9 @@ function saveGame(){
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showSaveToast('💾 SAVE BERHASIL!', false);
+    showSaveToast('💾 SAVE SUCCESSFUL!', false);
   } catch(e) {
-    showSaveToast('❌ SAVE GAGAL: ' + e.message.slice(0,30), true);
+    showSaveToast('❌ SAVE FAILED: ' + e.message.slice(0,30), true);
     console.error('saveGame error:', e);
   }
 }
@@ -2735,7 +2644,7 @@ function loadFromFile(event){
 
   // Basic validation — must be .json
   if(!file.name.endsWith('.json')){
-    showSaveToast('❌ HARUS FILE .JSON!', true);
+    showSaveToast('❌ MUST BE A .JSON FILE!', true);
     return;
   }
 
@@ -2745,14 +2654,14 @@ function loadFromFile(event){
       const data = JSON.parse(e.target.result);
       applySaveData(data);
       const ts = data.savedAt ? ' (' + data.savedAt.slice(0,10) + ')' : '';
-      showSaveToast('📂 LOAD BERHASIL' + ts, false);
+      showSaveToast('📂 LOAD SUCCESSFUL' + ts, false);
     } catch(err) {
-      showSaveToast('❌ FILE RUSAK: ' + err.message.slice(0,28), true);
+      showSaveToast('❌ CORRUPTED FILE: ' + err.message.slice(0,28), true);
       console.error('loadFromFile error:', err);
     }
   };
   reader.onerror = function(){
-    showSaveToast('❌ GAGAL BACA FILE', true);
+    showSaveToast('❌ FAILED TO READ FILE', true);
   };
   reader.readAsText(file);
 }
