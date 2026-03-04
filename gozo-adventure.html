@@ -158,6 +158,9 @@
   #stats-btn{display:none;position:fixed;bottom:58px;right:110px;z-index:61;background:var(--panel);border:2px solid #cc88ff;color:#cc88ff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(200,136,255,.2);transition:box-shadow .2s;}
   #stats-btn:hover{box-shadow:0 0 20px rgba(200,136,255,.5);}
   #stats-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #skill-btn{display:none;position:fixed;bottom:92px;right:110px;z-index:61;background:var(--panel);border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(255,215,0,.25);transition:box-shadow .2s;}
+  #skill-btn:hover{box-shadow:0 0 20px rgba(255,215,0,.6);}
+  #skilltree-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
   #bgm-btn{display:none;position:fixed;bottom:58px;right:20px;z-index:61;background:var(--panel);border:2px solid #44cc88;color:#44cc88;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 10px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 10px rgba(68,204,136,.2);transition:box-shadow .2s;}
   #bgm-btn:hover{box-shadow:0 0 20px rgba(68,204,136,.5);}
   #shop-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
@@ -803,7 +806,7 @@ function inGrass(x, y, w, h){
 }
 
 const state = {
-  player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3 },
+  player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3,maxPotions:5,critChance:0,speedBonus:0 },
   world:{ w:0,h:0 },
   keys:{}, moving:null,
   inBattle:false, currentEnemy:null, battleTurn:'player',
@@ -2694,7 +2697,9 @@ function initGame(fromLoad){
   const _questBtn = document.getElementById('quest-btn'); if(_questBtn) _questBtn.style.display='block';
   const _statsBtn = document.getElementById('stats-btn'); if(_statsBtn) _statsBtn.style.display='block';
   const _bgmBtn = document.getElementById('bgm-btn'); if(_bgmBtn) _bgmBtn.style.display='block';
+  const _skillBtn = document.getElementById('skill-btn'); if(_skillBtn) _skillBtn.style.display='block';
   initQuests();
+  initSkills();
   setTimeout(()=>bgmFadeTo('explore'), 500);
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
@@ -3904,7 +3909,7 @@ function checkGrass(){
 // TRIGGER WILD ENCOUNTER
 // ==============================================
 function triggerEncounter(zone){
-  state.encounterCooldown=150;
+  state.encounterCooldown=Math.max(60, 150 - (state.player.speedBonus||0)*15);
   grassPartTrail = []; // clear parting trail on encounter
   playEncounterSound();
 
@@ -4012,7 +4017,9 @@ function battleAction(action){
   let log='';
 
   if(action==='attack'){
-    const dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
+    let dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
+    const isCrit = Math.random() < (p.critChance||0);
+    if(isCrit){ dmg = Math.floor(dmg*2); }
     e.hp-=dmg;
     playSoundAttack();
     attackLungePlayer();
@@ -4020,11 +4027,11 @@ function battleAction(action){
       playSoundHit();
       showDmgPopup(dmg,false);
       shakeSprite('enemy-battle-sprite');
-      flashArena('rgba(255,80,80,0.25)');
-      if(dmg>=40) arenaShake();
+      flashArena(isCrit?'rgba(255,220,0,0.4)':'rgba(255,80,80,0.25)');
+      if(isCrit||dmg>=40) arenaShake();
     },180);
     if(questState) questState.stats.damageDealt += dmg;
-    log=`Gozo attacks! Dealt ${dmg} damage to ${e.name}!`;
+    log=isCrit?`💥 CRITICAL HIT! Dealt ${dmg} damage to ${e.name}!`:`Gozo attacks! Dealt ${dmg} damage to ${e.name}!`;
 
   }else if(action==='special'){
     playSoundSkill(partner ? partner.name : pType);
@@ -5416,6 +5423,163 @@ function updateQuestDot(){
   } else if(!hasNew && dot){ dot.remove(); }
 }
 
+// ==============================================
+// SKILL TREE SYSTEM
+// ==============================================
+
+// Tree structure: 3 branches — Warrior / Ranger / Mystic
+// Each node: id, label, desc, icon, cost, effect, requires (parent id or null), maxLv
+const SKILL_TREE = [
+  // ── ROOT (always unlockable) ──
+  { id:'hp1',    branch:'warrior', row:0, col:1, icon:'❤️',  label:'Vitality I',    desc:'Max HP +20',           cost:80,  effect:{maxHp:20},           requires:null,    maxLv:1 },
+  { id:'atk1',   branch:'warrior', row:0, col:2, icon:'⚔️',  label:'Power I',       desc:'ATK +3',               cost:80,  effect:{attack:3},            requires:null,    maxLv:1 },
+  { id:'def1',   branch:'ranger',  row:0, col:1, icon:'🛡️',  label:'Guard I',       desc:'DEF +3',               cost:80,  effect:{defense:3},           requires:null,    maxLv:1 },
+  { id:'spd1',   branch:'ranger',  row:0, col:2, icon:'⚡',  label:'Swiftness I',   desc:'Encounters faster',    cost:80,  effect:{speedBonus:1},        requires:null,    maxLv:1 },
+  { id:'pot1',   branch:'mystic',  row:0, col:1, icon:'💊',  label:'Herbalist I',   desc:'Max potions +1',       cost:80,  effect:{maxPotions:1},        requires:null,    maxLv:1 },
+  { id:'crit1',  branch:'mystic',  row:0, col:2, icon:'🎯',  label:'Precision I',   desc:'Crit chance +5%',      cost:80,  effect:{critChance:0.05},     requires:null,    maxLv:1 },
+
+  // ── TIER 2 ──
+  { id:'hp2',    branch:'warrior', row:1, col:1, icon:'❤️',  label:'Vitality II',   desc:'Max HP +30',           cost:160, effect:{maxHp:30},            requires:'hp1',   maxLv:1 },
+  { id:'atk2',   branch:'warrior', row:1, col:2, icon:'⚔️',  label:'Power II',      desc:'ATK +5',               cost:160, effect:{attack:5},            requires:'atk1',  maxLv:1 },
+  { id:'def2',   branch:'ranger',  row:1, col:1, icon:'🛡️',  label:'Guard II',      desc:'DEF +5',               cost:160, effect:{defense:5},           requires:'def1',  maxLv:1 },
+  { id:'spd2',   branch:'ranger',  row:1, col:2, icon:'⚡',  label:'Swiftness II',  desc:'Encounters even faster',cost:160,effect:{speedBonus:1},        requires:'spd1',  maxLv:1 },
+  { id:'pot2',   branch:'mystic',  row:1, col:1, icon:'💊',  label:'Herbalist II',  desc:'Max potions +2',       cost:160, effect:{maxPotions:2},        requires:'pot1',  maxLv:1 },
+  { id:'crit2',  branch:'mystic',  row:1, col:2, icon:'🎯',  label:'Precision II',  desc:'Crit chance +8%',      cost:160, effect:{critChance:0.08},     requires:'crit1', maxLv:1 },
+
+  // ── TIER 3 (powerful) ──
+  { id:'hp3',    branch:'warrior', row:2, col:1, icon:'💪',  label:'Iron Body',     desc:'Max HP +50',           cost:320, effect:{maxHp:50},            requires:'hp2',   maxLv:1 },
+  { id:'atk3',   branch:'warrior', row:2, col:2, icon:'🗡️',  label:'Berserker',     desc:'ATK +8',               cost:320, effect:{attack:8},            requires:'atk2',  maxLv:1 },
+  { id:'def3',   branch:'ranger',  row:2, col:1, icon:'🏰',  label:'Fortress',      desc:'DEF +8',               cost:320, effect:{defense:8},           requires:'def2',  maxLv:1 },
+  { id:'spd3',   branch:'ranger',  row:2, col:2, icon:'🌀',  label:'Blur',          desc:'Max speed reached',    cost:320, effect:{speedBonus:2},        requires:'spd2',  maxLv:1 },
+  { id:'pot3',   branch:'mystic',  row:2, col:1, icon:'🧪',  label:'Alchemist',     desc:'Max potions +2, HP+15',cost:320, effect:{maxPotions:2,maxHp:15},requires:'pot2', maxLv:1 },
+  { id:'crit3',  branch:'mystic',  row:2, col:2, icon:'💥',  label:'Deadeye',       desc:'Crit chance +12%',     cost:320, effect:{critChance:0.12},     requires:'crit2', maxLv:1 },
+];
+
+let skillState = {}; // {[id]: true} = learned
+
+function initSkills(){
+  try{
+    const s = sessionStorage.getItem('gozo_skills');
+    if(s) skillState = JSON.parse(s);
+  }catch(e){}
+}
+
+function saveSkills(){ try{ sessionStorage.setItem('gozo_skills', JSON.stringify(skillState)); }catch(e){} }
+
+function canLearnSkill(sk){
+  if(skillState[sk.id]) return false; // already learned
+  if(sk.requires && !skillState[sk.requires]) return false; // parent not learned
+  if(state.player.coins < sk.cost) return false;
+  return true;
+}
+
+function learnSkill(id){
+  const sk = SKILL_TREE.find(s=>s.id===id);
+  if(!sk || !canLearnSkill(sk)) return;
+  state.player.coins -= sk.cost;
+  skillState[sk.id] = true;
+  // Apply effect
+  const p = state.player;
+  const fx = sk.effect;
+  if(fx.maxHp){ p.maxHp += fx.maxHp; p.hp = Math.min(p.hp + fx.maxHp, p.maxHp); }
+  if(fx.attack) p.attack += fx.attack;
+  if(fx.defense) p.defense += fx.defense;
+  if(fx.speedBonus) p.speedBonus = (p.speedBonus||0) + fx.speedBonus;
+  if(fx.maxPotions){ p.maxPotions = (p.maxPotions||5) + fx.maxPotions; }
+  if(fx.critChance) p.critChance = Math.min(0.75, (p.critChance||0) + fx.critChance);
+  updateHUD();
+  saveSkills();
+  showSellToast(`✨ Learned ${sk.label}!`, '#FFD700');
+  spawnCoinBurst(sk.cost, '#FFD700');
+  renderSkillTree();
+}
+
+function openSkillTree(){
+  const sc = document.getElementById('skilltree-screen');
+  if(!sc) return;
+  renderSkillTree();
+  sc.style.display = 'flex';
+}
+
+function closeSkillTree(){
+  const sc = document.getElementById('skilltree-screen');
+  if(sc) sc.style.display = 'none';
+}
+
+function renderSkillTree(){
+  const sc = document.getElementById('skilltree-screen');
+  if(!sc) return;
+  const p = state.player;
+
+  const BRANCHES = ['warrior','ranger','mystic'];
+  const BRANCH_LABELS = { warrior:'⚔️ WARRIOR', ranger:'🛡️ RANGER', mystic:'🔮 MYSTIC' };
+  const BRANCH_COLORS = { warrior:'#ff6644', ranger:'#44aaff', mystic:'#cc88ff' };
+  const ROWS = 3;
+
+  const branchHtml = BRANCHES.map(branch => {
+    const color = BRANCH_COLORS[branch];
+    const nodes = SKILL_TREE.filter(s=>s.branch===branch);
+    // Group by row
+    const rows = [0,1,2].map(row => nodes.filter(n=>n.row===row));
+
+    const rowsHtml = rows.map((rowNodes, ri) => {
+      const nodesHtml = rowNodes.map(sk => {
+        const learned   = !!skillState[sk.id];
+        const canLearn  = canLearnSkill(sk);
+        const locked    = !learned && !canLearn;
+        const noCoins   = !learned && sk.requires && skillState[sk.requires] && p.coins < sk.cost;
+        const bg        = learned ? '#1a2a1a' : canLearn ? '#0d0d1a' : '#0a0a0a';
+        const bdColor   = learned ? '#44ff88' : canLearn ? color : '#333';
+        const opacity   = locked && !canLearn && !(sk.requires && skillState[sk.requires]) ? '0.45' : '1';
+        return `
+          <div onclick="learnSkill('${sk.id}')"
+            style="background:${bg};border:2px solid ${bdColor};padding:8px 10px;cursor:${canLearn?'pointer':'default'};
+            opacity:${opacity};flex:1;min-width:120px;max-width:160px;position:relative;transition:border-color .2s;">
+            <div style="font-size:18px;margin-bottom:4px;">${sk.icon}</div>
+            <div style="font-size:7px;color:${learned?'#44ff88':canLearn?color:'#555'};">${sk.label}</div>
+            <div style="font-size:5px;color:#666;margin-top:3px;">${sk.desc}</div>
+            <div style="margin-top:5px;font-size:6px;color:${learned?'#44ff88':canLearn&&!noCoins?'#FFD700':'#cc4444'};">
+              ${learned ? '✅ LEARNED' : `💰 ${sk.cost}g`}
+            </div>
+            ${sk.requires && !skillState[sk.requires] ? `<div style="font-size:5px;color:#444;margin-top:2px;">🔒 Requires ${SKILL_TREE.find(s=>s.id===sk.requires)?.label}</div>` : ''}
+          </div>`;
+      }).join('');
+
+      // Arrow between rows
+      const arrow = ri < ROWS-1 ? `<div style="text-align:center;color:#333;font-size:14px;margin:4px 0;">▼</div>` : '';
+      return `<div style="display:flex;gap:8px;justify-content:center;">${nodesHtml}</div>${arrow}`;
+    }).join('');
+
+    const branchLearned = nodes.filter(n=>skillState[n.id]).length;
+    return `
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:8px;color:${color};letter-spacing:2px;margin-bottom:10px;text-align:center;border-bottom:2px solid ${color}33;padding-bottom:6px;">
+          ${BRANCH_LABELS[branch]} <span style="font-size:6px;color:#555">(${branchLearned}/${nodes.length})</span>
+        </div>
+        ${rowsHtml}
+      </div>`;
+  }).join('');
+
+  const totalLearned = Object.keys(skillState).length;
+  sc.innerHTML = `
+    <div style="width:100%;max-width:680px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🌟 SKILL TREE</div>
+          <div style="font-size:6px;color:#555;margin-top:3px;">${totalLearned}/${SKILL_TREE.length} skills learned</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#FFD700;">💰 ${p.coins}g</span>
+          <button onclick="closeSkillTree()" style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+        </div>
+      </div>
+      <div style="font-size:6px;color:#888;margin-bottom:12px;">
+        ⚔️ ATK:${p.attack} &nbsp; 🛡️ DEF:${p.defense} &nbsp; ❤️ HP:${p.maxHp} &nbsp; 🎯 CRIT:${Math.round((p.critChance||0)*100)}% &nbsp; 💊 MAX POTION:${p.maxPotions||5} &nbsp; ⚡ SPD:${p.speedBonus||0}
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;">${branchHtml}</div>
+    </div>`;
+}
+
 function openStatsScreen(){
   const sc = document.getElementById('stats-screen');
   if(!sc) return;
@@ -5759,9 +5923,11 @@ function renderQuestScreen(){
 <button onclick="openInventory()" id="bag-btn" style="display:none;position:fixed;bottom:24px;right:20px;z-index:61;background:var(--panel);border:2px solid var(--yellow);color:var(--yellow);font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);box-shadow:0 0 12px rgba(255,215,0,.3);transition:box-shadow .2s;" onmouseenter="this.style.boxShadow='0 0 20px rgba(255,215,0,.7)'" onmouseleave="this.style.boxShadow='0 0 12px rgba(255,215,0,.3)'">🎒 BAG</button>
 <button onclick="openQuestScreen()" id="quest-btn">📋 QUEST</button>
 <button onclick="openStatsScreen()" id="stats-btn">📊 STATS</button>
+<button onclick="openSkillTree()" id="skill-btn">🌟 SKILLS</button>
 <button onclick="bgmToggleMute()" id="bgm-btn">🎵 MUSIC</button>
 <div id="quest-screen"></div>
 <div id="stats-screen"></div>
+<div id="skilltree-screen"></div>
 <div id="shop-screen"></div>
 </body>
 </html>
