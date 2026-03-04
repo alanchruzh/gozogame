@@ -40,29 +40,24 @@ header{
 .world{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
 
 .sky{flex-shrink:0;height:var(--sky-h);background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 55%,var(--sky3) 100%);position:relative;overflow:hidden}
-.sun{position:absolute;top:14px;right:120px;width:42px;height:42px;background:var(--yellow);box-shadow:0 0 0 5px var(--yellow2),0 0 0 10px rgba(224,168,0,0.18);animation:sunPulse 3s ease-in-out infinite}
-@keyframes sunPulse{0%,100%{box-shadow:0 0 0 5px var(--yellow2),0 0 0 10px rgba(224,168,0,0.18)}50%{box-shadow:0 0 0 5px var(--yellow2),0 0 0 20px rgba(224,168,0,0.08)}}
-.cloud{position:absolute;background:#d8eeff;animation:cloudDrift linear infinite}
-.cloud::before{content:'';position:absolute;background:#d8eeff}
-.cl1{width:72px;height:18px;top:18%;animation-duration:60s}
-.cl1::before{width:36px;height:24px;top:-14px;left:14px}
-.cl2{width:96px;height:20px;top:40%;animation-duration:85s;animation-delay:-30s}
-.cl2::before{width:48px;height:28px;top:-16px;left:22px}
-.cl3{width:56px;height:14px;top:10%;animation-duration:45s;animation-delay:-18s}
-.cl3::before{width:28px;height:18px;top:-10px;left:12px}
+.sun{position:absolute;top:10px;right:110px;image-rendering:pixelated;image-rendering:crisp-edges}
+@keyframes sunPulse{0%,100%{opacity:1}50%{opacity:0.88}}
+.cloud{position:absolute;animation:cloudDrift linear infinite;image-rendering:pixelated;image-rendering:crisp-edges}
+.cl1{top:15%;animation-duration:60s}
+.cl2{top:38%;animation-duration:90s;animation-delay:-35s}
+.cl3{top:8%;animation-duration:48s;animation-delay:-20s}
 @keyframes cloudDrift{from{left:-150px}to{left:calc(100% + 150px)}}
-.bird{position:absolute;font-size:11px;animation:birdFly linear infinite;filter:brightness(0.2) sepia(0.5)}
+.bird{position:absolute;animation:birdFly linear infinite;image-rendering:pixelated;image-rendering:crisp-edges}
 .bd1{top:25%;animation-duration:30s}
-.bd2{top:15%;font-size:8px;animation-duration:44s;animation-delay:-18s}
-@keyframes birdFly{0%{left:-20px}100%{left:calc(100% + 30px)}}
+.bd2{top:15%;animation-duration:44s;animation-delay:-18s}
+@keyframes birdFly{0%{left:-30px}100%{left:calc(100% + 40px)}}
 
 .horizon{flex-shrink:0;height:68px;background:linear-gradient(180deg,var(--sky3) 0%,var(--grass) 55%);position:relative;overflow:visible;z-index:5}
 .tree-row{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:flex-end;gap:1px;pointer-events:none;padding-left:2px}
 .px-tree{display:inline-block;flex-shrink:0;image-rendering:pixelated;vertical-align:bottom}
 
-.fence-strip{flex-shrink:0;height:22px;background:#7a4010;display:flex;align-items:stretch;position:relative;z-index:6;box-shadow:0 3px 0 #000}
-.fp{width:8px;height:100%;background:#9a5018;box-shadow:inset -2px 0 0 rgba(0,0,0,0.35);flex-shrink:0}
-.fr{flex:1;height:7px;margin-top:4px;background:#c07030;box-shadow:0 2px 0 rgba(0,0,0,0.3)}
+.fence-strip{flex-shrink:0;height:44px;display:flex;align-items:flex-end;position:relative;z-index:6;overflow:hidden;background:transparent}
+.fence-strip canvas{display:block;width:100%;height:44px}
 
 .ground-area{flex:1;overflow:hidden;background:
   /* subtle grass blade pattern */
@@ -330,6 +325,34 @@ header{
   0%   { opacity:1; transform:scale(0.5) translateY(0); }
   100% { opacity:0; transform:scale(1.5) translateY(-20px); }
 }
+
+/* ── SEED STORE MODAL ── */
+.seed-store-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:700;display:flex;align-items:center;justify-content:center}
+.seed-store-overlay.hidden{display:none}
+.seed-store-box{background:#0d1f0d;border:4px solid #4aaa4a;padding:0;max-width:520px;width:92%;box-shadow:8px 8px 0 #000,0 0 40px rgba(74,170,74,0.2);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.seed-store-header{background:linear-gradient(180deg,#1a3a1a,#0d1f0d);padding:14px 18px;border-bottom:3px solid #2a5a2a;display:flex;align-items:center;justify-content:space-between}
+.seed-store-title{font-size:0.5rem;color:#a0f0a0;text-shadow:2px 2px 0 #000}
+.seed-store-gold{font-size:0.32rem;color:#f5c842;text-shadow:1px 1px 0 #000}
+.seed-store-close{background:none;border:2px solid #4a7a4a;color:#80c080;font-size:0.4rem;cursor:pointer;padding:2px 8px;font-family:var(--font);border-radius:4px}
+.seed-store-close:hover{border-color:#a0d0a0;color:#c0f0c0}
+.seed-store-body{overflow-y:auto;padding:12px 14px;flex:1}
+.store-crop-row{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;background:#111f11;border:2px solid #1e3a1e;border-radius:6px;transition:all 0.1s}
+.store-crop-row:hover{border-color:#3a6a3a;background:#162a16}
+.store-crop-row.locked{opacity:0.45;pointer-events:none}
+.store-crop-emoji{font-size:1.5rem;min-width:32px;text-align:center}
+.store-crop-info{flex:1}
+.store-crop-name{font-size:0.32rem;color:#c0e8c0;text-shadow:1px 1px 0 #000}
+.store-crop-detail{font-size:0.22rem;color:#6a9a6a;margin-top:1px}
+.store-crop-inv{font-size:0.22rem;color:#f5c842;margin-top:1px}
+.store-qty-btns{display:flex;align-items:center;gap:5px}
+.qty-btn{background:#1a3a1a;border:2px solid #2a5a2a;color:#80c080;font-family:var(--font);font-size:0.28rem;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.qty-btn:hover{border-color:#4aaa4a;color:#a0f0a0}
+.store-qty-num{font-size:0.32rem;color:#fff;text-shadow:1px 1px 0 #000;min-width:22px;text-align:center}
+.store-buy-btn{background:linear-gradient(180deg,#2a7a2a,#1a5a1a);border:2px solid #4aaa4a;color:#a0f0a0;font-family:var(--font);font-size:0.24rem;padding:5px 10px;cursor:pointer;border-radius:5px;text-shadow:1px 1px 0 #000;white-space:nowrap;box-shadow:0 2px 0 #0a2a0a}
+.store-buy-btn:hover{background:linear-gradient(180deg,#3a8a3a,#2a6a2a)}
+.store-buy-btn:disabled{opacity:0.4;cursor:not-allowed}
+.store-lock-tag{font-size:0.2rem;color:#a09070;background:#1a1408;border:1px solid #3a3020;padding:2px 6px;border-radius:4px}
+
 </style>
 </head>
 <body>
@@ -349,17 +372,17 @@ header{
   <!-- WORLD -->
   <div class="world">
     <div class="sky">
-      <div class="sun"></div>
-      <div class="cloud cl1"></div>
-      <div class="cloud cl2"></div>
-      <div class="cloud cl3"></div>
-      <div class="bird bd1">🐦</div>
-      <div class="bird bd2">🐦</div>
+      <canvas class="sun" id="sunCanvas"></canvas>
+      <canvas class="cloud cl1" id="cloudC1"></canvas>
+      <canvas class="cloud cl2" id="cloudC2"></canvas>
+      <canvas class="cloud cl3" id="cloudC3"></canvas>
+      <canvas class="bird bd1" id="birdC1"></canvas>
+      <canvas class="bird bd2" id="birdC2"></canvas>
     </div>
     <div class="horizon">
       <div class="tree-row" id="treeRow"></div>
     </div>
-    <div class="fence-strip" id="fence"></div>
+    <div class="fence-strip" id="fence"><canvas id="fenceCanvas"></canvas></div>
 
     <div class="ground-area">
       <div class="fields-container">
@@ -396,6 +419,7 @@ header{
     <!-- Seeds -->
     <div class="sb-card">
       <h3>🌱 SEEDS</h3>
+      <button onclick="openSeedStore()" style="width:100%;font-family:var(--font);font-size:0.26rem;background:linear-gradient(180deg,#2a6a2a,#1a4a1a);color:#a0f0a0;border:2px solid #4aaa4a;border-radius:6px;padding:6px 10px;cursor:pointer;text-shadow:1px 1px 0 #000;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 0 #0a2a0a">🛒 <span>SEED STORE</span> <span style="font-size:0.2rem;color:#6a9a6a">Buy with 🪙</span></button>
       <div id="seedShop"></div>
     </div>
 
@@ -404,7 +428,7 @@ header{
       <h3 style="color:#80c8f0;border-color:#3a6aaa">💧 WATER BUCKET</h3>
       <div class="water-info">
         <div>Charges: <span id="waterChargesBig" style="color:var(--yellow)">10</span> / 10</div>
-        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">+1 air setiap detik</div>
+        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">+1 charge per minute</div>
       </div>
     </div>
 
@@ -461,6 +485,21 @@ header{
     </div>
     <div class="burn-status" id="burnStatus"></div>
     <div class="burn-warn">⚠ Make sure you're on Monad network.<br>Burning is irreversible — tokens go to dead address.</div>
+  </div>
+</div>
+
+
+<!-- SEED STORE MODAL -->
+<div class="seed-store-overlay hidden" id="seedStoreOverlay">
+  <div class="seed-store-box">
+    <div class="seed-store-header">
+      <div class="seed-store-title">🛒 SEED STORE</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="seed-store-gold">🪙 <span id="storeGoldAmt">0</span> gold</div>
+        <button class="seed-store-close" onclick="closeSeedStore()">✕ CLOSE</button>
+      </div>
+    </div>
+    <div class="seed-store-body" id="storeBody"></div>
   </div>
 </div>
 
@@ -727,17 +766,30 @@ function drawGozoBase(ctx, sx, sy, legFrame=0, armL=0, armR=0, toolType=null) {
   px(ctx, C.out,     sx+2, sy-3, 1, 3);
   px(ctx, C.out,     sx+9, sy-3, 1, 3);
 
-  // ── HEAD ──
-  // Head base (rows 1-5, cols 2-9)
-  px(ctx, C.skin,     sx+2, sy+1, 8, 5);
+  // ── HEAD (rounded human shape) ──
+  // Row 1: forehead - narrower top (rounded crown)
+  px(ctx, C.skin,     sx+3, sy+1, 6, 1);
+  // Row 2-4: full width
+  px(ctx, C.skin,     sx+2, sy+2, 8, 3);
+  // Row 5: cheeks - full width
+  px(ctx, C.skin,     sx+2, sy+5, 8, 1);
+  // Row 6: jaw - slightly narrower (rounded chin)
+  px(ctx, C.skin,     sx+3, sy+6, 6, 1);
+
   // Shading
-  px(ctx, C.skinDark, sx+2, sy+1, 1, 5); // left shadow
-  px(ctx, C.skinDark, sx+9, sy+1, 1, 5); // right shadow
-  px(ctx, C.skinSh,   sx+4, sy+1, 4, 2); // forehead highlight
-  // Head outline
-  px(ctx, C.out, sx+1, sy+1, 1, 5);
-  px(ctx, C.out, sx+10, sy+1, 1, 5);
-  px(ctx, C.out, sx+2, sy+6, 8, 1);
+  px(ctx, C.skinDark, sx+2, sy+2, 1, 4); // left shadow
+  px(ctx, C.skinDark, sx+9, sy+2, 1, 4); // right shadow
+  px(ctx, C.skinSh,   sx+4, sy+1, 3, 2); // forehead highlight
+
+  // Head outline - rounded shape
+  px(ctx, C.out, sx+2, sy+1, 1, 1);   // top-left corner dot
+  px(ctx, C.out, sx+9, sy+1, 1, 1);   // top-right corner dot
+  px(ctx, C.out, sx+3, sy+0, 6, 1);   // top edge (moved up to row 0 for cap fit)
+  px(ctx, C.out, sx+1, sy+2, 1, 4);   // left side
+  px(ctx, C.out, sx+10, sy+2, 1, 4);  // right side
+  px(ctx, C.out, sx+2, sy+6, 1, 1);   // bottom-left corner
+  px(ctx, C.out, sx+9, sy+6, 1, 1);   // bottom-right corner
+  px(ctx, C.out, sx+3, sy+7, 6, 1);   // jaw bottom edge
 
   // ── EYES ──
   // Left eye
@@ -757,59 +809,59 @@ function drawGozoBase(ctx, sx, sy, legFrame=0, armL=0, armR=0, toolType=null) {
   px(ctx, C.out,      sx+5, sy+5, 2, 1);
 
   // ── CHAIN NECKLACE ──
-  px(ctx, C.chain,     sx+3, sy+7, 6, 1);
-  px(ctx, C.chainDark, sx+4, sy+7, 1, 1);
-  px(ctx, C.chain,     sx+6, sy+7, 1, 1);
+  px(ctx, C.chain,     sx+3, sy+8, 6, 1);
+  px(ctx, C.chainDark, sx+4, sy+8, 1, 1);
+  px(ctx, C.chain,     sx+6, sy+8, 1, 1);
 
   // ── SHIRT / TORSO ──
-  px(ctx, C.shirt,     sx+2, sy+8, 8, 3);
-  px(ctx, C.shirtSh,   sx+2, sy+8, 1, 3);
-  px(ctx, C.shirtSh,   sx+9, sy+8, 1, 3);
-  px(ctx, C.out,       sx+1, sy+8, 1, 3);
-  px(ctx, C.out,       sx+10, sy+8, 1, 3);
+  px(ctx, C.shirt,     sx+2, sy+9, 8, 3);
+  px(ctx, C.shirtSh,   sx+2, sy+9, 1, 3);
+  px(ctx, C.shirtSh,   sx+9, sy+9, 1, 3);
+  px(ctx, C.out,       sx+1, sy+9, 1, 3);
+  px(ctx, C.out,       sx+10, sy+9, 1, 3);
 
   // ── OVERALLS ──
-  px(ctx, C.overalls,   sx+2, sy+11, 8, 4);
-  px(ctx, C.overallsSh, sx+2, sy+11, 2, 4);
-  px(ctx, C.overallsSh, sx+8, sy+11, 2, 4);
+  px(ctx, C.overalls,   sx+2, sy+12, 8, 4);
+  px(ctx, C.overallsSh, sx+2, sy+12, 2, 4);
+  px(ctx, C.overallsSh, sx+8, sy+12, 2, 4);
   // Pocket
-  px(ctx, C.overallsSh, sx+4, sy+12, 4, 2);
+  px(ctx, C.overallsSh, sx+4, sy+13, 4, 2);
   // Out
-  px(ctx, C.out, sx+1, sy+11, 1, 4);
-  px(ctx, C.out, sx+10, sy+11, 1, 4);
+  px(ctx, C.out, sx+1, sy+12, 1, 4);
+  px(ctx, C.out, sx+10, sy+12, 1, 4);
 
   // ── ARMS ──
   // Left arm (animated)
-  const laY = sy + 8 + armL;
+  const laY = sy + 9 + armL;
   px(ctx, C.skin,     sx+0, laY, 2, 4);
   px(ctx, C.skinDark, sx+0, laY, 1, 4);
   px(ctx, C.out,      sx-1, laY, 1, 4);
   // Right arm (animated)
-  const raY = sy + 8 + armR;
+  const raY = sy + 9 + armR;
   px(ctx, C.skin,     sx+10, raY, 2, 4);
   px(ctx, C.skinDark, sx+11, raY, 1, 4);
   px(ctx, C.out,      sx+12, raY, 1, 4);
 
   // ── LEGS ──
   // Leg separation line
-  px(ctx, C.overallsSh, sx+5, sy+15, 2, 1);
+  px(ctx, C.overallsSh, sx+5, sy+16, 2, 1);
   // Left leg
   const llX = legFrame === 0 ? 0 : (legFrame === 1 ? -1 : 1);
-  px(ctx, C.overalls,   sx+2+llX, sy+15, 3, 4);
-  px(ctx, C.overallsSh, sx+2+llX, sy+15, 1, 4);
+  px(ctx, C.overalls,   sx+2+llX, sy+16, 3, 4);
+  px(ctx, C.overallsSh, sx+2+llX, sy+16, 1, 4);
   // Right leg (opposite phase)
   const rlX = -llX;
-  px(ctx, C.overalls,   sx+7+rlX, sy+15, 3, 4);
-  px(ctx, C.overallsSh, sx+9+rlX, sy+15, 1, 4);
+  px(ctx, C.overalls,   sx+7+rlX, sy+16, 3, 4);
+  px(ctx, C.overallsSh, sx+9+rlX, sy+16, 1, 4);
 
   // ── SHOES ──
-  px(ctx, C.shoe,     sx+1+llX, sy+19, 4, 2);
-  px(ctx, C.shoeSole, sx+1+llX, sy+20, 4, 1);
-  px(ctx, C.shoe,     sx+7+rlX, sy+19, 4, 2);
-  px(ctx, C.shoeSole, sx+7+rlX, sy+20, 4, 1);
+  px(ctx, C.shoe,     sx+1+llX, sy+20, 4, 2);
+  px(ctx, C.shoeSole, sx+1+llX, sy+21, 4, 1);
+  px(ctx, C.shoe,     sx+7+rlX, sy+20, 4, 2);
+  px(ctx, C.shoeSole, sx+7+rlX, sy+21, 4, 1);
   // Shoe outline
-  px(ctx, C.out, sx+1+llX, sy+19, 4, 1);
-  px(ctx, C.out, sx+7+rlX, sy+19, 4, 1);
+  px(ctx, C.out, sx+1+llX, sy+20, 4, 1);
+  px(ctx, C.out, sx+7+rlX, sy+20, 4, 1);
 }
 
 function drawTool(ctx, sx, sy, toolType, frame) {
@@ -2396,7 +2448,7 @@ function updateWaterUI(){
   if(el2) el2.textContent = waterCharges;
   if(selectedTool === 'water'){
     const b = document.getElementById('bubble');
-    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Mengisi otomatis....';
+    if(b) b.textContent = waterCharges > 0 ? `🪣 ${waterCharges} uses left — click planted crops!` : '🪣 No water! Refilling automatically...';
   }
   const btn = document.getElementById('toolWater');
   if(btn) btn.style.borderColor = waterCharges === 0 ? '#f05050' : '';
@@ -2836,7 +2888,7 @@ function plantCrop(fid, pid){
   refreshPlot(fid, pid);
   renderSeedShop();
   say('plant'); sfx('plant'); partsPlot(fid, pid, ['🌱','✨']); gozoDoAction(fid,pid,'plant');
-  showToast('🌱 PLANTED! Siram tanamanmu ya!');
+  showToast('🌱 PLANTED! Remember to water your crops!');
   saveState();
 }
 
@@ -3276,12 +3328,351 @@ function parts(n, emojis, cx, cy){
     t.innerHTML = makeClusterTree(p[0],p[1],p[2],p[3],p[4],p[5], W, H);
     tr.appendChild(t);
   });
-  const f = document.getElementById('fence');
-  for(let i=0; i<120; i++){
-    if(i%4===0){const p=document.createElement('div');p.className='fp';f.appendChild(p)}
-    else{const r=document.createElement('div');r.className='fr';f.appendChild(r)}
-  }
+  // ── PIXEL ART BIRDS WITH FLAPPING WINGS ──
+  (function drawBirds() {
+    // 3 frames of wing animation: up, mid, down
+    // 10x6 pixel grid, 0=transparent, 1=dark body (#1a1a2e), 2=wing dark (#2d3561), 3=wing mid (#4a5080)
+    const frames = [
+      // Frame 0: wings UP
+      [
+        [0,0,1,1,0,0,1,1,0,0],
+        [0,1,2,2,1,1,2,2,1,0],
+        [1,2,2,2,2,2,2,2,2,1],
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,0,0,1,1,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0],
+      ],
+      // Frame 1: wings MID (level)
+      [
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,1,1,0,0,0,0,1,1,0],
+        [1,2,2,1,1,1,1,2,2,1],
+        [0,1,2,2,1,1,2,2,1,0],
+        [0,0,0,1,1,1,1,0,0,0],
+        [0,0,0,0,1,1,0,0,0,0],
+      ],
+      // Frame 2: wings DOWN
+      [
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0],
+        [0,0,1,1,1,1,1,1,0,0],
+        [1,1,2,2,1,1,2,2,1,1],
+        [0,1,2,2,2,2,2,2,1,0],
+        [0,0,0,1,1,1,1,0,0,0],
+      ],
+    ];
+    const P = ['rgba(0,0,0,0)', '#1a1a2e', '#2d3561', '#4a5080'];
+
+    function setupBird(id, scale) {
+      const c = document.getElementById(id);
+      c.width = 10 * scale;
+      c.height = 6 * scale;
+      c.style.width = 10 * scale + 'px';
+      c.style.height = 6 * scale + 'px';
+      const ctx = c.getContext('2d');
+      let frame = 0;
+      let tick = 0;
+
+      function drawFrame(f) {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const grid = frames[f];
+        for (let r = 0; r < 6; r++) {
+          for (let col = 0; col < 10; col++) {
+            const v = grid[r][col];
+            if (v === 0) continue;
+            ctx.fillStyle = P[v];
+            ctx.fillRect(col * scale, r * scale, scale, scale);
+          }
+        }
+      }
+
+      drawFrame(0);
+      setInterval(() => {
+        tick++;
+        if (tick % 10 === 0) {   // flap speed
+          frame = (frame + 1) % 3;
+          drawFrame(frame);
+        }
+      }, 60);
+    }
+
+    setupBird('birdC1', 3);
+    setupBird('birdC2', 2);
+  })();
+
+  // ── PIXEL ART SUN ──
+  (function drawSun() {
+    // 20x20 pixel grid. Colors:
+    // 0=transparent, 1=deep orange(#d94f00), 2=orange(#f07800), 3=warm orange(#f8a020), 4=yellow(#ffd040), 5=bright yellow(#ffe870)
+    const S = [
+      [0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0],
+      [0,0,0,0,1,0,2,2,2,2,2,2,2,2,0,1,0,0,0,0],
+      [0,0,0,1,0,2,3,3,3,3,3,3,3,3,2,0,1,0,0,0],
+      [0,0,1,0,2,3,3,4,4,4,4,4,3,3,3,2,0,1,0,0],
+      [0,1,0,2,3,3,4,5,5,5,5,5,4,3,3,3,2,0,1,0],
+      [0,0,2,3,3,4,5,5,5,5,5,5,5,4,3,3,3,2,0,0],
+      [1,2,3,3,4,5,5,5,5,5,5,5,5,5,4,3,3,3,2,1],
+      [0,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,0],
+      [0,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,0],
+      [1,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,1],
+      [1,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,1],
+      [0,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,0],
+      [0,2,3,4,5,5,5,5,5,5,5,5,5,5,5,4,3,3,2,0],
+      [1,2,3,3,4,5,5,5,5,5,5,5,5,5,4,3,3,3,2,1],
+      [0,0,2,3,3,4,5,5,5,5,5,5,5,4,3,3,3,2,0,0],
+      [0,1,0,2,3,3,4,5,5,5,5,5,4,3,3,3,2,0,1,0],
+      [0,0,1,0,2,3,3,4,4,4,4,4,3,3,3,2,0,1,0,0],
+      [0,0,0,1,0,2,3,3,3,3,3,3,3,3,2,0,1,0,0,0],
+      [0,0,0,0,1,0,2,2,2,2,2,2,2,2,0,1,0,0,0,0],
+      [0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0],
+    ];
+    const P = ['rgba(0,0,0,0)','#d94f00','#f07800','#f8a020','#ffd040','#ffe870'];
+    const scale = 3;
+    const c = document.getElementById('sunCanvas');
+    c.width = 20 * scale;
+    c.height = 20 * scale;
+    c.style.width = 20 * scale + 'px';
+    c.style.height = 20 * scale + 'px';
+    const ctx = c.getContext('2d');
+    for (let r = 0; r < 20; r++) {
+      for (let col = 0; col < 20; col++) {
+        const v = S[r][col];
+        if (v === 0) continue;
+        ctx.fillStyle = P[v];
+        ctx.fillRect(col * scale, r * scale, scale, scale);
+      }
+    }
+  })();
+
+  // ── PIXEL ART CLOUDS ──
+  (function drawClouds() {
+    // Pixel art cloud shape map (1=white body, 2=shadow, 3=outline, 0=transparent)
+    // 16x10 pixel grid for medium cloud
+    const cloudMap = [
+      [0,0,0,3,3,3,3,0,0,0,0,0,0,0,0,0],
+      [0,0,3,1,1,1,3,3,3,3,0,0,0,0,0,0],
+      [0,3,1,1,1,1,1,1,1,3,3,3,0,0,0,0],
+      [3,1,1,1,1,1,1,1,1,1,1,1,3,3,0,0],
+      [3,1,1,1,1,1,1,1,1,1,1,1,1,1,3,0],
+      [3,1,1,1,1,1,1,1,1,1,1,1,1,1,3,0],
+      [3,2,2,1,1,1,1,1,1,1,1,1,2,2,3,0],
+      [0,3,2,2,2,2,2,2,2,2,2,2,2,3,0,0],
+      [0,0,3,3,3,3,3,3,3,3,3,3,3,0,0,0],
+      [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    ];
+    const palette = {
+      0: null,
+      1: '#f0f4ff', // white body
+      2: '#b8c4d8', // blue-grey shadow
+      3: '#2a3a5a', // dark outline
+    };
+
+    function drawPixelCloud(canvasEl, scale) {
+      const rows = cloudMap.length;
+      const cols = cloudMap[0].length;
+      canvasEl.width  = cols * scale;
+      canvasEl.height = rows * scale;
+      canvasEl.style.width  = cols * scale + 'px';
+      canvasEl.style.height = rows * scale + 'px';
+      const ctx = canvasEl.getContext('2d');
+      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const v = cloudMap[r][c];
+          if (!palette[v]) continue;
+          ctx.fillStyle = palette[v];
+          ctx.fillRect(c * scale, r * scale, scale, scale);
+        }
+      }
+    }
+
+    drawPixelCloud(document.getElementById('cloudC1'), 4);
+    drawPixelCloud(document.getElementById('cloudC2'), 5);
+    drawPixelCloud(document.getElementById('cloudC3'), 3);
+  })();
+
+  // ── PIXEL ART PICKET FENCE ──
+  (function drawFence() {
+    const canvas = document.getElementById('fenceCanvas');
+    const container = document.getElementById('fence');
+    const W = container.offsetWidth || window.innerWidth;
+    const P = 4; // pixel size
+    const ROWS = 11; // canvas height in pixels
+    canvas.width  = W;
+    canvas.height = ROWS * P;
+    const ctx = canvas.getContext('2d');
+
+    // Palette (Stardew-style brown wood)
+    const C = {
+      out:      '#2a1500', // dark outline
+      post:     '#8b4c10', // picket base
+      postL:    '#b06220', // picket light face
+      postH:    '#c87828', // highlight
+      rail:     '#a05818', // horizontal rail
+      railL:    '#c87030', // rail top highlight
+      railSh:   '#6b3a0c', // rail shadow
+    };
+
+    function px(c, x, y, w=1, h=1) {
+      ctx.fillStyle = c;
+      ctx.fillRect(x * P, y * P, w * P, h * P);
+    }
+
+    const totalCols = Math.ceil(W / P) + 4;
+    // Picket spacing: 4px post + 3px gap = 7px repeat
+    const POST_W = 4;
+    const GAP    = 3;
+    const REPEAT = POST_W + GAP;
+
+    // Draw repeating pattern
+    for (let col = 0; col < totalCols; col += REPEAT) {
+      const x = col;
+      // ── PICKET POST ──
+      // Pointed tip (rows 0-1)
+      px(C.out,   x+1, 0, 2, 1);           // tip outline top
+      px(C.postH, x+1, 1, 1, 1);           // tip left
+      px(C.postL, x+2, 1, 1, 1);           // tip right
+      // Left diagonal outline
+      px(C.out,   x,   1, 1, 1);
+      px(C.out,   x+3, 1, 1, 1);
+      // Shoulders (row 2)
+      px(C.out,   x,   2, 1, 1);
+      px(C.postH, x+1, 2, 1, 1);
+      px(C.postL, x+2, 2, 1, 1);
+      px(C.out,   x+3, 2, 1, 1);
+      // Post body (rows 3-10)
+      px(C.out,   x,   3, 1, 8);           // left outline
+      px(C.postH, x+1, 3, 1, 8);           // left highlight
+      px(C.postL, x+2, 3, 1, 8);           // right face
+      px(C.out,   x+3, 3, 1, 8);           // right outline
+    }
+
+    // ── HORIZONTAL RAILS ──
+    // Top rail: rows 3-5
+    for (let x = 0; x < totalCols; x++) {
+      px(C.out,   x, 3, 1, 1);  // top edge
+      px(C.railL, x, 4, 1, 1);  // highlight
+      px(C.rail,  x, 5, 1, 1);  // body
+    }
+    // Bottom rail: rows 7-9
+    for (let x = 0; x < totalCols; x++) {
+      px(C.out,   x, 7,  1, 1); // top edge
+      px(C.railL, x, 8,  1, 1); // highlight
+      px(C.rail,  x, 9,  1, 1); // body
+      px(C.railSh,x, 10, 1, 1); // shadow bottom
+    }
+  })();
 })();
+
+
+// ═══════════════════════════════════════════════════
+// SEED STORE
+// ═══════════════════════════════════════════════════
+const SEED_PRICES = {
+  tomat:      3,
+  cabe:       6,
+  jagung:     8,
+  terong:     12,
+  wortel:     15,
+  labu:       20,
+  stroberi:   28,
+  melon:      40,
+  bawangPutih:52,
+  kacang:     65,
+};
+
+const storeQty = {};
+CROP_KEYS.forEach(k => { storeQty[k] = 1; });
+
+function openSeedStore(){
+  renderSeedStoreModal();
+  document.getElementById('seedStoreOverlay').classList.remove('hidden');
+}
+
+function closeSeedStore(){
+  document.getElementById('seedStoreOverlay').classList.add('hidden');
+}
+
+function changeStoreQty(key, delta){
+  storeQty[key] = Math.max(1, Math.min(99, (storeQty[key]||1) + delta));
+  renderSeedStoreModal();
+}
+
+function buySeeds(key){
+  const qty = storeQty[key] || 1;
+  const price = SEED_PRICES[key] * qty;
+  if(gold < price){
+    showToast('Not enough gold! Need ' + price.toLocaleString() + ' gold');
+    return;
+  }
+  gold -= price;
+  inventory[key] = (inventory[key]||0) + qty;
+  sfx('coin');
+  updateGoldUI();
+  renderSeedShop();
+  saveState();
+  showGoldFloat('-' + price.toLocaleString() + ' gold');
+  showToast('Bought ' + qty + 'x ' + CROPS[key].name + ' seeds!');
+  renderSeedStoreModal();
+}
+
+function renderSeedStoreModal(){
+  const el = document.getElementById('storeBody');
+  const goldEl = document.getElementById('storeGoldAmt');
+  if(!el) return;
+  if(goldEl) goldEl.textContent = gold.toLocaleString();
+
+  el.innerHTML = '';
+  CROP_KEYS.forEach(function(key){
+    const c = CROPS[key];
+    const unlocked = totalHarvested >= c.unlockAt;
+    const seedPrice = SEED_PRICES[key];
+    const qty = storeQty[key] || 1;
+    const totalCost = seedPrice * qty;
+    const canAfford = gold >= totalCost;
+    const inv = inventory[key] || 0;
+
+    const row = document.createElement('div');
+    row.className = 'store-crop-row' + (unlocked ? '' : ' locked');
+
+    if(!unlocked){
+      row.innerHTML = [
+        '<div class="store-crop-emoji">' + c.emoji + '</div>',
+        '<div class="store-crop-info">',
+          '<div class="store-crop-name" style="color:#6a7a6a">' + c.name + '</div>',
+          '<div class="store-crop-detail">Unlock at ' + c.unlockAt + ' harvests</div>',
+        '</div>',
+        '<div class="store-lock-tag">🔒 LOCKED</div>'
+      ].join('');
+    } else {
+      const invColor = inv > 0 ? '#a0f0a0' : '#f05050';
+      const invText = inv > 0 ? inv : '0';
+      const costColor = canAfford ? '#f5c842' : '#f05050';
+      const disabledAttr = canAfford ? '' : 'disabled';
+      row.innerHTML = [
+        '<div class="store-crop-emoji">' + c.emoji + '</div>',
+        '<div class="store-crop-info">',
+          '<div class="store-crop-name">' + c.name + '</div>',
+          '<div class="store-crop-detail">Buy: ' + seedPrice + ' gold/seed &nbsp;|&nbsp; Sell: ' + c.price + ' gold/crop</div>',
+          '<div class="store-crop-inv">In bag: <span style="color:' + invColor + '">' + invText + '</span></div>',
+        '</div>',
+        '<div class="store-qty-btns">',
+          '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',-1)">−</button>',
+          '<div class="store-qty-num">' + qty + '</div>',
+          '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',1)">+</button>',
+          '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',10)" style="font-size:0.2rem;width:auto;padding:0 5px">+10</button>',
+        '</div>',
+        '<button class="store-buy-btn" onclick="buySeeds(\'' + key + '\')" ' + disabledAttr + '>',
+          'BUY x' + qty + '<br>',
+          '<span style="font-size:0.2rem;color:' + costColor + '">' + totalCost.toLocaleString() + ' 🪙</span>',
+        '</button>'
+      ].join('');
+    }
+    el.appendChild(row);
+  });
+}
+
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSeedStore(); });
 
 
 </script>
