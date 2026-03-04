@@ -112,10 +112,11 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   border:2px solid #222;font-family:'Press Start 2P';font-size:7px;padding:7px 18px;cursor:pointer;}
 .invgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
 .iitem{background:rgba(255,255,255,.03);border:2px solid rgba(255,215,0,.08);
-  padding:5px 3px;text-align:center;}
-.iitem .iicon{font-size:17px;}
+  padding:4px 3px;text-align:center;display:flex;flex-direction:column;align-items:center;}
+.iitem canvas{image-rendering:pixelated;image-rendering:crisp-edges;}
 .iitem .iname{font-size:4px;color:#FFD700;margin-top:2px;}
 .iitem .icount{font-size:4px;color:#333;}
+.cpicon-canvas{image-rendering:pixelated;image-rendering:crisp-edges;width:72px;height:56px;}
 
 /* ── NOTIF ── */
 .notif{position:fixed;top:58px;right:10px;background:#0e2a18;border:2px solid #FFD700;
@@ -337,7 +338,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 <div id="catchPopup">
   <div class="cpop">
     <div class="cplabel">✨ FISH CAUGHT! ✨</div>
-    <div class="cpicon" id="cpIcon">🐟</div>
+    <canvas id="cpIcon" class="cpicon-canvas" width="72" height="56"></canvas>
     <div class="cpname" id="cpName">Golden Carp</div>
     <div class="cprar" id="cpRar">★ Common</div>
     <div class="cpinfo" id="cpInfo">Weight: 1.2 kg · Length: 25 cm</div>
@@ -440,6 +441,748 @@ const FISH=[
   {id:48,n:'Golden God Fish',  i:'🌟',r:4,mp:5,w:[20,100],l:[100,230],g:480},
   {id:49,n:'Ancient Leviathan',i:'🌟',r:4,mp:5,w:[40,180],l:[130,280],g:550},
 ];
+
+
+// ═══════════════════════════════════════════════════════════════
+//  PIXEL ART FISH  — authentic pixel grid per species
+// ═══════════════════════════════════════════════════════════════
+
+const FISH_PIXELS = {
+  rasbora: [
+    "__________NNNN____",
+    "______NNNNHHHHnn__",
+    "___NNNNHHyyyyyyBnn",
+    "__NHHyyyyyYYYYYBBN",
+    "__NYYYYYYYYYYYyBBN",
+    "__NYYYYOOOOOYYyBdN",
+    "__NddddddddddddOBN",
+    "___NNHHHHNNNNNNdN_",
+    "_______BBBBBBB____",
+    "__________________",
+  ],
+  golden_carp: [
+    "_______uuuu_______",
+    "____uuYYYYYYuu____",
+    "__uYYYyyyyyyYYun__",
+    "_uYyyyyyyyyyyYYun_",
+    "_uYyyyBByyyyyYYYu_",
+    "_uYyyyyyyyyyyy Yun",
+    "_uYYYYYYYYYYYYYun_",
+    "__uuYYYYYYYYuuuuu_",
+    "______uuuuuu______",
+    "__________________",
+  ],
+  catfish: [
+    "__________________",
+    "__HHNNNNNNNNN_____",
+    "_HHNhhhhhhhhNNN___",
+    "HHNhhhhhhhhhhhNNN_",
+    "NhhhhBBhhhhhhhhhNu",
+    "NhhhhhhhhhKhKhhhNu",
+    "_NNhhhhhhhhhhhhNN_",
+    "___NNNNhhhNNNNN___",
+    "______NhhhN_______",
+    "_______NNN________",
+  ],
+  tilapia: [
+    "____QQQQQQQ_______",
+    "___QSSSSSSSSQq____",
+    "__QSSSSSssSSSSQq__",
+    "_QSssBBssssssSSQq_",
+    "_QSsssssssssssSSQ_",
+    "_QSsQQQQQQQQSSSQq_",
+    "_QQSSSSSSSSSSQQq__",
+    "__QQQSSSSSSQQQq___",
+    "____QQQQQQQq______",
+    "__________________",
+  ],
+  snakehead: [
+    "__________________",
+    "_NNNNNNNNNNNNNn___",
+    "NNhhhhhhhhhhhhNNn_",
+    "NhhhBBhhBhhhBhhhNu",
+    "NhhhhhhhBhhhBhhhNu",
+    "NhhHHHHHHHHHHHhNN_",
+    "_NNNNhhhhhhhNNNN__",
+    "____NNhhhhNN______",
+    "_______NNN________",
+    "__________________",
+  ],
+  nile_perch: [
+    "______VVVVVV______",
+    "____VVvvvvvvVV____",
+    "__VVvvvvvvvvvVVn__",
+    "_VVvvvBBvvvvvvVVn_",
+    "_VvvvvvvvvvvvvvVn_",
+    "_VVvvnnnnnnnvvVVn_",
+    "__VVVVVVVVVVVVVn__",
+    "____VVVVVVVVVn____",
+    "______VVVVVn______",
+    "__________________",
+  ],
+  gourami: [
+    "______dTdTdTdT____",
+    "____dOOTOTOTOTdo__",
+    "__dOOrROTOTOTOOdo_",
+    "_dOrrrBBrOTOTOOOd_",
+    "_dOrrrrrrOTOTOyyOd",
+    "_dOOrOTOTOTOTOyyO_",
+    "__dOOOOTOTOTOOOd__",
+    "___ddOOOOOOOddd___",
+    "____Tt________tt__",
+    "___ttt_________ttt",
+  ],
+  barb: [
+    "________ooo_______",
+    "______oSSSSoo_____",
+    "____oSSsssSSSSo___",
+    "__oSSssBBssssSSo__",
+    "__oSssssssssssso__",
+    "__oSsssssBssssSo__",
+    "__oSSSSSSSSSSSSo__",
+    "____oSSSSSSSSo____",
+    "______oooooo______",
+    "__________________",
+  ],
+  walking_catfish: [
+    "__________________",
+    "_GGGGGGGGGGGGGg___",
+    "GGggggggggggggGGg_",
+    "GgggBBggggggggggGq",
+    "GggggggggKgKggggGq",
+    "GggGGGGGGGGGGGggG_",
+    "_GGGgggggggggGGG__",
+    "____GGGGGGGGGg____",
+    "______GGGGGg______",
+    "__________________",
+  ],
+  tawes: [
+    "_______QQQQ_______",
+    "_____QQSSSSQQs____",
+    "___QQSSssssSSQQs__",
+    "__QSSSssBBssssQQs_",
+    "__QSssssssssssSSQ_",
+    "__QSSSSSSSSSSSSQs_",
+    "__QQQSSSSSSSSQQs__",
+    "____QQQQQQQQQs____",
+    "______QQQQQs______",
+    "__________________",
+  ],
+  bream: [
+    "_______QQQ________",
+    "____QQQgggQQQ_____",
+    "__QQgggggggggQQ___",
+    "_QgggBBggggggggQ__",
+    "_QggggggggggggQQ__",
+    "_QgQQQQQQQQQQQQQ__",
+    "__QQQggggggggQQ___",
+    "____QQQggggQQ_____",
+    "______QQQQ________",
+    "__________________",
+  ],
+  kissing_gourami: [
+    "______jFjFjF______",
+    "____jFFfFfFfFjf___",
+    "__jFFffFfFfFfFjf__",
+    "_jFffBBffFfFffFjf_",
+    "FFfffffffffffFFjff",
+    "_FFFjjjjjjjjFFFjf_",
+    "__jFFFFfffffFFFj__",
+    "____jjFFFFFFjj____",
+    "____FFF____FFF____",
+    "___FFF______FFF___",
+  ],
+  giant_gourami: [
+    "_____xTxTxTxT_____",
+    "___xTTtTtTtTTTx___",
+    "_xTTtTtOtTtTtTTx__",
+    "_xTttBBtTtOtTtTTx_",
+    "xTtttttTtTtTtttTTx",
+    "_xTTtOtTtTtTtTTx__",
+    "__xTTTtTtTtTTTx___",
+    "____xTTTTTTTx_____",
+    "_____Tt____Tt_____",
+    "____ttt_____tt____",
+  ],
+  river_catfish: [
+    "__________________",
+    "__GGGGGGGGGGGGG___",
+    "_GGggggggggggGGGg_",
+    "GGgggBBggggggggGGq",
+    "GggggggggKgKggggGq",
+    "GggGGGGGGGGGGGgGG_",
+    "_GGGGgggggggGGGG__",
+    "___GGGgggGGGG_____",
+    "_____GGGGG________",
+    "__________________",
+  ],
+  silver_carp: [
+    "________QQQQ______",
+    "______QQSSSSQQs___",
+    "____QSSSSsssSSSQs_",
+    "__QSSssssBBssssQQs",
+    "_QSssssssssssssSQ_",
+    "_QSSSSSSSSSSSSQQs_",
+    "__QQQSSSSSSSSQs___",
+    "____QQQQQQQQs_____",
+    "______QQQQs_______",
+    "__________________",
+  ],
+  hampala_barb: [
+    "________ooo_______",
+    "______oSSSSoo_____",
+    "____oSSssssSSoo___",
+    "__oSSsssBBsssSSo__",
+    "__oSssssBBBsssSo__",
+    "__oSSsssBBsssSSo__",
+    "__oSSSSSSSSSSSSo__",
+    "____oSSSSSSSSoo___",
+    "______oooooo______",
+    "__________________",
+  ],
+  striped_catfish: [
+    "__________________",
+    "_HHHHHHHHHHHHHh___",
+    "HHhhhhhhhhhhhHHHh_",
+    "HhhhBBhhHhhhhhhHHq",
+    "HhhhhhhhHhhhhhhhHq",
+    "HhhNNNNNNNNNNNhhH_",
+    "_HHHhhhhhhhhhHHH__",
+    "___HHHhhhhHHHH____",
+    "_____HHHHH________",
+    "__________________",
+  ],
+  tinfoil_barb: [
+    "______RRRR________",
+    "____RRSSSSSRRr____",
+    "__RRSSSssssSSRRr__",
+    "_RSSSssBBssssSSRr_",
+    "_RSsssssssssssSR__",
+    "_RSSSSSSSSSSSSRr__",
+    "__RRSSSSSSSSRRr___",
+    "____RRSSSSRRr_____",
+    "______RRRRr_______",
+    "__________________",
+  ],
+  red_oscar: [
+    "______dddddd______",
+    "___dddOOOOOOddd___",
+    "_ddOOOOooooOOOdd__",
+    "_dOOooBBoooooOOd__",
+    "_dOooooooooooooO__",
+    "_dOOdddddddddOOd__",
+    "_ddOOOOOOOOOOdd___",
+    "___ddOOOOOOddd____",
+    "_____dddddd_______",
+    "__________________",
+  ],
+  goldfish: [
+    "______dyYYyd______",
+    "___dddOYYYYYOddd__",
+    "__dOOooyYyYyoOOdd_",
+    "_dOoyyyBKyyyyyyOdd",
+    "_dOoyyyyyyyyoyyOdd",
+    "_dOOoyYyYyoooOOdd_",
+    "__dOOOooooooOddduu",
+    "___dddOOOOdddduuuu",
+    "______ddddd__duuu_",
+    "___________dduu___",
+  ],
+  river_eel: [
+    "__________xxxxxBRp",
+    "_________xTTTTtxBx",
+    "_____xxxTTtttEttTx",
+    "___xTTTttEEEEttTx_",
+    "__xTTtEEEEEEEtTxx_",
+    "__xTTttttttttTxx__",
+    "___xTTTTTTTTxx____",
+    "____xTTttttTxx____",
+    "___xTTtEEttTTx____",
+    "__xxTTttEEttTTxx__",
+  ],
+  bala_shark: [
+    "______QQQQ________",
+    "____QQssssQQ______",
+    "__QQsssssssssQQ___",
+    "_QsssBBsssssssQQ__",
+    "_QssssssssssssssQ_",
+    "_QQQQQQQQQQQQQQsQ_",
+    "__QQsssssssssQQ___",
+    "____QQssssQQQ_____",
+    "______QQQQ________",
+    "__________________",
+  ],
+  royal_knifefish: [
+    "__________________",
+    "__PPPPPPPPPPPPPp__",
+    "_PPpppppppppppPPp_",
+    "PpppzBzpppppppppPz",
+    "PppppppppppppzppPz",
+    "Pppppppppppppppzp_",
+    "_PPppppppppppppP__",
+    "___PPPPPpppPPPP___",
+    "_____PPPpPPP______",
+    "__________________",
+  ],
+  giant_wallago: [
+    "__________________",
+    "_GGGGGGGGGGGGGGg__",
+    "GGggggggggggggGGGg",
+    "GggggBBgggggggggGq",
+    "GgggggggggggggggGq",
+    "GggGGGGGGGGGGGggG_",
+    "_GGGGggggggggGGG__",
+    "___GGGGggggGGGG___",
+    "_____GGGGGGg______",
+    "__________________",
+  ],
+  asian_arowana: [
+    "__________________",
+    "__SSSSSSSSSSSSSSs_",
+    "_SSssssssssssssSSs",
+    "SsssBBssssssssssQs",
+    "SsssssssssssssssQs",
+    "SssQQQQQQQQQQssQS_",
+    "_SSSSSSSSSSSSSSSs_",
+    "___SSSSSSSSSSSs___",
+    "_____SSSSSSss_____",
+    "__________________",
+  ],
+  ropefish: [
+    "_nvIvIvIvIvIvIvIn_",
+    "__nVVVVVVVVVVVVnn_",
+    "_nVVvvvvvvvvvvVVn_",
+    "nVVvviBBvivivivVVn",
+    "nVvvvvvvvvvvvvvVVn",
+    "nVVvnnnnnnnnnvvVn_",
+    "_nVVVvvvvvvvVVVn__",
+    "___nVVVvvvvVVnn___",
+    "____nVVvvvVVn_____",
+    "______nVVVn_______",
+  ],
+  mahseer: [
+    "______uuuu________",
+    "____uuYYYYYuu_____",
+    "__uuYYYyyyyYYYuu__",
+    "_uYYYyyyBByyyYYYu_",
+    "_uYyyyyyyyyyyyyyYu",
+    "_uYYuuuuuuuuuYYYu_",
+    "_uuYYYYYYYYYYYuu__",
+    "____uuYYYYYuuu____",
+    "______uuuuuu______",
+    "__________________",
+  ],
+  tor_barb: [
+    "_______unnn_______",
+    "_____unVVVVVun____",
+    "___unVVvvvvvVVun__",
+    "__uVVVvvvBBvvvVun_",
+    "__uVvvvvvvvvvvvVu_",
+    "__uVVnnnnnnnnVVVu_",
+    "__uuVVVVVVVVVVuu__",
+    "____uuVVVVVuuu____",
+    "______uuuuu_______",
+    "__________________",
+  ],
+  tinfoil_shark: [
+    "_____QQQQQQ_______",
+    "___QQssssssQQ_____",
+    "_QQssssssssssQQ___",
+    "QsssssBBssssssQQ__",
+    "QsssssssssssssssQ_",
+    "QQQQQQQQQQQQQQssQ_",
+    "__QQsssssssssQQ___",
+    "____QQsssssQQ_____",
+    "______QQQQs_______",
+    "__________________",
+  ],
+  semah_barb: [
+    "______RRRRr_______",
+    "___RRRSSSSSSRRr___",
+    "_RRSSssssssssSSRr_",
+    "RSSSssBBssssssSRr_",
+    "RSssssssssssssSR__",
+    "RSSRRRRRRRRRRSSRr_",
+    "_RRSSSSSSSSSSRRr__",
+    "___RRSSSSSRRRr____",
+    "_____RRRRRr_______",
+    "__________________",
+  ],
+  giant_mahseer: [
+    "______ZZZZ________",
+    "____ZZYYYYYZZz____",
+    "__ZZYYYyyyyYYYZZz_",
+    "_ZYYYyyyBByyyYYYZz",
+    "_ZYyyyyyyyyyyyyYZ_",
+    "_ZYZZZZZZZZZZYYZz_",
+    "_ZZYYYYYYYYYYZZz__",
+    "___ZZYYYYYYZZZz___",
+    "_____ZZZZZZz______",
+    "__________________",
+  ],
+  giant_snakehead: [
+    "__________________",
+    "_nnnnnnnnnnnnnnN__",
+    "nNVVVVvvvvvvvvNNNn",
+    "NVVvvBBvvBvvBvvvNN",
+    "NVvvvvvBvvvBvvvvNN",
+    "NVvNNNNNNNNNNVVVN_",
+    "_NNNNvvvvvvvNNNN__",
+    "____NNvvvvNN______",
+    "______NNvNN_______",
+    "__________________",
+  ],
+  giant_pangasius: [
+    "__________________",
+    "_SSSSSSSSSSSSSSs__",
+    "SSssssssssssssSSss",
+    "SssssBBssssssssSsq",
+    "SsssssssssssssssSq",
+    "SssSSSSSSSSSSSSsS_",
+    "_SSSSSsssssssSSS__",
+    "___SSSSSsssSSSS___",
+    "_____SSSSSs_______",
+    "__________________",
+  ],
+  jelawat: [
+    "_______lllll______",
+    "_____lLSSSSSLLl___",
+    "___lLSSssssssSSLl_",
+    "__LSSssBBsssssSLl_",
+    "__LSsssssssssssLL_",
+    "__LSSlllllllllSLL_",
+    "__LLSSSSSSSSSSLl__",
+    "____LLSSSSSSLLl___",
+    "______LLLLLl______",
+    "__________________",
+  ],
+  glass_catfish: [
+    "__________________",
+    "___cccccccccccc___",
+    "__cCCCCCCCCCCCCc__",
+    "_cCCrBXXXXXXXCCc__",
+    "_cCXXXXXXXXXXXCc__",
+    "_cCCCCCCCCCCCCCc__",
+    "__cCCCccccccccc___",
+    "___cccccccc_______",
+    "____ccccc_________",
+    "__________________",
+  ],
+  clown_knifefish: [
+    "__________________",
+    "__SSSSSSSSSSSSSSs_",
+    "_SSsssssssssssSSss",
+    "SsssBBssKssKsssSQs",
+    "SssssssKssKssssQQs",
+    "SssssssssssssssQS_",
+    "_SSSSSSSSSSSSSSs__",
+    "___SSSSSSSSSSs____",
+    "_____SSSSSss______",
+    "__________________",
+  ],
+  giant_prawn: [
+    "__________________",
+    "ooddddddddddddd___",
+    "_OOOOOoooooooOOO__",
+    "_OooooBBoooooooO__",
+    "OooooooooooooooOo_",
+    "OoOOOOOOOOOOOooO__",
+    "_OOOOOooooooOOOO__",
+    "___OOOoooOOOO_____",
+    "_____OOoOO________",
+    "__________________",
+  ],
+  ringau_bass: [
+    "______nVVVVn______",
+    "____nVVvvvvVVVn___",
+    "__nVVvvvvvvvvVVVn_",
+    "_VVvvvBBvvvvvvVVn_",
+    "_Vvvvvvvvvvvvvvvn_",
+    "_VVVnnnnnnnnnVVVn_",
+    "__VVVVvvvvvVVVn___",
+    "____VVVvvvVVVn____",
+    "______VVVVn_______",
+    "__________________",
+  ],
+  toman_king: [
+    "__________________",
+    "_uuuuuuuuuuuuuuu__",
+    "uYYYYYyyyyyyyyYYYu",
+    "YYyyYyBByByyByyyYY",
+    "YyyyyyByyByyyyyyyY",
+    "YyyuuuuuuuuuuyyyyY",
+    "_YYYYyyyyyyyyyYYY_",
+    "___YYYYyyyyYYYY___",
+    "_____YYYYYYu______",
+    "__________________",
+  ],
+  arapaima: [
+    "__________________",
+    "_hhhhhhhhhhhhhhh__",
+    "hNNNNNNnnnnnnnNNNh",
+    "NNNnnnBBnnnnnnnnNN",
+    "NnnnnnnnnnnnnnnNNN",
+    "NnNNNNNNNNNNNnnnN_",
+    "_NNNNNnnnnnNNNNN__",
+    "___NNNNnnNNNNh____",
+    "_____NNNNNh_______",
+    "__________________",
+  ],
+  mekong_catfish: [
+    "__________________",
+    "_GGGGGGGGGGGGGGg__",
+    "GGssssssssssssGGGg",
+    "GsssssBBsssssssGGq",
+    "GsssssssssssssssGq",
+    "GssGGGGGGGGGGGssG_",
+    "_GGGGssssssssGGG__",
+    "___GGGGssssGGGG___",
+    "_____GGGGGGg______",
+    "__________________",
+  ],
+  freshwater_ray: [
+    "________QQ________",
+    "______QQqqQQ______",
+    "____QQqqqqqQQQ____",
+    "__QQqqqBBqqqqqQQ__",
+    "QQqqqqqqqqqqqqqqQQ",
+    "__QQqqqqqqqqqQQQ__",
+    "____QQqqqqQQQQ____",
+    "______QQQQQ_______",
+    "________Qq________",
+    "__________________",
+  ],
+  river_king: [
+    "________llll______",
+    "______llLLLLLll___",
+    "____llLLlllllLLll_",
+    "__llLLlllBBllllLll",
+    "_lLlllllllllllllLl",
+    "__llLlbbbbbbbllLll",
+    "____llLLLLLLLLll__",
+    "______llLLLLll____",
+    "________llll______",
+    "__________________",
+  ],
+  golden_dragon: [
+    "______RRRRRr______",
+    "____RRYYYYYYRRr___",
+    "__RRYYYyyyyyYYRRr_",
+    "_RYYYyyyBByyyYYRr_",
+    "_RYyyyyyyyyyyyyRr_",
+    "_RYYRRRRRRRRRYYRr_",
+    "_RRYYYYYYYYYYRRr__",
+    "___RRYYYYYYRRr____",
+    "_____RRRRRRr______",
+    "__________________",
+  ],
+  rainbow_arowana: [
+    "__________________",
+    "__RROOYYVVLLPPp___",
+    "_RROOOYYYVVLLPPp__",
+    "RROoooBBOYVVLLPPp_",
+    "ROooooooYYVVLLPPPp",
+    "ROORRRRRRRRRRYYPP_",
+    "_RROOOYYVVLLPPP___",
+    "___RROOYYVVLLPp___",
+    "_____RROOYYLLp____",
+    "__________________",
+  ],
+  crystal_fish: [
+    "_______CCCC_______",
+    "___CCCCccccCCCC___",
+    "__CccccccccccccC__",
+    "_Cccc rBXXXXcccC__",
+    "_CcXXXXXXXXXXXcC__",
+    "_CCCCCCCCCCCCCcC__",
+    "__CccccccccccCC___",
+    "___CccccccCC______",
+    "_____CCCCC________",
+    "__________________",
+  ],
+  ghost_knifefish: [
+    "__________________",
+    "__bbbbbbbbbbbbbbz_",
+    "_bbLLLLLLLLLLLbbz_",
+    "bLLLlBllllllllLbzz",
+    "bLllllllllllllllbz",
+    "bLllllllllllllllb_",
+    "_bbLLLLLLLLLLLbb__",
+    "___bbbbLLLbbbz____",
+    "_____bbbbbz_______",
+    "__________________",
+  ],
+  golden_god: [
+    "______ZZZZZZ______",
+    "___ZZZYYYYYYYZZz__",
+    "_ZZYYYYyyyyyYYYZZz",
+    "ZYYYyyyBByyyyyyyYZ",
+    "ZYyyyyyyyyyyyyyyYZ",
+    "ZYYZZZZZZZZZZYYYZz",
+    "_ZZYYYYYYYYYYZZz__",
+    "___ZZZYYYYYZZZz___",
+    "_____ZZZZZZz______",
+    "__________________",
+  ],
+  leviathan: [
+    "_Bc_Bc_Bc_cB_cB_cB",
+    "BXXXTTTTTTTTTTTXXB",
+    "BXTTCTCTCTCTCTTXXb",
+    "BXTCTCTCTCTCTCTXXb",
+    "WPPPZYXTCTCTCTTXXb",
+    "WppWWXTCTCTCTTXXbb",
+    "BXXXXTTCTCTTTXXbb_",
+    "BXXXXXXTTTTXXXbb__",
+    "__cBBXXXXXXbb____c",
+    "____cBBBBbb_____cB",
+  ],
+};
+
+const PAL = {
+  "_": null,
+  "B": "#0A0A0A",
+  "W": "#F0F0F0",
+  "K": "#222222",
+  "G": "#708090",
+  "g": "#A0B0C0",
+  "q": "#506070",
+  "Y": "#F5C020",
+  "y": "#FFE060",
+  "u": "#C08000",
+  "O": "#E87020",
+  "o": "#F09840",
+  "d": "#A04010",
+  "R": "#CC2020",
+  "r": "#FF4444",
+  "e": "#880808",
+  "L": "#2060CC",
+  "l": "#4080EE",
+  "b": "#0A2888",
+  "V": "#208820",
+  "v": "#30BB30",
+  "n": "#104408",
+  "T": "#20A090",
+  "t": "#40C0B0",
+  "x": "#0A5848",
+  "N": "#7A3A10",
+  "H": "#A06030",
+  "h": "#4A1808",
+  "P": "#7020A0",
+  "p": "#9040C0",
+  "z": "#380050",
+  "S": "#C0C8D4",
+  "s": "#E0E8F0",
+  "Q": "#808898",
+  "C": "#20C8E8",
+  "c": "#70E8FF",
+  "X": "#0880A0",
+  "F": "#E040A0",
+  "f": "#FF70C0",
+  "j": "#900060",
+  "I": "#80E020",
+  "i": "#B0F040",
+  "Z": "#FFD700",
+  "M": "#FF8C00",
+  "E": "#60E0A0",
+  "a": "#F8C8A0",
+};
+
+// ── Map fish id → pixel sprite key ──────────────────────────
+const FISH_SPRITE = {
+  0:  'golden_carp',
+  1:  'catfish',
+  2:  'tilapia',
+  3:  'nile_perch',
+  4:  'snakehead',
+  5:  'rasbora',
+  6:  'walking_catfish',
+  7:  'gourami',
+  8:  'barb',
+  9:  'walking_catfish',
+  10: 'tawes',
+  11: 'bream',
+  12: 'kissing_gourami',
+  13: 'giant_gourami',
+  14: 'river_catfish',
+  15: 'silver_carp',
+  16: 'hampala_barb',
+  17: 'striped_catfish',
+  18: 'tinfoil_barb',
+  19: 'red_oscar',
+  20: 'goldfish',
+  21: 'river_eel',
+  22: 'bala_shark',
+  23: 'royal_knifefish',
+  24: 'giant_wallago',
+  25: 'asian_arowana',
+  26: 'ropefish',
+  27: 'mahseer',
+  28: 'tor_barb',
+  29: 'tinfoil_shark',
+  30: 'semah_barb',
+  31: 'giant_mahseer',
+  32: 'giant_snakehead',
+  33: 'giant_pangasius',
+  34: 'jelawat',
+  35: 'glass_catfish',
+  36: 'clown_knifefish',
+  37: 'giant_prawn',
+  38: 'ringau_bass',
+  39: 'toman_king',
+  40: 'arapaima',
+  41: 'mekong_catfish',
+  42: 'freshwater_ray',
+  43: 'river_king',
+  44: 'golden_dragon',
+  45: 'rainbow_arowana',
+  46: 'crystal_fish',
+  47: 'ghost_knifefish',
+  48: 'golden_god',
+  49: 'leviathan',
+};
+
+// ── Core pixel fish renderer ────────────────────────────────
+function drawPixelFish(ctx, cw, ch, fishId){
+  const key = FISH_SPRITE[fishId];
+  const grid = FISH_PIXELS[key];
+  if(!grid) return;
+
+  const rows = grid.length;       // 10
+  const cols = grid[0].length;    // 18
+  const ps   = Math.min(Math.floor(cw / cols), Math.floor(ch / rows));
+  const ox   = Math.floor((cw - cols * ps) / 2);
+  const oy   = Math.floor((ch - rows * ps) / 2);
+
+  for(let r = 0; r < rows; r++){
+    const row = grid[r];
+    for(let c = 0; c < cols; c++){
+      const ch2 = row[c];
+      const col = PAL[ch2];
+      if(!col) continue;
+      ctx.fillStyle = col;
+      ctx.fillRect(ox + c * ps, oy + r * ps, ps, ps);
+    }
+  }
+}
+
+// ── Render fish to a canvas element ────────────────────────
+function renderFishCanvas(canvas, fishId, rarityColor, bgColor){
+  if(!canvas) return;
+  const ctx2 = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  ctx2.clearRect(0, 0, cw, ch);
+  if(bgColor && bgColor !== 'transparent'){
+    ctx2.fillStyle = bgColor;
+    ctx2.fillRect(0, 0, cw, ch);
+  }
+  drawPixelFish(ctx2, cw, ch, fishId);
+  if(rarityColor){
+    ctx2.strokeStyle = rarityColor;
+    ctx2.lineWidth = 2;
+    ctx2.strokeRect(1, 1, cw-2, ch-2);
+  }
+}
+
 
 // ═══════════════════════════════════════════
 // GAME STATE
@@ -1621,7 +2364,7 @@ function resetRod(){
 }
 function showCatch(f){
   const rnd=(a,b)=>(Math.random()*(b-a)+a).toFixed(1);
-  document.getElementById('cpIcon').textContent=f.i;
+  renderFishCanvas(document.getElementById('cpIcon'), f.id, RCOL[f.r], 'transparent');
   document.getElementById('cpName').textContent=f.n;
   document.getElementById('cpRar').textContent='★ '+RARITY[f.r];
   document.getElementById('cpRar').className='cprar '+RCSS[f.r];
@@ -1681,9 +2424,29 @@ function openInv(){
     const cnt=G.caught[f.id]||0;
     const d=document.createElement('div');d.className='iitem';
     d.style.borderColor=cnt>0?RCOL[f.r]:'rgba(255,255,255,0.05)';
-    d.innerHTML=`<div class="iicon" style="opacity:${cnt>0?1:.18}">${cnt>0?f.i:'❓'}</div>
-      <div class="iname" style="color:${cnt>0?RCOL[f.r]:'#1a2a1a'}">${cnt>0?f.n:'???'}</div>
-      <div class="icount">${cnt>0?'x'+cnt:''}</div>`;
+    const cvs=document.createElement('canvas');
+    cvs.width=52; cvs.height=38;
+    cvs.style.cssText='image-rendering:pixelated;image-rendering:crisp-edges;';
+    if(cnt>0){
+      renderFishCanvas(cvs, f.id, RCOL[f.r], 'transparent');
+    } else {
+      const cx2=cvs.getContext('2d');
+      cx2.fillStyle='rgba(255,255,255,0.08)';
+      cx2.font='bold 20px monospace';
+      cx2.textAlign='center'; cx2.textBaseline='middle';
+      cx2.fillText('?', 26, 19);
+    }
+    d.appendChild(cvs);
+    const nameDiv=document.createElement('div');
+    nameDiv.className='iname';
+    nameDiv.style.color=cnt>0?RCOL[f.r]:'#1a2a1a';
+    nameDiv.textContent=cnt>0?f.n:'???';
+    d.appendChild(nameDiv);
+    if(cnt>0){
+      const cntDiv=document.createElement('div');
+      cntDiv.className='icount'; cntDiv.textContent='x'+cnt;
+      d.appendChild(cntDiv);
+    }
     g.appendChild(d);
   });
   document.getElementById('invModal').classList.add('show');
