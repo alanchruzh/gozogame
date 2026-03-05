@@ -103,7 +103,9 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 #catchPopup{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;
   align-items:center;justify-content:center;z-index:200;}
 #catchPopup.show{display:flex;}
+@keyframes popIn{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
 .cpop{background:#0a2014;border:4px solid #FFD700;box-shadow:8px 8px 0 #FF8C00,14px 14px 0 #8B1A1A;
+  animation:popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
   padding:26px 34px;text-align:center;min-width:310px;
   animation:popIn .35s cubic-bezier(.175,.885,.32,1.275);}
 @keyframes popIn{0%{transform:scale(.3) rotate(-8deg)}100%{transform:scale(1) rotate(0)}}
@@ -187,6 +189,16 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   padding:7px 12px;font-size:7px;color:#FFD700;z-index:300;
   transform:translateX(200%);transition:transform .3s;pointer-events:none;}
 .notif.show{transform:translateX(0);}
+#levelUpFx{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);
+  font-family:'Press Start 2P';font-size:18px;color:#FFD700;
+  text-shadow:3px 3px 0 #FF8C00,6px 6px 0 #8B1A1A;
+  background:rgba(0,0,0,0.7);padding:18px 32px;border:3px solid #FFD700;
+  pointer-events:none;z-index:99999;transition:all 0.3s;opacity:0;}
+#levelUpFx.show{transform:translate(-50%,-60%) scale(1.1);opacity:1;
+  animation:lvUpAnim 2s ease-out forwards;}
+@keyframes lvUpAnim{0%{transform:translate(-50%,-60%) scale(1.1);opacity:1}
+  70%{transform:translate(-50%,-60%) scale(1);opacity:1}
+  100%{transform:translate(-50%,-80%) scale(0.8);opacity:0}}
 .save-toast{position:fixed;top:58px;left:50%;transform:translateX(-50%) translateY(-80px);
   background:#030a04;border:2px solid #FFD700;padding:10px 20px;font-size:7px;
   color:#FFD700;z-index:400;transition:transform .35s cubic-bezier(.175,.885,.32,1.275);
@@ -266,7 +278,13 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="blabel">BAIT:</div>
     <div class="bslots" id="bSlots"></div>
     <div class="divid"></div>
-    <div class="msg" id="msg">Use WASD / arrows to move. Walk to river edge, then CAST!</div>
+    <div style="display:flex;flex-direction:column;flex:1;gap:2px;min-width:0">
+  <div style="font-size:5px;color:#3a5a3a;display:flex;gap:8px">
+    <span id="botRod">🎣 Bamboo Rod</span>
+    <span id="botLv" style="color:#00ccff">LV 1</span>
+  </div>
+  <div class="msg" id="msg">Use WASD / arrows to move. Walk to river edge, then CAST!</div>
+</div>
     <button class="castbtn" id="castBtn" onclick="handleCast()">🎣 CAST</button>
     <div class="movekeys" style="cursor:pointer" onclick="openTut()" title="How to play">WASD<br>MOVE<br><span style="color:#FFD700;font-size:4px">❓HELP</span></div>
   </div>
@@ -281,6 +299,13 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="cprar" id="cpRar">★ Common</div>
     <div class="cpinfo" id="cpInfo">Weight: 1.2 kg · Length: 25 cm</div>
     <div class="cpgold" id="cpGold">+10 🪙 GOLD</div>
+    <div class="cpxp" id="cpXp" style="font-size:6px;color:#00ccff;margin-top:4px"></div>
+    <div style="font-size:5px;color:#3a5a3a;margin-top:6px" id="cpLvBar">
+      <span id="cpLvTxt">LV 1</span>
+      <div style="width:160px;height:6px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);margin-top:3px;display:inline-block">
+        <div id="cpXpFill" style="height:100%;background:#00ccff;width:0%;transition:width 0.6s"></div>
+      </div>
+    </div>
     <button class="cpclose" onclick="closeCatch()">✓ AWESOME!</button>
   </div>
 </div>
@@ -336,6 +361,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   </div>
 </div>
 <div class="save-toast" id="saveToast"></div>
+<div id="levelUpFx">⭐ LEVEL UP! ⭐</div>
 
 <script>
 // ═══════════════════════════════════════════
@@ -343,15 +369,15 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 // ═══════════════════════════════════════════
 const BAITS=[
   // gozo = harga dalam $GOZO token (integer, 10^18 per token)
-  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:10,  pw:1,
+  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:10,  gp:20,  pw:1,
    rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
-  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:20,  pw:2,
+  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:20,  gp:50,  pw:2,
    rodColor:'#5a3a10',lineColor:'rgba(180,200,150,.8)',tipColor:'#adb'},
-  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:50, pw:3,
+  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:50, gp:120, pw:3,
    rodColor:'#2a4a7a',lineColor:'rgba(150,200,255,.85)',tipColor:'#7be'},
-  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:100, pw:4,
+  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:100, gp:280, pw:4,
    rodColor:'#1a1a1a',lineColor:'rgba(220,220,100,.9)',tipColor:'#ff0'},
-  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:250, pw:5,
+  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:250, gp:700, pw:5,
    rodColor:'#7a5a00',lineColor:'rgba(255,215,0,.95)',tipColor:'#ffd700'},
 ];
 const RODS = [
@@ -1196,6 +1222,398 @@ let G={
   // Time
   t:0,
 };
+
+// ── XP / LEVEL ──
+const XP_PER_LEVEL = [0,100,250,450,700,1000,1400,1900,2500,3200,4000]; // level 1-10
+const XP_RARITY_BONUS = [10,25,60,140,350]; // per rarity
+function xpForLevel(lv){ return XP_PER_LEVEL[Math.min(lv,10)]||4000+(lv-10)*800; }
+function gainXP(amount){
+  G.xp += amount;
+  let leveled = false;
+  while(G.xp >= xpForLevel(G.level)){
+    G.xp -= xpForLevel(G.level);
+    G.level++;
+    leveled = true;
+  }
+  if(leveled){
+    notify(`🎉 LEVEL UP! Now Lv.${G.level}!`);
+    playSound('levelup');
+    showLevelUpEffect();
+  }
+  updateHUD();
+}
+function showLevelUpEffect(){
+  const el = document.getElementById('levelUpFx');
+  if(!el) return;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+// ═══════════════════════════════════════════
+// AUDIO — Web Audio API (no external files)
+// ═══════════════════════════════════════════
+let _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx) _audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return _audioCtx;
+}
+
+function playSound(type){
+  try {
+    const ctx = getAudioCtx();
+    if(ctx.state === 'suspended') ctx.resume();
+
+    switch(type){
+
+      case 'bite': {
+        // Sharp urgent "ding-ding" — like a fishing bell
+        [0, 120, 240].forEach(delay => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.type = 'sine';
+          o.frequency.setValueAtTime(880, ctx.currentTime + delay/1000);
+          o.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + delay/1000 + 0.12);
+          g.gain.setValueAtTime(0.5, ctx.currentTime + delay/1000);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay/1000 + 0.25);
+          o.start(ctx.currentTime + delay/1000);
+          o.stop(ctx.currentTime + delay/1000 + 0.25);
+        });
+        // Low thud underneath
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.type = 'triangle';
+        o2.frequency.setValueAtTime(220, ctx.currentTime);
+        g2.gain.setValueAtTime(0.3, ctx.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        o2.start(ctx.currentTime);
+        o2.stop(ctx.currentTime + 0.3);
+        break;
+      }
+
+      case 'cast': {
+        // Whoosh sound
+        const buf = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate);
+        const data = buf.getChannelData(0);
+        for(let i = 0; i < data.length; i++){
+          data[i] = (Math.random()*2-1) * Math.pow(1 - i/data.length, 2) * 0.4;
+        }
+        const src = ctx.createBufferSource();
+        const filt = ctx.createBiquadFilter();
+        filt.type = 'bandpass'; filt.frequency.value = 800;
+        src.buffer = buf;
+        src.connect(filt); filt.connect(ctx.destination);
+        src.start();
+        break;
+      }
+
+      case 'splash': {
+        // Water splash noise
+        const buf2 = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate);
+        const d2 = buf2.getChannelData(0);
+        for(let i = 0; i < d2.length; i++){
+          d2[i] = (Math.random()*2-1) * Math.pow(1 - i/d2.length, 1.5) * 0.3;
+        }
+        const src2 = ctx.createBufferSource();
+        const f2 = ctx.createBiquadFilter();
+        f2.type = 'lowpass'; f2.frequency.value = 600;
+        const g3 = ctx.createGain();
+        g3.gain.setValueAtTime(0.6, ctx.currentTime);
+        src2.buffer = buf2;
+        src2.connect(f2); f2.connect(g3); g3.connect(ctx.destination);
+        src2.start();
+        break;
+      }
+
+      case 'catch': {
+        // Happy ascending chime
+        [0, 150, 300, 450].forEach((delay, i) => {
+          const freqs = [523, 659, 784, 1047]; // C5 E5 G5 C6
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.type = 'triangle';
+          o.frequency.value = freqs[i];
+          g.gain.setValueAtTime(0.35, ctx.currentTime + delay/1000);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay/1000 + 0.4);
+          o.start(ctx.currentTime + delay/1000);
+          o.stop(ctx.currentTime + delay/1000 + 0.4);
+        });
+        break;
+      }
+
+      case 'miss': {
+        // Sad descending wah
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(400, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.5);
+        g.gain.setValueAtTime(0.25, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        o.start(ctx.currentTime);
+        o.stop(ctx.currentTime + 0.5);
+        break;
+      }
+
+      case 'levelup': {
+        // Fanfare — ascending arpeggio
+        [0,100,200,300,500].forEach((delay,i)=>{
+          const freqs=[523,659,784,1047,1319];
+          const o=ctx.createOscillator(); const g=ctx.createGain();
+          o.connect(g);g.connect(ctx.destination);
+          o.type='square';o.frequency.value=freqs[i];
+          g.gain.setValueAtTime(0.2,ctx.currentTime+delay/1000);
+          g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay/1000+0.35);
+          o.start(ctx.currentTime+delay/1000);o.stop(ctx.currentTime+delay/1000+0.35);
+        });
+        break;
+      }
+
+      case 'buy': {
+        // Coin sound
+        const o=ctx.createOscillator(); const g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sine';
+        o.frequency.setValueAtTime(1200,ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(1600,ctx.currentTime+0.08);
+        g.gain.setValueAtTime(0.3,ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.2);
+        o.start(ctx.currentTime);o.stop(ctx.currentTime+0.2);
+        break;
+      }
+    }
+  } catch(e){ /* audio not supported */ }
+}
+
+// ═══════════════════════════════════════════
+// BACKGROUND MUSIC — Web Audio API
+// ═══════════════════════════════════════════
+let _musicCtx = null, _musicNodes = [], _musicState = null;
+let _musicScheduler = null;
+
+function getMusicCtx(){
+  if(!_musicCtx) _musicCtx = new (window.AudioContext||window.webkitAudioContext)();
+  return _musicCtx;
+}
+
+function stopMusic(){
+  _musicNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
+  _musicNodes = [];
+  if(_musicScheduler){ clearInterval(_musicScheduler); _musicScheduler=null; }
+  _musicState = null;
+}
+
+// ── Fishing BGM: calm lofi ambient ──
+// Pentatonic A minor: A3 C4 D4 E4 G4 A4 C5
+function startFishingMusic(){
+  if(_musicState==='fishing') return;
+  stopMusic();
+  _musicState='fishing';
+  const ctx = getMusicCtx();
+  if(ctx.state==='suspended') ctx.resume();
+
+  const master = ctx.createGain();
+  master.gain.value = 0.18;
+  master.connect(ctx.destination);
+  _musicNodes.push(master);
+
+  // Soft reverb via delay
+  const delay = ctx.createDelay(0.6);
+  delay.delayTime.value = 0.38;
+  const delayGain = ctx.createGain();
+  delayGain.gain.value = 0.28;
+  delay.connect(delayGain);
+  delayGain.connect(delay);
+  delayGain.connect(master);
+
+  const BPM = 72, BAR = (60/BPM)*4;
+  const penta = [220, 261.6, 293.7, 329.6, 392, 440, 523.2, 587.3, 659.2]; // A3..E5
+  const chords = [
+    [220,293.7,329.6], // Am
+    [261.6,329.6,392], // C
+    [293.7,392,440],   // Dm
+    [261.6,329.6,392], // C
+  ];
+
+  let beat = 0;
+  function scheduleMeasure(){
+    if(_musicState!=='fishing') return;
+    const now = ctx.currentTime;
+    const chord = chords[beat % chords.length];
+    const beatDur = 60/BPM;
+
+    // Pad chord — soft sine waves
+    chord.forEach((freq,i)=>{
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='sine'; o.frequency.value=freq;
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.22,now+0.3);
+      g.gain.setValueAtTime(0.22,now+BAR-0.3);
+      g.gain.linearRampToValueAtTime(0,now+BAR);
+      o.connect(g); g.connect(delay); g.connect(master);
+      o.start(now); o.stop(now+BAR);
+      _musicNodes.push(o,g);
+    });
+
+    // Melody — random pentatonic notes, spacious
+    const melNotes=[0,2,4,5,7,8]; // indices into penta
+    [0,1.5,2.5,3].forEach(offset=>{
+      if(Math.random()<0.35) return; // sparse
+      const noteIdx = melNotes[Math.floor(Math.random()*melNotes.length)];
+      const freq = penta[noteIdx] * (Math.random()<0.5?2:1);
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='triangle'; o.frequency.value=freq;
+      const t = now+offset*beatDur;
+      const dur = beatDur*(0.4+Math.random()*0.5);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.18,t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      o.connect(g); g.connect(delay); g.connect(master);
+      o.start(t); o.stop(t+dur+0.1);
+      _musicNodes.push(o,g);
+    });
+
+    // Bass pluck on beat 1
+    const bass = ctx.createOscillator();
+    const bg = ctx.createGain();
+    bass.type='sine'; bass.frequency.value=chord[0]*0.5;
+    bg.gain.setValueAtTime(0.3,now);
+    bg.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    bass.connect(bg); bg.connect(master);
+    bass.start(now); bass.stop(now+0.7);
+    _musicNodes.push(bass,bg);
+
+    // Soft water-drop percussion
+    [0,1,2,3].forEach(b=>{
+      if(Math.random()<0.5) return;
+      const buf = ctx.createBuffer(1,ctx.sampleRate*0.08,ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3)*0.4;
+      const src=ctx.createBufferSource();
+      const filt=ctx.createBiquadFilter();
+      filt.type='bandpass'; filt.frequency.value=900+Math.random()*400;
+      const pg=ctx.createGain(); pg.gain.value=0.15;
+      src.buffer=buf; src.connect(filt); filt.connect(pg); pg.connect(master);
+      src.start(now+b*beatDur); _musicNodes.push(src,pg);
+    });
+
+    beat++;
+  }
+
+  scheduleMeasure();
+  _musicScheduler = setInterval(scheduleMeasure, BAR*1000);
+}
+
+// ── Walking BGM: upbeat chiptune ──
+function startWalkingMusic(){
+  if(_musicState==='walking') return;
+  stopMusic();
+  _musicState='walking';
+  const ctx = getMusicCtx();
+  if(ctx.state==='suspended') ctx.resume();
+
+  const master = ctx.createGain();
+  master.gain.value = 0.15;
+  master.connect(ctx.destination);
+  _musicNodes.push(master);
+
+  const BPM = 140, beatDur = 60/BPM, BAR = beatDur*4;
+
+  // C major pentatonic: C4 E4 G4 A4 B4 C5 E5 G5
+  const scale = [261.6,329.6,392,440,493.9,523.2,659.2,784];
+  const patterns = [
+    [0,2,4,2, 5,4,2,0], // ascending fill
+    [4,5,4,2, 0,2,4,5], // bounce
+    [0,4,2,5, 4,2,5,7], // jump
+    [2,4,5,4, 2,0,2,4], // wave
+  ];
+  const bassNotes=[130.8,146.8,164.8,174.6]; // C3 D3 E3 F3
+
+  let bar=0;
+  function scheduleBar(){
+    if(_musicState!=='walking') return;
+    const now=ctx.currentTime;
+    const pat=patterns[bar%patterns.length];
+
+    // Melody — square wave chiptune
+    pat.forEach((noteIdx,i)=>{
+      const freq=scale[noteIdx%scale.length];
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.type='square'; o.frequency.value=freq;
+      const t=now+i*beatDur*0.5;
+      const dur=beatDur*0.45;
+      g.gain.setValueAtTime(0.12,t);
+      g.gain.setValueAtTime(0.12,t+dur*0.8);
+      g.gain.linearRampToValueAtTime(0,t+dur);
+      o.connect(g); g.connect(master);
+      o.start(t); o.stop(t+dur);
+      _musicNodes.push(o,g);
+    });
+
+    // Bass — triangle on beats 1 & 3
+    [0,2].forEach(b=>{
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=bassNotes[bar%bassNotes.length];
+      const t=now+b*beatDur;
+      g.gain.setValueAtTime(0.25,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+beatDur*0.8);
+      o.connect(g); g.connect(master);
+      o.start(t); o.stop(t+beatDur);
+      _musicNodes.push(o,g);
+    });
+
+    // Kick drum on beat 1 & 3
+    [0,2].forEach(b=>{
+      const o=ctx.createOscillator();
+      const g=ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(180,now+b*beatDur);
+      o.frequency.exponentialRampToValueAtTime(40,now+b*beatDur+0.08);
+      g.gain.setValueAtTime(0.4,now+b*beatDur);
+      g.gain.exponentialRampToValueAtTime(0.001,now+b*beatDur+0.15);
+      o.connect(g); g.connect(master);
+      o.start(now+b*beatDur); o.stop(now+b*beatDur+0.2);
+      _musicNodes.push(o,g);
+    });
+
+    // Hi-hat on every beat
+    [0,1,2,3].forEach(b=>{
+      const buf=ctx.createBuffer(1,ctx.sampleRate*0.04,ctx.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2)*0.3;
+      const src=ctx.createBufferSource();
+      const filt=ctx.createBiquadFilter();
+      filt.type='highpass'; filt.frequency.value=8000;
+      const hg=ctx.createGain(); hg.gain.value=0.2;
+      src.buffer=buf; src.connect(filt); filt.connect(hg); hg.connect(master);
+      src.start(now+b*beatDur); _musicNodes.push(src);
+    });
+
+    bar++;
+  }
+
+  scheduleBar();
+  _musicScheduler=setInterval(scheduleBar, BAR*1000);
+}
+
+// ── Music state manager — called from update loop ──
+let _lastMusicState='';
+function updateMusic(){
+  const walking = G.gz.walking;
+  const fishing = G.casting || G.waiting;
+  const target = fishing ? 'fishing' : walking ? 'walking' : 'fishing';
+  if(target === _lastMusicState) return;
+  _lastMusicState = target;
+  if(target==='fishing') startFishingMusic();
+  else if(target==='walking') startWalkingMusic();
+}
 
 // Keys
 const keys={};
@@ -2273,6 +2691,14 @@ function render(){
   // ── GOZO CHARACTER ──
   const gzScreenX=Math.round(G.gz.x-cx);
   const gzScreenY=Math.round(G.gz.y);
+  // Ground shadow
+  ctx.save();
+  ctx.globalAlpha=0.22;
+  ctx.fillStyle='#000';
+  ctx.beginPath();
+  ctx.ellipse(gzScreenX, GROUND_Y+3, 14, 4, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
   drawGozoCharacter(ctx, gzScreenX, gzScreenY, G.gz.facing, G.gz.dir,
     G.gz.walking, G.gz.walkFrame, G.gz.isFishing, G.sel);
 
@@ -2417,7 +2843,7 @@ function handleCast(){
                   document.getElementById('catchPopup').classList.contains('show');
   if(modalOpen) return;
 
-  if(G.waiting){reel();return;}
+  if(G.waiting){ reel(); return; }
   if(G.casting) return;
   if(G.bait[G.sel]<=0){notify('❌ No bait! Buy more at shop.');return;}
 
@@ -2456,25 +2882,42 @@ function doCast(){
     G.splashP.push({x:bobX,y:by,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd-2,life:1,maxLife:1});
   }
 
-  setMsg('🎣 Line in water! Waiting for a bite...');
+  playSound('cast');
+  setTimeout(()=>playSound('splash'), 400);
+  setMsg('🎣 Line in water! Wait for a bite — or reel in early (no fish)...');
 
   setTimeout(()=>{
     G.casting=false;G.waiting=true;
-    btn.textContent='🎣 REEL IN!';btn.disabled=false;btn.className='castbtn';
-    G.timer=setTimeout(triggerBite, 1500+Math.random()*5000);
+    btn.textContent='🎣 REEL IN';btn.disabled=false;btn.className='castbtn';
+    // Realistic wait: Earthworm 15-90s, Gold Lure 8-45s
+    const _baitPw = BAITS[G.sel]?.pw || 1;
+    const _minWait = 15000 - (_baitPw-1) * 1500;   // 15s (worm) → 9s (gold lure)
+    const _maxExtra = 75000 - (_baitPw-1) * 7500;   // +75s (worm) → +45s (gold lure)
+    G.timer=setTimeout(triggerBite, _minWait + Math.random()*_maxExtra);
   },700);
 }
 
 function triggerBite(){
   if(!G.waiting) return;
   G.bob.alert=true;
-  setMsg('⚡ BITE! Press REEL IN NOW!');
-  document.getElementById('castBtn').className='castbtn waiting';
-  G.timer=setTimeout(()=>{if(G.waiting)missed();},2200);
+  playSound('bite');
+  setMsg('⚡ BITE! REEL IN NOW!');
+  const btn=document.getElementById('castBtn');
+  btn.textContent='🎣 REEL IN!';btn.disabled=false;btn.className='castbtn waiting';
+  G.timer=setTimeout(()=>{if(G.waiting)missed();},3500);
 }
 function missed(){G.waiting=false;resetRod();setMsg('😞 Fish got away! Try again.');notify('The fish escaped!');}
 function reel(){
-  if(!G.waiting)return;G.waiting=false;clearTimeout(G.timer);resetRod();
+  if(!G.waiting) return;
+  G.waiting=false; clearTimeout(G.timer); resetRod();
+  if(!G.bob.alert){
+    // Pulled up too early — no fish, bait wasted
+    playSound('miss');
+    if(G.stats) G.stats.missCount++;
+    setMsg('🎣 No fish... you pulled too early. Bait wasted!');
+    notify('🎣 Nothing on the hook!');
+    return;
+  }
   const fish=rollFish(BAITS[G.sel].pw);
   if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
   G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;
@@ -2497,6 +2940,7 @@ function resetRod(){
   btn.textContent='🎣 CAST';btn.disabled=false;btn.className='castbtn';
 }
 function showCatch(f){
+  playSound('catch');
   const rnd=(a,b)=>(Math.random()*(b-a)+a).toFixed(1);
   renderFishCanvas(document.getElementById('cpIcon'), f.id, RCOL[f.r], 'transparent');
   document.getElementById('cpName').textContent=f.n;
@@ -2510,7 +2954,11 @@ function showCatch(f){
   document.getElementById('cpGold').textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ×'+rod.bonus:''}`;
   document.getElementById('catchPopup').classList.add('show');
 }
-function closeCatch(){document.getElementById('catchPopup').classList.remove('show');setMsg('Select bait and cast!');}
+function closeCatch(){
+  document.getElementById('catchPopup').classList.remove('show');
+  setMsg('Select bait and cast!');
+  autoSave();
+}
 
 // ═══════════════════════════════════════════
 // UI
@@ -2533,11 +2981,21 @@ function renderBaits(){
 function updateHUD(){
   const rodEl=document.getElementById('rodD');
   if(rodEl){ const r=RODS[G.rod]||RODS[0]; rodEl.textContent=r.icon+' '+r.name; }
-  const goldEl=document.getElementById('goldD'); if(goldEl) goldEl.textContent=G.gold;
+  const goldEl=document.getElementById('goldD'); if(goldEl) goldEl.textContent=G.gold.toLocaleString();
   document.getElementById('catchD').textContent=G.total;
   const u=Object.keys(G.caught).length;
   document.getElementById('progLbl').textContent=`${u}/50 SPECIES`;
   document.getElementById('progF').style.width=`${(u/50)*100}%`;
+  // XP bar
+  const _xpNeeded = xpForLevel(G.level) || 100;
+  const xpPct = Math.min(100,(G.xp/_xpNeeded)*100);
+  const lvEl=document.getElementById('lvLbl'); if(lvEl) lvEl.textContent=`LV ${G.level}`;
+  const xpEl=document.getElementById('xpF'); if(xpEl) xpEl.style.width=xpPct+'%';
+  // Botbar rod + level
+  const bRod=document.getElementById('botRod'); const bLv=document.getElementById('botLv');
+  const cr=RODS[G.rod]||RODS[0];
+  if(bRod) bRod.textContent=cr.icon+' '+cr.name;
+  if(bLv)  bLv.textContent='LV '+(G.level||1);
 }
 let shopCurrentTab = 'bait';
 let shopBalGozo = 0;
@@ -2574,6 +3032,19 @@ function shopTab(tab){
   document.getElementById('tabRod').classList.toggle('active', tab==='rod');
   shopSetStatus('');
   renderShopTab(tab);
+}
+
+function buyBaitGold(i){
+  const bait = BAITS[i];
+  const cost = bait.gp * 5; // 5x pack
+  if(G.gold < cost){ shopSetStatus(`❌ Need ${cost} 🪙 gold (have ${G.gold})`, 'err'); return; }
+  G.gold -= cost;
+  G.bait[i] += 5;
+  renderBaits(); updateHUD();
+  playSound('buy');
+  shopSetStatus(`✅ 5x ${bait.icon} ${bait.name} bought for ${cost}🪙!`, 'ok');
+  notify(`${bait.icon} +5 ${bait.name}!`);
+  renderShopTab('bait');
 }
 
 function renderShopTab(tab){
@@ -2765,8 +3236,9 @@ function openInv(){
   // Stats bar
   const sEl=document.getElementById('invStats');
   if(sEl){
-    const bf=G.stats.biggestFish?`${G.stats.biggestFish} (${G.stats.biggestWeight}kg)`:'—';
-    sEl.innerHTML=`🪙 Total Gold: <b style="color:#FFD700">${G.stats.totalGold}</b> &nbsp;|&nbsp; 🏆 Biggest: <b style="color:#FFD700">${bf}</b> &nbsp;|&nbsp; 🎣 Casts: <b style="color:#FFD700">${G.stats.castCount}</b>`;
+    const st = G.stats || {};
+    const bf=st.biggestFish?`${st.biggestFish} (${st.biggestWeight}kg)`:'—';
+    sEl.innerHTML=`⭐ Lv.${G.level} &nbsp;|&nbsp; 🪙 Gold: <b style="color:#FFD700">${st.totalGold||0}</b> &nbsp;|&nbsp; 🏆 Best: <b style="color:#FFD700">${bf}</b> &nbsp;|&nbsp; 🎣 Casts: <b style="color:#FFD700">${st.castCount||0}</b> &nbsp;|&nbsp; ❌ Miss: <b style="color:#FF6060">${st.missCount||0}</b>`;
   }
 }
 function invTab(tab){
@@ -2874,7 +3346,18 @@ function startGame(){
   G.gz.y=GROUND_Y+20;
   setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
   notify('🎁 Starter bonus: 10 Free Earthworms!');
+  setTimeout(()=>startFishingMusic(), 500);
   if(!localStorage.getItem('gozoTutDone')) setTimeout(openTut, 600);
+  // Try to restore autosave
+  // Only restore if save has level field (not stale)
+  try {
+    const raw = localStorage.getItem('gozoSave');
+    if(raw){
+      const d = JSON.parse(raw);
+      if(d && d.level){ applySaveData(d); notify('♻️ Progress restored!'); }
+      else { localStorage.removeItem('gozoSave'); }
+    }
+  } catch(e){ localStorage.removeItem('gozoSave'); }
   requestAnimationFrame(t=>{lastTime=t;gameLoop(t);});
 }
 function openTut(){ document.getElementById('tutOverlay').classList.add('show'); }
@@ -2885,6 +3368,7 @@ function closeTut(){
 function goTitle(){
   if(!confirm('Go back to main menu? Unsaved progress will be lost!')) return;
   resetRod();
+  stopMusic();
   document.getElementById('gameScreen').classList.remove('active');
   document.getElementById('titleScreen').classList.add('active');
 }
@@ -3199,6 +3683,8 @@ function getSaveData(){
     savedAt : new Date().toISOString(),
     gold    : G.gold,
     total   : G.total,
+    xp      : G.xp,
+    level   : G.level,
     caught  : G.caught,
     bait    : G.bait,
     sel     : G.sel,
@@ -3224,6 +3710,21 @@ function applySaveData(data){
 }
 
 // ── Save: create JSON → download as file ──────────────────
+function autoSave(){
+  try {
+    const data = getSaveData();
+    localStorage.setItem('gozoSave', JSON.stringify(data));
+  } catch(e){ console.warn('Autosave failed',e); }
+}
+function autoLoad(){
+  try {
+    const raw = localStorage.getItem('gozoSave');
+    if(!raw) return false;
+    applySaveData(JSON.parse(raw));
+    return true;
+  } catch(e){ return false; }
+}
+
 function saveGame(){
   try {
     const data = getSaveData();
