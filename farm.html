@@ -5451,7 +5451,7 @@ function animalLoop(ts) {
     const frameDur = a.paused ? 999999 : (a.type === 'bee' ? 200 : 300);
     if (a.frameTimer >= frameDur) {
       a.frameTimer = 0;
-      a.frame = (a.frame + 1) % def.frames.length;
+      a.frame = (a.frame + 1) % 2;
       updateAnimalCanvas(a);
     }
   }
@@ -5488,15 +5488,11 @@ window.buyAnimal = function(type) {
   setTimeout(syncFieldAnimals, 100);
 };
 
-// Restore from save
-const _origLoadState = window.loadState;
-window.loadState = function() {
-  if (_origLoadState) _origLoadState();
-  setTimeout(syncFieldAnimals, 300);
-};
-
-// Also sync on page load after state restore
-setTimeout(syncFieldAnimals, 600);
+// Sync on load - try multiple times to catch after loadState
+setTimeout(syncFieldAnimals, 500);
+setTimeout(syncFieldAnimals, 1000);
+setTimeout(syncFieldAnimals, 2000);
+setTimeout(syncFieldAnimals, 3000);
 </script>
 </body>
 </html>
