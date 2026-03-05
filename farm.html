@@ -2563,6 +2563,8 @@ function loadState(){
   updateWaterUI();
   updateScoreUI();
   startWaterRegen();
+  // Sync animal sprites after state loaded
+  setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 200);
 }
 
 // ═══════════════════════════════════════════════════
@@ -4610,6 +4612,8 @@ window.startFarm = function(){
   stats.sessionStart = Date.now();
   updateWeatherUI();
   updateMarketPrices();
+  // Sync animal sprites after everything is loaded
+  setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 300);
 };
 
 // Track harvest stats
