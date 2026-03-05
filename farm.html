@@ -5151,46 +5151,43 @@ const ANIMAL_PIXELS = {
     palette: { R:'#cc2200', O:'#e8a030', Y:'#c8854a', B:'#1a0a00', '.':'transparent' }
   },
   cow: {
-    w: 24, h: 16,
+    w: 20, h: 14,
     frames: [
       [
-        '........................',
-        '........BBBBB...........',
-        '.......BWWWWWBB.........',
-        '......BWWBBWWWWB........',
-        '......BWWBBWWWWB........',
-        '.BBBBBWWWWWWWWWWBBBB....',
-        'BWWWWWWWWWWWWWWWWWWWB..',
-        'BWWWWWWWWWWWWWWWWWWWWB.',
-        'BWWBBWWWWWWWWWWWWBBWWB.',
-        'BWWBBWWWWWWWWWWWWBBWWB.',
-        '.BWWWWWWWWWWWWWWWWWWB..',
-        '..BBBBBBBBBBBBBBBBBBB...',
-        '....BB....BB....BB....BB',
-        '....BB....BB....BB....BB',
-        '....BB....BB....BB....BB',
-        '...BBB....BB....BB....BB',
+        // head
+        '...BBBB.............',
+        '..BWWWBB............',
+        '..BPWWWB............',
+        '..BWWWWBBBBBBBBBBB..',
+        '..BBBBWWWWWWBBWWWWB.',
+        '.......BWWWWWWWWWWB.',
+        '.......BWWBBWWWWWWB.',
+        '.......BWWBBWWWWWWB.',
+        '.......BBBBBBBBBBB..',
+        '.........BB...BB....',
+        '.........BB...BB....',
+        '.........BB...BB....',
+        '........BBB...BBB...',
+        '.................... ',
       ],
       [
-        '........................',
-        '........BBBBB...........',
-        '.......BWWWWWBB.........',
-        '......BWWBBWWWWB........',
-        '......BWWBBWWWWB........',
-        '.BBBBBWWWWWWWWWWBBBB....',
-        'BWWWWWWWWWWWWWWWWWWWB..',
-        'BWWWWWWWWWWWWWWWWWWWWB.',
-        'BWWBBWWWWWWWWWWWWBBWWB.',
-        'BWWBBWWWWWWWWWWWWBBWWB.',
-        '.BWWWWWWWWWWWWWWWWWWB..',
-        '..BBBBBBBBBBBBBBBBBBB...',
-        '....BBB...BB....BBB...B.',
-        '.....BB...BB.....BB...BB',
-        '.....B....BB.....B....BB',
-        '..........BB..........BB',
+        '...BBBB.............',
+        '..BWWWBB............',
+        '..BPWWWB............',
+        '..BWWWWBBBBBBBBBBB..',
+        '..BBBBWWWWWWBBWWWWB.',
+        '.......BWWWWWWWWWWB.',
+        '.......BWWBBWWWWWWB.',
+        '.......BWWBBWWWWWWB.',
+        '.......BBBBBBBBBBB..',
+        '.........BBB..BB....',
+        '..........BB..BBB...',
+        '..........B....BB...',
+        '.................   ',
+        '.................... ',
       ]
     ],
-    palette: { W:'#f5f5f0', B:'#1a1a1a', P:'#f0a0b0', '.':'transparent' }
+    palette: { W:'#f0f0ec', B:'#1a1a1a', P:'#f0b0b8', '.':'transparent', ' ':'transparent' }
   },
   rabbit: {
     w: 16, h: 16,
@@ -5278,6 +5275,7 @@ const PIXEL_SIZE = 3;
 const _fieldAnimals = {}; // { 'chicken_0': { el, x, y, vx, type, frame, frameTimer, flipX } }
 
 function makeAnimalCanvas(type, flipX, frame) {
+  if (type === 'cow') return makeCowCanvas(flipX, frame);
   const def = ANIMAL_PIXELS[type];
   if (!def) return null;
   const rows = def.frames[frame];
@@ -5303,6 +5301,61 @@ function makeAnimalCanvas(type, flipX, frame) {
     }
   }
   if (flipX) ctx.restore();
+  return canvas;
+}
+
+function makeCowCanvas(flipX, frame) {
+  const S = 3; // pixel size
+  const W = 22, H = 14;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * S; canvas.height = H * S;
+  canvas.style.imageRendering = 'pixelated';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (flipX) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+
+  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
+  const W2='#f2f2ee', BK='#1a1a1a', PK='#f0aab8', GY='#888888';
+
+  // --- BODY ---
+  for(let x=5;x<=17;x++) for(let y=3;y<=8;y++) p(x,y,W2);
+  // black patches on body
+  for(let x=7;x<=9;x++) for(let y=3;y<=5;y++) p(x,y,BK);
+  for(let x=14;x<=16;x++) for(let y=5;y<=7;y++) p(x,y,BK);
+  // body outline
+  for(let x=5;x<=17;x++){p(x,3,BK);p(x,8,BK);}
+  for(let y=3;y<=8;y++){p(5,y,BK);p(17,y,BK);}
+
+  // --- HEAD ---
+  for(let x=0;x<=5;x++) for(let y=2;y<=7;y++) p(x,y,W2);
+  // nose/muzzle pink
+  for(let x=0;x<=2;x++) for(let y=5;y<=6;y++) p(x,y,PK);
+  // eye
+  p(3,3,BK); p(4,3,BK);
+  // head outline
+  for(let x=0;x<=5;x++){p(x,2,BK);p(x,7,BK);}
+  for(let y=2;y<=7;y++){p(0,y,BK);p(5,y,BK);}
+  // horn
+  p(3,1,GY); p(4,1,GY);
+
+  // --- LEGS ---
+  const legFrame0 = [[7,9],[8,9],[13,9],[14,9]];
+  const legFrame1 = [[7,9],[8,9],[13,9],[15,9]];
+  const legBases = frame===0 ? legFrame0 : legFrame1;
+  legBases.forEach(([lx,ly])=>{
+    for(let dy=0;dy<4;dy++){
+      p(lx,ly+dy,BK); p(lx+1,ly+dy,BK);
+    }
+  });
+
+  // --- TAIL ---
+  p(18,4,BK); p(19,5,BK); p(20,6,BK); p(20,7,BK);
+
+  // --- UDDER ---
+  for(let x=9;x<=12;x++) p(x,9,PK);
+  for(let x=9;x<=12;x++) p(x,8,PK);
+
+  if(flipX) ctx.restore();
   return canvas;
 }
 
