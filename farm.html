@@ -56,8 +56,9 @@ header{
 .tree-row{display:none}
 .px-tree{display:none}
 
-.fence-strip{flex-shrink:0;height:44px;display:flex;align-items:flex-end;position:relative;z-index:6;overflow:hidden;background:transparent}
+.fence-strip{flex-shrink:0;height:44px;display:flex;align-items:flex-end;position:relative;z-index:6;overflow:visible;background:transparent}
 .fence-strip canvas{display:block;width:100%;height:44px}
+.fence-strip #animalLayer canvas{width:auto;height:auto}
 
 .ground-area{flex:1;overflow:hidden;background:
   /* subtle grass blade pattern */
@@ -6024,7 +6025,8 @@ function runTrainAnimation() {
   const trainW = trainCanvas.width;
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;image-rendering:pixelated;pointer-events:none;`;
+  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;pointer-events:none;line-height:0;font-size:0;`;
+  trainCanvas.setAttribute('style', `display:block !important;width:${trainW}px !important;height:${trainCanvas.height}px !important;image-rendering:pixelated;`);
   wrapper.appendChild(trainCanvas);
   layer.appendChild(wrapper);
 
