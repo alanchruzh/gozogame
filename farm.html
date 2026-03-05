@@ -40,8 +40,8 @@ header{
 .world{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
 
 .sky{flex-shrink:0;height:var(--sky-h);background:linear-gradient(180deg,var(--sky1) 0%,var(--sky2) 55%,var(--sky3) 100%);position:relative;overflow:hidden}
-.sun{position:absolute;top:10px;right:110px;image-rendering:pixelated;image-rendering:crisp-edges;transition:opacity 2s ease}
-.sun-pulse-removed{}
+.sun{position:absolute;top:10px;right:110px;image-rendering:pixelated;image-rendering:crisp-edges}
+@keyframes sunPulse{0%,100%{opacity:1}50%{opacity:0.88}}
 .cloud{position:absolute;animation:cloudDrift linear infinite;image-rendering:pixelated;image-rendering:crisp-edges}
 .cl1{top:15%;animation-duration:60s}
 .cl2{top:38%;animation-duration:90s;animation-delay:-35s}
@@ -373,7 +373,6 @@ header{
   <div class="world">
     <div class="sky">
       <canvas class="sun" id="sunCanvas"></canvas>
-      <canvas class="sun" id="moonCanvas" style="display:none"></canvas>
       <canvas class="cloud cl1" id="cloudC1"></canvas>
       <canvas class="cloud cl2" id="cloudC2"></canvas>
       <canvas class="cloud cl3" id="cloudC3"></canvas>
@@ -441,6 +440,7 @@ header{
         <div style="font-size:0.18rem;color:#6a7a6a">Earned from selling crops · used for seeds</div>
       </div>
       <div id="harvestList"></div>
+      <div id="sellAllWrap" style="display:none;margin-top:6px"><button onclick="sellAllCrops()" style="width:100%;background:#a05a10;border:2px solid #f5c842;border-radius:6px;color:#ffe;font-size:0.24rem;padding:4px 0;cursor:pointer;font-weight:bold;text-shadow:1px 1px 0 #000;letter-spacing:0.05em">💰 SELL ALL</button></div>
     </div>
 
     <!-- Unlock Fields -->
@@ -1323,16 +1323,16 @@ function gozoDoAction(fid, pid, action) {
 // Random grow time: 60s - 120s (1-2 minutes)
 function randGrow(){ return (60 + Math.floor(Math.random()*60)) * 1000; }
 const CROPS = {
-  tomat:      {name:'Tomato',      emoji:'🍅', gs:'🌿', grow:randGrow(), unlockAt:0,   price:5},
-  cabe:       {name:'Chili',       emoji:'🌶️', gs:'🌱', grow:randGrow(), unlockAt:5,   price:8},
-  jagung:     {name:'Corn',        emoji:'🌽', gs:'🌾', grow:randGrow(), unlockAt:8,   price:10},
-  terong:     {name:'Eggplant',    emoji:'🍆', gs:'🌿', grow:randGrow(), unlockAt:12,  price:14},
-  wortel:     {name:'Carrot',      emoji:'🥕', gs:'🌿', grow:randGrow(), unlockAt:20,  price:18},
-  labu:       {name:'Pumpkin',     emoji:'🎃', gs:'🍃', grow:randGrow(), unlockAt:30,  price:25},
-  stroberi:   {name:'Strawberry',  emoji:'🍓', gs:'🌱', grow:randGrow(), unlockAt:40,  price:35},
-  melon:      {name:'Melon',       emoji:'🍈', gs:'🍀', grow:randGrow(), unlockAt:55,  price:50},
-  bawangPutih:{name:'Garlic',      emoji:'🧄', gs:'🌱', grow:randGrow(), unlockAt:70,  price:65},
-  kacang:     {name:'Soybean',     emoji:'🫘', gs:'🌿', grow:randGrow(), unlockAt:90,  price:80},
+  tomat:      {name:'Tomato',      emoji:'🍅', gs:'🌿', grow:null, unlockAt:0,   price:5,  regrowTime:30000, maxHarvest:5},
+  cabe:       {name:'Chili',       emoji:'🌶️', gs:'🌱', grow:null, unlockAt:5,   price:8,  regrowTime:25000, maxHarvest:5},
+  jagung:     {name:'Corn',        emoji:'🌽', gs:'🌾', grow:null, unlockAt:8,   price:10, regrowTime:35000, maxHarvest:5},
+  terong:     {name:'Eggplant',    emoji:'🍆', gs:'🌿', grow:null, unlockAt:12,  price:14, regrowTime:40000, maxHarvest:4},
+  wortel:     {name:'Carrot',      emoji:'🥕', gs:'🌿', grow:null, unlockAt:20,  price:18, regrowTime:45000, maxHarvest:3},
+  labu:       {name:'Pumpkin',     emoji:'🎃', gs:'🍃', grow:null, unlockAt:30,  price:25, regrowTime:50000, maxHarvest:3},
+  stroberi:   {name:'Strawberry',  emoji:'🍓', gs:'🌱', grow:null, unlockAt:40,  price:35, regrowTime:20000, maxHarvest:5},
+  melon:      {name:'Melon',       emoji:'🍈', gs:'🍀', grow:null, unlockAt:55,  price:50, regrowTime:60000, maxHarvest:3},
+  bawangPutih:{name:'Garlic',      emoji:'🧄', gs:'🌱', grow:null, unlockAt:70,  price:65, regrowTime:55000, maxHarvest:3},
+  kacang:     {name:'Soybean',     emoji:'🫘', gs:'🌿', grow:null, unlockAt:90,  price:80, regrowTime:70000, maxHarvest:2},
 };
 const CROP_KEYS = ['tomat','cabe','jagung','terong','wortel','labu','stroberi','melon','bawangPutih','kacang'];
 
@@ -2498,8 +2498,10 @@ function saveState(){
     const fd = fieldData[f.id];
     if(!fd?.unlocked) return;
     fd.plots.forEach((p,i) => {
-      if(p.state === 'planted' || p.state === 'ready'){
-        data.plots[`${f.id}_${i}`] = {state:p.state, plant:p.plant, plantedAt:p.plantedAt, watered:p.watered||false, harvestCount:p.harvestCount||0, regrowAt:p.regrowAt||null};
+      if(p.state === 'tilled'){
+        data.plots[`${f.id}_${i}`] = {state:'tilled'};
+      } else if(p.state === 'planted' || p.state === 'ready' || p.state === 'regrowing'){
+        data.plots[`${f.id}_${i}`] = {state:p.state, plant:p.plant, plantedAt:p.plantedAt, watered:p.watered||false, harvestCount:p.harvestCount||0, regrowAt:p.regrowAt||null, growTime:p.growTime||null};
       }
     });
   });
@@ -2529,6 +2531,7 @@ function loadState(){
         const [fid,pid] = key.split('_').map(Number);
         const fd = fieldData[fid]; if(!fd?.unlocked || !fd.plots[pid]) return;
         const p = fd.plots[pid];
+        if(pd.state === 'tilled'){ p.state = 'tilled'; return; }
         p.plant = pd.plant; p.plantedAt = pd.plantedAt; p.watered = pd.watered || false;
         p.harvestCount = pd.harvestCount || 0; p.regrowAt = pd.regrowAt || null;
         if(pd.state === 'ready'){ p.state = 'ready'; }
@@ -2712,7 +2715,7 @@ function buildTile(fid, pid, p){
     if(p.watered){
       // Growth stage display for terong
       if(p.plant === 'terong'){
-        const total = c.grow;
+        const total = p.growTime || c.grow || 120000;
         const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
         const pct = Math.min(1, elapsed / total);
         let stageSvg;
@@ -2721,7 +2724,7 @@ function buildTile(fid, pid, p){
         else stageSvg = TERONG_STAGE3_SVG;
         sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
       } else if(p.plant === 'wortel'){
-        const total = c.grow;
+        const total = p.growTime || c.grow || 120000;
         const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
         const pct = Math.min(1, elapsed / total);
         let stageSvg;
@@ -2730,7 +2733,7 @@ function buildTile(fid, pid, p){
         else stageSvg = WORTEL_STAGE3_SVG;
         sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
       } else if(p.plant === 'labu'){
-        const total = c.grow;
+        const total = p.growTime || c.grow || 120000;
         const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
         const pct = Math.min(1, elapsed / total);
         let stageSvg;
@@ -2739,7 +2742,7 @@ function buildTile(fid, pid, p){
         else stageSvg = LABU_STAGE3_SVG;
         sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${stageSvg}</span>`;
       } else if(p.plant === 'stroberi'){
-        const total = c.grow;
+        const total = p.growTime || c.grow || 120000;
         const elapsed = p.plantedAt ? Date.now() - p.plantedAt : 0;
         const pct = Math.min(1, elapsed / total);
         let stageSvg;
@@ -2787,19 +2790,19 @@ function buildTile(fid, pid, p){
   else if(p.state === 'regrowing'){
     if(p.plant === 'tomat'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${TOMAT_TREE_BARE_SVG}</span>`;
-      lb = 'REGROWING...';
+      const _c0=CROPS[p.plant]; lb = 'REGROWING (' + (p.harvestCount||0) + '/' + (_c0.maxHarvest||'?') + ')';
 
       const left2 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 30000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left2)}</div>`;
     } else if(p.plant === 'cabe'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.2rem;vertical-align:bottom">${CABE_TREE_BARE_SVG}</span>`;
-      lb = 'REGROWING...';
+      const _c1=CROPS[p.plant]; lb = 'REGROWING (' + (p.harvestCount||0) + '/' + (_c1.maxHarvest||'?') + ')';
 
       const left3 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 25000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left3)}</div>`;
     } else if(p.plant === 'jagung'){
       sp = `<span style="display:inline-block;width:2.8rem;height:4.5rem;vertical-align:bottom">${JAGUNG_TREE_BARE_SVG}</span>`;
-      lb = 'REGROWING...';
+      const _c2=CROPS[p.plant]; lb = 'REGROWING (' + (p.harvestCount||0) + '/' + (_c2.maxHarvest||'?') + ')';
 
       const left4 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 35000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left4)}</div>`;
@@ -2809,6 +2812,11 @@ function buildTile(fid, pid, p){
 
       const left5 = p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : 20000;
       tmr = `<div class="pt-timer" id="tmr-${fid}-${pid}">${fmtTime(left5)}</div>`;
+    } else {
+      const _cr=CROPS[p.plant]; const _lx=p.regrowAt ? Math.max(0, p.regrowAt - Date.now()) : (_cr.regrowTime||30000);
+      sp = _cr.gs||'🌱';
+      const _chc=_cr.maxHarvest||'?'; lb = 'REGROWING (' + (p.harvestCount||0) + '/' + _chc + ')';
+      tmr = '<div class="pt-timer" id="tmr-' + fid + '-' + pid + '">' + fmtTime(_lx) + '</div>';
     }
   }
   // planted tomat/cabe: show bare tree
@@ -2850,7 +2858,7 @@ function handleClick(fid, pid){
     } else { showToast('⛏️ CANNOT HOE THIS!'); }
   } else if(selectedTool === 'sickle'){
     if(p.state === 'ready'){ doHarvest(fid, pid); }
-    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast(p.plant === 'cabe' ? '⏳ NOT READY YET! Chili plant is regrowing...' : p.plant === 'jagung' ? '⏳ NOT READY YET! Corn is regrowing...' : p.plant === 'stroberi' ? '⏳ NOT READY YET! Strawberry bush is regrowing...' : '⏳ NOT READY YET! Tomato tree is regrowing...'); }
+    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast('⏳ NOT READY YET! ' + (CROPS[p.plant]?.name || 'Crop') + ' is still ' + (p.state === 'regrowing' ? 'regrowing' : 'growing') + '...'); }
     else { showToast('🔪 NOTHING TO HARVEST!'); }
   } else if(selectedTool === 'water'){
     if(p.state === 'planted' && !p.watered){
@@ -2862,7 +2870,7 @@ function handleClick(fid, pid){
       p.plantedAt = Date.now();
       waterCharges--;
       updateWaterUI();
-      startGrowTimer(fid, pid, CROPS[p.plant].grow);
+      startGrowTimer(fid, pid, p.growTime || randGrow());
       refreshPlot(fid, pid);
       say('water'); sfx('plant'); partsPlot(fid, pid, ['💧','🌊','✨']); gozoDoAction(fid,pid,'water');
       saveState();
@@ -2884,7 +2892,7 @@ function plantCrop(fid, pid){
     return;
   }
   const p = fieldData[fid].plots[pid];
-  p.state = 'planted'; p.plant = selectedSeed; p.plantedAt = null; p.watered = false;
+  p.state = 'planted'; p.plant = selectedSeed; p.plantedAt = null; p.watered = false; p.growTime = randGrow();
   inventory[selectedSeed]--;
   refreshPlot(fid, pid);
   renderSeedShop();
@@ -2976,64 +2984,22 @@ function doHarvest(fid, pid){
   if(el){ el.querySelector('.cs').textContent = '✨'; el.querySelector('.pl').textContent = '+1 ' + c.name.toUpperCase(); }
   partsPlot(fid, pid, [c.emoji, '✨', '⭐', '💫']);
 
-  // Tomat: regrow system (max 5 harvests)
-  if(plantKey === 'tomat'){
+  // Generic regrow system — driven by CROPS[plantKey].regrowTime / maxHarvest
+  if(c.regrowTime && c.maxHarvest){
     p.harvestCount = (p.harvestCount || 0) + 1;
-    if(p.harvestCount < 5){
-      // Start regrowing
+    if(p.harvestCount < c.maxHarvest){
+      const rt = c.regrowTime;
+      const left = c.maxHarvest - p.harvestCount;
       setTimeout(()=>{
         p.state = 'regrowing';
-        p.regrowAt = Date.now() + 30000;
+        p.regrowAt = Date.now() + rt;
         refreshPlot(fid, pid);
-        startRegrowTimer(fid, pid, 30000);
-        showToast('🍅 Tomato tree regrowing in 30s! (' + (5 - p.harvestCount) + 'x harvest left)');
-      }, 500);
-    } else {
-      // Max harvests reached, tree dies
-      setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
-        showToast('🪵 Tomato tree exhausted! Plant a new one.'); }, 500);
-    }
-  } else if(plantKey === 'cabe'){
-    p.harvestCount = (p.harvestCount || 0) + 1;
-    if(p.harvestCount < 5){
-      setTimeout(()=>{
-        p.state = 'regrowing';
-        p.regrowAt = Date.now() + 25000;
-        refreshPlot(fid, pid);
-        startRegrowTimer(fid, pid, 25000);
-        showToast('🌶️ Chili plant regrowing in 25s! (' + (5 - p.harvestCount) + 'x harvest left)');
+        startRegrowTimer(fid, pid, rt);
+        showToast(c.emoji + ' ' + c.name + ' regrowing in ' + fmtTime(rt) + '! (' + left + 'x harvest left)');
       }, 500);
     } else {
       setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
-        showToast('🌶️ Chili plant exhausted! Plant a new one.'); }, 500);
-    }
-  } else if(plantKey === 'jagung'){
-    p.harvestCount = (p.harvestCount || 0) + 1;
-    if(p.harvestCount < 5){
-      setTimeout(()=>{
-        p.state = 'regrowing';
-        p.regrowAt = Date.now() + 35000;
-        refreshPlot(fid, pid);
-        startRegrowTimer(fid, pid, 35000);
-        showToast('🌽 Corn regrowing in 35s! (' + (5 - p.harvestCount) + 'x harvest left)');
-      }, 500);
-    } else {
-      setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
-        showToast('🌽 Corn stalk exhausted! Plant a new one.'); }, 500);
-    }
-  } else if(plantKey === 'stroberi'){
-    p.harvestCount = (p.harvestCount || 0) + 1;
-    if(p.harvestCount < 5){
-      setTimeout(()=>{
-        p.state = 'regrowing';
-        p.regrowAt = Date.now() + 20000;
-        refreshPlot(fid, pid);
-        startRegrowTimer(fid, pid, 20000);
-        showToast('🍓 Strawberry bush regrowing in 20s! (' + (5 - p.harvestCount) + 'x harvest left)');
-      }, 500);
-    } else {
-      setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
-        showToast('🍓 Strawberry bush exhausted! Plant a new one.'); }, 500);
+        showToast(c.emoji + ' ' + c.name + ' exhausted! Plant a new one.'); }, 500);
     }
   } else {
     setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; refreshPlot(fid, pid); }, 500);
@@ -3065,7 +3031,7 @@ function renderSeedShop(){
       <div class="si-emoji">${c.emoji}</div>
       <div class="si-info">
         <div class="si-name">${c.name}</div>
-        <div class="si-time">⏱ ${fmtTime(c.grow)}</div>
+        <div class="si-time">⏱ 1–2 min</div>
         ${inv > 0 ? `<div class="si-inv">x${inv} in bag ✓</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
       </div>
       <div class="si-count">${inv}</div>`;
@@ -3098,6 +3064,7 @@ function renderHarvestList(){
   if(!hasAny){
     el.innerHTML = '<div style="font-size:0.26rem;color:#4a7a4a;text-shadow:1px 1px 0 #000">No harvest yet...</div>';
   }
+  const wrap = document.getElementById('sellAllWrap'); if(wrap) wrap.style.display = hasAny ? 'block' : 'none';
 }
 
 function sellCrop(key, qty){
@@ -3110,6 +3077,19 @@ function sellCrop(key, qty){
   renderHarvestList();
   saveState();
   showGoldFloat('+' + earned.toLocaleString() + ' 🪙');
+}
+
+function sellAllCrops(){
+  let total = 0;
+  CROP_KEYS.forEach(k => { if(harvestBasket[k]>0){ total += harvestBasket[k]*CROPS[k].price; harvestBasket[k]=0; } });
+  if(total===0) return;
+  gold += total;
+  sfx('coin');
+  updateGoldUI();
+  renderHarvestList();
+  saveState();
+  showGoldFloat('+' + total.toLocaleString() + ' 0001F4B0');
+  showToast('0001F4B0 SOLD EVERYTHING FOR ' + TOTAL.TOLOCALESTRING() + ' GOLD!');
 }
 
 function updateGoldUI(){
@@ -3401,10 +3381,11 @@ function parts(n, emojis, cx, cy){
     setupBird('birdC2', 2);
   })();
 
-  // ── DAY/NIGHT CYCLE ──
-  (function initDayNight() {
-    // --- Draw pixel art sun ---
-    const sunPixels = [
+  // ── PIXEL ART SUN ──
+  (function drawSun() {
+    // 20x20 pixel grid. Colors:
+    // 0=transparent, 1=deep orange(#d94f00), 2=orange(#f07800), 3=warm orange(#f8a020), 4=yellow(#ffd040), 5=bright yellow(#ffe870)
+    const S = [
       [0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0],
       [0,0,0,0,1,0,2,2,2,2,2,2,2,2,0,1,0,0,0,0],
       [0,0,0,1,0,2,3,3,3,3,3,3,3,3,2,0,1,0,0,0],
@@ -3426,200 +3407,22 @@ function parts(n, emojis, cx, cy){
       [0,0,0,0,1,0,2,2,2,2,2,2,2,2,0,1,0,0,0,0],
       [0,0,0,0,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0],
     ];
-    const sunPalette = ['rgba(0,0,0,0)','#d94f00','#f07800','#f8a020','#ffd040','#ffe870'];
-    const sunScale = 3;
-    const sunCanvas = document.getElementById('sunCanvas');
-    sunCanvas.width = 20 * sunScale; sunCanvas.height = 20 * sunScale;
-    sunCanvas.style.width = 20 * sunScale + 'px'; sunCanvas.style.height = 20 * sunScale + 'px';
-    const sunCtx = sunCanvas.getContext('2d');
-    for (let r = 0; r < 20; r++)
+    const P = ['rgba(0,0,0,0)','#d94f00','#f07800','#f8a020','#ffd040','#ffe870'];
+    const scale = 3;
+    const c = document.getElementById('sunCanvas');
+    c.width = 20 * scale;
+    c.height = 20 * scale;
+    c.style.width = 20 * scale + 'px';
+    c.style.height = 20 * scale + 'px';
+    const ctx = c.getContext('2d');
+    for (let r = 0; r < 20; r++) {
       for (let col = 0; col < 20; col++) {
-        const v = sunPixels[r][col];
-        if (!v) continue;
-        sunCtx.fillStyle = sunPalette[v];
-        sunCtx.fillRect(col * sunScale, r * sunScale, sunScale, sunScale);
+        const v = S[r][col];
+        if (v === 0) continue;
+        ctx.fillStyle = P[v];
+        ctx.fillRect(col * scale, r * scale, scale, scale);
       }
-
-    // --- Draw pixel art moon (crescent) ---
-    // 20x20 grid: 0=transparent, 1=dark edge(#a0b0c8), 2=moon body(#d0dff0), 3=bright(#eef4ff), 4=star(#ffe870)
-    const moonPixels = [
-      [0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,2,2,2,1,0,0,0,0,0,4,0,0],
-      [0,0,0,0,0,1,2,2,2,3,3,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,1,2,2,3,3,3,3,3,2,1,0,0,0,0,0,0],
-      [0,0,0,1,2,2,3,3,3,3,3,3,3,2,1,0,0,0,0,0],
-      [0,0,1,2,2,3,3,3,3,3,3,2,2,2,1,0,0,0,0,0],
-      [0,0,1,2,3,3,3,3,3,3,2,1,0,0,0,0,0,0,4,0],
-      [0,1,2,2,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0,0],
-      [0,1,2,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,1,2,3,3,3,3,2,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,1,2,3,3,3,3,2,2,1,0,0,0,0,0,0,0,4,0,0],
-      [0,1,2,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0,0,0],
-      [0,1,2,2,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0,0],
-      [0,0,1,2,3,3,3,3,3,3,2,1,0,0,0,0,0,0,0,0],
-      [0,0,1,2,2,3,3,3,3,3,3,2,2,2,1,0,0,0,0,0],
-      [0,0,0,1,2,2,3,3,3,3,3,3,3,2,1,0,0,0,0,0],
-      [0,0,0,0,1,2,2,3,3,3,3,3,2,1,0,0,0,0,4,0],
-      [0,0,0,0,0,1,2,2,2,3,3,2,1,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,1,1,2,2,2,1,0,0,0,0,0,0,0,0],
-      [0,0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0],
-    ];
-    const moonPalette = ['rgba(0,0,0,0)','#a0b0c8','#d0dff0','#eef4ff','#ffe870'];
-    const moonScale = 3;
-    const moonCanvas = document.getElementById('moonCanvas');
-    moonCanvas.width = 20 * moonScale; moonCanvas.height = 20 * moonScale;
-    moonCanvas.style.width = 20 * moonScale + 'px'; moonCanvas.style.height = 20 * moonScale + 'px';
-    const moonCtx = moonCanvas.getContext('2d');
-    for (let r = 0; r < 20; r++)
-      for (let col = 0; col < 20; col++) {
-        const v = moonPixels[r][col];
-        if (!v) continue;
-        moonCtx.fillStyle = moonPalette[v];
-        moonCtx.fillRect(col * moonScale, r * moonScale, moonScale, moonScale);
-      }
-
-    // --- Sky color palettes for each time period ---
-    // Each entry: [sky1(top), sky2(mid), sky3(bottom/horizon)]
-    const skyPalettes = {
-      morning: ['#1a3a8a','#e8744a','#f8b87a'],   // dawn blue-orange
-      noon:    ['#1a5fcc','#3a8aee','#7ab8f0'],    // bright blue
-      evening: ['#3a1a5a','#c04020','#f87040'],    // dusk purple-red
-      night:   ['#050a1a','#0a1530','#12203a'],    // deep dark blue
-    };
-
-    // --- Time periods: [startHour, endHour] (24h game time) ---
-    // We simulate a full day cycle over 8 real minutes (480 seconds)
-    // 0–2min = morning, 2–4min = noon, 4–6min = evening, 6–8min = night, repeats
-    const CYCLE_MS = 8 * 60 * 1000;
-    const periods = [
-      { name: 'morning', start: 0.00, end: 0.25 },
-      { name: 'noon',    start: 0.25, end: 0.50 },
-      { name: 'evening', start: 0.50, end: 0.75 },
-      { name: 'night',   start: 0.75, end: 1.00 },
-    ];
-
-    function lerp(a, b, t) { return a + (b - a) * t; }
-
-    function hexToRgb(hex) {
-      const r = parseInt(hex.slice(1,3),16);
-      const g = parseInt(hex.slice(3,5),16);
-      const b = parseInt(hex.slice(5,7),16);
-      return [r,g,b];
     }
-
-    function lerpHex(hexA, hexB, t) {
-      const [r1,g1,b1] = hexToRgb(hexA);
-      const [r2,g2,b2] = hexToRgb(hexB);
-      const r = Math.round(lerp(r1,r2,t));
-      const g = Math.round(lerp(g1,g2,t));
-      const b = Math.round(lerp(b1,b2,t));
-      return `rgb(${r},${g},${b})`;
-    }
-
-    const root = document.documentElement;
-    const skyEl = document.querySelector('.sky');
-    const horizonEl = document.querySelector('.horizon');
-    const startTime = Date.now();
-
-    function smoothstep(t) { return t * t * (3 - 2 * t); }
-
-    function tick() {
-      const elapsed = (Date.now() - startTime) % CYCLE_MS;
-      const phase = elapsed / CYCLE_MS; // 0..1 over full cycle
-
-      // Find current and next period
-      let curPeriod = periods[periods.length - 1];
-      let nextPeriod = periods[0];
-      let localT = 0;
-      for (let i = 0; i < periods.length; i++) {
-        const p = periods[i];
-        if (phase >= p.start && phase < p.end) {
-          curPeriod = p;
-          nextPeriod = periods[(i + 1) % periods.length];
-          localT = (phase - p.start) / (p.end - p.start);
-          break;
-        }
-      }
-
-      // Smooth transition in last 20% of each period
-      const blendStart = 0.8;
-      const blendT = localT < blendStart ? 0 : smoothstep((localT - blendStart) / (1 - blendStart));
-
-      const curSky = skyPalettes[curPeriod.name];
-      const nxtSky = skyPalettes[nextPeriod.name];
-
-      const sky1 = lerpHex(curSky[0], nxtSky[0], blendT);
-      const sky2 = lerpHex(curSky[1], nxtSky[1], blendT);
-      const sky3 = lerpHex(curSky[2], nxtSky[2], blendT);
-
-      root.style.setProperty('--sky1', sky1);
-      root.style.setProperty('--sky2', sky2);
-      root.style.setProperty('--sky3', sky3);
-
-      // Update horizon gradient to match sky3
-      if (horizonEl) {
-        horizonEl.style.background = `linear-gradient(180deg,${sky3} 0%,var(--grass) 55%)`;
-      }
-
-      // --- Sun/Moon position along arc ---
-      // Sky element dimensions for arc calculation
-      const skyW = skyEl ? skyEl.offsetWidth : window.innerWidth;
-      const skyH = skyEl ? skyEl.offsetHeight : 200;
-      const objSize = 20 * sunScale; // 60px
-
-      // Sun arc: morning=right edge rising, noon=center top, evening=left edge setting
-      // Phase 0..0.75 = daytime arc (morning through evening)
-      // Phase 0.75..1.0 = night (hidden)
-      const isNight = curPeriod.name === 'night' || (curPeriod.name === 'evening' && localT > 0.9);
-      const isSunVisible = !isNight && !(curPeriod.name === 'evening' && blendT > 0.7);
-      const isMoonVisible = !isSunVisible;
-
-      // Sun arc travels from right to left during day (0..0.75 of full cycle)
-      // Normalize sun phase: 0=morning start, 1=evening end
-      let sunPhase;
-      if (phase < 0.75) {
-        sunPhase = phase / 0.75; // 0..1 during day
-      } else {
-        sunPhase = 0; // reset
-      }
-      // Arc: x from 85% to 5% of sky width, y = parabola peaking at center
-      const arcT = sunPhase; // 0..1
-      const sunX = skyW * (0.85 - arcT * 0.80) - objSize;
-      const peakY = 8;
-      const edgeY = skyH - objSize - 10;
-      const sunY = edgeY - (edgeY - peakY) * Math.sin(arcT * Math.PI);
-
-      // Moon arc: night phase (0.75..1.0 of cycle), arc right to left
-      let moonPhase = phase >= 0.75 ? (phase - 0.75) / 0.25 : 0;
-      const moonX = skyW * (0.85 - moonPhase * 0.80) - objSize;
-      const moonY = edgeY - (edgeY - peakY) * Math.sin(moonPhase * Math.PI);
-
-      // Position sun
-      sunCanvas.style.left = sunX + 'px';
-      sunCanvas.style.top = sunY + 'px';
-      sunCanvas.style.right = 'auto';
-      sunCanvas.style.opacity = isSunVisible ? '1' : '0';
-
-      // Position moon
-      moonCanvas.style.left = moonX + 'px';
-      moonCanvas.style.top = moonY + 'px';
-      moonCanvas.style.right = 'auto';
-      moonCanvas.style.display = 'block';
-      moonCanvas.style.opacity = isMoonVisible ? '1' : '0';
-
-      // Pulse glow for sun during noon
-      const noonGlow = curPeriod.name === 'noon' ? (0.88 + 0.12 * Math.sin(Date.now() / 600)) : 1;
-      sunCanvas.style.filter = curPeriod.name === 'noon'
-        ? `drop-shadow(0 0 ${Math.round(6 + 4*Math.sin(Date.now()/600))}px rgba(255,220,80,0.7))`
-        : 'none';
-      moonCanvas.style.filter = isMoonVisible
-        ? `drop-shadow(0 0 6px rgba(180,210,255,0.5))`
-        : 'none';
-
-      requestAnimationFrame(tick);
-    }
-
-    tick();
   })();
 
   // ── PIXEL ART CLOUDS ──
