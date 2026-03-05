@@ -550,8 +550,9 @@
     </svg>
   </div>
   <button class="press-start" onclick="startGame()">▶ START ADVENTURE</button>
-  <button id="btn-load-game" class="press-start load-btn" onclick="loadGame()" style="display:none;">💾 LOAD GAME</button>
+  <button id="btn-load-game" class="press-start load-btn" onclick="titleLoadFile()" style="display:none;">💾 LOAD SAVE FILE</button>
   <div id="save-preview" style="display:none;font-family:'Press Start 2P',monospace;font-size:6px;color:#aaaacc;margin-top:8px;text-align:center;line-height:2.2;opacity:0.85;"></div>
+  <input type="file" id="title-load-input" accept=".json" style="display:none;" onchange="handleTitleLoad(event)">
   <div class="title-hint">WASD / Arrow Keys &nbsp;•&nbsp; Walk into tall grass to battle!</div>
 </div>
 
@@ -3974,45 +3975,79 @@ function startGame(){
   });
 }
 
-function loadGame(){
-  document.getElementById('title-screen').style.display='none';
-  initGame(true);
+function titleLoadFile(){
+  const inp = document.getElementById('title-load-input');
+  if(inp){ inp.value=''; inp.click(); }
 }
 
-// Check for existing save and show LOAD button on title screen
+function handleTitleLoad(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!data || !data.lv){ alert('❌ File save tidak valid!'); return; }
+      // Apply save data directly and launch game
+      applyLoadedSave(data);
+      document.getElementById('title-screen').style.display='none';
+      initGame(true);
+    } catch(err){
+      alert('❌ Gagal membaca file: ' + (err.message||err));
+    }
+  };
+  reader.onerror = ()=> alert('❌ Gagal membaca file.');
+  reader.readAsText(file);
+}
+
+function applyLoadedSave(data){
+  // Push into localStorage so initGame's lsLoad() picks it up
+  try{ localStorage.setItem('gozo_save', JSON.stringify(data)); } catch(e){}
+}
+
+function confirmLoad(){
+  if(!pendingLoad) return;
+  applyLoadedSave(pendingLoad);
+  pendingLoad = null;
+  const prev = document.getElementById('load-preview');
+  if(prev) prev.style.display='none';
+  // Close save screen and restart game
+  const ss = document.getElementById('save-screen');
+  if(ss) ss.style.display='none';
+  // Reload the game state
+  location.reload();
+}
+
+// Show LOAD SAVE FILE button always (loads from file), and preview localStorage save if exists
 function checkTitleSave(){
+  // Always show the load button
+  const btn = document.getElementById('btn-load-game');
+  if(btn) btn.style.display='inline-block';
+
+  // If there's also a localStorage save, show its preview
   try{
     const raw = localStorage.getItem('gozo_save');
     if(!raw) return;
     const d = JSON.parse(raw);
     if(!d || !d.lv) return;
-
-    // Show load button
-    const btn = document.getElementById('btn-load-game');
-    if(btn) btn.style.display='inline-block';
-
-    // Show save preview
     const preview = document.getElementById('save-preview');
     if(preview){
       const mins = Math.round((d.playtime||0)/60000);
       const timeStr = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
       const partnerName = {fire:'IGNIS',water:'AQUA',grass:'SPROUT',dark:'UMBRA',electric:'VOLT',ice:'FROSTBITE',earth:'TERRA',wind:'ZEPHYR',light:'LUMINA'}[d.pt]||d.pt||'???';
-      const bossNames = ['WIZARD','GOLEM','VOID','LICH','DRAGON','INFERNO','TITAN','OMEGA'];
-      const bossProgress = `${Math.min(d.bossIdx||0, 8)}/8 bosses`;
+      const bossProgress = `${Math.min(d.bossIdx||0,8)}/8 bosses`;
       preview.style.display='block';
-      preview.innerHTML = `
-        <span style="color:#FFD700">LV ${d.lv}</span> &nbsp;·&nbsp;
-        <span style="color:#ff8866">HP ${d.mhp||100}</span> &nbsp;·&nbsp;
-        <span style="color:#88ffaa">💰 ${d.coins||0}</span><br>
-        <span style="color:#cc88ff">Partner: ${partnerName}</span> &nbsp;·&nbsp;
-        <span style="color:#88aaff">⚔️ ${bossProgress}</span><br>
-        <span style="color:#555">⏱ Playtime: ${timeStr}</span>
-      `;
+      preview.innerHTML =
+        `<span style="color:#aaa;font-size:5px">📂 Load .json save file from your computer</span><br>` +
+        `<span style="color:#555;font-size:5px">— or browser auto-save below —</span><br>` +
+        `<span style="color:#FFD700">LV ${d.lv}</span> &nbsp;·&nbsp; ` +
+        `<span style="color:#ff8866">HP ${d.mhp||100}</span> &nbsp;·&nbsp; ` +
+        `<span style="color:#88ffaa">💰 ${d.coins||0}</span><br>` +
+        `<span style="color:#cc88ff">Partner: ${partnerName}</span> &nbsp;·&nbsp; ` +
+        `<span style="color:#88aaff">⚔️ ${bossProgress}</span>`;
     }
   }catch(e){}
 }
-
-// Run save check when title screen loads
 setTimeout(checkTitleSave, 100);
 function selectMonster(t){
   pType=t;
@@ -4711,6 +4746,12 @@ function initGame(fromLoad){
   updatePlayerPos();
   updateCamera();
   updateHUD();
+  // Ensure partner is always set (fallback to fire if save had no partner)
+  if(!partner && pType && PARTNER_EVOLUTIONS[pType]){
+    const stageIdx = Math.max(0, Math.min((partnerStage||1)-1, PARTNER_EVOLUTIONS[pType].length-1));
+    partner = PARTNER_EVOLUTIONS[pType][stageIdx];
+  }
+  if(!partner){ pType='fire'; partnerStage=1; partner=PARTNER_EVOLUTIONS['fire'][0]; }
   const hp2=document.getElementById('hud-partner');
   if(hp2){
     const pc2=getPartnerCanvas(pType||'fire', partnerStage||1);
