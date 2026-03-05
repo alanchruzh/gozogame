@@ -5276,6 +5276,7 @@ const _fieldAnimals = {}; // { 'chicken_0': { el, x, y, vx, type, frame, frameTi
 
 function makeAnimalCanvas(type, flipX, frame) {
   if (type === 'cow') return makeCowCanvas(flipX, frame);
+  if (type === 'chicken') return makeChickenCanvas(flipX, frame);
   const def = ANIMAL_PIXELS[type];
   if (!def) return null;
   const rows = def.frames[frame];
@@ -5300,6 +5301,68 @@ function makeAnimalCanvas(type, flipX, frame) {
       ctx.fillRect(c * PIXEL_SIZE, r * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
     }
   }
+  if (flipX) ctx.restore();
+  return canvas;
+}
+
+function makeChickenCanvas(flipX, frame) {
+  const S = 3;
+  const W = 14, H = 16;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * S; canvas.height = H * S;
+  canvas.style.imageRendering = 'pixelated';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (flipX) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+
+  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
+  const BR='#c8854a', LB='#e8a060', CW='#fff0d0', RD='#cc2200', OR='#e8900a', YL='#e8c040', DK='#3a1a00', WG='#d4b070';
+
+  // --- COMB (jambul merah) ---
+  p(5,0,RD); p(6,0,RD); p(7,0,RD);
+  p(5,1,RD); p(6,1,RD); p(7,1,RD);
+
+  // --- HEAD ---
+  for(let x=4;x<=8;x++) for(let y=2;y<=4;y++) p(x,y,LB);
+  p(4,2,BR); p(8,2,BR); p(4,4,BR); p(8,4,BR); // corners darker
+  // eye
+  p(7,2,DK); p(7,3,DK);
+  // beak
+  p(9,3,OR); p(10,3,OR);
+  p(9,4,OR);
+  // wattle (gelambir merah)
+  p(8,4,RD); p(8,5,RD);
+
+  // --- BODY ---
+  for(let x=3;x<=9;x++) for(let y=5;y<=10;y++) p(x,y,BR);
+  // lighter belly
+  for(let x=4;x<=7;x++) for(let y=6;y<=9;y++) p(x,y,LB);
+  // wing highlight
+  for(let x=3;x<=6;x++) for(let y=6;y<=8;y++) p(x,y,WG);
+  p(3,5,BR); p(9,5,BR); p(3,10,BR); p(9,10,BR);
+  // body outline
+  p(2,6,BR); p(2,7,BR); p(2,8,BR); p(2,9,BR); // left side wing puff
+  p(10,6,BR); p(10,7,BR); // tail
+
+  // --- TAIL feathers ---
+  p(1,7,WG); p(1,8,WG); p(2,6,WG);
+  p(11,5,WG); p(11,6,WG); p(10,5,WG);
+
+  // --- LEGS ---
+  if (frame === 0) {
+    // stand
+    p(5,11,YL); p(6,11,YL);
+    p(5,12,YL); p(6,12,YL);
+    p(4,13,YL); p(5,13,YL); // left foot
+    p(6,13,YL); p(7,13,YL); // right foot
+  } else {
+    // walk
+    p(5,11,YL); p(6,11,YL);
+    p(4,12,YL); p(7,12,YL);
+    p(3,13,YL); p(4,13,YL); // left foot forward
+    p(7,13,YL); p(8,13,YL); // right foot back
+  }
+
   if (flipX) ctx.restore();
   return canvas;
 }
