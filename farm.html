@@ -4876,7 +4876,11 @@ window.saveState = function(){
       currentWeather, weatherChangedAt,
       currentSeason, seasonDay, seasonStartTime,
       npcData, npcQuestProgress,
-      exploreState, currentHour, dayStartTime
+      exploreState, currentHour, dayStartTime,
+      cookedInventory, totalCooked,
+      decoOwned, decoPlaced,
+      achievUnlocked, playerTitle, achievSeasonsSeen:[...achievSeasonsSeen],
+      totalFishCaught
     };
     localStorage.setItem('gozofarm_extra_v2', JSON.stringify(extra));
   } catch(e){}
@@ -4912,6 +4916,14 @@ function loadExtraState(){
     if(d.exploreState) Object.assign(exploreState, d.exploreState);
     if(d.currentHour) currentHour = d.currentHour;
     if(d.dayStartTime) dayStartTime = d.dayStartTime;
+    if(d.cookedInventory) Object.assign(cookedInventory, d.cookedInventory);
+    if(d.totalCooked) totalCooked = d.totalCooked;
+    if(d.decoOwned) Object.assign(decoOwned, d.decoOwned);
+    if(d.decoPlaced){ Object.assign(decoPlaced, d.decoPlaced); setTimeout(renderDecoOnFarm, 500); }
+    if(d.achievUnlocked) Object.assign(achievUnlocked, d.achievUnlocked);
+    if(d.playerTitle) playerTitle = d.playerTitle;
+    if(d.achievSeasonsSeen) achievSeasonsSeen = new Set(d.achievSeasonsSeen);
+    if(d.totalFishCaught) totalFishCaught = d.totalFishCaught;
   } catch(e){}
   // Sync animal sprites after extra state loaded
   setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 100);
@@ -4933,6 +4945,8 @@ window.startFarm = function(){
   initExploreState();
   startDayNightCycle();
   startRandomEvents();
+  achievSeasonsSeen.add(currentSeason);
+  setTimeout(()=>{ checkAchievements(); renderDecoOnFarm(); }, 1000);
   if(upgradeLevels.autoWater >= 1) startAutoWater();
   if(!stats.firstPlayDate) stats.firstPlayDate = getTodayStr();
   stats.sessionStart = Date.now();
@@ -5080,6 +5094,18 @@ window.handleClick = function(fid, pid){
   <button class="feat-btn" onclick="openExploreMap()">
     <span class="fb-icon">🗺️</span><span class="fb-label">Explore</span>
   </button>
+  <button class="feat-btn" onclick="openCookingPanel()">
+    <span class="fb-icon">🍳</span><span class="fb-label">Cook</span>
+  </button>
+  <button class="feat-btn" onclick="openDecoPanel()">
+    <span class="fb-icon">🎨</span><span class="fb-label">Decor</span>
+  </button>
+  <button class="feat-btn" onclick="openAchievPanel()">
+    <span class="fb-icon">🏆</span><span class="fb-label">Awards</span>
+  </button>
+  <button class="feat-btn" onclick="openFishingPanel()">
+    <span class="fb-icon">🎣</span><span class="fb-label">Fish</span>
+  </button>
   <button class="feat-btn" onclick="exportSave()">
     <span class="fb-icon">💾</span><span class="fb-label">Save</span>
   </button>
@@ -5115,6 +5141,50 @@ window.handleClick = function(fid, pid){
 <div id="npcDialogOverlay" class="modal-overlay hidden">
   <div class="modal-box" style="max-width:360px">
     <div id="npcDialogContent"></div>
+  </div>
+</div>
+
+<!-- 🍳 COOKING PANEL -->
+<div id="cookingOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">
+      <h2>🍳 Cooking & Crafting</h2>
+      <button class="modal-close" onclick="document.getElementById('cookingOverlay').classList.add('hidden')">✕</button>
+    </div>
+    <div id="cookingContent"></div>
+  </div>
+</div>
+
+<!-- 🎨 DECORATION PANEL -->
+<div id="decoOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">
+      <h2>🎨 Farm Decoration</h2>
+      <button class="modal-close" onclick="document.getElementById('decoOverlay').classList.add('hidden')">✕</button>
+    </div>
+    <div id="decoContent"></div>
+  </div>
+</div>
+
+<!-- 🏆 ACHIEVEMENTS PANEL -->
+<div id="achievOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">
+      <h2>🏆 Achievements</h2>
+      <button class="modal-close" onclick="document.getElementById('achievOverlay').classList.add('hidden')">✕</button>
+    </div>
+    <div id="achievContent"></div>
+  </div>
+</div>
+
+<!-- 🎣 FISHING PANEL -->
+<div id="fishingOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-title">
+      <h2>🎣 Fishing Spot</h2>
+      <button class="modal-close" onclick="closeFishingPanel()">✕</button>
+    </div>
+    <div id="fishingContent"></div>
   </div>
 </div>
 
@@ -7117,6 +7187,471 @@ function showRandomEvent(icon, title, desc){
 
 function dismissRandomEvent(){
   document.getElementById('randomEventPopup').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🍳 COOKING & CRAFTING SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const RECIPES = {
+  tomato_soup:    { name:'Tomato Soup',     icon:'🍲', ingredients:{tomat:3,wortel:1},           gold:80,  desc:'Hearty soup that sells well.' },
+  salsa:          { name:'Salsa Sauce',     icon:'🫙', ingredients:{tomat:2,cabe:2},              gold:100, desc:'Spicy sauce loved by everyone.' },
+  corn_bread:     { name:'Corn Bread',      icon:'🍞', ingredients:{jagung:4},                    gold:90,  desc:'Fluffy bread from fresh corn.' },
+  veggie_stew:    { name:'Veggie Stew',     icon:'🥘', ingredients:{wortel:2,labu:1,jagung:2},    gold:180, desc:'Rich stew with farm vegetables.' },
+  strawberry_jam: { name:'Strawberry Jam',  icon:'🍓', ingredients:{stroberi:4},                  gold:160, desc:'Sweet jam from fresh strawberries.' },
+  pumpkin_pie:    { name:'Pumpkin Pie',     icon:'🥧', ingredients:{labu:2,jagung:1},             gold:200, desc:'Autumn favorite pie.' },
+  melon_juice:    { name:'Melon Juice',     icon:'🧃', ingredients:{melon:2},                     gold:140, desc:'Refreshing juice on hot days.' },
+  garlic_oil:     { name:'Garlic Oil',      icon:'🫙', ingredients:{bawangPutih:3},               gold:220, desc:'Aromatic oil used in fine cooking.' },
+  soy_milk:       { name:'Soy Milk',        icon:'🥛', ingredients:{kacang:3},                    gold:180, desc:'Healthy plant-based milk.' },
+  farm_salad:     { name:'Farm Salad',      icon:'🥗', ingredients:{wortel:2,tomat:2,stroberi:1}, gold:250, desc:'A colorful salad from the best crops.' },
+  hot_sauce:      { name:'Hot Sauce',       icon:'🌶️', ingredients:{cabe:5,bawangPutih:1},        gold:300, desc:'Fiery sauce for the brave.' },
+  harvest_cake:   { name:'Harvest Cake',    icon:'🎂', ingredients:{stroberi:3,melon:1,jagung:2}, gold:450, desc:'A festive cake for special occasions.' },
+};
+
+let cookedInventory = {}; // {recipeId: count}
+
+function openCookingPanel(){
+  let html = `<div style="font-size:12px;color:#80a060;text-align:center;margin-bottom:10px">Combine crops from your Harvest Basket into valuable cooked goods!</div>`;
+
+  // Show cooked inventory if any
+  const cooked = Object.entries(cookedInventory).filter(([k,v])=>v>0);
+  if(cooked.length > 0){
+    html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;margin-bottom:10px">
+      <div style="color:#f7c948;font-size:11px;font-weight:bold;margin-bottom:6px">🍽️ COOKED GOODS (click to sell)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+    cooked.forEach(([k,v])=>{
+      const r = RECIPES[k];
+      html += `<div onclick="sellCooked('${k}')" style="background:rgba(255,255,255,0.08);border-radius:6px;padding:5px 8px;cursor:pointer;text-align:center;border:1px solid #604020">
+        <div style="font-size:18px">${r.icon}</div>
+        <div style="font-size:10px;color:#e0c080">${r.name}</div>
+        <div style="font-size:10px;color:#f7c948">×${v} · ${r.gold}🪙</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `<div style="display:flex;flex-direction:column;gap:6px">`;
+  Object.entries(RECIPES).forEach(([id, r])=>{
+    const canCook = Object.entries(r.ingredients).every(([k,n])=>(harvestBasket[k]||0)>=n);
+    const ingList = Object.entries(r.ingredients).map(([k,n])=>{
+      const have = harvestBasket[k]||0;
+      const ok = have >= n;
+      return `<span style="color:${ok?'#80e080':'#e06060'}">${CROPS[k]?.emoji||'🌿'}${k} ${have}/${n}</span>`;
+    }).join(' ');
+    html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;border:1px solid ${canCook?'#806020':'rgba(255,255,255,0.06)'}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:24px">${r.icon}</span>
+        <div style="flex:1">
+          <div style="color:#e0d080;font-size:13px;font-weight:bold">${r.name} <span style="color:#f7c948;font-size:12px">→ ${r.gold}🪙</span></div>
+          <div style="color:#80a060;font-size:11px">${r.desc}</div>
+          <div style="font-size:11px;margin-top:3px">${ingList}</div>
+        </div>
+        <button onclick="cookRecipe('${id}')" ${canCook?'':'disabled'} style="background:${canCook?'#604010':'#222'};border:2px solid ${canCook?'#c08020':'#444'};border-radius:8px;color:${canCook?'#f7c948':'#555'};font-size:12px;padding:6px 10px;cursor:${canCook?'pointer':'default'}">Cook!</button>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('cookingContent').innerHTML = html;
+  document.getElementById('cookingOverlay').classList.remove('hidden');
+}
+
+function cookRecipe(id){
+  const r = RECIPES[id];
+  if(!Object.entries(r.ingredients).every(([k,n])=>(harvestBasket[k]||0)>=n)){
+    showToast('Not enough ingredients!'); return;
+  }
+  Object.entries(r.ingredients).forEach(([k,n])=>{ harvestBasket[k]-=n; });
+  cookedInventory[id] = (cookedInventory[id]||0)+1;
+  totalCooked++;
+  updateHarvestUI(); saveState();
+  showToast(`${r.icon} Cooked ${r.name}! Sell it for ${r.gold}🪙`);
+  openCookingPanel();
+  checkAchievements();
+}
+
+function sellCooked(id){
+  const r = RECIPES[id];
+  if(!cookedInventory[id]) return;
+  let sellPrice = r.gold;
+  if(currentSeason==='autumn') sellPrice = Math.floor(sellPrice*1.25);
+  if(marketBoostUntil > Date.now()) sellPrice = Math.floor(sellPrice*2);
+  gold += sellPrice; cookedInventory[id]--;
+  updateGoldUI(); saveState();
+  showGoldFloat('+'+sellPrice+'🪙');
+  openCookingPanel();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🎨 FARM DECORATION SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const DECO_ITEMS = {
+  scarecrow:   { name:'Scarecrow',      icon:'🧹', price:200,  emoji:'🪆', desc:'Keeps pests away. Reduces pest event chance.', placed:false },
+  fountain:    { name:'Fountain',       icon:'⛲', price:500,  emoji:'⛲', desc:'+1 water charge every 2 minutes.',            placed:false },
+  windmill:    { name:'Windmill',       icon:'🏗️', price:800,  emoji:'🌀', desc:'+10% grow speed bonus passively.',            placed:false },
+  greenhouse:  { name:'Greenhouse',     icon:'🏡', price:1500, emoji:'🏡', desc:'Protects crops from winter. Can plant in winter!', placed:false },
+  well:        { name:'Wishing Well',   icon:'🪣', price:400,  emoji:'🪣', desc:'Chance to get bonus gold when watering.',     placed:false },
+  beehive:     { name:'Extra Beehive',  icon:'🍯', price:600,  emoji:'🐝', desc:'+50% honey production speed.',               placed:false },
+  lantern:     { name:'Garden Lantern', icon:'🏮', price:150,  emoji:'🏮', desc:'Night buff duration +50%.',                  placed:false },
+  pond:        { name:'Fishing Pond',   icon:'🐟', price:1000, emoji:'🌊', desc:'Unlocks better fish at the fishing spot.',    placed:false },
+  statue:      { name:'Golden Gozo',    icon:'🗿', price:2000, emoji:'✨', desc:'+5% gold from all sources.',                 placed:false },
+  rainbow_arch:{ name:'Rainbow Arch',   icon:'🌈', price:1200, emoji:'🌈', desc:'Boosts happiness — +15% sell price.',        placed:false },
+};
+
+let decoOwned = {}; // {id: count}
+let decoPlaced = {}; // {id: true/false}
+
+function openDecoPanel(){
+  let html = `<div style="font-size:12px;color:#80a060;text-align:center;margin-bottom:10px">Buy and place decorations to get permanent farm buffs!</div>`;
+
+  // Placed decorations summary
+  const placed = Object.entries(decoPlaced).filter(([k,v])=>v);
+  if(placed.length > 0){
+    html += `<div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:6px 10px;margin-bottom:10px">
+      <div style="color:#f7c948;font-size:11px;margin-bottom:4px">✅ ACTIVE DECORATIONS</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">`;
+    placed.forEach(([k])=>{
+      const d = DECO_ITEMS[k];
+      html += `<span style="background:rgba(255,255,255,0.1);border-radius:6px;padding:3px 7px;font-size:12px">${d.icon} ${d.name}</span>`;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `<div style="display:flex;flex-direction:column;gap:6px">`;
+  Object.entries(DECO_ITEMS).forEach(([id, d])=>{
+    const owned = decoOwned[id]||0;
+    const isPlaced = decoPlaced[id];
+    const canAfford = gold >= d.price;
+    html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;border:1px solid ${isPlaced?'#806020':'rgba(255,255,255,0.06)'}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:26px">${d.icon}</span>
+        <div style="flex:1">
+          <div style="color:#e0d080;font-size:13px;font-weight:bold">${d.name}</div>
+          <div style="color:#80c070;font-size:11px">${d.desc}</div>
+          ${owned>0?`<div style="color:#888;font-size:10px">Owned: ${owned} · ${isPlaced?'✅ Placed':'Not placed'}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          ${!owned ? `<button onclick="buyDeco('${id}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#403010':'#1a1a1a'};border:2px solid ${canAfford?'#a08020':'#333'};border-radius:6px;color:${canAfford?'#f7c948':'#555'};font-size:11px;padding:4px 8px;cursor:${canAfford?'pointer':'default'}">Buy ${d.price}🪙</button>` : ''}
+          ${owned && !isPlaced ? `<button onclick="placeDeco('${id}')" style="background:#204010;border:2px solid #60a030;border-radius:6px;color:#a0e060;font-size:11px;padding:4px 8px;cursor:pointer">🏗️ Place</button>` : ''}
+          ${isPlaced ? `<button onclick="removeDeco('${id}')" style="background:#300a0a;border:2px solid #803030;border-radius:6px;color:#e06060;font-size:11px;padding:4px 8px;cursor:pointer">Remove</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('decoContent').innerHTML = html;
+  document.getElementById('decoOverlay').classList.remove('hidden');
+}
+
+function buyDeco(id){
+  const d = DECO_ITEMS[id];
+  if(gold < d.price){ showToast('Not enough gold!'); return; }
+  gold -= d.price; decoOwned[id]=(decoOwned[id]||0)+1;
+  updateGoldUI(); saveState();
+  showToast(`${d.icon} Bought ${d.name}! Place it to activate the buff.`);
+  openDecoPanel();
+}
+
+function placeDeco(id){
+  const d = DECO_ITEMS[id];
+  decoPlaced[id]=true; decoOwned[id]--;
+  // Apply special effects
+  if(id==='fountain'){ if(!window._fountainTimer) window._fountainTimer=setInterval(()=>{ waterCharges=Math.min(WATER_MAX,waterCharges+1); updateWaterUI(); },120000); }
+  if(id==='greenhouse'){ window._greenhouseActive=true; }
+  if(id==='pond'){ window._pondUnlocked=true; }
+  saveState();
+  showToast(`${d.icon} ${d.name} placed! Buff is now active.`);
+  openDecoPanel(); renderDecoOnFarm();
+}
+
+function removeDeco(id){
+  const d = DECO_ITEMS[id];
+  decoPlaced[id]=false; decoOwned[id]=(decoOwned[id]||0)+1;
+  saveState(); showToast(`${d.icon} ${d.name} removed.`);
+  openDecoPanel(); renderDecoOnFarm();
+}
+
+function renderDecoOnFarm(){
+  let bar = document.getElementById('decoFarmBar');
+  if(!bar){
+    bar = document.createElement('div');
+    bar.id = 'decoFarmBar';
+    bar.style.cssText = 'position:absolute;top:2px;left:50%;transform:translateX(-50%);z-index:30;display:flex;gap:4px;pointer-events:none;';
+    const layer = document.getElementById('animalLayer');
+    if(layer) layer.appendChild(bar);
+  }
+  bar.innerHTML = Object.entries(decoPlaced).filter(([k,v])=>v).map(([k])=>`<span style="font-size:18px;filter:drop-shadow(1px 1px 2px #000)">${DECO_ITEMS[k].icon}</span>`).join('');
+}
+
+// Greenhouse lets you plant in winter
+const _origHandlePlotClick2 = handlePlotClick;
+function handlePlotClick(fid,pid){
+  if(currentSeason==='winter' && !decoPlaced['greenhouse']){
+    const p = fieldData[fid]?.plots[pid];
+    if(p && p.state==='tilled'){ showToast('❄️ Winter — cannot plant! Buy a Greenhouse to override.'); return; }
+  }
+  _origHandlePlotClick2(fid,pid);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🏆 ACHIEVEMENT SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const ACHIEVEMENTS = [
+  { id:'first_harvest',  icon:'🌾', name:'First Harvest',      desc:'Harvest your first crop',                     check:()=>totalHarvested>=1,         reward:50,   title:'Farmer' },
+  { id:'harvest_100',    icon:'🌾', name:'Century Harvest',     desc:'Harvest 100 crops total',                     check:()=>totalHarvested>=100,        reward:200,  title:'Seasoned Farmer' },
+  { id:'harvest_500',    icon:'🌾', name:'Harvest Legend',      desc:'Harvest 500 crops total',                     check:()=>totalHarvested>=500,        reward:500,  title:'Harvest Legend' },
+  { id:'gold_1000',      icon:'💰', name:'First Fortune',       desc:'Accumulate 1,000 gold',                       check:()=>gold>=1000,                 reward:100,  title:'Merchant' },
+  { id:'gold_10000',     icon:'💰', name:'Rich Farmer',         desc:'Accumulate 10,000 gold',                      check:()=>gold>=10000,                reward:500,  title:'Wealthy Farmer' },
+  { id:'cook_5',         icon:'🍳', name:'Home Chef',           desc:'Cook 5 recipes',                              check:()=>totalCooked>=5,             reward:150,  title:'Home Chef' },
+  { id:'cook_20',        icon:'👨‍🍳', name:'Master Chef',         desc:'Cook 20 recipes',                             check:()=>totalCooked>=20,            reward:400,  title:'Master Chef' },
+  { id:'all_crops',      icon:'🌱', name:'Crop Collector',      desc:'Unlock all 9 crops',                          check:()=>Object.keys(CROPS).every(k=>CROPS[k].unlockAt===0||(inventory[k]||0)>0||totalHarvested>CROPS[k].unlockAt), reward:300, title:'Botanist' },
+  { id:'all_animals',    icon:'🐄', name:'Animal Lover',        desc:'Own all 4 animals',                           check:()=>Object.keys(ANIMALS).every(k=>ownedAnimals[k]?.length>0), reward:400, title:'Animal Lover' },
+  { id:'all_seasons',    icon:'🌍', name:'Four Seasons',        desc:'Experience all 4 seasons',                    check:()=>achievSeasonsSeen.size>=4,  reward:300,  title:'Seasonal Pro' },
+  { id:'explore_all',    icon:'🗺️', name:'World Explorer',      desc:'Unlock all 4 exploration areas',              check:()=>Object.keys(EXPLORE_AREAS).every(k=>exploreState[k]?.unlocked), reward:800, title:'Explorer' },
+  { id:'deco_5',         icon:'🎨', name:'Interior Designer',   desc:'Place 5 decorations',                         check:()=>Object.values(decoPlaced).filter(Boolean).length>=5, reward:350, title:'Decorator' },
+  { id:'fishing_10',     icon:'🎣', name:'Fishing Rookie',      desc:'Catch 10 fish',                               check:()=>totalFishCaught>=10,        reward:150,  title:'Fisherman' },
+  { id:'npc_friend',     icon:'❤️', name:'Good Neighbor',       desc:'Reach 50 friendship with any NPC',            check:()=>Object.values(npcData).some(n=>n.friendship>=50), reward:200, title:'Neighbor' },
+  { id:'quest_10',       icon:'📋', name:'Quest Master',        desc:'Complete 10 daily quests',                    check:()=>stats.questsCompleted>=10,  reward:300,  title:'Quest Master' },
+];
+
+let achievUnlocked = {};
+let achievSeasonsSeen = new Set();
+let totalCooked = 0;
+let totalFishCaught = 0;
+let playerTitle = 'Newcomer';
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(achievUnlocked[a.id]) return;
+    try {
+      if(a.check()){
+        achievUnlocked[a.id] = Date.now();
+        gold += a.reward;
+        updateGoldUI();
+        playerTitle = a.title;
+        saveState();
+        showToast(`🏆 Achievement Unlocked: "${a.name}"! +${a.reward}🪙`);
+      }
+    } catch(e){}
+  });
+}
+
+function openAchievPanel(){
+  checkAchievements();
+  const unlocked = ACHIEVEMENTS.filter(a=>achievUnlocked[a.id]).length;
+  let html = `
+    <div style="text-align:center;margin-bottom:12px">
+      <div style="color:#f7c948;font-size:13px">Your Title: <span style="color:#ffcc44;font-weight:bold;font-size:15px">${playerTitle}</span></div>
+      <div style="color:#80a060;font-size:11px;margin-top:4px">${unlocked} / ${ACHIEVEMENTS.length} achievements unlocked</div>
+      <div style="background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden;margin-top:6px;height:6px">
+        <div style="height:6px;background:#c0a020;width:${Math.round(unlocked/ACHIEVEMENTS.length*100)}%;transition:width 0.5s"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+
+  ACHIEVEMENTS.forEach(a=>{
+    const done = !!achievUnlocked[a.id];
+    html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;border:1px solid ${done?'#806020':'rgba(255,255,255,0.05)'}">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:22px;${done?'':'filter:grayscale(1) opacity(0.4)'}">${a.icon}</span>
+        <div style="flex:1">
+          <div style="color:${done?'#f7c948':'#888'};font-size:13px;font-weight:bold">${a.name}</div>
+          <div style="color:#60806050;font-size:11px;color:${done?'#80a060':'#506050'}">${a.desc}</div>
+          ${done?`<div style="color:#c0a020;font-size:10px">🏅 Title: ${a.title} · +${a.reward}🪙</div>`:''}
+        </div>
+        ${done?`<span style="font-size:18px">✅</span>`:`<span style="color:#f7c948;font-size:11px">+${a.reward}🪙</span>`}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('achievContent').innerHTML = html;
+  document.getElementById('achievOverlay').classList.remove('hidden');
+}
+function openAchievPanel_alias(){ openAchievPanel(); }
+
+// Track seasons for achievement
+const _origAdvanceSeason2 = advanceSeason;
+function advanceSeason(){
+  _origAdvanceSeason2();
+  achievSeasonsSeen.add(currentSeason);
+  checkAchievements();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🎣 FISHING MINI-GAME
+// ══════════════════════════════════════════════════════════════════
+const FISH_TYPES = [
+  { name:'Tiny Minnow',    icon:'🐟', rarity:'common',    gold:20,  chance:0.35, time:3 },
+  { name:'Bass',           icon:'🐠', rarity:'common',    gold:40,  chance:0.30, time:4 },
+  { name:'Catfish',        icon:'🐡', rarity:'uncommon',  gold:80,  chance:0.15, time:5 },
+  { name:'Salmon',         icon:'🍣', rarity:'uncommon',  gold:120, chance:0.10, time:6 },
+  { name:'Swordfish',      icon:'⚔️', rarity:'rare',      gold:250, chance:0.05, time:7 },
+  { name:'Golden Carp',    icon:'✨', rarity:'legendary', gold:600, chance:0.02, time:8 },
+  { name:'Old Boot',       icon:'👢', rarity:'junk',      gold:2,   chance:0.20, time:2 },
+  { name:'Seaweed',        icon:'🌿', rarity:'junk',      gold:5,   chance:0.15, time:2 },
+];
+
+const FISH_POND_BONUS = [
+  { name:'Giant Tuna',     icon:'🐋', rarity:'epic',      gold:400, chance:0.08, time:7 },
+  { name:'Pearl Oyster',   icon:'🦪', rarity:'epic',      gold:350, chance:0.06, time:6 },
+];
+
+let fishingState = 'idle'; // idle, casting, waiting, catching, result
+let fishingTimer = null;
+let fishingResult = null;
+let fishingBarPos = 0;
+let fishingBarTarget = 50;
+let fishingBarDir = 1;
+let fishingBarInterval = null;
+let currentFishBite = null;
+
+function openFishingPanel(){
+  renderFishingPanel();
+  document.getElementById('fishingOverlay').classList.remove('hidden');
+}
+function closeFishingPanel(){
+  document.getElementById('fishingOverlay').classList.add('hidden');
+  if(fishingBarInterval){ clearInterval(fishingBarInterval); fishingBarInterval=null; }
+  fishingState='idle';
+}
+
+function renderFishingPanel(){
+  const hasPond = decoPlaced['pond'];
+  let html = `
+    <div style="text-align:center;margin-bottom:10px">
+      <div style="font-size:48px">${fishingState==='waiting'?'🎣':fishingState==='catching'?'⚡':'🎣'}</div>
+      <div style="color:#80c8ff;font-size:12px">Total caught: ${totalFishCaught} fish</div>
+      ${hasPond?'<div style="color:#f7c948;font-size:11px">🌊 Fishing Pond active — rare fish bonus!</div>':''}
+    </div>`;
+
+  if(fishingState==='idle'){
+    html += `
+      <div style="background:rgba(0,50,80,0.4);border-radius:10px;padding:12px;margin-bottom:12px;border:1px solid #2060a0">
+        <div style="color:#80c8ff;font-size:12px;line-height:1.6">Cast your line and wait for a bite. When the fish bites, quickly click the <b style="color:#f7c948">CATCH!</b> button before it escapes!</div>
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="color:#80a070;font-size:11px;margin-bottom:6px">POSSIBLE CATCHES:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">`;
+    const pool = hasPond ? [...FISH_TYPES,...FISH_POND_BONUS] : FISH_TYPES;
+    pool.filter(f=>f.rarity!=='junk').forEach(f=>{
+      const colors = {common:'#80c080',uncommon:'#80c8ff',rare:'#c080ff',legendary:'#ffd700',epic:'#ff8c00'};
+      html += `<span style="background:rgba(0,0,0,0.3);border-radius:5px;padding:3px 6px;font-size:11px;color:${colors[f.rarity]||'#888'}">${f.icon} ${f.name} ${f.gold}🪙</span>`;
+    });
+    html += `</div></div>
+      <button onclick="castLine()" style="width:100%;background:#103050;border:2px solid #4090c0;border-radius:10px;color:#80d0ff;font-size:15px;padding:12px;cursor:pointer">🎣 Cast Line!</button>`;
+  }
+
+  else if(fishingState==='waiting'){
+    html += `
+      <div style="text-align:center;padding:20px 0">
+        <div style="font-size:36px;animation:bounce 0.5s infinite alternate">🎣</div>
+        <div style="color:#80c8ff;font-size:14px;margin-top:10px">Waiting for a bite...</div>
+        <div style="color:#607080;font-size:12px;margin-top:4px">Stay alert!</div>
+      </div>
+      <button onclick="closeFishingPanel()" style="width:100%;background:#1a0a0a;border:1px solid #443;border-radius:8px;color:#666;font-size:12px;padding:8px;cursor:pointer">Cancel</button>`;
+  }
+
+  else if(fishingState==='catching'){
+    html += `
+      <div style="text-align:center;padding:10px 0">
+        <div style="font-size:36px;animation:pulse 0.3s infinite">⚡</div>
+        <div style="color:#f7c948;font-size:16px;font-weight:bold;margin:8px 0">Fish on the line!</div>
+      </div>
+      <div style="background:rgba(0,0,0,0.4);border-radius:8px;padding:10px;margin-bottom:12px">
+        <div style="position:relative;height:24px;background:#1a2a1a;border-radius:6px;overflow:hidden;border:2px solid #406040">
+          <div id="fishBar" style="position:absolute;top:0;left:${fishingBarPos}%;width:8%;height:100%;background:#f7c948;border-radius:4px;transition:left 0.1s"></div>
+          <div style="position:absolute;top:0;left:40%;width:20%;height:100%;background:rgba(0,255,0,0.2);border-radius:4px"></div>
+        </div>
+        <div style="color:#80a060;font-size:11px;text-align:center;margin-top:4px">Keep the bar in the green zone!</div>
+      </div>
+      <button onclick="catchFish()" style="width:100%;background:#205010;border:3px solid #60e020;border-radius:10px;color:#a0ff60;font-size:18px;font-weight:bold;padding:14px;cursor:pointer;animation:buyGlow 0.5s infinite">🐟 CATCH!</button>`;
+  }
+
+  else if(fishingState==='result'){
+    const f = fishingResult;
+    const colors = {common:'#80c080',uncommon:'#80c8ff',rare:'#c080ff',legendary:'#ffd700',epic:'#ff8c00',junk:'#666'};
+    html += `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:52px;margin-bottom:8px">${f.icon}</div>
+        <div style="color:${colors[f.rarity]||'#888'};font-size:18px;font-weight:bold">${f.name}</div>
+        <div style="color:#888;font-size:12px;text-transform:uppercase;margin:4px 0">${f.rarity}</div>
+        <div style="color:#f7c948;font-size:20px;font-weight:bold;margin-top:8px">+${f.gold} 🪙</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button onclick="fishAgain()" style="flex:1;background:#103050;border:2px solid #4090c0;border-radius:8px;color:#80d0ff;font-size:13px;padding:10px;cursor:pointer">🎣 Fish Again</button>
+        <button onclick="closeFishingPanel()" style="flex:1;background:#1a1a1a;border:1px solid #444;border-radius:8px;color:#888;font-size:13px;padding:10px;cursor:pointer">Leave</button>
+      </div>`;
+  }
+
+  document.getElementById('fishingContent').innerHTML = html;
+}
+
+function castLine(){
+  fishingState='waiting';
+  renderFishingPanel();
+  const waitTime = 2000 + Math.random()*5000;
+  fishingTimer = setTimeout(()=>{
+    fishingState='catching';
+    startFishingBar();
+    renderFishingPanel();
+    // Auto-miss after fish_time seconds
+    const pool = decoPlaced['pond'] ? [...FISH_TYPES,...FISH_POND_BONUS] : FISH_TYPES;
+    currentFishBite = rollFish(pool);
+    const missTime = (currentFishBite.time||4)*1000;
+    fishingTimer = setTimeout(()=>{
+      if(fishingState==='catching'){
+        fishingState='idle'; stopFishingBar();
+        renderFishingPanel();
+        showToast('🎣 The fish got away!');
+      }
+    }, missTime);
+  }, waitTime);
+}
+
+function rollFish(pool){
+  const r = Math.random();
+  let cum = 0;
+  for(let f of pool){ cum+=f.chance; if(r<cum) return f; }
+  return pool[0];
+}
+
+function startFishingBar(){
+  fishingBarPos = 0;
+  fishingBarDir = 1+Math.random()*2;
+  fishingBarInterval = setInterval(()=>{
+    fishingBarPos += fishingBarDir;
+    if(fishingBarPos>92){ fishingBarDir=-Math.abs(fishingBarDir); }
+    if(fishingBarPos<0){ fishingBarDir=Math.abs(fishingBarDir); }
+    const bar = document.getElementById('fishBar');
+    if(bar) bar.style.left=fishingBarPos+'%';
+  }, 50);
+}
+
+function stopFishingBar(){
+  if(fishingBarInterval){ clearInterval(fishingBarInterval); fishingBarInterval=null; }
+}
+
+function catchFish(){
+  if(fishingState!=='catching') return;
+  clearTimeout(fishingTimer);
+  stopFishingBar();
+  const f = currentFishBite || rollFish(decoPlaced['pond']?[...FISH_TYPES,...FISH_POND_BONUS]:FISH_TYPES);
+  // Bonus if bar in green zone (40-60%)
+  const inZone = fishingBarPos>=40 && fishingBarPos<=60;
+  let earnedGold = f.gold;
+  if(inZone) earnedGold = Math.floor(earnedGold*1.5);
+  if(currentSeason==='autumn') earnedGold = Math.floor(earnedGold*1.25);
+  gold+=earnedGold; updateGoldUI(); saveState();
+  totalFishCaught++;
+  fishingResult={...f, gold:earnedGold};
+  fishingState='result';
+  renderFishingPanel();
+  showGoldFloat('+'+earnedGold+'🪙');
+  checkAchievements();
+}
+
+function fishAgain(){
+  fishingState='idle';
+  currentFishBite=null;
+  renderFishingPanel();
 }
 
 // ══════════════════════════════════════════════════════════════════
