@@ -5450,7 +5450,7 @@ function spawnFieldAnimal(type, uid) {
     type: type,
     frame: 0,
     frameTimer: 0,
-    flipX: dir < 0,
+    flipX: dir > 0,
     pauseTimer: 0,
     paused: false,
   };
@@ -5502,8 +5502,8 @@ function animalLoop(ts) {
     a.x += a.vx;
     const maxX = lw - def.w * PIXEL_SIZE;
 
-    if (a.x <= 0) { a.x = 0; a.vx = Math.abs(a.vx); a.flipX = false; }
-    if (a.x >= maxX) { a.x = maxX; a.vx = -Math.abs(a.vx); a.flipX = true; }
+    if (a.x <= 0) { a.x = 0; a.vx = Math.abs(a.vx); a.flipX = true; }
+    if (a.x >= maxX) { a.x = maxX; a.vx = -Math.abs(a.vx); a.flipX = false; }
 
     // bee bobs vertically
     if (a.type === 'bee') {
