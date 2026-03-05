@@ -31,6 +31,9 @@
     clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);
     transition:all .15s;animation:blink 1.5s step-end infinite;margin-top:20px;
     box-shadow:0 0 20px #FFD70066,4px 4px 0 rgba(0,0,0,.5);}
+  .press-start.load-btn{background:linear-gradient(135deg,#4488ff,#2255cc);color:#fff;
+    box-shadow:0 0 20px #4488ff66,4px 4px 0 rgba(0,0,0,.5);animation:none;}
+  .press-start.load-btn:hover{background:linear-gradient(135deg,#55aaff,#3366dd);transform:scale(1.04);}
   .press-start:hover{background:linear-gradient(135deg,#ff6633,#cc2200);color:#fff;transform:scale(1.06);animation:none;box-shadow:0 0 30px #ff444488;}
   .title-hint{font-size:6px;color:#333;margin-top:10px;letter-spacing:2px;}
   @keyframes titlePulse{0%,100%{text-shadow:0 0 40px #FFD70088,0 0 80px #FFD70044,6px 6px 0 #cc330088}50%{text-shadow:0 0 60px #FFD700cc,0 0 120px #FFD70066,6px 6px 0 #cc3300cc}}
@@ -547,6 +550,8 @@
     </svg>
   </div>
   <button class="press-start" onclick="startGame()">▶ START ADVENTURE</button>
+  <button id="btn-load-game" class="press-start load-btn" onclick="loadGame()" style="display:none;">💾 LOAD GAME</button>
+  <div id="save-preview" style="display:none;font-family:'Press Start 2P',monospace;font-size:6px;color:#aaaacc;margin-top:8px;text-align:center;line-height:2.2;opacity:0.85;"></div>
   <div class="title-hint">WASD / Arrow Keys &nbsp;•&nbsp; Walk into tall grass to battle!</div>
 </div>
 
@@ -3968,6 +3973,47 @@ function startGame(){
     initSelectScreenSprites();
   });
 }
+
+function loadGame(){
+  document.getElementById('title-screen').style.display='none';
+  initGame(true);
+}
+
+// Check for existing save and show LOAD button on title screen
+function checkTitleSave(){
+  try{
+    const raw = localStorage.getItem('gozo_save');
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || !d.lv) return;
+
+    // Show load button
+    const btn = document.getElementById('btn-load-game');
+    if(btn) btn.style.display='inline-block';
+
+    // Show save preview
+    const preview = document.getElementById('save-preview');
+    if(preview){
+      const mins = Math.round((d.playtime||0)/60000);
+      const timeStr = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+      const partnerName = {fire:'IGNIS',water:'AQUA',grass:'SPROUT',dark:'UMBRA',electric:'VOLT',ice:'FROSTBITE',earth:'TERRA',wind:'ZEPHYR',light:'LUMINA'}[d.pt]||d.pt||'???';
+      const bossNames = ['WIZARD','GOLEM','VOID','LICH','DRAGON','INFERNO','TITAN','OMEGA'];
+      const bossProgress = `${Math.min(d.bossIdx||0, 8)}/8 bosses`;
+      preview.style.display='block';
+      preview.innerHTML = `
+        <span style="color:#FFD700">LV ${d.lv}</span> &nbsp;·&nbsp;
+        <span style="color:#ff8866">HP ${d.mhp||100}</span> &nbsp;·&nbsp;
+        <span style="color:#88ffaa">💰 ${d.coins||0}</span><br>
+        <span style="color:#cc88ff">Partner: ${partnerName}</span> &nbsp;·&nbsp;
+        <span style="color:#88aaff">⚔️ ${bossProgress}</span><br>
+        <span style="color:#555">⏱ Playtime: ${timeStr}</span>
+      `;
+    }
+  }catch(e){}
+}
+
+// Run save check when title screen loads
+setTimeout(checkTitleSave, 100);
 function selectMonster(t){
   pType=t;
   document.querySelectorAll('.mcard').forEach(c=>c.classList.remove('sel'));
@@ -4614,9 +4660,14 @@ function initGame(fromLoad){
       if(saved.spd != null) p.speedBonus  = saved.spd;
       if(saved.px  != null) p.x           = saved.px;
       if(saved.py  != null) p.y           = saved.py;
-      if(saved.pt)          { pType = saved.pt; partnerType = saved.pt; }
+      if(saved.pt)          { pType = saved.pt; }
       if(saved.ps  != null) partnerStage  = saved.ps;
       if(saved.bd)          bossDefeated  = !!saved.bd;
+      // Restore partner object from saved type and stage
+      if(pType && PARTNER_EVOLUTIONS[pType]){
+        const stageIdx = Math.max(0, Math.min((partnerStage||1)-1, PARTNER_EVOLUTIONS[pType].length-1));
+        partner = PARTNER_EVOLUTIONS[pType][stageIdx];
+      }
       // Restore inventory & equipped items
       if(saved.winv && saved.winv.length){
         inventory.weapons = saved.winv.map(id=>WEAPONS.find(w=>w.id===id)).filter(Boolean);
@@ -4662,7 +4713,7 @@ function initGame(fromLoad){
   updateHUD();
   const hp2=document.getElementById('hud-partner');
   if(hp2){
-    const pc2=getPartnerCanvas(pType||partnerType||'fire', partnerStage||1);
+    const pc2=getPartnerCanvas(pType||'fire', partnerStage||1);
     pc2.style.cssText='width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-right:4px;';
     hp2.innerHTML=''; hp2.appendChild(pc2);
     const span2=document.createElement('span');
