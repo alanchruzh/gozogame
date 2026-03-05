@@ -5882,12 +5882,12 @@ setTimeout(syncFieldAnimals, 3000);
 // TRAIN ANIMATION - every 5 minutes
 // ═══════════════════════════════════════════
 function makeTrainCanvas() {
-  const S = 5;
+  const S = 4;
   const H = 22;
   const LOCO_W = 32;
   const WAGON_W = 28;
   const GAP = 1;
-  const WAGON_COUNT = 20;
+  const WAGON_COUNT = 8;
   const TOTAL_W = LOCO_W + GAP + WAGON_COUNT * (WAGON_W + GAP);
 
   const canvas = document.createElement('canvas');
@@ -6005,10 +6005,8 @@ function makeTrainCanvas() {
 
   // 20 wagons
   const wagonColors = [
-    '#3355cc','#3355cc','#3355cc','#3355cc','#3355cc',
-    '#cc3322','#cc3322','#cc3322','#cc3322','#cc3322',
-    '#3355cc','#3355cc','#3355cc','#3355cc','#3355cc',
-    '#cc3322','#cc3322','#cc3322','#cc3322','#cc3322',
+    '#3355cc','#3355cc','#3355cc','#3355cc',
+    '#cc3322','#cc3322','#cc3322','#cc3322',
   ];
   for(let i = 0; i < WAGON_COUNT; i++) {
     drawWagon(LOCO_W + GAP + i*(WAGON_W+GAP), wagonColors[i]);
