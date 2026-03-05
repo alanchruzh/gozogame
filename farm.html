@@ -438,7 +438,7 @@ header{
       <h3>🧺 HARVEST BASKET</h3>
       <div id="goldDisplay" style="display:flex;flex-direction:column;gap:4px;background:rgba(255,200,50,0.10);border:1px solid #c8962a;border-radius:6px;padding:6px 10px;margin-bottom:8px">
         <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:bold;color:#f5c842;text-shadow:1px 1px 0 #000">🪙 <span style="color:#fff;font-weight:normal">Gold:</span> <span id="goldAmount">0</span></div>
-        <div style="font-size:13px;color:#6a7a6a">Earned from selling crops · used for seeds</div>
+        <div style="font-size:10px;color:#6a7a6a">Earned from selling crops · used for seeds</div>
       </div>
       <div id="harvestList"></div>
     </div>
@@ -3233,8 +3233,8 @@ function doHarvest(fid, pid){
   harvestBasket[p.plant]++;
   totalHarvested++;
 
-  // Give seeds from harvest (1 harvest = 2 seeds of same type)
-  inventory[plantKey] = (inventory[plantKey] || 0) + 2;
+  // 80% chance to get 1 seed per harvest
+  if(Math.random() < 0.8){ inventory[plantKey] = (inventory[plantKey] || 0) + 1; }
 
   // Unlock new crops based on total harvested — give 5 free seeds
   CROP_KEYS.forEach(k => {
@@ -4409,10 +4409,14 @@ function feedAnimal(type, idx){
   const a = ANIMALS[type];
   const animal = ownedAnimals[type]?.[idx];
   if(!animal){ showToast('❌ Animal not found!'); return; }
-  if(a.feedCrop && (!inventory[a.feedCrop] || inventory[a.feedCrop] < a.feedCost)){
-    showToast(`🌾 Need ${a.feedCost}x ${CROPS[a.feedCrop]?.name || a.feedCrop} to feed!`); return;
+  if(a.feedCrop){
+    const inBasket = harvestBasket[a.feedCrop] || 0;
+    if(inBasket < a.feedCost){
+      showToast(`🧺 Need ${a.feedCost}x ${CROPS[a.feedCrop]?.name || a.feedCrop} di harvest basket!`); return;
+    }
+    harvestBasket[a.feedCrop] -= a.feedCost;
+    updateHarvestUI();
   }
-  if(a.feedCrop){ inventory[a.feedCrop] -= a.feedCost; renderSeedShop(); }
   animal.hunger = Math.min(100, (animal.hunger||0) + 50);
   animal.lastFed = Date.now();
   // Feeding speeds up cooldown
@@ -4420,7 +4424,7 @@ function feedAnimal(type, idx){
     animal.readyAt = Math.max(Date.now(), animal.readyAt - a.cooldownMs * 0.25);
   }
   sfx('plant');
-  showToast(`🍽️ ${a.name} diberi makan! Hunger reduced.`);
+  showToast(`🍽️ ${a.name} diberi makan! Hunger +50.`);
   renderAnimalPanel();
   saveState();
 }
@@ -4512,7 +4516,7 @@ function renderAnimalPanel(){
       html += `</div>`;
       if(a.feedCrop){
         const cropEmoji = CROPS[a.feedCrop]?.emoji || '🌾';
-        const stock = inventory[a.feedCrop] || 0;
+        const stock = harvestBasket[a.feedCrop] || 0;
         const enough = stock >= a.feedCost;
         html += `<button onclick="feedAnimal('${type}',${idx})" style="background:${enough?'#5a8020':'#555'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:36px">
           <span style="font-size:16px">${cropEmoji}</span>
