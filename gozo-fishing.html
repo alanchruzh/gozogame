@@ -220,6 +220,29 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 #questPanel{position:absolute;bottom:90px;right:8px;background:rgba(3,10,4,0.88);
   border:2px solid #FFD700;padding:8px 10px;min-width:160px;z-index:10;font-size:5px;}
 #questPanel .qtitle{color:#FFD700;font-size:5px;margin-bottom:6px;border-bottom:1px solid rgba(255,215,0,0.2);padding-bottom:3px;}
+.jtab{font-family:'Press Start 2P',monospace;font-size:4px;padding:6px 4px;background:none;border:none;color:#666;cursor:pointer;border-bottom:2px solid transparent;}
+.jtab.active{color:#FFD700;border-bottom:2px solid #FFD700;}
+.jtab:hover{color:#ccc;}
+.jcard{background:#0a180a;border:1px solid #1a3a1a;padding:6px;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.jcard:hover{border-color:#FFD700;}
+.jcard.undiscovered{opacity:0.35;filter:grayscale(1);}
+.jcard canvas{image-rendering:pixelated;}
+.jcard .jcname{font-family:'Press Start 2P',monospace;font-size:3.5px;color:#ccc;text-align:center;line-height:1.6;}
+.jcard .jcrar{font-family:'Press Start 2P',monospace;font-size:3px;text-align:center;}
+.jcard.selected{border-color:#FFD700;background:#0f280f;}
+.ach-item{display:flex;align-items:center;gap:10px;padding:8px;background:#040c04;border:1px solid #1a3a1a;}
+.ach-item.done{border-color:#FFD700;background:#0a1a06;}
+.ach-item.done .ach-badge{filter:none;}
+.ach-item .ach-badge{font-size:16px;filter:grayscale(1)opacity(0.4);}
+.ach-item .ach-info{flex:1;}
+.ach-item .ach-title{font-size:5px;color:#FFD700;margin-bottom:3px;}
+.ach-item.locked .ach-title{color:#555;}
+.ach-item .ach-desc{font-size:4px;color:#666;line-height:2;}
+.ach-item.done .ach-desc{color:#888;}
+.ach-item .ach-prog{font-size:3.5px;color:#4caf50;margin-top:2px;}
+.ach-reward{font-size:3.5px;color:#FFD700;white-space:nowrap;}
+@keyframes achSlide{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+#achToast.show{display:block;animation:achSlide .4s ease-out;}
 .qitem{color:#5a8a5a;line-height:2.2;display:flex;justify-content:space-between;gap:8px;}
 .qitem.done{color:#4caf50;text-decoration:line-through;}
 .qitem .qprog{color:#FFD700;white-space:nowrap;}
@@ -306,6 +329,9 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   70% {transform:translateY(-30px) rotate(10deg);opacity:1;}
   100%{transform:translateY(0) rotate(0deg);opacity:0;}
 }
+@keyframes reelShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+#reelGame.danger #reelLabel{color:#ff4444;animation:reelShake 0.2s infinite;}
+#reelGame.danger #reelTension{background:linear-gradient(90deg,#ff4444,#ff8800);}
 .fish-jump{position:fixed;font-size:28px;pointer-events:none;z-index:9999;
   animation:fishJump 0.9s ease-out forwards;}
 
@@ -385,6 +411,8 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
         <button class="hbtn" onclick="saveGame();closeMoreMenu()">💾 SAVE</button>
         <button class="hbtn" onclick="triggerLoad();closeMoreMenu()">📂 LOAD</button>
         <button class="hbtn" onclick="openLb();closeMoreMenu()">🏆 TOP CATCH</button>
+        <button class="hbtn" onclick="openJournal();closeMoreMenu()">📖 FISH JOURNAL</button>
+        <button class="hbtn" onclick="openAch();closeMoreMenu()">🏅 ACHIEVEMENTS</button>
         <button class="hbtn" onclick="goTitle();closeMoreMenu()">🏠 MENU</button>
       </div>
       <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadFromFile(event)">
@@ -404,10 +432,65 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   </div>
   <div class="msg" id="msg">Use WASD / arrows to move. Walk to river edge, then CAST!</div>
 </div>
-    <button class="castbtn" id="castBtn" onclick="handleCast()">🎣 CAST</button>
+    <button class="castbtn" id="castBtn" 
+      onclick="handleCast()"
+      onmousedown="if(G.reeling){G.reelHolding=true;}" 
+      onmouseup="if(G.reeling){G.reelHolding=false;}"
+      ontouchstart="if(G.reeling){G.reelHolding=true;event.preventDefault();}"
+      ontouchend="if(G.reeling){G.reelHolding=false;}">🎣 CAST</button>
     <div class="movekeys" style="cursor:pointer" onclick="openTut()" title="How to play">WASD<br>MOVE<br><span style="color:#FFD700;font-size:4px">❓HELP</span></div>
   </div>
 </div>
+
+<!-- REEL MINIGAME OVERLAY -->
+<div id="reelGame" style="display:none;position:absolute;left:0;right:0;bottom:80px;z-index:800;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:4px">
+  <div id="reelLabel" style="font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;text-shadow:0 0 8px #FFD700;animation:pulse 0.5s infinite alternate">⚡ HOLD CAST TO REEL!</div>
+  <!-- Tension bar -->
+  <div style="width:260px;height:14px;background:#111;border:2px solid #FFD700;position:relative;overflow:hidden">
+    <div id="reelTension" style="position:absolute;left:0;top:0;height:100%;width:50%;background:linear-gradient(90deg,#00ff88,#FFD700);transition:width 0.05s"></div>
+    <!-- Safe zone indicator -->
+    <div id="reelSafe" style="position:absolute;top:0;height:100%;background:rgba(255,255,255,0.15);border-left:2px solid #fff;border-right:2px solid #fff"></div>
+    <!-- Needle -->
+    <div id="reelNeedle" style="position:absolute;top:0;width:3px;height:100%;background:#fff;left:50%"></div>
+  </div>
+  <!-- Line health -->
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:#aaa">LINE:</span>
+    <div style="width:120px;height:7px;background:#333;border:1px solid #555">
+      <div id="reelLine" style="height:100%;width:100%;background:#00ff88;transition:width 0.1s"></div>
+    </div>
+    <span id="reelLineVal" style="font-family:'Press Start 2P',monospace;font-size:5px;color:#00ff88">100%</span>
+  </div>
+  <!-- Progress to catch -->
+  <div style="display:flex;align-items:center;gap:6px">
+    <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:#aaa">REEL:</span>
+    <div style="width:120px;height:7px;background:#333;border:1px solid #FFD700">
+      <div id="reelProgress" style="height:100%;width:0%;background:#FFD700;transition:width 0.1s"></div>
+    </div>
+    <span id="reelProgressVal" style="font-family:'Press Start 2P',monospace;font-size:5px;color:#FFD700">0%</span>
+  </div>
+</div>
+
+<!-- NPC DIALOG -->
+<div id="npcDialog" style="display:none;position:absolute;bottom:90px;left:50%;transform:translateX(-50%);
+  width:340px;background:#0a1a0a;border:2px solid #FFD700;padding:12px 16px;z-index:900;font-family:'Press Start 2P',monospace;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+    <canvas id="npcPortrait" width="40" height="48" style="image-rendering:pixelated"></canvas>
+    <div>
+      <div id="npcName" style="font-size:7px;color:#FFD700;margin-bottom:4px">MERCHANT</div>
+      <div id="npcText" style="font-size:5px;color:#ccc;line-height:2"></div>
+    </div>
+  </div>
+  <div id="npcOptions" style="display:flex;flex-direction:column;gap:4px;margin-top:8px"></div>
+  <button onclick="closeNpc()" style="margin-top:8px;width:100%;font-family:'Press Start 2P';font-size:5px;
+    background:#1a0a0a;border:1px solid #555;color:#aaa;padding:4px;cursor:pointer">✕ CLOSE</button>
+</div>
+
+<!-- ZONE BANNER -->
+<div id="zoneBanner" style="display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);
+  font-family:'Press Start 2P',monospace;font-size:10px;color:#FFD700;
+  text-shadow:0 0 12px #FFD700;background:rgba(0,0,0,0.7);padding:6px 20px;
+  border:1px solid #FFD700;z-index:500;pointer-events:none"></div>
 
 <!-- CATCH POPUP -->
 <div id="catchPopup">
@@ -482,6 +565,68 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
   <div class="qreward" id="questReward"></div>
 </div>
 
+<!-- FISH JOURNAL -->
+<div id="journalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
+  <div style="max-width:520px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
+    <!-- Header -->
+    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:8px;color:#FFD700">📖 FISH JOURNAL</div>
+      <div id="journalCount" style="font-size:6px;color:#aaa">0/50 DISCOVERED</div>
+    </div>
+    <!-- Zone tabs -->
+    <div style="display:flex;border-bottom:1px solid #555;background:#030a03">
+      <button id="jZoneAll" onclick="jZone('all')" class="jtab active" style="flex:1;font-size:3.5px">ALL</button>
+      <button id="jZone0"   onclick="jZone('0')"   class="jtab" style="flex:1;font-size:3.5px">🌊 RIVER</button>
+      <button id="jZone1"   onclick="jZone('1')"   class="jtab" style="flex:1;font-size:3.5px">🏞️ LAKE</button>
+      <button id="jZone2"   onclick="jZone('2')"   class="jtab" style="flex:1;font-size:3.5px">🌀 RAPID</button>
+      <button id="jZone3"   onclick="jZone('3')"   class="jtab" style="flex:1;font-size:3.5px">⚓ OCEAN</button>
+    </div>
+    <!-- Rarity tabs -->
+    <div style="display:flex;border-bottom:1px solid #333;background:#050d05">
+      <button id="jTabAll"  onclick="jFilter('all')"  class="jtab active" style="flex:1">ALL</button>
+      <button id="jTabC"    onclick="jFilter('0')"    class="jtab">⬜ CMN</button>
+      <button id="jTabU"    onclick="jFilter('1')"    class="jtab">🟩 UNC</button>
+      <button id="jTabR"    onclick="jFilter('2')"    class="jtab">🟦 RARE</button>
+      <button id="jTabE"    onclick="jFilter('3')"    class="jtab">🟪 EPIC</button>
+      <button id="jTabL"    onclick="jFilter('4')"    class="jtab">🟨 LEG</button>
+    </div>
+    <!-- Grid -->
+    <div id="journalGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px"></div>
+    <!-- Detail panel -->
+    <div id="journalDetail" style="display:none;border-top:2px solid #333;padding:12px;background:#040c04">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <canvas id="jdCanvas" width="96" height="72" style="image-rendering:pixelated;flex-shrink:0"></canvas>
+        <div style="flex:1">
+          <div id="jdName" style="font-size:7px;color:#FFD700;margin-bottom:4px"></div>
+          <div id="jdRar"  style="font-size:5px;margin-bottom:6px"></div>
+          <div id="jdDesc" style="font-size:4.5px;color:#888;line-height:2;margin-bottom:6px"></div>
+          <div id="jdStats" style="font-size:4.5px;color:#aaa;line-height:2.5"></div>
+        </div>
+      </div>
+      <div id="jdRecord" style="margin-top:8px;font-size:4.5px;color:#FFD700;line-height:2.5"></div>
+    </div>
+    <button onclick="closeJournal()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div id="achModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
+  <div style="max-width:480px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
+    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:8px;color:#FFD700">🏅 ACHIEVEMENTS</div>
+      <div id="achCount" style="font-size:6px;color:#aaa">0/0</div>
+    </div>
+    <div id="achList" style="padding:10px;display:flex;flex-direction:column;gap:6px"></div>
+    <button onclick="closeAch()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div id="achToast" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:#0a1a0a;border:2px solid #FFD700;padding:8px 16px;z-index:2000;
+  font-family:'Press Start 2P',monospace;font-size:6px;color:#FFD700;
+  text-align:center;min-width:220px;pointer-events:none"></div>
+
 <!-- LEADERBOARD MODAL -->
 <div id="lbModal">
   <div class="mbox" style="max-width:400px">
@@ -531,6 +676,68 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
       style="image-rendering:pixelated;width:48px;height:72px;margin-top:10px"></canvas>
   </div>
 </div>
+
+<!-- FISH JOURNAL -->
+<div id="journalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
+  <div style="max-width:520px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
+    <!-- Header -->
+    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:8px;color:#FFD700">📖 FISH JOURNAL</div>
+      <div id="journalCount" style="font-size:6px;color:#aaa">0/50 DISCOVERED</div>
+    </div>
+    <!-- Zone tabs -->
+    <div style="display:flex;border-bottom:1px solid #555;background:#030a03">
+      <button id="jZoneAll" onclick="jZone('all')" class="jtab active" style="flex:1;font-size:3.5px">ALL</button>
+      <button id="jZone0"   onclick="jZone('0')"   class="jtab" style="flex:1;font-size:3.5px">🌊 RIVER</button>
+      <button id="jZone1"   onclick="jZone('1')"   class="jtab" style="flex:1;font-size:3.5px">🏞️ LAKE</button>
+      <button id="jZone2"   onclick="jZone('2')"   class="jtab" style="flex:1;font-size:3.5px">🌀 RAPID</button>
+      <button id="jZone3"   onclick="jZone('3')"   class="jtab" style="flex:1;font-size:3.5px">⚓ OCEAN</button>
+    </div>
+    <!-- Rarity tabs -->
+    <div style="display:flex;border-bottom:1px solid #333;background:#050d05">
+      <button id="jTabAll"  onclick="jFilter('all')"  class="jtab active" style="flex:1">ALL</button>
+      <button id="jTabC"    onclick="jFilter('0')"    class="jtab">⬜ CMN</button>
+      <button id="jTabU"    onclick="jFilter('1')"    class="jtab">🟩 UNC</button>
+      <button id="jTabR"    onclick="jFilter('2')"    class="jtab">🟦 RARE</button>
+      <button id="jTabE"    onclick="jFilter('3')"    class="jtab">🟪 EPIC</button>
+      <button id="jTabL"    onclick="jFilter('4')"    class="jtab">🟨 LEG</button>
+    </div>
+    <!-- Grid -->
+    <div id="journalGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px"></div>
+    <!-- Detail panel -->
+    <div id="journalDetail" style="display:none;border-top:2px solid #333;padding:12px;background:#040c04">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <canvas id="jdCanvas" width="96" height="72" style="image-rendering:pixelated;flex-shrink:0"></canvas>
+        <div style="flex:1">
+          <div id="jdName" style="font-size:7px;color:#FFD700;margin-bottom:4px"></div>
+          <div id="jdRar"  style="font-size:5px;margin-bottom:6px"></div>
+          <div id="jdDesc" style="font-size:4.5px;color:#888;line-height:2;margin-bottom:6px"></div>
+          <div id="jdStats" style="font-size:4.5px;color:#aaa;line-height:2.5"></div>
+        </div>
+      </div>
+      <div id="jdRecord" style="margin-top:8px;font-size:4.5px;color:#FFD700;line-height:2.5"></div>
+    </div>
+    <button onclick="closeJournal()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div id="achModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
+  <div style="max-width:480px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
+    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:8px;color:#FFD700">🏅 ACHIEVEMENTS</div>
+      <div id="achCount" style="font-size:6px;color:#aaa">0/0</div>
+    </div>
+    <div id="achList" style="padding:10px;display:flex;flex-direction:column;gap:6px"></div>
+    <button onclick="closeAch()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div id="achToast" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:#0a1a0a;border:2px solid #FFD700;padding:8px 16px;z-index:2000;
+  font-family:'Press Start 2P',monospace;font-size:6px;color:#FFD700;
+  text-align:center;min-width:220px;pointer-events:none"></div>
 
 <!-- LEADERBOARD MODAL -->
 <!-- TUTORIAL OVERLAY -->
@@ -598,51 +805,222 @@ const FISH=[
   {id:2,n:'Tilapia',           i:'🐟',r:0,mp:1,w:[.2,2],  l:[10,30], g:9},
   {id:3,n:'Nile Perch',        i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,35], g:9},
   {id:4,n:'Snakehead',         i:'🐠',r:0,mp:1,w:[.4,4],  l:[20,50], g:11},
-  {id:5,n:'Rasbora',           i:'🐟',r:0,mp:1,w:[.1,1],  l:[5,15],  g:7},
-  {id:6,n:'Climbing Perch',    i:'🐟',r:0,mp:1,w:[.2,2],  l:[10,22], g:8},
-  {id:7,n:'Gourami',           i:'🐟',r:0,mp:1,w:[.1,1.5],l:[8,20],  g:7},
-  {id:8,n:'Puntius Barb',      i:'🐠',r:0,mp:1,w:[.2,2],  l:[10,25], g:8},
-  {id:9,n:'Walking Catfish',   i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,35], g:9},
-  {id:10,n:'Tawes',            i:'🐠',r:1,mp:1,w:[.5,5],  l:[20,50], g:20},
-  {id:11,n:'Bream',            i:'🐠',r:1,mp:1,w:[.4,4],  l:[18,45], g:18},
-  {id:12,n:'Kissing Gourami',  i:'🐠',r:1,mp:2,w:[.3,3],  l:[15,30], g:22},
-  {id:13,n:'Giant Gourami',    i:'🐠',r:1,mp:2,w:[1,8],   l:[25,60], g:25},
-  {id:14,n:'River Catfish',    i:'🐠',r:1,mp:2,w:[.5,6],  l:[22,55], g:23},
-  {id:15,n:'Silver Carp',      i:'🐠',r:1,mp:1,w:[.5,8],  l:[20,60], g:19},
-  {id:16,n:'Hampala Barb',     i:'🐠',r:1,mp:2,w:[.3,4],  l:[15,40], g:21},
-  {id:17,n:'Striped Catfish',  i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,50], g:20},
-  {id:18,n:'Tinfoil Barb',     i:'🐠',r:1,mp:2,w:[.4,4],  l:[18,40], g:19},
-  {id:19,n:'Red Oscar',        i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,45], g:22},
-  {id:20,n:'Goldfish',         i:'🐡',r:2,mp:2,w:[.2,2],  l:[10,25], g:40},
-  {id:21,n:'River Eel',        i:'🐡',r:2,mp:2,w:[.5,10], l:[30,100],g:45},
-  {id:22,n:'Bala Shark',       i:'🐡',r:2,mp:2,w:[.3,3],  l:[15,35], g:38},
-  {id:23,n:'Royal Knifefish',  i:'🐡',r:2,mp:3,w:[1,15],  l:[40,100],g:50},
-  {id:24,n:'Giant Wallago',    i:'🐡',r:2,mp:3,w:[2,20],  l:[50,120],g:55},
-  {id:25,n:'Asian Arowana',    i:'🐡',r:2,mp:3,w:[1,8],   l:[40,90], g:60},
-  {id:26,n:'Ropefish',         i:'🐡',r:2,mp:3,w:[.5,5],  l:[25,60], g:48},
-  {id:27,n:'Mahseer',          i:'🐡',r:2,mp:2,w:[1,10],  l:[30,80], g:42},
-  {id:28,n:'Tor Barb',         i:'🐡',r:2,mp:3,w:[1,12],  l:[35,90], g:52},
-  {id:29,n:'Tinfoil Shark',    i:'🐡',r:2,mp:3,w:[.5,6],  l:[25,65], g:44},
-  {id:30,n:'Semah Barb',       i:'✨',r:3,mp:3,w:[2,25],  l:[50,130],g:80},
-  {id:31,n:'Giant Mahseer',    i:'✨',r:3,mp:3,w:[3,30],  l:[55,140],g:90},
-  {id:32,n:'Giant Snakehead',  i:'✨',r:3,mp:3,w:[2,20],  l:[45,120],g:85},
-  {id:33,n:'Giant Pangasius',  i:'✨',r:3,mp:4,w:[5,40],  l:[70,150],g:100},
-  {id:34,n:'Jelawat',          i:'✨',r:3,mp:4,w:[3,25],  l:[55,130],g:88},
-  {id:35,n:'Glass Catfish',    i:'✨',r:3,mp:4,w:[.1,.5], l:[10,20], g:75},
-  {id:36,n:'Clown Knifefish',  i:'✨',r:3,mp:3,w:[1,12],  l:[35,90], g:78},
-  {id:37,n:'Giant Prawn',      i:'✨',r:3,mp:4,w:[1,8],   l:[30,80], g:92},
-  {id:38,n:'Ringau Bass',      i:'✨',r:3,mp:4,w:[2,18],  l:[45,115],g:86},
-  {id:39,n:'Toman King',       i:'✨',r:3,mp:3,w:[1,10],  l:[32,85], g:80},
-  {id:40,n:'Arapaima Gigas',   i:'🌟',r:4,mp:5,w:[50,200],l:[150,300],g:500},
-  {id:41,n:'Mekong Giant Cat', i:'🌟',r:4,mp:5,w:[100,300],l:[200,400],g:600},
-  {id:42,n:'Freshwater Ray',   i:'🌟',r:4,mp:5,w:[30,150],l:[80,200], g:400},
-  {id:43,n:'River King',       i:'🌟',r:4,mp:5,w:[25,120],l:[100,220],g:350},
-  {id:44,n:'Golden Dragon',    i:'🌟',r:4,mp:5,w:[15,80], l:[90,200], g:450},
-  {id:45,n:'Rainbow Arowana',  i:'🌟',r:4,mp:5,w:[10,60], l:[70,180], g:380},
-  {id:46,n:'Crystal Fish',     i:'🌟',r:4,mp:5,w:[5,40],  l:[60,160], g:320},
-  {id:47,n:'Ghost Knifefish',  i:'🌟',r:4,mp:5,w:[8,50],  l:[65,170], g:360},
-  {id:48,n:'Golden God Fish',  i:'🌟',r:4,mp:5,w:[20,100],l:[100,230],g:480},
-  {id:49,n:'Ancient Leviathan',i:'🌟',r:4,mp:5,w:[40,180],l:[130,280],g:550},
+  {id:5,n:'Rasbora',           i:'🐟',r:0,mp:1,w:[.1,1],  l:[5,15],  g:7, desc:"Tiny but fast schooling fish. Found in shallow streams and ponds."},
+  {id:6,n:'Climbing Perch',    i:'🐟',r:0,mp:1,w:[.2,2],  l:[10,22], g:8, desc:"Remarkable fish that can breathe air and even walk short distances."},
+  {id:7,n:'Gourami',           i:'🐟',r:0,mp:1,w:[.1,1.5],l:[8,20],  g:7, desc:"Peaceful labyrinth fish. Males build bubble nests to protect eggs."},
+  {id:8,n:'Puntius Barb',      i:'🐠',r:0,mp:1,w:[.2,2],  l:[10,25], g:8, desc:"Active schooling fish with reddish fins. Popular in aquariums."},
+  {id:9,n:'Walking Catfish',   i:'🐟',r:0,mp:1,w:[.3,3],  l:[15,35], g:9, desc:"Infamous for walking between ponds at night using its pectoral fins."},
+  {id:10,n:'Tawes',            i:'🐠',r:1,mp:1,w:[.5,5],  l:[20,50], g:20, desc:"A large silvery carp. Feeds on plankton and tiny organisms."},
+  {id:11,n:'Bream',            i:'🐠',r:1,mp:1,w:[.4,4],  l:[18,45], g:18, desc:"Deep-bodied fish with a small mouth. Found in slow-moving rivers."},
+  {id:12,n:'Kissing Gourami',  i:'🐠',r:1,mp:2,w:[.3,3],  l:[15,30], g:22, desc:"Named for its kissing behavior — actually a feeding and dominance display."},
+  {id:13,n:'Giant Gourami',    i:'🐠',r:1,mp:2,w:[1,8],   l:[25,60], g:25, desc:"One of the largest gourami. Can reach 70cm and live 20+ years."},
+  {id:14,n:'River Catfish',    i:'🐠',r:1,mp:2,w:[.5,6],  l:[22,55], g:23, desc:"A powerful river catfish that navigates strong currents effortlessly."},
+  {id:15,n:'Silver Carp',      i:'🐠',r:1,mp:1,w:[.5,8],  l:[20,60], g:19, desc:"A leaping fish! Can jump 3 meters out of water when startled."},
+  {id:16,n:'Hampala Barb',     i:'🐠',r:1,mp:2,w:[.3,4],  l:[15,40], g:21, desc:"Fast predatory barb with a forked tail. Hunts smaller fish."},
+  {id:17,n:'Striped Catfish',  i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,50], g:20, desc:"Beautiful striped catfish that schools in large groups."},
+  {id:18,n:'Tinfoil Barb',     i:'🐠',r:1,mp:2,w:[.4,4],  l:[18,40], g:19, desc:"Named for its foil-bright scales. An energetic fighter when hooked."},
+  {id:19,n:'Red Oscar',        i:'🐠',r:1,mp:2,w:[.5,5],  l:[20,45], g:22, desc:"Named after its bright red-orange body. Aggressive cichlid."},
+  {id:20,n:'Goldfish',         i:'🐡',r:2,mp:2,w:[.2,2],  l:[10,25], g:40, desc:"Beloved ornamental fish. Wild goldfish are actually much duller."},
+  {id:21,n:'River Eel',        i:'🐡',r:2,mp:2,w:[.5,10], l:[30,100],g:45, desc:"Snake-like fish that hides in riverbank mud and hunts at night."},
+  {id:22,n:'Bala Shark',       i:'🐡',r:2,mp:2,w:[.3,3],  l:[15,35], g:38, desc:"Fast and streamlined like a shark. A popular aquarium centerpiece."},
+  {id:23,n:'Royal Knifefish',  i:'🐡',r:2,mp:3,w:[1,15],  l:[40,100],g:50, desc:"An electric fish with a knife-shaped body. Generates weak electric fields."},
+  {id:24,n:'Giant Wallago',    i:'🐡',r:2,mp:3,w:[2,20],  l:[50,120],g:55, desc:"A massive predatory catfish. One of Asia's most feared freshwater hunters."},
+  {id:25,n:'Asian Arowana',    i:'🐡',r:2,mp:3,w:[1,8],   l:[40,90], g:60, desc:"Sacred in Southeast Asia. A single fish can fetch thousands of dollars."},
+  {id:26,n:'Ropefish',         i:'🐡',r:2,mp:3,w:[.5,5],  l:[25,60], g:48, desc:"Eel-like fish from Africa. Breathes air and can survive out of water."},
+  {id:27,n:'Mahseer',          i:'🐡',r:2,mp:2,w:[1,10],  l:[30,80], g:42, desc:"Legendary sport fish. Fights harder than almost any freshwater species."},
+  {id:28,n:'Tor Barb',         i:'🐡',r:2,mp:3,w:[1,12],  l:[35,90], g:52, desc:"Close relative of the Mahseer. Found only in highland rivers."},
+  {id:29,n:'Tinfoil Shark',    i:'🐡',r:2,mp:3,w:[.5,6],  l:[25,65], g:44, desc:"Resembles a shark in its streamlined silver body and forked tail."},
+  {id:30,n:'Semah Barb',       i:'✨',r:3,mp:3,w:[2,25],  l:[50,130],g:80, desc:"Ultra-rare migratory barb. Found only in certain pristine rivers."},
+  {id:31,n:'Giant Mahseer',    i:'✨',r:3,mp:3,w:[3,30],  l:[55,140],g:90, desc:"Massive sport fish. Some specimens exceed 50kg in the wild."},
+  {id:32,n:'Giant Snakehead',  i:'✨',r:3,mp:3,w:[2,20],  l:[45,120],g:85, desc:"Top predator of Southeast Asian rivers. Called the 'tiger of the river'."},
+  {id:33,n:'Giant Pangasius',  i:'✨',r:3,mp:4,w:[5,40],  l:[70,150],g:100, desc:"Gentle giant catfish. Can reach 3 meters and 200kg. Now endangered."},
+  {id:34,n:'Jelawat',          i:'✨',r:3,mp:4,w:[3,25],  l:[55,130],g:88, desc:"Fast-growing barb prized by anglers for its powerful runs."},
+  {id:35,n:'Glass Catfish',    i:'✨',r:3,mp:4,w:[.1,.5], l:[10,20], g:75, desc:"So transparent its internal organs are visible. Ghost of the river."},
+  {id:36,n:'Clown Knifefish',  i:'✨',r:3,mp:3,w:[1,12],  l:[35,90], g:78, desc:"Iconic clown-patterned knife fish. Active and territorial at night."},
+  {id:37,n:'Giant Prawn',      i:'✨',r:3,mp:4,w:[1,8],   l:[30,80], g:92, desc:"Not a fish! Giant freshwater prawn with spectral blue claws."},
+  {id:38,n:'Ringau Bass',      i:'✨',r:3,mp:4,w:[2,18],  l:[45,115],g:86, desc:"Powerfully built bass. Can lurk motionlessly for hours before striking."},
+  {id:39,n:'Toman King',       i:'✨',r:3,mp:3,w:[1,10],  l:[32,85], g:80, desc:"Ultimate freshwater predator. A true king of the river system."},
+  {id:40,n:'Arapaima Gigas',   i:'🌟',r:4,mp:5,w:[50,200],l:[150,300],g:500, desc:"World's largest freshwater fish. Ancient species from the Amazon."},
+  {id:41,n:'Mekong Giant Cat', i:'🌟',r:4,mp:5,w:[100,300],l:[200,400],g:600, desc:"Critically endangered giant catfish from the mighty Mekong River."},
+  {id:42,n:'Freshwater Ray',   i:'🌟',r:4,mp:5,w:[30,150],l:[80,200], g:400, desc:"Massive stingray. The largest known freshwater fish by weight."},
+  {id:43,n:'River King',       i:'🌟',r:4,mp:5,w:[25,120],l:[100,220],g:350, desc:"Legendary apex predator said to rule entire river stretches."},
+  {id:44,n:'Golden Dragon',    i:'🌟',r:4,mp:5,w:[15,80], l:[90,200], g:450, desc:"Mythical golden dragon fish. Said to bring immense fortune."},
+  {id:45,n:'Rainbow Arowana',  i:'🌟',r:4,mp:5,w:[10,60], l:[70,180], g:380, desc:"Extraordinarily rare arowana with iridescent rainbow scales."},
+  {id:46,n:'Crystal Fish',     i:'🌟',r:4,mp:5,w:[5,40],  l:[60,160], g:320, desc:"A fish of legend — its crystalline body glows in dark water."},
+  {id:47,n:'Ghost Knifefish',  i:'🌟',r:4,mp:5,w:[8,50],  l:[65,170], g:360, desc:"Ghost of the deep. Its black body makes it nearly invisible at night."},
+  {id:48,n:'Golden God Fish',  i:'🌟',r:4,mp:5,w:[20,100],l:[100,230],g:480, desc:"The rarest of all. Anglers search their whole lives for this fish."},
+  {id:49,n:'Ancient Leviathan',i:'🌟',r:4,mp:5,w:[40,180],l:[130,280],g:550, desc:"Ancient sea monster of river legend. Only seen once per generation."},
+
+// ═══ ZONE 1: LAKE (id 50-99) ═══
+  // Common (r:0)
+  {id:50,n:'Largemouth Bass',    i:'🐟',r:0,mp:1,zone:1,w:[.5,4],  l:[20,50], g:14, desc:"America's most popular sport fish, now found in Asian lakes."},
+  {id:51,n:'Bluegill',          i:'🐟',r:0,mp:1,zone:1,w:[.1,1],  l:[10,25], g:8,  desc:"Sunfish with vivid blue gill covers. Bites eagerly on small bait."},
+  {id:52,n:'Lake Carp',         i:'🐟',r:0,mp:1,zone:1,w:[1,8],   l:[30,70], g:12, desc:"Classic lake carp, sluggish but puts up a good fight."},
+  {id:53,n:'Tench',             i:'🐟',r:0,mp:1,zone:1,w:[.3,4],  l:[15,55], g:11, desc:"The 'doctor fish' — slime said to heal other fish that rub on it."},
+  {id:54,n:'Roach',             i:'🐟',r:0,mp:1,zone:1,w:[.1,1.5],l:[10,35], g:9,  desc:"Classic still-water species. Shimmers silver in sunlight."},
+  {id:55,n:'Rudd',              i:'🐟',r:0,mp:1,zone:1,w:[.1,1.5],l:[10,30], g:9,  desc:"Similar to roach but with golden-red fins and upturned mouth."},
+  {id:56,n:'Perch',             i:'🐠',r:0,mp:1,zone:1,w:[.2,2.5],l:[12,40], g:13, desc:"Aggressive striped predator. Often caught in groups."},
+  {id:57,n:'Pumpkinseed',       i:'🐠',r:0,mp:1,zone:1,w:[.1,.8], l:[8,20],  g:8,  desc:"Colorful little sunfish with orange-spotted sides."},
+  {id:58,n:'Lake Chub',         i:'🐟',r:0,mp:1,zone:1,w:[.1,.6], l:[8,18],  g:7,  desc:"Small schooling fish common in lake shallows."},
+  {id:59,n:'Crucian Carp',      i:'🐟',r:0,mp:1,zone:1,w:[.2,3],  l:[12,40], g:10, desc:"Hardy fish that can survive in very low oxygen water."},
+  // Uncommon (r:1)
+  {id:60,n:'Walleye',           i:'🐠',r:1,mp:2,zone:1,w:[.5,8],  l:[25,80], g:28, desc:"Prized table fish with distinctive glassy eyes for night vision."},
+  {id:61,n:'Sauger',            i:'🐠',r:1,mp:2,zone:1,w:[.3,4],  l:[20,55], g:22, desc:"Close relative of walleye. Prefers turbid, deeper lake water."},
+  {id:62,n:'Smallmouth Bass',   i:'🐠',r:1,mp:2,zone:1,w:[.5,5],  l:[22,55], g:26, desc:"Pound-for-pound one of the hardest fighters in freshwater."},
+  {id:63,n:'Lake Trout',        i:'🐠',r:1,mp:2,zone:1,w:[1,10],  l:[30,80], g:30, desc:"Deep cold-water predator. Can live over 60 years."},
+  {id:64,n:'Whitefish',         i:'🐠',r:1,mp:1,zone:1,w:[.5,5],  l:[22,60], g:20, desc:"Prized for its delicate white flesh. Lives in cold deep lakes."},
+  {id:65,n:'Freshwater Drum',   i:'🐠',r:1,mp:2,zone:1,w:[.5,15], l:[25,80], g:24, desc:"Makes a drumming sound with its swim bladder. Only freshwater drum species."},
+  {id:66,n:'Channel Catfish',   i:'🐠',r:1,mp:2,zone:1,w:[.5,20], l:[25,100],g:25, desc:"Most common catfish in North America. Has deeply forked tail."},
+  {id:67,n:'Lake Whiting',      i:'🐠',r:1,mp:1,zone:1,w:[.2,1.5],l:[15,35], g:18, desc:"Slender schooling fish found in clear lake midwaters."},
+  {id:68,n:'Bowfin',            i:'🐠',r:1,mp:2,zone:1,w:[1,6],   l:[30,70], g:22, desc:"Living fossil unchanged for 150 million years. Breathes air!"},
+  {id:69,n:'Gar Pike',          i:'🐠',r:1,mp:2,zone:1,w:[1,8],   l:[40,100],g:27, desc:"Ancient predator with a long needle-like snout full of teeth."},
+  // Rare (r:2)
+  {id:70,n:'Muskellunge',       i:'🐡',r:2,mp:3,zone:1,w:[2,30],  l:[60,150],g:60, desc:"The 'fish of ten thousand casts'. Apex predator, rarely caught."},
+  {id:71,n:'Lake Sturgeon',     i:'🐡',r:2,mp:3,zone:1,w:[5,50],  l:[80,180],g:70, desc:"Ancient armored fish. Can live 150 years. Endangered."},
+  {id:72,n:'Northern Pike',     i:'🐡',r:2,mp:3,zone:1,w:[1,20],  l:[40,130],g:55, desc:"Ambush predator that strikes from weeds at lightning speed."},
+  {id:73,n:'Zander',            i:'🐡',r:2,mp:3,zone:1,w:[.5,12], l:[30,100],g:50, desc:"European cousin of walleye. Prized for its firm white flesh."},
+  {id:74,n:'Lake Salmon',       i:'🐡',r:2,mp:3,zone:1,w:[1,15],  l:[40,110],g:65, desc:"Landlocked salmon adapted to lake life. Fights spectacularly."},
+  {id:75,n:'Burbot',            i:'🐡',r:2,mp:2,zone:1,w:[.5,8],  l:[30,80], g:45, desc:"The only member of the cod family that lives in fresh water."},
+  {id:76,n:'Paddlefish',        i:'🐡',r:2,mp:3,zone:1,w:[5,40],  l:[80,200],g:75, desc:"Filter-feeder with a long paddle-shaped rostrum. Up to 200 years old."},
+  {id:77,n:'Alligator Gar',     i:'🐡',r:2,mp:4,zone:1,w:[5,60],  l:[100,250],g:80,desc:"Armored giant with double rows of fangs. Can reach 100+ years old."},
+  {id:78,n:'Bowback Trout',     i:'🐡',r:2,mp:3,zone:1,w:[1,8],   l:[35,80], g:52, desc:"Humpbacked lake trout variant. Extremely rare in the wild."},
+  {id:79,n:'Lake Cisco',        i:'🐡',r:2,mp:2,zone:1,w:[.2,2],  l:[20,45], g:42, desc:"Delicate cold-water fish. Lives near the thermocline in deep lakes."},
+  // Epic (r:3)
+  {id:80,n:'Tiger Muskellunge', i:'✨',r:3,mp:4,zone:1,w:[3,40],  l:[70,160],g:110,desc:"Rare hybrid of muskellunge and northern pike. Sterile but spectacular."},
+  {id:81,n:'Blue Catfish',      i:'✨',r:3,mp:4,zone:1,w:[5,60],  l:[80,165],g:120,desc:"Largest catfish in North America. Can exceed 150 pounds."},
+  {id:82,n:'Golden Trout',      i:'✨',r:3,mp:4,zone:1,w:[.5,5],  l:[25,60], g:100,desc:"Brilliant gold and crimson native of mountain lakes. California's state fish."},
+  {id:83,n:'Lake Opah',         i:'✨',r:3,mp:3,zone:1,w:[10,80], l:[60,180],g:130,desc:"Warm-blooded fish that circles deep lakes like a living disc."},
+  {id:84,n:'Freshwater Shark',  i:'✨',r:3,mp:4,zone:1,w:[2,18],  l:[50,120],g:115,desc:"Bull shark relative that survived the transition to fresh water."},
+  {id:85,n:'Goliath Tigerfish', i:'✨',r:3,mp:4,zone:1,w:[3,50],  l:[70,180],g:140,desc:"African apex predator with razor teeth as large as a great white's."},
+  {id:86,n:'Lake Pearlfish',    i:'✨',r:3,mp:3,zone:1,w:[.5,4],  l:[20,55], g:95, desc:"Bioluminescent deep-lake species. Glows faintly in the dark."},
+  {id:87,n:'Thunder Eel',       i:'✨',r:3,mp:4,zone:1,w:[1,12],  l:[60,150],g:105,desc:"Produces electric shocks of up to 600 volts to stun prey."},
+  {id:88,n:'Sapphire Bream',    i:'✨',r:3,mp:3,zone:1,w:[.5,5],  l:[20,50], g:90, desc:"Rare bream with iridescent sapphire-blue scales. Very shy."},
+  {id:89,n:'Lake Phantom',      i:'✨',r:3,mp:4,zone:1,w:[2,20],  l:[50,120],g:125,desc:"Nearly transparent predator that drifts like a ghost through deep water."},
+  // Legendary (r:4)
+  {id:90,n:'Wels Catfish',      i:'🌟',r:4,mp:5,zone:1,w:[50,300],l:[200,500],g:700,desc:"Europe's largest freshwater fish. Ancient specimens exceed 5 meters."},
+  {id:91,n:'Platinum Sturgeon', i:'🌟',r:4,mp:5,zone:1,w:[30,200],l:[150,400],g:600,desc:"An albino lake sturgeon. One in a million chance of spawning."},
+  {id:92,n:'Lake Dragon',       i:'🌟',r:4,mp:5,zone:1,w:[20,150],l:[120,300],g:650,desc:"Mythical scaled creature believed to rule the lake's deepest trench."},
+  {id:93,n:'Mirror King Carp',  i:'🌟',r:4,mp:5,zone:1,w:[15,80], l:[80,160],g:550,desc:"A mirror carp of extraordinary size. Each mirror scale is unique."},
+  {id:94,n:'Void Muskellunge',  i:'🌟',r:4,mp:5,zone:1,w:[10,60], l:[90,200],g:580,desc:"Black as the deepest lake water. Absorbs all light it encounters."},
+  {id:95,n:'Eternal Gar',       i:'🌟',r:4,mp:5,zone:1,w:[20,100],l:[150,350],g:620,desc:"A gar said to be thousands of years old. Its bones are fossilized yet alive."},
+  {id:96,n:'Celestial Trout',   i:'🌟',r:4,mp:5,zone:1,w:[5,40],  l:[80,170],g:560,desc:"Legend says this trout fell from a comet. Its scales map the stars."},
+  {id:97,n:'Lake Titan',        i:'🌟',r:4,mp:5,zone:1,w:[100,400],l:[250,600],g:800,desc:"Ancient colossus of the lake. So large it creates its own currents."},
+  {id:98,n:'Crystal Sturgeon',  i:'🌟',r:4,mp:5,zone:1,w:[40,250],l:[180,450],g:720,desc:"A see-through sturgeon whose internal organs glow with bioluminescence."},
+  {id:99,n:'Lake God',          i:'🌟',r:4,mp:5,zone:1,w:[200,600],l:[300,700],g:999,desc:"The deity of the lake. Fishers who see it are said to be blessed forever."},
+
+// ═══ ZONE 2: RAPID RIVER (id 100-149) ═══
+  // Common (r:0)
+  {id:100,n:'Torrent Barb',     i:'🐟',r:0,mp:1,zone:2,w:[.1,1.5],l:[8,25],  g:14, desc:"Stocky barb adapted for clinging to rocks in fast currents."},
+  {id:101,n:'Mountain Minnow',  i:'🐟',r:0,mp:1,zone:2,w:[.05,.5],l:[4,12],  g:8,  desc:"Tiny but tough. Darting through whitewater is its specialty."},
+  {id:102,n:'Stone Loach',      i:'🐟',r:0,mp:1,zone:2,w:[.05,.4],l:[5,15],  g:7,  desc:"Hugs the riverbed using barbels to detect food under rocks."},
+  {id:103,n:'Riffle Dace',      i:'🐟',r:0,mp:1,zone:2,w:[.05,.5],l:[5,15],  g:8,  desc:"Flattened body lets it hide under rocks without being swept away."},
+  {id:104,n:'Rapid Gudgeon',    i:'🐟',r:0,mp:1,zone:2,w:[.05,.4],l:[5,14],  g:7,  desc:"Bottom-hugging gudgeon with a flattened head for fast water."},
+  {id:105,n:'Cascade Trout',    i:'🐟',r:0,mp:1,zone:2,w:[.2,2],  l:[12,35], g:13, desc:"Small trout that thrives in cold, oxygen-rich rapids."},
+  {id:106,n:'Whitewater Chub',  i:'🐟',r:0,mp:1,zone:2,w:[.1,1],  l:[8,22],  g:9,  desc:"Streamlined chub built for life in turbulent white water."},
+  {id:107,n:'Stonefly Trout',   i:'🐠',r:0,mp:1,zone:2,w:[.3,3],  l:[15,40], g:13, desc:"Named for its love of stonefly larvae. Found below waterfalls."},
+  {id:108,n:'Current Carp',     i:'🐟',r:0,mp:1,zone:2,w:[.5,5],  l:[20,50], g:11, desc:"A muscular carp variant that has adapted to strong river currents."},
+  {id:109,n:'Rapid Perch',      i:'🐠',r:0,mp:1,zone:2,w:[.1,1.5],l:[10,28], g:13, desc:"Stripped-down version of lake perch, faster and more aggressive."},
+  // Uncommon (r:1)
+  {id:110,n:'Atlantic Salmon',  i:'🐠',r:1,mp:2,zone:2,w:[1,15],  l:[40,120],g:35, desc:"Legendary leaper. Swims upstream through rapids to spawn."},
+  {id:111,n:'Brown Trout',      i:'🐠',r:1,mp:2,zone:2,w:[.5,10], l:[25,90], g:28, desc:"Wary and selective. One of the most challenging fish to catch."},
+  {id:112,n:'Rainbow Trout',    i:'🐠',r:1,mp:2,zone:2,w:[.5,8],  l:[25,80], g:27, desc:"Brilliant pink stripe along its side. Fights like a silver rocket."},
+  {id:113,n:'Grayling',         i:'🐠',r:1,mp:2,zone:2,w:[.3,3],  l:[20,50], g:25, desc:"Sail-finned fish of pristine cold rivers. A fly-fisher's dream."},
+  {id:114,n:'Bull Trout',       i:'🐠',r:1,mp:2,zone:2,w:[.5,12], l:[30,85], g:30, desc:"Aggressive cold-water predator. Needs the cleanest rivers to survive."},
+  {id:115,n:'Lenok',            i:'🐠',r:1,mp:2,zone:2,w:[.5,8],  l:[25,75], g:28, desc:"Siberian trout found in fast cold rivers. Spots like a constellation."},
+  {id:116,n:'Taimen',           i:'🐠',r:1,mp:2,zone:2,w:[2,20],  l:[50,120],g:35, desc:"World's largest salmonid. Surface strikes are explosive and violent."},
+  {id:117,n:'Cutthroat Trout',  i:'🐠',r:1,mp:2,zone:2,w:[.3,6],  l:[20,70], g:26, desc:"Named for bright red slashes on its jaw like a cutthroat wound."},
+  {id:118,n:'Huchen',           i:'🐠',r:1,mp:3,zone:2,w:[2,25],  l:[60,130],g:33, desc:"The 'Danube salmon'. Rare apex predator of European mountain rivers."},
+  {id:119,n:'Brook Trout',      i:'🐠',r:1,mp:2,zone:2,w:[.2,4],  l:[15,65], g:25, desc:"America's most beautiful native trout. Worm-patterned back."},
+  // Rare (r:2)
+  {id:120,n:'Golden Dorado',    i:'🐡',r:2,mp:3,zone:2,w:[2,25],  l:[50,130],g:80, desc:"South America's fiercest river predator. Gold as the sun itself."},
+  {id:121,n:'Marble Trout',     i:'🐡',r:2,mp:3,zone:2,w:[1,20],  l:[40,120],g:70, desc:"Stunning marble pattern. Found in only a few Alpine rivers. Near extinction."},
+  {id:122,n:'Torrent Duck',     i:'🐡',r:2,mp:2,zone:2,w:[.5,5],  l:[25,60], g:50, desc:"Rare fish mistaken for a duck. Lives exclusively in Andean rapids."},
+  {id:123,n:'Riverbolt Barb',   i:'🐡',r:2,mp:3,zone:2,w:[.5,8],  l:[25,70], g:60, desc:"Moves so fast it creates a visible wake. Said to be the fastest freshwater fish."},
+  {id:124,n:'Cascade King',     i:'🐡',r:2,mp:3,zone:2,w:[2,20],  l:[50,110],g:72, desc:"Territorial rapids dweller that builds nests at the base of waterfalls."},
+  {id:125,n:'Whiteback Shad',   i:'🐡',r:2,mp:2,zone:2,w:[.5,4],  l:[25,55], g:48, desc:"Migratory shad that runs upriver in huge silvery schools."},
+  {id:126,n:'Phantom Eel',      i:'🐡',r:2,mp:3,zone:2,w:[1,10],  l:[50,120],g:65, desc:"Nearly invisible against the river gravel. Strikes from ambush."},
+  {id:127,n:'Steelhead',        i:'🐡',r:2,mp:3,zone:2,w:[2,15],  l:[50,110],g:75, desc:"Sea-run rainbow trout. Returns to rivers to spawn in winter floods."},
+  {id:128,n:'Chinook Salmon',   i:'🐡',r:2,mp:4,zone:2,w:[5,50],  l:[80,150],g:90, desc:"King of Pacific salmon. Fights longer and harder than any other salmon."},
+  {id:129,n:'Rapids Wolffish',  i:'🐡',r:2,mp:3,zone:2,w:[1,15],  l:[40,100],g:68, desc:"Wolf-faced predator with powerful jaws for crushing crayfish on rocks."},
+  // Epic (r:3)
+  {id:130,n:'Thunder Salmon',   i:'✨',r:3,mp:4,zone:2,w:[5,40],  l:[80,160],g:140,desc:"Mutant salmon that generates static electricity in its scales. Electrifying fight."},
+  {id:131,n:'Giant Taimen',     i:'✨',r:3,mp:4,zone:2,w:[10,60], l:[100,200],g:160,desc:"Monstrous Siberian taimen. A single fish can clear a pool of all life."},
+  {id:132,n:'Volcano Barb',     i:'✨',r:3,mp:4,zone:2,w:[1,12],  l:[35,90], g:130,desc:"Glowing orange-red scales like molten lava. Found near geothermal springs."},
+  {id:133,n:'Jade Trout',       i:'✨',r:3,mp:4,zone:2,w:[1,10],  l:[35,85], g:120,desc:"Emerald green trout sacred in mountain villages. Never killed, only admired."},
+  {id:134,n:'Iron Dorado',      i:'✨',r:3,mp:4,zone:2,w:[5,45],  l:[80,170],g:150,desc:"Metallic dorado variant as hard as iron. Blunts hooks on contact."},
+  {id:135,n:'Stormcloud Eel',   i:'✨',r:3,mp:3,zone:2,w:[2,18],  l:[60,150],g:115,desc:"Changes color to match stormy grey skies. Strikes during heavy rain."},
+  {id:136,n:'Ancient Salmon',   i:'✨',r:3,mp:4,zone:2,w:[8,50],  l:[100,180],g:145,desc:"A salmon from a lineage predating the last ice age. Primordial strength."},
+  {id:137,n:'Rapid God Trout',  i:'✨',r:3,mp:4,zone:2,w:[3,25],  l:[65,140],g:135,desc:"Revered by river tribes as the guardian spirit of the rapids."},
+  {id:138,n:'Cobalt Grayling',  i:'✨',r:3,mp:3,zone:2,w:[1,8],   l:[30,80], g:110,desc:"Electric blue grayling. Extremely rare and protected in the wild."},
+  {id:139,n:'Avalanche Pike',   i:'✨',r:3,mp:4,zone:2,w:[5,40],  l:[80,160],g:140,desc:"Pike that hunts by riding downstream surges like an avalanche."},
+  // Legendary (r:4)
+  {id:140,n:'Dragon Taimen',    i:'🌟',r:4,mp:5,zone:2,w:[30,150],l:[200,400],g:750,desc:"A taimen of mythic proportions. Its run upstream has been seen from mountains."},
+  {id:141,n:'River Serpent',    i:'🌟',r:4,mp:5,zone:2,w:[20,100],l:[150,350],g:680,desc:"Ancient river serpent. Swims so fast it creates a wake like a speedboat."},
+  {id:142,n:'Crimson King',     i:'🌟',r:4,mp:5,zone:2,w:[15,80], l:[120,280],g:700,desc:"Blood-red alpha predator of the rapids. Other fish flee its territory."},
+  {id:143,n:'Storm Leviathan',  i:'🌟',r:4,mp:5,zone:2,w:[40,200],l:[180,420],g:820,desc:"Manifests only during the most violent river storms. Terrifying and beautiful."},
+  {id:144,n:'Titanium Dorado',  i:'🌟',r:4,mp:5,zone:2,w:[20,100],l:[120,280],g:720,desc:"Metallic silver dorado as hard as titanium. Dulls any hook instantly."},
+  {id:145,n:'Rapid World Eater',i:'🌟',r:4,mp:5,zone:2,w:[50,250],l:[200,480],g:880,desc:"A creature so ancient that its species was thought extinct for eons."},
+  {id:146,n:'Whitewater Ghost', i:'🌟',r:4,mp:5,zone:2,w:[10,60], l:[100,240],g:650,desc:"Visible only in the white foam of waterfalls. A ghost of pure river energy."},
+  {id:147,n:'Magma Eel',        i:'🌟',r:4,mp:5,zone:2,w:[15,80], l:[120,280],g:710,desc:"Burns at the touch. Said to have swum up from underground magma rivers."},
+  {id:148,n:'Cascade Deity',    i:'🌟',r:4,mp:5,zone:2,w:[30,180],l:[170,400],g:800,desc:"Worshipped by those who live beside the rapids. Granting a sighting brings luck."},
+  {id:149,n:'Eternal Current',  i:'🌟',r:4,mp:5,zone:2,w:[100,500],l:[280,650],g:999,desc:"The river itself given form. It flows upstream and downstream simultaneously."},
+
+// ═══ ZONE 3: OCEAN SHORE (id 150-199) ═══
+  // Common (r:0)
+  {id:150,n:'Surf Perch',       i:'🐟',r:0,mp:1,zone:3,w:[.2,2],  l:[12,35], g:15, desc:"Rides the surf zone with ease. Common near sandy beaches."},
+  {id:151,n:'Sand Smelt',       i:'🐟',r:0,mp:1,zone:3,w:[.05,.3],l:[5,15],  g:8,  desc:"Schooling fish that dances in the shallows of sandy shores."},
+  {id:152,n:'Shore Flounder',   i:'🐟',r:0,mp:1,zone:3,w:[.2,3],  l:[15,45], g:14, desc:"Flat ambush predator. Both eyes on one side of its body."},
+  {id:153,n:'Mullet',           i:'🐟',r:0,mp:1,zone:3,w:[.3,4],  l:[20,55], g:12, desc:"Fast schooling fish that skips across the water's surface."},
+  {id:154,n:'Spotfin Croaker',  i:'🐟',r:0,mp:1,zone:3,w:[.2,2],  l:[15,40], g:11, desc:"Makes croaking sounds at night to attract mates on the shoreline."},
+  {id:155,n:'Bonefish',         i:'🐟',r:0,mp:1,zone:3,w:[.5,5],  l:[25,65], g:14, desc:"The 'ghost of the flats'. Lightning fast in shallow tidal zones."},
+  {id:156,n:'Pompano',          i:'🐠',r:0,mp:1,zone:3,w:[.3,3],  l:[18,45], g:16, desc:"Compressed silver body. Runs hard along the surf when hooked."},
+  {id:157,n:'Ladyfish',         i:'🐠',r:0,mp:1,zone:3,w:[.3,2.5],l:[20,50], g:13, desc:"Acrobatic leaper that somersaults out of the water when hooked."},
+  {id:158,n:'Jack Crevalle',    i:'🐠',r:0,mp:1,zone:3,w:[.5,8],  l:[25,70], g:15, desc:"Pure muscle. One of the toughest fights per pound in coastal waters."},
+  {id:159,n:'Kingfish',         i:'🐠',r:0,mp:1,zone:3,w:[.2,2.5],l:[15,45], g:14, desc:"Spirited bottom feeder of the surf zone."},
+  // Uncommon (r:1)
+  {id:160,n:'Red Drum',         i:'🐠',r:1,mp:2,zone:3,w:[1,20],  l:[40,120],g:32, desc:"Bull reds are legendary shore-fish. Black spot on the tail base."},
+  {id:161,n:'Striped Bass',     i:'🐠',r:1,mp:2,zone:3,w:[1,30],  l:[40,130],g:35, desc:"East Coast icon. Migrates thousands of miles along the shoreline."},
+  {id:162,n:'Bluefish',         i:'🐠',r:1,mp:2,zone:3,w:[.5,12], l:[30,90], g:28, desc:"Wolf of the sea. Attacks in frenzied blitzes, biting through anything."},
+  {id:163,n:'Snook',            i:'🐠',r:1,mp:2,zone:3,w:[1,15],  l:[40,130],g:33, desc:"Ambushes prey near mangroves and estuaries. Protected in many areas."},
+  {id:164,n:'Tarpon',           i:'🐠',r:1,mp:3,zone:3,w:[5,80],  l:[80,230],g:40, desc:"Silver King! Leaps higher than any other shore fish. Can reach 100+ kg."},
+  {id:165,n:'Permit',           i:'🐠',r:1,mp:2,zone:3,w:[1,20],  l:[40,100],g:30, desc:"Most difficult flats fish to catch. A permit on a fly is a lifetime achievement."},
+  {id:166,n:'Cobia',            i:'🐠',r:1,mp:2,zone:3,w:[2,30],  l:[50,140],g:35, desc:"Follows rays and sharks along the shore. Powerful enough to break rods."},
+  {id:167,n:'Wahoo',            i:'🐠',r:1,mp:3,zone:3,w:[2,40],  l:[50,180],g:38, desc:"One of the fastest fish in the ocean. Accelerates to 80 km/h."},
+  {id:168,n:'Barracuda',        i:'🐠',r:1,mp:2,zone:3,w:[1,20],  l:[40,140],g:30, desc:"Torpedo-shaped apex predator. Attracted to shiny lures."},
+  {id:169,n:'Roosterfish',      i:'🐠',r:1,mp:3,zone:3,w:[2,35],  l:[50,130],g:36, desc:"Named for its seven spectacular dorsal spines like a rooster's comb."},
+  // Rare (r:2)
+  {id:170,n:'Yellowfin Tuna',   i:'🐡',r:2,mp:3,zone:3,w:[5,80],  l:[60,180],g:90, desc:"Speed and endurance machine. Runs hundreds of meters in seconds."},
+  {id:171,n:'Mahi-Mahi',        i:'🐡',r:2,mp:3,zone:3,w:[2,30],  l:[50,140],g:80, desc:"Most colourful fish in the ocean. Changes colors as it dies."},
+  {id:172,n:'Amberjack',        i:'🐡',r:2,mp:3,zone:3,w:[5,60],  l:[60,170],g:85, desc:"'AJs' are brutes. Reef hunters that descend into the blue at will."},
+  {id:173,n:'Sailfish',         i:'🐡',r:2,mp:4,zone:3,w:[15,90], l:[150,320],g:110,desc:"Fastest fish in the ocean. Reaches 110 km/h in short bursts."},
+  {id:174,n:'Bonefish King',    i:'🐡',r:2,mp:3,zone:3,w:[2,8],   l:[50,90], g:70, desc:"Largest bonefish ever seen. Its runs empty a reel in seconds."},
+  {id:175,n:'Cubera Snapper',   i:'🐡',r:2,mp:3,zone:3,w:[5,50],  l:[60,150],g:88, desc:"Massive snapper with crushing dog-teeth. Lives near deep shore rocks."},
+  {id:176,n:'Giant Trevally',   i:'🐡',r:2,mp:4,zone:3,w:[5,70],  l:[60,170],g:95, desc:"GT! The most powerful fish that swims in shallow water."},
+  {id:177,n:'Shore Swordfish',  i:'🐡',r:2,mp:4,zone:3,w:[10,100],l:[100,250],g:100,desc:"Comes close to shore at night to feed. The bill is an evolutionary sword."},
+  {id:178,n:'King Mackerel',    i:'🐡',r:2,mp:3,zone:3,w:[2,40],  l:[50,160],g:78, desc:"Speedster that attacks trolled baits like a silver missile."},
+  {id:179,n:'Yellowtail',       i:'🐡',r:2,mp:3,zone:3,w:[2,25],  l:[45,130],g:75, desc:"Prized for sashimi. Fights in powerful downward circles."},
+  // Epic (r:3)
+  {id:180,n:'Blue Marlin',      i:'✨',r:3,mp:4,zone:3,w:[50,300], l:[200,450],g:180,desc:"The holy grail of shore fishing. Takes hours to land if ever caught."},
+  {id:181,n:'Black Marlin',     i:'✨',r:3,mp:4,zone:3,w:[100,500],l:[250,500],g:200,desc:"World record over 700kg. The most powerful fish that swims."},
+  {id:182,n:'Giant Bluefin',    i:'✨',r:3,mp:4,zone:3,w:[50,400], l:[150,400],g:210,desc:"Worth millions at auction. Endurance fighter that runs for hours."},
+  {id:183,n:'Phantom Ray',      i:'✨',r:3,mp:3,zone:3,w:[10,80],  l:[100,250],g:150,desc:"Transparent manta variant. Its wings disappear in open water."},
+  {id:184,n:'Neptune Tarpon',   i:'✨',r:3,mp:4,zone:3,w:[30,120], l:[150,280],g:170,desc:"A tarpon so old and massive it has developed mythological status."},
+  {id:185,n:'Spectral Tuna',    i:'✨',r:3,mp:4,zone:3,w:[20,150], l:[120,300],g:160,desc:"Bioluminescent tuna that glows gold-green at depth."},
+  {id:186,n:'Obsidian Jack',    i:'✨',r:3,mp:4,zone:3,w:[5,50],   l:[60,160], g:140,desc:"Pure black jack with white fin tips. Terrifyingly fast ambush predator."},
+  {id:187,n:'Kraken Barracuda', i:'✨',r:3,mp:4,zone:3,w:[10,70],  l:[100,220],g:155,desc:"Tentacle-scarred alpha barracuda that hunts the deep shore ledges."},
+  {id:188,n:'Solar Roosterfish',i:'✨',r:3,mp:4,zone:3,w:[10,60],  l:[90,200], g:148,desc:"Gold-orange roosterfish that only feeds during high noon sun."},
+  {id:189,n:'Void Sailfish',    i:'✨',r:3,mp:4,zone:3,w:[20,100], l:[150,330],g:165,desc:"Black as a shadow, its sail blends with storm clouds. Near invisible."},
+  // Legendary (r:4)
+  {id:190,n:'Colossal Squid',   i:'🌟',r:4,mp:5,zone:3,w:[100,500],l:[300,600],g:800,desc:"Monster from the deepest ocean. It rises to shore once per decade."},
+  {id:191,n:'Megalodon',        i:'🌟',r:4,mp:5,zone:3,w:[500,2000],l:[500,1200],g:5000,desc:"Extinct for 3 million years... or is it? Sightings are reported still."},
+  {id:192,n:'Ocean Titan',      i:'🌟',r:4,mp:5,zone:3,w:[200,800],l:[400,900],g:1200,desc:"Largest creature ever recorded in coastal waters. Creates its own weather."},
+  {id:193,n:'Poseidon Marlin',  i:'🌟',r:4,mp:5,zone:3,w:[200,600],l:[300,650],g:1000,desc:"The god of the sea given form as a marlin. Fighting it feels like fighting a storm."},
+  {id:194,n:'Abyssal Ray',      i:'🌟',r:4,mp:5,zone:3,w:[100,700],l:[350,800],g:900, desc:"Rises from the abyss during the new moon. Its wingspan blocks the horizon."},
+  {id:195,n:'Tidal God',        i:'🌟',r:4,mp:5,zone:3,w:[300,1000],l:[500,1100],g:1500,desc:"Commands the tides. Catching it means the ocean owes you a favor."},
+  {id:196,n:'Ghost Whale Fish', i:'🌟',r:4,mp:5,zone:3,w:[150,600],l:[350,750],g:950, desc:"Neither whale nor fish. An ancient boundary creature of the deep shore."},
+  {id:197,n:'Aurora Tuna',      i:'🌟',r:4,mp:5,zone:3,w:[80,400], l:[200,500],g:850, desc:"Only visible under the northern lights. Its scales display the full aurora."},
+  {id:198,n:'Leviathan Shark',  i:'🌟',r:4,mp:5,zone:3,w:[400,1500],l:[600,1200],g:2000,desc:"The last true sea monster. Its shadow darkens the entire shoreline."},
+  {id:199,n:'Ocean Absolute',   i:'🌟',r:4,mp:5,zone:3,w:[1000,5000],l:[1000,3000],g:9999,desc:"The ocean itself, given a single moment of physical form. Unhookable by legend."},
 ];
 
 
@@ -1342,6 +1720,156 @@ const FISH_SPRITE = {
   47: 'ghost_knifefish',
   48: 'golden_god',
   49: 'leviathan',
+  50: 'largemouth_bass',
+  51: 'bluegill',
+  52: 'lake_carp',
+  53: 'tench',
+  54: 'roach',
+  55: 'rudd',
+  56: 'perch',
+  57: 'pumpkinseed',
+  58: 'lake_chub',
+  59: 'crucian_carp',
+  60: 'walleye',
+  61: 'sauger',
+  62: 'smallmouth_bass',
+  63: 'lake_trout',
+  64: 'whitefish',
+  65: 'freshwater_drum',
+  66: 'channel_catfish',
+  67: 'lake_whiting',
+  68: 'bowfin',
+  69: 'gar_pike',
+  70: 'muskellunge',
+  71: 'lake_sturgeon',
+  72: 'northern_pike',
+  73: 'zander',
+  74: 'lake_salmon',
+  75: 'burbot',
+  76: 'paddlefish',
+  77: 'alligator_gar',
+  78: 'bowback_trout',
+  79: 'lake_cisco',
+  80: 'tiger_muskellunge',
+  81: 'blue_catfish',
+  82: 'golden_trout',
+  83: 'lake_opah',
+  84: 'freshwater_shark',
+  85: 'goliath_tigerfish',
+  86: 'lake_pearlfish',
+  87: 'thunder_eel',
+  88: 'sapphire_bream',
+  89: 'lake_phantom',
+  90: 'wels_catfish',
+  91: 'platinum_sturgeon',
+  92: 'lake_dragon',
+  93: 'mirror_king_carp',
+  94: 'void_muskellunge',
+  95: 'eternal_gar',
+  96: 'celestial_trout',
+  97: 'lake_titan',
+  98: 'crystal_sturgeon',
+  99: 'lake_god',
+  100: 'torrent_barb',
+  101: 'mountain_minnow',
+  102: 'stone_loach',
+  103: 'riffle_dace',
+  104: 'rapid_gudgeon',
+  105: 'cascade_trout',
+  106: 'whitewater_chub',
+  107: 'stonefly_trout',
+  108: 'current_carp',
+  109: 'rapid_perch',
+  110: 'atlantic_salmon',
+  111: 'brown_trout',
+  112: 'rainbow_trout',
+  113: 'grayling',
+  114: 'bull_trout',
+  115: 'lenok',
+  116: 'taimen',
+  117: 'cutthroat_trout',
+  118: 'huchen',
+  119: 'brook_trout',
+  120: 'golden_dorado',
+  121: 'marble_trout',
+  122: 'torrent_duck',
+  123: 'riverbolt_barb',
+  124: 'cascade_king',
+  125: 'whiteback_shad',
+  126: 'phantom_eel',
+  127: 'steelhead',
+  128: 'chinook_salmon',
+  129: 'rapids_wolffish',
+  130: 'thunder_salmon',
+  131: 'giant_taimen',
+  132: 'volcano_barb',
+  133: 'jade_trout',
+  134: 'iron_dorado',
+  135: 'stormcloud_eel',
+  136: 'ancient_salmon',
+  137: 'rapid_god_trout',
+  138: 'cobalt_grayling',
+  139: 'avalanche_pike',
+  140: 'dragon_taimen',
+  141: 'river_serpent',
+  142: 'crimson_king',
+  143: 'storm_leviathan',
+  144: 'titanium_dorado',
+  145: 'rapid_world_eater',
+  146: 'whitewater_ghost',
+  147: 'magma_eel',
+  148: 'cascade_deity',
+  149: 'eternal_current',
+  150: 'surf_perch',
+  151: 'sand_smelt',
+  152: 'shore_flounder',
+  153: 'mullet',
+  154: 'spotfin_croaker',
+  155: 'bonefish',
+  156: 'pompano',
+  157: 'ladyfish',
+  158: 'jack_crevalle',
+  159: 'kingfish',
+  160: 'red_drum',
+  161: 'striped_bass',
+  162: 'bluefish',
+  163: 'snook',
+  164: 'tarpon',
+  165: 'permit',
+  166: 'cobia',
+  167: 'wahoo',
+  168: 'barracuda',
+  169: 'roosterfish',
+  170: 'yellowfin_tuna',
+  171: 'mahi_mahi',
+  172: 'amberjack',
+  173: 'sailfish',
+  174: 'bonefish_king',
+  175: 'cubera_snapper',
+  176: 'giant_trevally',
+  177: 'shore_swordfish',
+  178: 'king_mackerel',
+  179: 'yellowtail',
+  180: 'blue_marlin',
+  181: 'black_marlin',
+  182: 'giant_bluefin',
+  183: 'phantom_ray',
+  184: 'neptune_tarpon',
+  185: 'spectral_tuna',
+  186: 'obsidian_jack',
+  187: 'kraken_barracuda',
+  188: 'solar_roosterfish',
+  189: 'void_sailfish',
+  190: 'colossal_squid',
+  191: 'megalodon',
+  192: 'ocean_titan',
+  193: 'poseidon_marlin',
+  194: 'abyssal_ray',
+  195: 'tidal_god',
+  196: 'ghost_whale_fish',
+  197: 'aurora_tuna',
+  198: 'leviathan_shark',
+  199: 'ocean_absolute',
 };
 
 // ── Core pixel fish renderer ────────────────────────────────
@@ -1400,7 +1928,18 @@ let G={
   stats:{ totalGold:0, biggestFish:null, biggestWeight:0, castCount:0, missCount:0 },
   leaderboard:[], fishRecords:{},
   quests:[], questDay:'',
+  zone:0,
   casting:false, waiting:false, timer:null,
+  // Reel minigame state
+  reeling:false,
+  reelTension:50,    // 0-100, keep in safe zone
+  reelSafeL:30,      // safe zone left %
+  reelSafeR:70,      // safe zone right %
+  reelSafeDir:1,     // direction safe zone moves
+  reelLineHP:100,    // 0-100, breaks at 0
+  reelProgress:0,    // 0-100, catch at 100
+  reelFish:null,     // fish being reeled
+  reelHolding:false, // is cast button held
   // Gozo
   gz:{x:200, y:0, vx:0, vy:0, facing:1,
       dir:'down',
@@ -2314,13 +2853,19 @@ function showCatchAnimation(fish, screenX, screenY){
 const keys={};
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
-  if(e.code==='Space'){e.preventDefault();handleCast();}
+  if(e.code==='Space'){e.preventDefault();if(G.reeling){G.reelHolding=true;}else{handleCast();}}
+  if(e.code==='KeyE'||e.code==='KeyF'){
+    const nearNpc = checkNpcInteraction();
+    if(nearNpc && !_activeNpc) openNpc(nearNpc);
+    else if(_activeNpc) closeNpc();
+  }
   if(e.code==='ArrowLeft'||e.code==='ArrowRight'||
      e.code==='ArrowUp'  ||e.code==='ArrowDown' ||
      e.code==='KeyW'     ||e.code==='KeyS'       ||
      e.code==='KeyA'     ||e.code==='KeyD') e.preventDefault();
 });
-document.addEventListener('keyup',e=>{keys[e.code]=false;});
+document.addEventListener('keyup',e=>{
+  if(e.code==='Space' && G.reeling){ G.reelHolding=false; }keys[e.code]=false;});
 
 // ═══════════════════════════════════════════
 // CANVAS SETUP
@@ -2328,7 +2873,290 @@ document.addEventListener('keyup',e=>{keys[e.code]=false;});
 let canvas, ctx, W, H;
 // World layout constants (recalculated on resize)
 let SKY_H, FAR_BANK_Y, FAR_BANK_H, RIVER_Y, RIVER_H, GROUND_Y;
-const WORLD_W = 2400; // scrollable world width
+// ═══ MULTI-ZONE WORLD ═══
+// Zone 0: Main River     x=0..2400      (original)
+// Zone 1: Lake           x=2400..4800   (calm, big fish)
+// Zone 2: Rapid River    x=4800..7200   (fast water, rare fish)
+// Zone 3: Ocean Shore    x=7200..9600   (salt water, legendary)
+const ZONE_W   = 2400;
+const WORLD_W  = ZONE_W * 4; // total scrollable width
+const ZONES = [
+  { id:0, name:'🌊 Main River',   waterColor1:'#0A2040', waterColor2:'#071428', fishBonus:0,   bgTop:'#020814', bgMid:'#050e1f', label:'MAIN RIVER' },
+  { id:1, name:'🏞️ Lake',         waterColor1:'#083060', waterColor2:'#041830', fishBonus:0.2, bgTop:'#010a10', bgMid:'#041520', label:'LAKE' },
+  { id:2, name:'🌀 Rapid River',  waterColor1:'#1A4060', waterColor2:'#0A2030', fishBonus:0.4, bgTop:'#020810', bgMid:'#061018', label:'RAPID RIVER' },
+  { id:3, name:'🌊 Ocean Shore',  waterColor1:'#0A3060', waterColor2:'#051838', fishBonus:0.6, bgTop:'#010510', bgMid:'#03101e', label:'OCEAN SHORE' },
+];
+function getZone(x){ return Math.min(3, Math.floor(x / ZONE_W)); }
+
+// ═══════════════════════════════════════════
+// ACHIEVEMENT SYSTEM
+// ═══════════════════════════════════════════
+const ACHIEVEMENTS = [
+  // Catching milestones
+  {id:'first_catch',    badge:'🎣', title:'First Catch',       desc:'Catch your first fish',              check:g=>g.total>=1,           reward:{gold:50,  xp:20}},
+  {id:'catch_10',       badge:'🐟', title:'Ten Fish',          desc:'Catch 10 fish total',                check:g=>g.total>=10,          reward:{gold:100, xp:50}},
+  {id:'catch_50',       badge:'🐠', title:'Fifty Fish',        desc:'Catch 50 fish total',                check:g=>g.total>=50,          reward:{gold:300, xp:150}},
+  {id:'catch_100',      badge:'🌊', title:'Century Angler',    desc:'Catch 100 fish total',               check:g=>g.total>=100,         reward:{gold:600, xp:300}},
+  {id:'catch_500',      badge:'🏆', title:'Master Fisher',     desc:'Catch 500 fish total',               check:g=>g.total>=500,         reward:{gold:2000,xp:1000}},
+  // Rarity achievements
+  {id:'first_uncommon', badge:'🟩', title:'Something Shiny',   desc:'Catch your first Uncommon fish',     check:g=>Object.keys(g.caught||{}).some(id=>FISH[+id]&&FISH[+id].r>=1), reward:{gold:80, xp:40}},
+  {id:'first_rare',     badge:'🟦', title:'Rare Find',         desc:'Catch your first Rare fish',         check:g=>Object.keys(g.caught||{}).some(id=>FISH[+id]&&FISH[+id].r>=2), reward:{gold:150,xp:80}},
+  {id:'first_epic',     badge:'🟪', title:'Epic Haul',         desc:'Catch your first Epic fish',         check:g=>Object.keys(g.caught||{}).some(id=>FISH[+id]&&FISH[+id].r>=3), reward:{gold:300,xp:150}},
+  {id:'first_legendary',badge:'🌟', title:'Legendary!',        desc:'Catch your first Legendary fish',    check:g=>Object.keys(g.caught||{}).some(id=>FISH[+id]&&FISH[+id].r>=4), reward:{gold:1000,xp:500}},
+  {id:'leg_5',          badge:'👑', title:'Legend Hunter',     desc:'Catch 5 Legendary fish',             check:g=>{let c=0;Object.entries(g.caught||{}).forEach(([id,n])=>{if(FISH[+id]&&FISH[+id].r===4)c+=n});return c>=5;}, reward:{gold:2000,xp:800}},
+  // Journal/collection
+  {id:'species_10',     badge:'📖', title:'Budding Biologist', desc:'Discover 10 species',                check:g=>Object.keys(g.caught||{}).length>=10, reward:{gold:200,xp:100}},
+  {id:'species_25',     badge:'📚', title:'Fish Scholar',      desc:'Discover 25 species',                check:g=>Object.keys(g.caught||{}).length>=25, reward:{gold:500,xp:250}},
+  {id:'species_50',     badge:'🧬', title:'Complete Dex',      desc:'Discover all 50 river species!',     check:g=>Object.keys(g.caught||{}).filter(id=>!FISH[+id]?.zone).length>=50, reward:{gold:5000,xp:2000}},
+  {id:'species_100',    badge:'🌍', title:'World Traveler',    desc:'Discover 100 species across all zones',check:g=>Object.keys(g.caught||{}).length>=100, reward:{gold:8000,xp:3000}},
+  {id:'species_200',    badge:'🏆', title:'Living Encyclopedia',desc:'Discover ALL 200 species!',           check:g=>Object.keys(g.caught||{}).length>=200, reward:{gold:50000,xp:20000}},
+  // Gold/economy
+  {id:'gold_500',       badge:'🪙', title:'Pocket Money',      desc:'Earn 500 gold total',                check:g=>(g.stats&&g.stats.totalGold>=500),    reward:{gold:100,xp:50}},
+  {id:'gold_5000',      badge:'💰', title:'Well Off',          desc:'Earn 5000 gold total',               check:g=>(g.stats&&g.stats.totalGold>=5000),   reward:{gold:500,xp:200}},
+  {id:'gold_50000',     badge:'🤑', title:'Millionaire Fisher',desc:'Earn 50000 gold total',              check:g=>(g.stats&&g.stats.totalGold>=50000),  reward:{gold:2000,xp:500}},
+  // Fishing skill
+  {id:'big_fish',       badge:'🐋', title:'Monster Catch',     desc:'Catch a fish over 50kg',             check:g=>(g.stats&&g.stats.biggestWeight>=50), reward:{gold:400,xp:200}},
+  {id:'huge_fish',      badge:'🦈', title:'Impossible Catch',  desc:'Catch a fish over 100kg',            check:g=>(g.stats&&g.stats.biggestWeight>=100),reward:{gold:800,xp:400}},
+  {id:'cast_100',       badge:'🎯', title:'Patient Angler',    desc:'Cast 100 times',                     check:g=>(g.stats&&g.stats.castCount>=100),    reward:{gold:150,xp:80}},
+  {id:'cast_1000',      badge:'⚓', title:'Seasoned Veteran',  desc:'Cast 1000 times',                    check:g=>(g.stats&&g.stats.castCount>=1000),   reward:{gold:800,xp:400}},
+  // Progression
+  {id:'level_5',        badge:'⬆️',  title:'Rising Star',       desc:'Reach level 5',                      check:g=>(g.level||1)>=5,      reward:{gold:300,xp:0}},
+  {id:'level_10',       badge:'🔥', title:'Max Level',          desc:'Reach level 10',                     check:g=>(g.level||1)>=10,     reward:{gold:1000,xp:0}},
+  // Equipment
+  {id:'buy_rod',        badge:'🎋', title:'Upgraded!',          desc:'Buy your first new rod',             check:g=>(g.ownedRods||[0]).length>=2,         reward:{gold:100,xp:50}},
+  {id:'all_rods',       badge:'🐉', title:'Rod Collector',      desc:'Own all 5 rods',                     check:g=>(g.ownedRods||[0]).length>=5,          reward:{gold:1000,xp:300}},
+  // Zone exploration
+  {id:'visit_lake',     badge:'🏞️',  title:'Lake Explorer',     desc:'Reach the Lake',                     check:g=>(g.zonesVisited||[]).includes(1),      reward:{gold:200,xp:100}},
+  {id:'visit_rapids',   badge:'🌀', title:'Rapids Rider',       desc:'Reach the Rapid River',              check:g=>(g.zonesVisited||[]).includes(2),      reward:{gold:300,xp:150}},
+  {id:'visit_ocean',    badge:'⚓', title:'Ocean Bound',        desc:'Reach the Ocean Shore',              check:g=>(g.zonesVisited||[]).includes(3),      reward:{gold:500,xp:250}},
+  // Special
+  {id:'arapaima',       badge:'🦕', title:'Arapaima!',          desc:'Catch the legendary Arapaima Gigas', check:g=>g.caught&&g.caught[40]>=1,            reward:{gold:1500,xp:500}},
+  {id:'leviathan',      badge:'🌌', title:'Leviathan Slayer',   desc:'Catch the Ancient Leviathan',        check:g=>g.caught&&g.caught[49]>=1,            reward:{gold:3000,xp:1000}},
+];
+
+// G.achievements = {id: true/false} — stored in save
+function checkAchievements(){
+  if(!G.achievements) G.achievements={};
+  if(!G.zonesVisited) G.zonesVisited=[];
+  // Track zone visits
+  if(!G.zonesVisited.includes(G.zone)) G.zonesVisited.push(G.zone);
+
+  ACHIEVEMENTS.forEach(a=>{
+    if(G.achievements[a.id]) return; // already earned
+    try {
+      if(a.check(G)){
+        G.achievements[a.id]=true;
+        // Grant reward
+        if(a.reward.gold){ G.gold+=a.reward.gold; if(G.stats)G.stats.totalGold+=a.reward.gold; }
+        if(a.reward.xp)   addXP(a.reward.xp);
+        updateHUD();
+        showAchToast(a);
+      }
+    } catch(e){}
+  });
+}
+
+function showAchToast(a){
+  const el=document.getElementById('achToast');
+  if(!el) return;
+  el.innerHTML=`🏅 ACHIEVEMENT UNLOCKED!<br><span style="color:#fff;font-size:5px">${a.badge} ${a.title}</span><br><span style="font-size:4px;color:#aaa">${a.desc}</span><br><span style="font-size:4px;color:#FFD700">+${a.reward.gold}🪙 +${a.reward.xp}XP</span>`;
+  el.className='show';
+  setTimeout(()=>{ el.className=''; setTimeout(()=>el.style.display='none',400); el.style.display='block'; },3500);
+  el.style.display='block';
+}
+
+// ═══════════════════════════════════════════
+// FISH JOURNAL
+// ═══════════════════════════════════════════
+let _jFilter = 'all';
+let _jZoneFilter = 'all';
+let _jSelected = null;
+
+function openJournal(){
+  document.getElementById('journalModal').style.display='block';
+  _jFilter='all'; _jZoneFilter='all'; _jSelected=null;
+  document.querySelectorAll('.jtab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('jTabAll').classList.add('active');
+  document.getElementById('jZoneAll').classList.add('active');
+  renderJournal();
+}
+function jZone(z){
+  _jZoneFilter=z; _jSelected=null;
+  document.getElementById('journalDetail').style.display='none';
+  document.querySelectorAll('.jtab').forEach(t=>{ if(t.id&&t.id.startsWith('jZone')) t.classList.remove('active'); });
+  const zMap={'all':'jZoneAll','0':'jZone0','1':'jZone1','2':'jZone2','3':'jZone3'};
+  const el=document.getElementById(zMap[z]); if(el) el.classList.add('active');
+  renderJournal();
+}
+function closeJournal(){ document.getElementById('journalModal').style.display='none'; }
+
+function jFilter(f){
+  _jFilter=f; _jSelected=null;
+  document.getElementById('journalDetail').style.display='none';
+  document.querySelectorAll('.jtab').forEach(t=>t.classList.remove('active'));
+  const tabMap={'all':'jTabAll','0':'jTabC','1':'jTabU','2':'jTabR','3':'jTabE','4':'jTabL'};
+  const tabEl=document.getElementById(tabMap[f]);
+  if(tabEl) tabEl.classList.add('active');
+  renderJournal();
+}
+
+function renderJournal(){
+  const grid=document.getElementById('journalGrid');
+  if(!grid) return;
+  if(!G.caught) G.caught={};
+  const caught=G.caught;
+  const discovered=Object.keys(caught).length;
+  const cntEl=document.getElementById('journalCount');
+  if(cntEl) cntEl.textContent=discovered+'/200 DISCOVERED';
+
+  const filtered=FISH.filter(f=>{
+    const rarOk=_jFilter==='all'||String(f.r)===_jFilter;
+    const zoneOk=_jZoneFilter==='all'||(String(_jZoneFilter)==='0'?!f.zone:String(f.zone)===String(_jZoneFilter));
+    return rarOk && zoneOk;
+  });
+  grid.innerHTML='';
+
+  filtered.forEach(f=>{
+    const seen=!!caught[f.id];
+    const card=document.createElement('div');
+    card.className='jcard'+(seen?'':' undiscovered')+(f.id===_jSelected?' selected':'');
+    card.onclick=()=>showJournalDetail(f.id);
+
+    // Mini canvas for fish sprite
+    const cv=document.createElement('canvas');
+    cv.width=64; cv.height=48; cv.style.cssText='image-rendering:pixelated;width:64px;height:48px';
+    if(seen){
+      try{ renderFishCanvas(cv, f.id, RCOL[f.r]||'#aaa', 'transparent'); }catch(e){}
+    } else {
+      // Silhouette only
+      const ctx2=cv.getContext('2d');
+      ctx2.fillStyle='#1a2a1a';
+      ctx2.fillRect(8,14,48,22);
+      ctx2.fillStyle='#0f1f0f';
+      ctx2.font='18px serif'; ctx2.textAlign='center'; ctx2.fillText('?',32,30);
+    }
+
+    const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+    const rarNames=['CMN','UNC','RARE','EPIC','LEG'];
+    card.appendChild(cv);
+
+    const nm=document.createElement('div');
+    nm.className='jcname'; nm.textContent=seen?f.n:'???';
+    card.appendChild(nm);
+
+    const rar=document.createElement('div');
+    rar.className='jcrar';
+    rar.style.color=rarColors[f.r];
+    rar.textContent=(seen?'★ ':'· ')+rarNames[f.r];
+    card.appendChild(rar);
+
+    if(seen && caught[f.id]>1){
+      const cnt=document.createElement('div');
+      cnt.style.cssText='font-family:"Press Start 2P";font-size:3px;color:#666';
+      cnt.textContent='×'+caught[f.id];
+      card.appendChild(cnt);
+    }
+    grid.appendChild(card);
+  });
+}
+
+function showJournalDetail(fishId){
+  _jSelected=fishId;
+  const f=FISH[fishId];
+  if(!f) return;
+  const caught=G.caught||{};
+  const seen=!!caught[fishId];
+  const det=document.getElementById('journalDetail');
+  if(!det) return;
+  det.style.display='block';
+
+  // Render fish portrait
+  const cv=document.getElementById('jdCanvas');
+  if(cv){
+    if(seen){
+      try{ renderFishCanvas(cv,fishId,RCOL[f.r]||'#aaa','#061406'); }catch(e){}
+    } else {
+      const ctx2=cv.getContext('2d');
+      ctx2.fillStyle='#061406';
+      ctx2.fillRect(0,0,96,72);
+      ctx2.fillStyle='#1a3a1a';
+      ctx2.fillRect(16,18,64,36);
+    }
+  }
+
+  const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+  const rarNames=['Common','Uncommon','Rare','Epic','Legendary'];
+  document.getElementById('jdName').textContent=seen?f.n:'???';
+  const rarEl=document.getElementById('jdRar');
+  if(rarEl){ rarEl.textContent='★ '+rarNames[f.r]; rarEl.style.color=rarColors[f.r]; }
+  document.getElementById('jdDesc').textContent=seen?(f.desc||'A mysterious fish.'):'Catch this fish to reveal its secrets.';
+
+  if(seen){
+    const wMin=f.w[0], wMax=f.w[1], lMin=f.l[0], lMax=f.l[1];
+    const zoneNames=['Main River','Lake','Rapid River','Ocean Shore'];
+    const zLabel=zoneNames[f.zone||0];
+    document.getElementById('jdStats').innerHTML=
+      `ZONE: ${zLabel}<br>`+
+      `SIZE: ${wMin}–${wMax} kg · ${lMin}–${lMax} cm<br>`+
+      `RARITY: ${rarNames[f.r]}<br>`+
+      `VALUE: ${f.g} 🪙 base gold<br>`+
+      `CAUGHT: ${caught[fishId]||0}×`;
+
+    // Personal records
+    const rec=G.fishRecords&&G.fishRecords[fishId];
+    if(rec && rec.bestWeight){
+      document.getElementById('jdRecord').innerHTML=
+        `🏆 BEST: ${rec.bestWeight}kg · ${rec.bestLength}cm`;
+    } else {
+      document.getElementById('jdRecord').innerHTML='';
+    }
+  } else {
+    document.getElementById('jdStats').innerHTML='???';
+    document.getElementById('jdRecord').innerHTML='';
+  }
+
+  // Highlight selected card
+  document.querySelectorAll('.jcard').forEach(c=>c.classList.remove('selected'));
+  const cards=document.querySelectorAll('.jcard');
+  const filtered=FISH.filter(f=>{
+    const rarOk=_jFilter==='all'||String(f.r)===String(_jFilter);
+    const zoneOk=_jZoneFilter==='all'||(String(_jZoneFilter)==='0'?!f.zone:String(f.zone)===String(_jZoneFilter));
+    return rarOk && zoneOk;
+  });
+  const idx=filtered.findIndex(fi=>fi.id===fishId);
+  if(cards[idx]) cards[idx].classList.add('selected');
+}
+
+function openAch(){
+  document.getElementById('achModal').style.display='block';
+  renderAchList();
+}
+function closeAch(){ document.getElementById('achModal').style.display='none'; }
+
+function renderAchList(){
+  const el=document.getElementById('achList');
+  if(!el) return;
+  if(!G.achievements) G.achievements={};
+  let done=0;
+  el.innerHTML='';
+  ACHIEVEMENTS.forEach(a=>{
+    const earned=!!G.achievements[a.id];
+    if(earned) done++;
+    const div=document.createElement('div');
+    div.className='ach-item'+(earned?' done':' locked');
+    div.innerHTML=`
+      <div class="ach-badge">${a.badge}</div>
+      <div class="ach-info">
+        <div class="ach-title">${earned?a.title:'???'}</div>
+        <div class="ach-desc">${earned?a.desc:'Keep fishing to unlock...'}</div>
+        ${earned?`<div class="ach-prog">✅ EARNED · +${a.reward.gold}🪙 +${a.reward.xp}XP</div>`:''}
+      </div>
+      <div class="ach-reward">${earned?'✅':''}</div>`;
+    el.appendChild(div);
+  });
+  const cnt=document.getElementById('achCount');
+  if(cnt) cnt.textContent=done+'/'+ACHIEVEMENTS.length;
+}
 
 function resizeCanvas(){
   canvas = document.getElementById('worldCanvas');
@@ -2381,8 +3209,20 @@ function buildTrees(){
     const scale   = 0.75 + r2*0.4;
     treeCache.push({x, y: GROUND_Y+4, variant, scale:scale*0.75, layer:'near'});
   });
-  // Cherry blossom — single tree, center of world, tallest
+  // Cherry blossom — single tree, center of zone 0
   treeCache.push({x: CHERRY_X, y: GROUND_Y+4, variant:99, scale:1.3, layer:'near', cherry:true});
+  // Zone 1 (Lake) — autumn/willow trees
+  [ZONE_W+80, ZONE_W+300, ZONE_W+600, ZONE_W+900, ZONE_W+1200, ZONE_W+1600, ZONE_W+1900, ZONE_W+2200].forEach((x,i)=>{
+    treeCache.push({x, y:GROUND_Y+4, variant:2, scale:0.8+seededRand(x)*0.4, layer:'near'});
+  });
+  // Zone 2 (Rapids) — sparse, rocky look
+  [ZONE_W*2+100, ZONE_W*2+400, ZONE_W*2+800, ZONE_W*2+1300, ZONE_W*2+1800, ZONE_W*2+2200].forEach((x,i)=>{
+    treeCache.push({x, y:GROUND_Y+4, variant:i%2, scale:0.6+seededRand(x)*0.35, layer:'near'});
+  });
+  // Zone 3 (Ocean) — palm-style (autumn variant scaled tall)
+  [ZONE_W*3+100, ZONE_W*3+350, ZONE_W*3+700, ZONE_W*3+1100, ZONE_W*3+1500, ZONE_W*3+2000].forEach((x,i)=>{
+    treeCache.push({x, y:GROUND_Y+4, variant:1, scale:1.0+seededRand(x)*0.4, layer:'near'});
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3275,6 +4115,7 @@ function update(dt){
 
   // Clamp world bounds
   gz.x=Math.max(30,Math.min(WORLD_W-30,gz.x));
+  G.zone = getZone(gz.x);
 
   // Vertical: clamp between just above river and bottom of screen
   const minY=GROUND_Y+6; // keep player on stone ground
@@ -3288,10 +4129,13 @@ function update(dt){
   // Camera follow
   const targetCam=gz.x - W/3;
   G.camX=Math.max(0,Math.min(WORLD_W-W,targetCam));
+  // Keep zone gate trees across zones
+  if(typeof _lastZone!=='undefined' && _lastZone>=0) checkZoneBanner();
 
   // Update particles
   updateParticles(dt);
   updateSakuraPetals(dt);
+  updateReelGame(dt);
 
   // Update weather
   updateWeather(dt);
@@ -3541,9 +4385,32 @@ function render(){
   // ══════════════════════════════════════════
   //  RIVER — deep night water with reflections
   // ══════════════════════════════════════════
-  // River — 2 flat fills instead of gradient (faster)
-  ctx.fillStyle='#0A2040'; ctx.fillRect(0,RIVER_Y,W,Math.round(RIVER_H*0.4));
-  ctx.fillStyle='#071428'; ctx.fillRect(0,RIVER_Y+Math.round(RIVER_H*0.4),W,Math.round(RIVER_H*0.6));
+  // River — color based on current zone
+  const _zoneData = ZONES[G.zone||0];
+  const _wc1 = G.riverColor1||_zoneData.waterColor1;
+  const _wc2 = G.riverColor2||_zoneData.waterColor2;
+  ctx.fillStyle=_wc1; ctx.fillRect(0,RIVER_Y,W,Math.round(RIVER_H*0.4));
+  ctx.fillStyle=_wc2; ctx.fillRect(0,RIVER_Y+Math.round(RIVER_H*0.4),W,Math.round(RIVER_H*0.6));
+  // Zone 2 (rapids): churning white water effect
+  if(G.zone===2){
+    ctx.save(); ctx.globalAlpha=0.15+Math.abs(Math.sin(G.t*3))*0.1;
+    ctx.fillStyle='#FFFFFF';
+    for(let rx=0;rx<W;rx+=40){
+      const ry=RIVER_Y+10+Math.sin(G.t*4+rx*0.1)*8;
+      ctx.fillRect(rx,ry,30,4);
+    }
+    ctx.restore();
+  }
+  // Zone 3 (ocean): rolling waves
+  if(G.zone===3){
+    ctx.save(); ctx.globalAlpha=0.1;
+    ctx.fillStyle='#60A0FF';
+    for(let wx=0;wx<W;wx+=60){
+      const wy=RIVER_Y+Math.sin(G.t*1.5+wx*0.05)*6;
+      ctx.fillRect(wx,wy,50,8);
+    }
+    ctx.restore();
+  }
 
   // Sun/Moon reflection in river
   {
@@ -3638,7 +4505,15 @@ function render(){
   // Ground (stone bricks) already in offscreenBg cache
 
   // Rocks
-  [[180,4,26,15],[310,2,20,12],[560,3,32,18],[800,1,22,13],[1100,4,28,16],[1450,2,18,11],[1700,3,24,14],[2000,1,30,17]].forEach(([wx,rb,rw,rh])=>{
+  // Rocks across all zones
+  const allRocks=[[180,4,26,15],[310,2,20,12],[560,3,32,18],[800,1,22,13],[1100,4,28,16],[1450,2,18,11],[1700,3,24,14],[2000,1,30,17],
+    // Zone 1 lake
+    [2600,3,30,18],[2900,2,22,14],[3200,4,34,20],[3600,2,26,16],[3900,3,28,17],[4200,1,20,12],[4500,4,32,18],
+    // Zone 2 rapids — more rocks
+    [5000,5,38,22],[5200,3,28,16],[5400,6,42,26],[5700,4,36,20],[5900,3,30,18],[6200,5,40,24],[6500,4,34,20],[6800,3,26,16],
+    // Zone 3 ocean — scattered rocks
+    [7400,3,32,18],[7800,2,24,14],[8200,4,36,22],[8600,2,28,16],[9000,3,30,18],[9300,4,32,20]];
+  allRocks.forEach(([wx,rb,rw,rh])=>{
     const sx=wx-cx;
     if(sx<-50||sx>W+50) return;
     const rg=ctx.createRadialGradient(sx-rw*.2,GROUND_Y-rb-rh*.3,2,sx,GROUND_Y-rb-rh*.5,rw);
@@ -3666,6 +4541,53 @@ function render(){
 
   // ── SAKURA PETALS ──
   drawSakuraPetals(ctx, cx);
+
+  // ── NPCS ──
+  const _curZone = G.zone||0;
+  NPCS.forEach(npc=>{
+    if(npc.zone !== _curZone) return;
+    const nsx = Math.round(npc.worldX - cx);
+    if(nsx < -80 || nsx > W+80) return;
+    drawNpcCharacter(ctx, npc, nsx, GROUND_Y+2, G.t);
+    // Interact prompt when close
+    const dist = Math.abs(G.gz.x - npc.worldX);
+    if(dist < 55){
+      ctx.save();
+      ctx.fillStyle='rgba(0,0,0,0.7)';
+      ctx.fillRect(nsx-28, GROUND_Y-40, 56, 14);
+      ctx.fillStyle='#FFD700';
+      ctx.font='4px "Press Start 2P"';
+      ctx.textAlign='center';
+      ctx.fillText('▼ PRESS E / TALK', nsx, GROUND_Y-30);
+      ctx.restore();
+    }
+  });
+
+  // ── ZONE TRANSITION GATES ──
+  for(let z=1; z<4; z++){
+    const gateX = Math.round(z * ZONE_W - cx);
+    if(gateX > -60 && gateX < W+60){
+      const zData = ZONES[z];
+      // Gate pillars
+      ctx.fillStyle='#FFD700';
+      ctx.fillRect(gateX-3, GROUND_Y-55, 6, 55);
+      ctx.fillRect(gateX-3+50, GROUND_Y-55, 6, 55);
+      // Gate top beam
+      ctx.fillStyle='#C8A000';
+      ctx.fillRect(gateX-4, GROUND_Y-58, 61, 8);
+      // Arch glow
+      ctx.save();
+      ctx.globalAlpha=0.3+Math.abs(Math.sin(G.t*1.5))*0.2;
+      ctx.fillStyle=z===3?'#4080FF':z===2?'#40FFAA':z===1?'#80C0FF':'#FFD700';
+      ctx.fillRect(gateX+2, GROUND_Y-54, 48, 52);
+      ctx.restore();
+      // Zone label on gate
+      ctx.fillStyle='#FFD700';
+      ctx.font='4px "Press Start 2P"';
+      ctx.textAlign='center';
+      ctx.fillText(zData.label, gateX+27, GROUND_Y-62);
+    }
+  }
 
   // ── GOZO CHARACTER ──
   const gzScreenX=Math.round(G.gz.x-cx);
@@ -3895,30 +4817,362 @@ function triggerBite(){
   if(!G.waiting) return;
   G.bob.alert=true;
   playSound('bite');
-  setMsg('⚡ BITE! REEL IN NOW!');
+  // Roll fish now so it can escape after timeout
+  const _selBait = BAITS[Math.min(G.sel||0, BAITS.length-1)];
+  G.reelFish = rollFish((_selBait?.pw)||1);
+  setMsg('⚡ BITE! HOLD CAST TO REEL!');
   const btn=document.getElementById('castBtn');
   btn.textContent='🎣 REEL IN!';btn.disabled=false;btn.className='castbtn waiting';
-  G.timer=setTimeout(()=>{if(G.waiting)missed();},3500);
+  // Fish escapes after 6s if not reeled
+  G.timer=setTimeout(()=>{ if(G.waiting && !G.reeling) missed(); }, 6000);
 }
-function missed(){G.waiting=false;resetRod();setMsg('😞 Fish got away! Try again.');notify('The fish escaped!');}
+
+function missed(){
+  G.waiting=false; G.reeling=false;
+  resetRod(); hideReelGame();
+  G.reelFish=null;
+  playSound('miss');
+  setMsg('😞 Fish got away! Try again.');
+  notify('🐟 The fish escaped!');
+  _noMissStreak=0;
+}
+
+function startReelGame(){
+  if(!G.bob.alert || G.reeling) return;
+  clearTimeout(G.timer);
+  G.reeling=true;
+  G.reelTension=50;
+  G.reelSafeL=30; G.reelSafeR=70; G.reelSafeDir=1;
+  G.reelLineHP=100;
+  G.reelProgress=0;
+  G.reelHolding=true;
+  showReelGame();
+  setMsg('⚡ HOLD to reel! Keep needle in zone!');
+}
+
+function showReelGame(){
+  const el=document.getElementById('reelGame');
+  if(el){ el.style.display='flex'; el.className=''; }
+}
+function hideReelGame(){
+  const el=document.getElementById('reelGame');
+  if(el) el.style.display='none';
+}
+
+function updateReelGame(dt){
+  if(!G.reeling) return;
+  const fish = G.reelFish;
+  const rarity = fish ? fish.r : 0; // 0=easy, 4=hardest
+
+  // Safe zone drifts back and forth, faster for rare fish
+  const safeSpeed = 12 + rarity*8;
+  const safeW = Math.max(18, 38 - rarity*4); // narrower zone for rare fish
+  G.reelSafeL += G.reelSafeDir * safeSpeed * dt;
+  G.reelSafeR = G.reelSafeL + safeW;
+  if(G.reelSafeR >= 92){ G.reelSafeDir=-1; }
+  if(G.reelSafeL <= 8){ G.reelSafeDir=1; }
+
+  // Tension: holding = moves toward right (reeling), releasing = drifts left (fish pulls)
+  const fishPull = 18 + rarity*10; // fish pulls harder based on rarity
+  const reelPull = 45;
+  if(G.reelHolding){
+    G.reelTension = Math.min(100, G.reelTension + reelPull*dt);
+  } else {
+    G.reelTension = Math.max(0, G.reelTension - fishPull*dt);
+  }
+
+  // Check if needle is in safe zone
+  const inZone = G.reelTension >= G.reelSafeL && G.reelTension <= G.reelSafeR;
+  
+  if(inZone && G.reelHolding){
+    // Perfect zone + holding = progress!
+    G.reelProgress = Math.min(100, G.reelProgress + (20+rarity*2)*dt);
+  } else if(!inZone){
+    // Outside zone = line takes damage
+    G.reelLineHP = Math.max(0, G.reelLineHP - (15+rarity*8)*dt);
+  }
+
+  // Line snapped!
+  if(G.reelLineHP <= 0){
+    endReelGame(false);
+    return;
+  }
+  // Fish caught!
+  if(G.reelProgress >= 100){
+    endReelGame(true);
+    return;
+  }
+
+  // Update UI
+  const tensionEl = document.getElementById('reelTension');
+  const safeEl = document.getElementById('reelSafe');
+  const needleEl = document.getElementById('reelNeedle');
+  const lineEl = document.getElementById('reelLine');
+  const lineValEl = document.getElementById('reelLineVal');
+  const progEl = document.getElementById('reelProgress');
+  const progValEl = document.getElementById('reelProgressVal');
+  const gameEl = document.getElementById('reelGame');
+  const labelEl = document.getElementById('reelLabel');
+
+  if(tensionEl) tensionEl.style.width = G.reelTension+'%';
+  if(needleEl) needleEl.style.left = G.reelTension+'%';
+  if(safeEl){ safeEl.style.left=G.reelSafeL+'%'; safeEl.style.width=(G.reelSafeR-G.reelSafeL)+'%'; }
+  if(lineEl){ 
+    lineEl.style.width=G.reelLineHP+'%';
+    lineEl.style.background = G.reelLineHP>50?'#00ff88':G.reelLineHP>25?'#FFD700':'#ff4444';
+  }
+  if(lineValEl) lineValEl.textContent=Math.round(G.reelLineHP)+'%';
+  if(lineValEl) lineValEl.style.color = G.reelLineHP>50?'#00ff88':G.reelLineHP>25?'#FFD700':'#ff4444';
+  if(progEl) progEl.style.width=G.reelProgress+'%';
+  if(progValEl) progValEl.textContent=Math.round(G.reelProgress)+'%';
+  if(gameEl) gameEl.className = G.reelLineHP<25 ? 'danger' : '';
+  if(labelEl){
+    if(inZone && G.reelHolding) labelEl.textContent='✅ PERFECT! KEEP GOING!';
+    else if(!G.reelHolding) labelEl.textContent='🐟 HOLD CAST TO REEL!';
+    else labelEl.textContent='⚠️ MOVE TO SAFE ZONE!';
+  }
+}
+
+function endReelGame(success){
+  G.reeling=false;
+  G.waiting=false;
+  clearTimeout(G.timer);
+  resetRod();
+  hideReelGame();
+  if(success){
+    const fish = G.reelFish;
+    G.reelFish=null;
+    if(!fish){ setMsg('Nothing on the line...'); return; }
+    G.caught[fish.id]=(G.caught[fish.id]||0)+1; G.total++;
+    updateHUD(); showCatch(fish);
+    checkAchievements();
+  } else {
+    G.reelFish=null;
+    playSound('miss');
+    _noMissStreak=0;
+    setMsg('💔 Line snapped! The fish escaped...');
+    notify('💔 Line snapped!');
+  }
+}
+
 function reel(){
   if(!G.waiting) return;
-  G.waiting=false; clearTimeout(G.timer); resetRod();
   if(!G.bob.alert){
-    // Pulled up too early — no fish, bait wasted
+    // Too early — bait wasted
+    G.waiting=false; clearTimeout(G.timer); resetRod();
     playSound('miss');
     if(G.stats) G.stats.missCount++;
     setMsg('🎣 No fish... you pulled too early. Bait wasted!');
     notify('🎣 Nothing on the hook!');
     return;
   }
-  const _selBait = BAITS[Math.min(G.sel||0, BAITS.length-1)];
-  const fish=rollFish((_selBait?.pw)||1);
-  if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
-  G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;
-  // Gold added in showCatch with rod bonus applied
-  updateHUD();showCatch(fish);
+  // Start reel minigame on first press
+  if(!G.reeling) startReelGame();
 }
+// ═══════════════════════════════════════════
+// NPC SYSTEM
+// ═══════════════════════════════════════════
+const NPCS = [
+  {
+    id: 'merchant', name: '🪣 OLD RIKU', zone: 0, worldX: 320,
+    color: '#C08040', hatColor: '#804020',
+    greeting: "Ahoy fisher! I sell the finest bait and gear around!",
+    shop: true,
+    lines: [
+      "The lake to the east has bigger fish...",
+      "Heard there's rapids further east too!",
+      "Rare fish love rainy weather!",
+      "Try different bait for different fish.",
+    ]
+  },
+  {
+    id: 'elder', name: '🎣 LAKE ELDER', zone: 1, worldX: ZONE_W + 400,
+    color: '#4080C0', hatColor: '#204060',
+    greeting: "Welcome to the calm lake! Bigger fish dwell in deep waters.",
+    shop: false,
+    lines: [
+      "Lake fish are larger but bite slower.",
+      "Use shrimp bait for the best results here.",
+      "I once caught a 50kg carp here!",
+      "The rapids east are dangerous but rewarding.",
+    ]
+  },
+  {
+    id: 'rapids_girl', name: '🌀 SWIFT YUKI', zone: 2, worldX: ZONE_W*2 + 300,
+    color: '#60C080', hatColor: '#308040',
+    greeting: "The rapids are wild! Only the best anglers fish here!",
+    shop: true,
+    lines: [
+      "Fast water = rare fish!",
+      "Your line breaks easier in rapids. Be careful!",
+      "Gold Lure works best here.",
+      "Ocean shore is further east — legendary fish!",
+    ]
+  },
+  {
+    id: 'captain', name: '⚓ CAPTAIN MAL', zone: 3, worldX: ZONE_W*3 + 350,
+    color: '#E0C060', hatColor: '#A08020',
+    greeting: "Yarr! The ocean holds legendary creatures!",
+    shop: true,
+    lines: [
+      "Legendary fish only bite on Gold Lure.",
+      "Ocean fish are worth 5x normal gold!",
+      "I heard of an Arapaima caught here once...",
+      "Storm weather brings the biggest catches!",
+    ]
+  },
+];
+
+let _npcLineIdx = {};
+let _activeNpc = null;
+
+function getNpcsInZone(zone){
+  return NPCS.filter(n => n.zone === zone);
+}
+
+function drawNpcCharacter(ctx, npc, x, y, t){
+  // Simple pixel NPC — different color per npc
+  const s = 3;
+  const sw = Math.sin(t*0.8+x*0.01)*0.5;
+  ctx.save(); ctx.translate(x, y);
+  // Body
+  ctx.fillStyle = npc.color;
+  ctx.fillRect(-4*s, -10*s, 8*s, 7*s);
+  // Head
+  ctx.fillStyle = '#F5C070';
+  ctx.fillRect(-3*s, -16*s, 6*s, 6*s);
+  // Hat
+  ctx.fillStyle = npc.hatColor;
+  ctx.fillRect(-4*s, -18*s, 8*s, 3*s);
+  ctx.fillRect(-2*s, -21*s, 5*s, 3*s);
+  // Eyes
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-2*s, -15*s, s, s);
+  ctx.fillRect(s, -15*s, s, s);
+  // Legs
+  ctx.fillStyle = '#503010';
+  ctx.fillRect(-3*s, -3*s, 2*s, 4*s);
+  ctx.fillRect( s,   -3*s, 2*s, 4*s);
+  // Arms with idle sway
+  ctx.fillStyle = npc.color;
+  ctx.fillRect((-6+sw)*s, -9*s, 2*s, 5*s);
+  ctx.fillRect(( 4-sw)*s, -9*s, 2*s, 5*s);
+  // Name tag
+  ctx.fillStyle='rgba(0,0,0,0.6)';
+  ctx.fillRect(-18, -22*s-12, 36, 10);
+  ctx.fillStyle='#FFD700';
+  ctx.font='4px "Press Start 2P"';
+  ctx.textAlign='center';
+  ctx.fillText(npc.name, 0, -22*s-4);
+  ctx.restore();
+}
+
+function drawNpcPortrait(canvas, npc){
+  if(!canvas) return;
+  const ctx2 = canvas.getContext('2d');
+  ctx2.clearRect(0,0,canvas.width,canvas.height);
+  const s=2;
+  // Head
+  ctx2.fillStyle='#F5C070';
+  ctx2.fillRect(8,10,24,20);
+  // Hat
+  ctx2.fillStyle=npc.hatColor;
+  ctx2.fillRect(6,8,28,8);
+  ctx2.fillRect(10,2,20,8);
+  // Eyes
+  ctx2.fillStyle='#111';
+  ctx2.fillRect(12,17,4,4);
+  ctx2.fillRect(24,17,4,4);
+  // Smile
+  ctx2.fillStyle='#C08050';
+  ctx2.fillRect(14,25,12,3);
+  // Body
+  ctx2.fillStyle=npc.color;
+  ctx2.fillRect(8,30,24,16);
+  // Border
+  ctx2.strokeStyle=npc.hatColor;
+  ctx2.lineWidth=2;
+  ctx2.strokeRect(1,1,38,46);
+}
+
+function checkNpcInteraction(){
+  const gz = G.gz;
+  const zone = G.zone;
+  for(const npc of NPCS){
+    if(npc.zone !== zone) continue;
+    const npcScreenX = npc.worldX - G.camX;
+    const dist = Math.abs(gz.x - npc.worldX);
+    if(dist < 50){
+      // Show interact prompt
+      return npc;
+    }
+  }
+  return null;
+}
+
+function openNpc(npc){
+  _activeNpc = npc;
+  document.getElementById('npcDialog').style.display='block';
+  document.getElementById('npcName').textContent = npc.name;
+  document.getElementById('npcText').textContent = npc.greeting;
+  drawNpcPortrait(document.getElementById('npcPortrait'), npc);
+  renderNpcOptions(npc);
+}
+
+function renderNpcOptions(npc){
+  const el = document.getElementById('npcOptions');
+  el.innerHTML = '';
+  const opts = [];
+  if(npc.shop) opts.push({label:'🛒 OPEN SHOP', action:()=>{ closeNpc(); openShop(); }});
+  const lineIdx = _npcLineIdx[npc.id]||0;
+  opts.push({label:'💬 CHAT', action:()=>{
+    const line = npc.lines[lineIdx % npc.lines.length];
+    document.getElementById('npcText').textContent = line;
+    _npcLineIdx[npc.id] = lineIdx+1;
+  }});
+  opts.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.textContent = opt.label;
+    btn.style.cssText='font-family:"Press Start 2P";font-size:5px;background:#0a2a0a;border:1px solid #FFD700;color:#FFD700;padding:5px;cursor:pointer;text-align:left';
+    btn.onclick = opt.action;
+    el.appendChild(btn);
+  });
+}
+
+function closeNpc(){
+  document.getElementById('npcDialog').style.display='none';
+  _activeNpc=null;
+}
+
+// Zone banner
+let _lastZone = -1;
+let _bannerTimer = 0;
+function checkZoneBanner(){
+  const zone = G.zone;
+  if(zone !== _lastZone){
+    _lastZone = zone;
+    const z = ZONES[zone];
+    const banner = document.getElementById('zoneBanner');
+    if(banner){
+      banner.textContent = '📍 ' + z.label;
+      banner.style.display='block';
+      _bannerTimer = 3;
+    }
+    // Update water color
+    G.riverColor1 = z.waterColor1;
+    G.riverColor2 = z.waterColor2;
+    // Apply fish bonus
+    G._zoneFishBonus = z.fishBonus;
+    notify('📍 Entered ' + z.name);
+    playSound('levelup');
+  }
+  _bannerTimer -= 1/60;
+  if(_bannerTimer <= 0){
+    const banner = document.getElementById('zoneBanner');
+    if(banner) banner.style.display='none';
+  }
+}
+
 function getSpotBonus(){
   // Near bridge (WORLD_W*0.55) = +30% rare bonus
   const bridgeX = typeof WORLD_W!=='undefined' ? WORLD_W*0.55 : 2000;
@@ -3926,8 +5180,10 @@ function getSpotBonus(){
   return dist < 200 ? 0.3 : 0;
 }
 function rollFish(pw){
-  const el=FISH.filter(f=>f.mp<=pw);
-  const wBonus = getWeatherFishBonus() + getSpotBonus();
+  const curZone = G.zone||0;
+  // Zone 0 = original fish (no zone field), zones 1-3 = zone-specific fish
+  const el=FISH.filter(f=>f.mp<=pw && (curZone===0 ? !f.zone : f.zone===curZone));
+  const wBonus = getWeatherFishBonus() + getSpotBonus() + (G._zoneFishBonus||0);
   const w=[Math.max(10,50-(pw-1)*9-(wBonus*20)),25,
     15+(pw-1)*3+(wBonus*8),8+(pw-1)*2+(wBonus*6),2+(pw-1)*1.5+(wBonus*4)];
   const tot=w.reduce((a,b)=>a+b,0);
@@ -4029,6 +5285,7 @@ function updateHUD(){
   if(rodEl){ const r=RODS[G.rod]||RODS[0]; rodEl.textContent=r.icon+' '+r.name; }
   const goldEl=document.getElementById('goldD'); if(goldEl) goldEl.textContent=G.gold.toLocaleString();
   document.getElementById('catchD').textContent=G.total;
+  const zoneEl=document.getElementById('zoneLabel'); if(zoneEl) zoneEl.textContent=ZONES[G.zone||0].name;
   const u=Object.keys(G.caught).length;
   document.getElementById('progLbl').textContent=`${u}/50 SPECIES`;
   document.getElementById('progF').style.width=`${(u/50)*100}%`;
