@@ -5675,36 +5675,35 @@ function makeRabbitCanvas(flipX, frame) {
 function makeCowCanvas(flipX, frame) {
   const S = 3;
   const frames = [
-    // frame 0 - stand - traced from reference image
+    // frame 0 - stand
     [
-      // head left, body right, 4 legs at bottom
-      '....BB..............',
-      '...BWWB.............',
-      '...BEWWB............',
-      '...BWWWBBBBBBBBBBBB.',
-      '...BBBBWWWWBBWWWWWB.',
-      '.......BWWWWWWWWWWB.',
-      '.......BWWWWWWBBWWB.',
-      '.......BWWWWWWWWWWB.',
-      '.......BBBBBBBBBBBB.',
-      '.......BB..BB..BB.BB',
-      '.......BB..BB..BB.BB',
-      '.......BB..BB..BB.BB',
-      '......BBB..BB..BB.BB',
+      '..BBBB..............',
+      '..BWWWB.............',
+      '..BEWWB.............',
+      '..BWWWBBBBBBBBBBBB..',
+      '..BWWWWWWWBBWWWWWB..',
+      '..BBPBBWWWWWWWWWWB..',
+      '.......BWWWWWWWWWB..',
+      '.......BWWBBWWWWWB..',
+      '.......BBBBBBBBBB...',
+      '.......BB..BB..BB...',
+      '.......BB..BB..BB...',
+      '.......BB..BB..BB...',
+      '......BBB..BB..BBB..',
     ],
     // frame 1 - walk
     [
-      '....BB..............',
-      '...BWWB.............',
-      '...BEWWB............',
-      '...BWWWBBBBBBBBBBBB.',
-      '...BBBBWWWWBBWWWWWB.',
-      '.......BWWWWWWWWWWB.',
-      '.......BWWWWWWBBWWB.',
-      '.......BWWWWWWWWWWB.',
-      '.......BBBBBBBBBBBB.',
-      '.......BBB.BB..BB..B',
-      '........BB.BB..BBB.B',
+      '..BBBB..............',
+      '..BWWWB.............',
+      '..BEWWB.............',
+      '..BWWWBBBBBBBBBBBB..',
+      '..BWWWWWWWBBWWWWWB..',
+      '..BBPBBWWWWWWWWWWB..',
+      '.......BWWWWWWWWWB..',
+      '.......BWWBBWWWWWB..',
+      '.......BBBBBBBBBB...',
+      '.......BBB.BB..BB...',
+      '........BB.BB..BBB..',
       '........B..BB...BB..',
       '...........BB.......',
     ],
@@ -5727,9 +5726,9 @@ function makeCowCanvas(flipX, frame) {
       ctx.fillRect(c*S, r*S, S, S);
     }
   }
-  // pink udder
+  // udder pink
   ctx.fillStyle = '#f0b0b8';
-  [9,10,11].forEach(c => { ctx.fillRect(c*S,8*S,S,S); ctx.fillRect(c*S,9*S,S,S); });
+  [9,10,11].forEach(c => { ctx.fillRect(c*S,7*S,S,S); ctx.fillRect(c*S,8*S,S,S); });
   if (doFlip) ctx.restore();
   return canvas;
 }
