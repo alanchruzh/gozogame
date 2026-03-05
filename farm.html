@@ -137,10 +137,6 @@ header{
 .plot[data-s=empty] .pt::before{
   content:'';position:absolute;inset:0;
   background:
-    /* crack lines */
-    linear-gradient(112deg, transparent 45%, #a06830 45.5%, transparent 46%),
-    linear-gradient(68deg,  transparent 55%, #a06830 55.5%, transparent 56%),
-    /* pebbles */
     radial-gradient(circle at 22% 30%, #9a5a20 1.5px, transparent 1.5px),
     radial-gradient(circle at 75% 65%, #9a5a20 1.5px, transparent 1.5px),
     radial-gradient(circle at 55% 22%, #b07840 1px, transparent 1px);
@@ -3064,7 +3060,6 @@ function renderSeedShop(){
     div.innerHTML = `
       <div class="si-emoji">${c.emoji}</div>
       <div class="si-info">
-        <div class="si-name">${c.name}</div>
         <div class="si-time">⏱ ${fmtTime(c.grow)}</div>
         ${inv > 0 ? `<div class="si-inv">x${inv} in bag ✓</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
       </div>
