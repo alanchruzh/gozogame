@@ -552,7 +552,7 @@ header{
 // ═══════════════════════════════════════════════════
 const GOZO_TOKEN     = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
 const DEAD_ADDR      = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x279F'; // 10143 — Monad Mainnet
+const MONAD_CHAIN_ID = '0x8F'; // 143 — Monad Mainnet
 const BURN_AMOUNT_WEI = '0x' + (BigInt('10000000000000000000')).toString(16); // 10 * 10^18
 
 // ERC20 ABI selectors
@@ -603,10 +603,10 @@ async function connectWallet(){
       if(sw.code === 4902){
         await window.ethereum.request({method:'wallet_addEthereumChain', params:[{
           chainId: MONAD_CHAIN_ID,
-          chainName: 'Monad',
+          chainName: 'Monad Mainnet',
           nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
           rpcUrls:['https://rpc.monad.xyz'],
-          blockExplorerUrls:['https://monadexplorer.com']
+          blockExplorerUrls:['https://monadvision.com']
         }]});
       }
     }
@@ -709,8 +709,8 @@ const C = {
   skinSh:   '#E8B830',
   // Cap
   cap:      '#E03030',
-  capDark:  '#A01818',
-  capBrim:  '#CC2020',
+  capDark:  '#E03030',
+  capBrim:  '#E03030',
   // Hair
   hair:     '#2A1A0A',
   // Eyes
@@ -899,7 +899,7 @@ function drawTool(ctx, sx, sy, toolType, frame) {
 // Each frame = 16 wide x 24 tall (in pixels)
 // Laid out: 7 rows × 4 frames per row
 const FRAME_W = 16;
-const FRAME_H = 24;
+const FRAME_H = 28;
 const FRAMES_PER_ROW = 4;
 
 function buildSpriteSheet() {
@@ -914,7 +914,7 @@ function buildSpriteSheet() {
   // Helper to draw one frame at grid position (row, col)
   function frame(row, col, legF, armL, armR, tool, toolF) {
     const sx = col * FRAME_W;
-    const sy = row * FRAME_H;
+    const sy = row * FRAME_H + 4; // +4 offset so cap top fits in frame
     drawGozoBase(ctx, sx, sy, legF, armL, armR);
     if (tool) drawTool(ctx, sx, sy, tool, toolF||0);
   }
@@ -5880,7 +5880,7 @@ function makeTrainCanvas() {
   const WAGON_W = 22;
   const GAP = 1;
   const WAGON_COUNT = 20;
-  const TOTAL_W = LOCO_W + (WAGON_W + GAP) * WAGON_COUNT;
+  const TOTAL_W = LOCO_W + GAP + (WAGON_W + GAP) * WAGON_COUNT;
   const H = 18;
   const canvas = document.createElement('canvas');
   canvas.width = TOTAL_W * S; canvas.height = H * S;
@@ -5889,23 +5889,31 @@ function makeTrainCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   function p(x,y,c,w=1,h=1){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,w*S,h*S); }
 
-  // LOCOMOTIVE at x=0
-  p(0,4,'#cc2020',20,8); p(0,4,'#aa1818',10,8);
-  p(12,2,'#cc2020',8,10); p(13,2,'#222',6,4); p(14,3,'#88ccff',4,2);
-  p(18,1,'#333',3,4); p(17,0,'#444',5,2);
-  p(20,9,'#888',8,2); p(21,10,'#888',7,2); p(22,11,'#888',5,1);
-  p(6,2,'#dd3030',5,3); p(7,1,'#ee4040',3,2);
-  [[2,11],[8,11],[14,11]].forEach(([wx,wy])=>{
+  // LOCOMOTIVE at x=0, facing LEFT (front = left side)
+  const L = 0;
+  p(L,4,'#cc2020',28,8); p(L+14,4,'#aa1818',14,8); // body + shadow right
+  // cab on RIGHT side (back of loco)
+  p(L+18,2,'#cc2020',10,10); p(L+19,2,'#222',7,4); p(L+20,3,'#88ccff',5,2);
+  // chimney on RIGHT
+  p(L+14,1,'#444',5,2); p(L+15,0,'#333',3,3);
+  // cowcatcher on LEFT (front)
+  p(L,9,'#888',8,2); p(L,10,'#888',7,2); p(L+1,11,'#888',5,1);
+  // headlight on LEFT
+  p(L,5,'#ffff88',3,2); p(L+1,5,'#fff',1,1);
+  // boiler dome
+  p(L+8,2,'#dd3030',6,3); p(L+9,1,'#ee4040',4,2);
+  // wheels
+  [[2,11],[9,11],[17,11]].forEach(([wx,wy])=>{
     p(wx,wy,'#222',4,5); p(wx+1,wy,'#444',2,4); p(wx+1,wy+1,'#aaa',1,1);
   });
-  p(0,11,'#555',20,2);
-  p(20,5,'#ffff88',3,2); p(21,5,'#fff',1,1);
+  p(L,11,'#555',26,2);
+  // smoke above chimney
   ctx.fillStyle='rgba(200,200,200,0.75)';
-  ctx.beginPath(); ctx.arc(19*S,0,S*2.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc((L+16)*S,0,S*2.5,0,Math.PI*2); ctx.fill();
   ctx.fillStyle='rgba(220,220,220,0.5)';
-  ctx.beginPath(); ctx.arc(22*S,-S,S*1.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc((L+19)*S,-S,S*1.8,0,Math.PI*2); ctx.fill();
 
-  // 20 WAGONS
+  // 20 WAGONS to the right of locomotive
   const colors=['#4466cc','#cc4444','#44aa44','#cc8822','#884488',
     '#228888','#cc4466','#446688','#88aa22','#cc6622',
     '#4488cc','#cc2244','#22aa66','#aacc22','#6644cc',
@@ -5914,9 +5922,8 @@ function makeTrainCanvas() {
     const wx = LOCO_W + GAP + i*(WAGON_W+GAP);
     const wc = colors[i];
     p(wx,5,wc,20,8);
-    // dark shadow side
-    ctx.fillStyle = wc; ctx.globalAlpha=0.6;
-    ctx.fillRect(wx*S,5*S,8*S,8*S);
+    ctx.fillStyle=wc; ctx.globalAlpha=0.5;
+    ctx.fillRect((wx+13)*S,5*S,7*S,8*S);
     ctx.globalAlpha=1;
     [[2,6],[7,6],[13,6]].forEach(([wi,wj])=>{
       p(wx+wi,wj,'#111',4,4); p(wx+wi+1,wj,'#88ccff',2,3);
@@ -5939,7 +5946,7 @@ function runTrainAnimation() {
   const trainW = trainCanvas.width;
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;transform:scaleX(-1);image-rendering:pixelated;`;
+  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;image-rendering:pixelated;`;
   wrapper.appendChild(trainCanvas);
   layer.appendChild(wrapper);
 
