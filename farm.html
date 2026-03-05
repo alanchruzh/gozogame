@@ -4510,7 +4510,20 @@ function renderAnimalPanel(){
       html += `<div style="color:#c0e090">Hunger: ${hunger}% ${'🟩'.repeat(Math.ceil(hunger/20))}${'⬛'.repeat(5-Math.ceil(hunger/20))}</div>`;
       html += `<div style="color:${ready?'#80ff80':'#f0c060'}">${ready ? `✅ Ready! (${animalBasket[type]||0} ${a.productIcon})` : `⏳ ${fmtTime(timeLeft)}`}</div>`;
       html += `</div>`;
-      if(a.feedCrop) html += `<button onclick="feedAnimal('${type}',${idx})" style="background:#5a8020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">🍽️</button>`;
+      if(a.feedCrop){
+        const cropEmoji = CROPS[a.feedCrop]?.emoji || '🌾';
+        const stock = inventory[a.feedCrop] || 0;
+        const enough = stock >= a.feedCost;
+        html += `<button onclick="feedAnimal('${type}',${idx})" style="background:${enough?'#5a8020':'#555'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:36px">
+          <span style="font-size:16px">${cropEmoji}</span>
+          <span style="font-size:10px;color:${enough?'#c0ff80':'#ff8080'}">${stock}/${a.feedCost}</span>
+        </button>`;
+      } else {
+        html += `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;min-width:36px;padding:3px 6px;background:rgba(255,180,50,0.15);border-radius:5px;border:1px solid rgba(255,180,50,0.3)">
+          <span style="font-size:16px">🌸</span>
+          <span style="font-size:9px;color:#f0c060">Auto</span>
+        </div>`;
+      }
       if(ready) html += `<button onclick="collectAnimal('${type}',${idx})" style="background:#c08020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">Collect</button>`;
       html += `</div>`;
     });
