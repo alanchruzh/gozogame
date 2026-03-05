@@ -530,6 +530,7 @@ header{
     </table>
 
     <button class="play-btn" onclick="startFarm()">▶ START FARMING!</button>
+    <button class="play-btn" style="background:#5a1a1a;color:#ffaaaa;border-color:#aa3333;font-size:12px;padding:6px" onclick="if(confirm('Reset all save data?')){localStorage.removeItem('gozofarm_v4');localStorage.removeItem('gozofarm_extra_v2');location.reload();}">🗑️ Reset Save Data</button>
 
     <div class="how-to">
       <h4>📖 HOW TO PLAY</h4>
@@ -2720,7 +2721,7 @@ function startFarm(){
 // ═══════════════════════════════════════════════════
 // SAVE / LOAD (localStorage, no wallet needed)
 // ═══════════════════════════════════════════════════
-const SAVE_KEY = 'gozofarm_v3';
+const SAVE_KEY = 'gozofarm_v4';
 
 function saveState(){
   const data = {
@@ -4864,7 +4865,7 @@ window.saveState = function(){
       stats, marketMultipliers, marketLastUpdate,
       currentWeather, weatherChangedAt
     };
-    localStorage.setItem('gozofarm_extra_v1', JSON.stringify(extra));
+    localStorage.setItem('gozofarm_extra_v2', JSON.stringify(extra));
   } catch(e){}
 };
 
@@ -4874,7 +4875,7 @@ const _realLoadState = window.loadState || loadState;
 // Patch initAll to load extra data after main load
 function loadExtraState(){
   try {
-    const raw = localStorage.getItem('gozofarm_extra_v1');
+    const raw = localStorage.getItem('gozofarm_extra_v2');
     if(!raw) return;
     const d = JSON.parse(raw);
     if(d.upgradeLevels) Object.assign(upgradeLevels, d.upgradeLevels);
@@ -5874,81 +5875,58 @@ setTimeout(syncFieldAnimals, 3000);
 // TRAIN ANIMATION - every 5 minutes
 // ═══════════════════════════════════════════
 function makeTrainCanvas() {
-  // Train: locomotive + 2 wagons, pixel art style
-  // Total width: ~120px logical = 40 pixels wide at S=3
   const S = 3;
-  const W = 72, H = 18;
+  const LOCO_W = 30;
+  const WAGON_W = 22;
+  const GAP = 1;
+  const WAGON_COUNT = 20;
+  const TOTAL_W = LOCO_W + (WAGON_W + GAP) * WAGON_COUNT;
+  const H = 18;
   const canvas = document.createElement('canvas');
-  canvas.width = W*S; canvas.height = H*S;
+  canvas.width = TOTAL_W * S; canvas.height = H * S;
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   function p(x,y,c,w=1,h=1){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,w*S,h*S); }
 
-  // === LOCOMOTIVE (right side, x=42..71) ===
-  // body
-  p(44,4, '#cc2020',18,8); // red body
-  p(44,4, '#aa1818',9,8);  // shadow left half
-  // cab
-  p(53,2, '#cc2020',9,10);
-  p(54,2, '#222',7,4);     // windows
-  p(55,3, '#88ccff',5,2);  // window glass
-  // chimney
-  p(60,1, '#333',3,4);
-  p(59,0, '#333',5,2);
-  // front cowcatcher
-  p(62,9, '#888',8,2);
-  p(63,10,'#888',7,2);
-  p(64,11,'#888',6,1);
-  // boiler dome
-  p(48,2, '#dd3030',6,3);
-  p(49,1, '#ee4040',4,2);
-  // wheels locomotive
-  p(45,11,'#333',4,5); p(46,11,'#555',2,4); // wheel1
-  p(51,11,'#333',4,5); p(52,11,'#555',2,4); // wheel2
-  p(57,11,'#333',4,5); p(58,11,'#555',2,4); // wheel3
-  // wheel highlights
-  p(47,12,'#aaa',1,1); p(53,12,'#aaa',1,1); p(59,12,'#aaa',1,1);
-  // undercarriage
-  p(44,11,'#555',24,2);
-  // headlight
-  p(62,6,'#ffff88',3,2);
-  p(63,6,'#ffffff',1,1);
+  // LOCOMOTIVE at x=0
+  p(0,4,'#cc2020',20,8); p(0,4,'#aa1818',10,8);
+  p(12,2,'#cc2020',8,10); p(13,2,'#222',6,4); p(14,3,'#88ccff',4,2);
+  p(18,1,'#333',3,4); p(17,0,'#444',5,2);
+  p(20,9,'#888',8,2); p(21,10,'#888',7,2); p(22,11,'#888',5,1);
+  p(6,2,'#dd3030',5,3); p(7,1,'#ee4040',3,2);
+  [[2,11],[8,11],[14,11]].forEach(([wx,wy])=>{
+    p(wx,wy,'#222',4,5); p(wx+1,wy,'#444',2,4); p(wx+1,wy+1,'#aaa',1,1);
+  });
+  p(0,11,'#555',20,2);
+  p(20,5,'#ffff88',3,2); p(21,5,'#fff',1,1);
+  ctx.fillStyle='rgba(200,200,200,0.75)';
+  ctx.beginPath(); ctx.arc(19*S,0,S*2.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(220,220,220,0.5)';
+  ctx.beginPath(); ctx.arc(22*S,-S,S*1.5,0,Math.PI*2); ctx.fill();
 
-  // === WAGON 1 (x=22..43) ===
-  p(23,5, '#4466cc',19,8); // blue body
-  p(23,5, '#3355aa',9,8);  // shadow
-  // windows
-  p(25,6,'#222',4,4); p(26,6,'#88ccff',2,3);
-  p(31,6,'#222',4,4); p(32,6,'#88ccff',2,3);
-  p(37,6,'#222',4,4); p(38,6,'#88ccff',2,3);
-  // wheels
-  p(24,11,'#333',4,5); p(25,11,'#555',2,4);
-  p(32,11,'#333',4,5); p(33,11,'#555',2,4);
-  p(25,12,'#aaa',1,1); p(33,12,'#aaa',1,1);
-  p(23,11,'#555',20,2);
-  // coupler
-  p(22,12,'#888',2,2); p(41,12,'#888',2,2);
-
-  // === WAGON 2 (x=0..22) ===
-  p(1,5, '#4466cc',20,8);
-  p(1,5, '#3355aa',10,8);
-  p(3,6,'#222',4,4); p(4,6,'#88ccff',2,3);
-  p(9,6,'#222',4,4); p(10,6,'#88ccff',2,3);
-  p(15,6,'#222',4,4); p(16,6,'#88ccff',2,3);
-  p(2,11,'#333',4,5); p(3,11,'#555',2,4);
-  p(10,11,'#333',4,5); p(11,11,'#555',2,4);
-  p(3,12,'#aaa',1,1); p(11,12,'#aaa',1,1);
-  p(1,11,'#555',20,2);
-  p(0,12,'#888',2,2); p(19,12,'#888',2,2);
-
-  // smoke puffs (above chimney area - drawn as circles)
-  ctx.fillStyle = 'rgba(200,200,200,0.7)';
-  ctx.beginPath(); ctx.arc(62*S, 1*S, S*2, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(220,220,220,0.5)';
-  ctx.beginPath(); ctx.arc(64*S, -1*S, S*1.5, 0, Math.PI*2); ctx.fill();
-
+  // 20 WAGONS
+  const colors=['#4466cc','#cc4444','#44aa44','#cc8822','#884488',
+    '#228888','#cc4466','#446688','#88aa22','#cc6622',
+    '#4488cc','#cc2244','#22aa66','#aacc22','#6644cc',
+    '#cc4422','#22ccaa','#aa4488','#88cc44','#4422cc'];
+  for(let i=0;i<WAGON_COUNT;i++){
+    const wx = LOCO_W + GAP + i*(WAGON_W+GAP);
+    const wc = colors[i];
+    p(wx,5,wc,20,8);
+    // dark shadow side
+    ctx.fillStyle = wc; ctx.globalAlpha=0.6;
+    ctx.fillRect(wx*S,5*S,8*S,8*S);
+    ctx.globalAlpha=1;
+    [[2,6],[7,6],[13,6]].forEach(([wi,wj])=>{
+      p(wx+wi,wj,'#111',4,4); p(wx+wi+1,wj,'#88ccff',2,3);
+    });
+    [[2,11],[11,11]].forEach(([wi,wj])=>{
+      p(wx+wi,wj,'#222',4,5); p(wx+wi+1,wj,'#444',2,4); p(wx+wi+1,wj+1,'#aaa',1,1);
+    });
+    p(wx,11,'#555',20,2);
+    p(wx-1,12,'#888',2,2); p(wx+19,12,'#888',2,2);
+  }
   return canvas;
 }
 
@@ -5960,35 +5938,65 @@ function runTrainAnimation() {
   const screenW = layer.offsetWidth || window.innerWidth;
   const trainW = trainCanvas.width;
 
-  trainCanvas.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;image-rendering:pixelated;z-index:50;`;
-  layer.appendChild(trainCanvas);
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;transform:scaleX(-1);image-rendering:pixelated;`;
+  wrapper.appendChild(trainCanvas);
+  layer.appendChild(wrapper);
 
-  // Whistle sound effect using Web Audio
+  // === TRAIN SOUNDS ===
   try {
     const ac = new (window.AudioContext||window.webkitAudioContext)();
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-    osc.connect(gain); gain.connect(ac.destination);
-    osc.frequency.setValueAtTime(880, ac.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(660, ac.currentTime+0.3);
-    gain.gain.setValueAtTime(0.15, ac.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.5);
-    osc.start(); osc.stop(ac.currentTime+0.5);
+
+    // Whistle: two blasts
+    function whistle(startT){
+      [[880,0],[660,0.2],[880,0.5],[660,0.7]].forEach(([freq,dt])=>{
+        const o=ac.createOscillator(), g=ac.createGain();
+        o.type='sine'; o.frequency.value=freq;
+        o.connect(g); g.connect(ac.destination);
+        g.gain.setValueAtTime(0,startT+dt);
+        g.gain.linearRampToValueAtTime(0.12,startT+dt+0.04);
+        g.gain.exponentialRampToValueAtTime(0.001,startT+dt+0.25);
+        o.start(startT+dt); o.stop(startT+dt+0.3);
+      });
+    }
+    whistle(ac.currentTime);
+    whistle(ac.currentTime+1.2);
+
+    // Chugga-chugga rhythm for 6 seconds
+    for(let i=0;i<32;i++){
+      const t=ac.currentTime+1.8+i*0.16;
+      const buf=ac.createBuffer(1,Math.floor(ac.sampleRate*0.06),ac.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*Math.exp(-j/600)*0.8;
+      const src=ac.createBufferSource();
+      const filt=ac.createBiquadFilter();
+      filt.type='bandpass'; filt.frequency.value=300; filt.Q.value=0.8;
+      const g=ac.createGain(); g.gain.value=0.25;
+      src.buffer=buf;
+      src.connect(filt); filt.connect(g); g.connect(ac.destination);
+      src.start(t);
+    }
+
+    // Bell dings
+    [1.8,2.2,2.6].forEach(dt=>{
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.type='sine'; o.frequency.value=1400;
+      o.connect(g); g.connect(ac.destination);
+      g.gain.setValueAtTime(0.08,ac.currentTime+dt);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dt+0.6);
+      o.start(ac.currentTime+dt); o.stop(ac.currentTime+dt+0.7);
+    });
   } catch(e){}
 
   showToast('🚂 Train is passing by!');
 
-  const speed = 6; // px per frame
+  const speed = 4;
   let x = screenW;
-
-  function animateTrain() {
+  function animateTrain(){
     x -= speed;
-    trainCanvas.style.left = x + 'px';
-    if (x > -trainW) {
-      requestAnimationFrame(animateTrain);
-    } else {
-      trainCanvas.remove();
-    }
+    wrapper.style.left = x+'px';
+    if(x > -(trainW+20)) requestAnimationFrame(animateTrain);
+    else wrapper.remove();
   }
   requestAnimationFrame(animateTrain);
 }
