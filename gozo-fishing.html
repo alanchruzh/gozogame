@@ -1806,6 +1806,68 @@ function startWalkingMusic(){
 }
 
 // ═══════════════════════════════════════════
+// DAY / NIGHT CYCLE — based on real local time
+// ═══════════════════════════════════════════
+function getDayPhase(){
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes()/60;
+  return h / 24; // 0–1, 0=midnight, 0.5=noon
+}
+
+// Returns sky palette for current time
+function getSkyColors(){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Periods: night(0-5), dawn(5-7), morning(7-10), day(10-17), dusk(17-19), night(19-24)
+  if(h < 5  || h >= 21) return { // deep night
+    top:'#020814', mid:'#050e1f', bot:'#071428', horizon:'#0a1830',
+    sun:false, moon:true, starAlpha:0.85, ambientAlpha:0, fogColor:null
+  };
+  if(h < 6.5) return { // pre-dawn / dawn
+    top:'#0d0a20', mid:'#1a0a28', bot:'#3a1040', horizon:'#6a2040',
+    sun:false, moon:true, starAlpha:0.4, ambientAlpha:0.05, fogColor:'#ff6030'
+  };
+  if(h < 8) return { // sunrise / golden hour
+    top:'#1a1040', mid:'#3a2060', bot:'#c04020', horizon:'#ff8020',
+    sun:true, sunColor:'#FFD060', moon:false, starAlpha:0.05, ambientAlpha:0.3, fogColor:'#ff9040'
+  };
+  if(h < 10) return { // morning
+    top:'#3050a0', mid:'#5080c0', bot:'#80b0e0', horizon:'#c0d8f0',
+    sun:true, sunColor:'#FFE87A', moon:false, starAlpha:0, ambientAlpha:0.5, fogColor:null
+  };
+  if(h < 17) return { // daytime
+    top:'#1a60c0', mid:'#3080e0', bot:'#60a8f8', horizon:'#a8d0f8',
+    sun:true, sunColor:'#FFEF80', moon:false, starAlpha:0, ambientAlpha:0.7, fogColor:null
+  };
+  if(h < 18.5) return { // late afternoon / golden
+    top:'#2040a0', mid:'#6060b0', bot:'#d07040', horizon:'#ff9830',
+    sun:true, sunColor:'#FF9040', moon:false, starAlpha:0, ambientAlpha:0.55, fogColor:'#ff8020'
+  };
+  if(h < 20) return { // sunset / dusk
+    top:'#100820', mid:'#2a1040', bot:'#6a2820', horizon:'#c05020',
+    sun:false, moon:true, starAlpha:0.25, ambientAlpha:0.2, fogColor:'#80301a'
+  };
+  return { // evening
+    top:'#080614', mid:'#100d28', bot:'#161230', horizon:'#201840',
+    sun:false, moon:true, starAlpha:0.65, ambientAlpha:0, fogColor:null
+  };
+}
+
+function getSunMoonY(isSun){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Sun: rises 6, peaks 12, sets 18 → arc
+  // Moon: rises 20, peaks 2, sets 8 → arc
+  let t;
+  if(isSun){ t = (h - 6) / 12; } // 0 at sunrise, 1 at sunset
+  else {
+    const mh = h < 8 ? h + 24 : h;
+    t = (mh - 20) / 12; // 0 at moonrise, 1 at moonset
+  }
+  t = Math.max(0, Math.min(1, t));
+  const arcY = Math.sin(t * Math.PI); // 0→1→0
+  return Math.round(SKY_H * 0.9 - arcY * SKY_H * 0.75);
+}
+
+// ═══════════════════════════════════════════
 // WEATHER SYSTEM
 // ═══════════════════════════════════════════
 const WEATHERS = [
@@ -1825,7 +1887,7 @@ function updateWeather(dt){
     G.weatherTimer = 60 + Math.random()*120; // 1-3 min
     const w = WEATHERS.find(x=>x.id===G.weather);
     const el = document.getElementById('weatherHud');
-    if(el) el.textContent = w.label;
+    if(el){ const h=new Date().getHours(); const tod=h<6?'🌑 Night':h<9?'🌅 Dawn':h<18?'☀️ Day':h<20?'🌆 Dusk':'🌙 Night'; el.textContent=tod+' · '+w.label; }
     if(G.weather==='storm') notify('⛈ Storm approaching! Rare fish more likely!');
     else if(G.weather==='rain') notify('🌧 Rain! Better fishing conditions!');
   }
@@ -1879,6 +1941,68 @@ function updateMusic(){
   else if(target==='walking') startWalkingMusic();
 }
 
+
+// ═══════════════════════════════════════════
+// DAY / NIGHT CYCLE — based on real local time
+// ═══════════════════════════════════════════
+function getDayPhase(){
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes()/60;
+  return h / 24; // 0–1, 0=midnight, 0.5=noon
+}
+
+// Returns sky palette for current time
+function getSkyColors(){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Periods: night(0-5), dawn(5-7), morning(7-10), day(10-17), dusk(17-19), night(19-24)
+  if(h < 5  || h >= 21) return { // deep night
+    top:'#020814', mid:'#050e1f', bot:'#071428', horizon:'#0a1830',
+    sun:false, moon:true, starAlpha:0.85, ambientAlpha:0, fogColor:null
+  };
+  if(h < 6.5) return { // pre-dawn / dawn
+    top:'#0d0a20', mid:'#1a0a28', bot:'#3a1040', horizon:'#6a2040',
+    sun:false, moon:true, starAlpha:0.4, ambientAlpha:0.05, fogColor:'#ff6030'
+  };
+  if(h < 8) return { // sunrise / golden hour
+    top:'#1a1040', mid:'#3a2060', bot:'#c04020', horizon:'#ff8020',
+    sun:true, sunColor:'#FFD060', moon:false, starAlpha:0.05, ambientAlpha:0.3, fogColor:'#ff9040'
+  };
+  if(h < 10) return { // morning
+    top:'#3050a0', mid:'#5080c0', bot:'#80b0e0', horizon:'#c0d8f0',
+    sun:true, sunColor:'#FFE87A', moon:false, starAlpha:0, ambientAlpha:0.5, fogColor:null
+  };
+  if(h < 17) return { // daytime
+    top:'#1a60c0', mid:'#3080e0', bot:'#60a8f8', horizon:'#a8d0f8',
+    sun:true, sunColor:'#FFEF80', moon:false, starAlpha:0, ambientAlpha:0.7, fogColor:null
+  };
+  if(h < 18.5) return { // late afternoon / golden
+    top:'#2040a0', mid:'#6060b0', bot:'#d07040', horizon:'#ff9830',
+    sun:true, sunColor:'#FF9040', moon:false, starAlpha:0, ambientAlpha:0.55, fogColor:'#ff8020'
+  };
+  if(h < 20) return { // sunset / dusk
+    top:'#100820', mid:'#2a1040', bot:'#6a2820', horizon:'#c05020',
+    sun:false, moon:true, starAlpha:0.25, ambientAlpha:0.2, fogColor:'#80301a'
+  };
+  return { // evening
+    top:'#080614', mid:'#100d28', bot:'#161230', horizon:'#201840',
+    sun:false, moon:true, starAlpha:0.65, ambientAlpha:0, fogColor:null
+  };
+}
+
+function getSunMoonY(isSun){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Sun: rises 6, peaks 12, sets 18 → arc
+  // Moon: rises 20, peaks 2, sets 8 → arc
+  let t;
+  if(isSun){ t = (h - 6) / 12; } // 0 at sunrise, 1 at sunset
+  else {
+    const mh = h < 8 ? h + 24 : h;
+    t = (mh - 20) / 12; // 0 at moonrise, 1 at moonset
+  }
+  t = Math.max(0, Math.min(1, t));
+  const arcY = Math.sin(t * Math.PI); // 0→1→0
+  return Math.round(SKY_H * 0.9 - arcY * SKY_H * 0.75);
+}
 
 // ═══════════════════════════════════════════
 // WEATHER SYSTEM
@@ -2230,7 +2354,8 @@ function resizeCanvas(){
 // TREE GENERATOR (anime-style: mango, banyan)
 // ═══════════════════════════════════════════
 let treeCache = null;
-let offscreenBg = null;   // cached static background
+let offscreenBg = null;
+let _bgLastBuilt = -999;   // cached static background
 // Simple deterministic pseudo-random from a seed
 function seededRand(seed){ return ((seed*9301+49297)%233280)/233280; }
 
@@ -2248,7 +2373,7 @@ function buildTrees(){
     treeCache.push({x, y: FAR_BANK_Y + FAR_BANK_H, variant, scale, layer:'far'});
   });
   // Near bank trees — fixed world positions, deterministic
-  const nearPositions = [40,250,500,750,1050,1300,1600,1850,2100];
+  const nearPositions = [40,250,500,750,1600,1850,2100];
   nearPositions.forEach(x=>{
     const r1 = seededRand(x+3);
     const r2 = seededRand(x+4);
@@ -2256,6 +2381,8 @@ function buildTrees(){
     const scale   = 0.75 + r2*0.4;
     treeCache.push({x, y: GROUND_Y+4, variant, scale:scale*0.75, layer:'near'});
   });
+  // Cherry blossom — single tree, center of world, tallest
+  treeCache.push({x: CHERRY_X, y: GROUND_Y+4, variant:99, scale:1.3, layer:'near', cherry:true});
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2444,6 +2571,141 @@ function drawAutumnTree(ctx, x, y, scale, t){
 }
 
 // Helper: draw a pixel-rounded blob (no canvas arc — pure rect for pixel look)
+// ═══════════════════════════════════════════════════════════
+//  CHERRY BLOSSOM TREE — pixel art, matches reference image
+// ═══════════════════════════════════════════════════════════
+function drawCherryTree(ctx, x, y, scale, t){
+  const s = scale;
+  const sw = Math.sin(t*0.45 + x*0.005) * 1.8 * s;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // ── Ground patch / grass base ──
+  ctx.fillStyle='#5DB85D';
+  ctx.fillRect(-22*s, -4*s, 44*s, 5*s);
+  ctx.fillStyle='#4AA84A';
+  ctx.fillRect(-18*s, -2*s, 36*s, 3*s);
+
+  // ── Roots spreading out ──
+  ctx.fillStyle='#7A4A1E';
+  ctx.fillRect(-18*s, -10*s, 8*s, 8*s);   // left root
+  ctx.fillRect( 10*s, -10*s, 8*s, 8*s);   // right root
+  ctx.fillRect(-14*s, -14*s, 6*s, 6*s);
+  ctx.fillRect( 10*s, -14*s, 6*s, 6*s);
+  ctx.fillStyle='#5A3010';
+  ctx.fillRect(-16*s, -10*s, 4*s, 8*s);
+  ctx.fillRect( 12*s, -10*s, 4*s, 8*s);
+
+  // ── Trunk — short, wide, pixel art ──
+  // Main trunk
+  ctx.fillStyle='#8B5020';
+  ctx.fillRect(-9*s, -52*s, 18*s, 48*s);
+  // Left shade
+  ctx.fillStyle='#5A3010';
+  ctx.fillRect(-9*s, -52*s, 5*s, 48*s);
+  // Right highlight
+  ctx.fillStyle='#A86030';
+  ctx.fillRect( 3*s, -50*s, 4*s, 44*s);
+  ctx.fillStyle='#C07840';
+  ctx.fillRect( 4*s, -48*s, 2*s, 38*s);
+  // Bark knots
+  ctx.fillStyle='#6A3818';
+  ctx.fillRect(-5*s, -42*s, 4*s, 4*s);
+  ctx.fillRect( 2*s, -32*s, 4*s, 3*s);
+  ctx.fillRect(-4*s, -22*s, 3*s, 3*s);
+
+  // ── Branches ──
+  ctx.fillStyle='#8B5020';
+  // Far left branch
+  ctx.fillRect(-52*s+sw, -54*s, 44*s, 6*s);
+  ctx.fillRect(-54*s+sw, -60*s, 10*s, 7*s);
+  ctx.fillRect(-44*s+sw, -58*s, 8*s, 5*s);
+  // Near left
+  ctx.fillRect(-30*s+sw*0.7, -58*s, 22*s, 5*s);
+  ctx.fillRect(-32*s+sw*0.7, -64*s, 8*s, 6*s);
+  // Right branch
+  ctx.fillRect( 9*s+sw*0.6, -52*s, 46*s, 6*s);
+  ctx.fillRect(48*s+sw*0.6, -58*s, 10*s, 7*s);
+  ctx.fillRect(36*s+sw*0.6, -56*s, 8*s, 5*s);
+  // Near right
+  ctx.fillRect(10*s+sw*0.4, -56*s, 22*s, 5*s);
+  ctx.fillRect(28*s+sw*0.4, -62*s, 8*s, 6*s);
+  // Top fork
+  ctx.fillRect(-5*s+sw*0.3,  -60*s, 4*s, 10*s);
+  ctx.fillRect( 1*s+sw*0.3,  -60*s, 4*s, 10*s);
+
+  // ── Canopy — large round dome, pixel art style ──
+  // Layer 1: deep shadow (outermost silhouette)
+  ctx.fillStyle='#B84880';
+  roundBlob(ctx, sw,          -118*s, 68*s, 52*s);
+  roundBlob(ctx, -44*s+sw,    -96*s,  44*s, 36*s);
+  roundBlob(ctx,  42*s+sw,    -94*s,  44*s, 36*s);
+  roundBlob(ctx, -22*s+sw,    -104*s, 36*s, 30*s);
+  roundBlob(ctx,  20*s+sw,    -102*s, 36*s, 30*s);
+
+  // Layer 2: dark pink base
+  ctx.fillStyle='#D45C90';
+  roundBlob(ctx, sw,          -122*s, 64*s, 48*s);
+  roundBlob(ctx, -40*s+sw,    -100*s, 42*s, 34*s);
+  roundBlob(ctx,  38*s+sw,    -98*s,  42*s, 34*s);
+  roundBlob(ctx, -18*s+sw,    -108*s, 34*s, 28*s);
+  roundBlob(ctx,  16*s+sw,    -106*s, 34*s, 28*s);
+  roundBlob(ctx,   0*s+sw,    -112*s, 32*s, 26*s);
+
+  // Layer 3: mid pink
+  ctx.fillStyle='#EE78A8';
+  roundBlob(ctx, sw-2*s,      -128*s, 58*s, 44*s);
+  roundBlob(ctx, -32*s+sw,    -106*s, 38*s, 30*s);
+  roundBlob(ctx,  30*s+sw,    -104*s, 38*s, 30*s);
+  roundBlob(ctx,  -8*s+sw,    -116*s, 32*s, 26*s);
+  roundBlob(ctx,  10*s+sw,    -114*s, 30*s, 24*s);
+
+  // Layer 4: bright pink
+  ctx.fillStyle='#F898C4';
+  roundBlob(ctx, sw-6*s,      -134*s, 50*s, 38*s);
+  roundBlob(ctx, -24*s+sw,    -112*s, 34*s, 26*s);
+  roundBlob(ctx,  22*s+sw,    -110*s, 32*s, 25*s);
+  roundBlob(ctx,  -4*s+sw,    -120*s, 28*s, 22*s);
+
+  // Layer 5: light pink highlight
+  ctx.fillStyle='#FBBAD6';
+  roundBlob(ctx, sw-10*s,     -140*s, 40*s, 30*s);
+  roundBlob(ctx, -14*s+sw,    -118*s, 26*s, 20*s);
+  roundBlob(ctx,  14*s+sw,    -116*s, 24*s, 19*s);
+  roundBlob(ctx,  sw,         -126*s, 22*s, 18*s);
+
+  // Layer 6: near-white top
+  ctx.fillStyle='#FDD8EC';
+  roundBlob(ctx, sw-14*s,     -146*s, 28*s, 20*s);
+  roundBlob(ctx,  sw+4*s,     -143*s, 22*s, 16*s);
+  roundBlob(ctx, sw-4*s,      -136*s, 18*s, 14*s);
+
+  // ── Pixel flower crosses scattered throughout ──
+  const flowerSpots = [
+    [-6,-138],[10,-143],[-22,-126],[22,-122],[0,-150],
+    [-36,-108],[36,-106],[8,-130],[-10,-135],[18,-138],
+    [-28,-118],[28,-116],[-4,-144],[14,-132],[-18,-130]
+  ];
+  ctx.fillStyle='#FFE8F4';
+  flowerSpots.forEach(([fx,fy])=>{
+    const px = fx*s+sw, py = fy*s;
+    ctx.fillRect(px-3*s, py-1*s, 6*s, 2*s);
+    ctx.fillRect(px-1*s, py-3*s, 2*s, 6*s);
+  });
+  // Bright white centers
+  ctx.fillStyle='#FFFFFF';
+  flowerSpots.forEach(([fx,fy])=>{
+    ctx.fillRect((fx)*s+sw-s*0.5, fy*s-s*0.5, s, s);
+  });
+
+  // Specular gleam top-left
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  roundBlob(ctx, sw-20*s, -152*s, 12*s, 8*s);
+
+  ctx.restore();
+}
+
 function roundBlob(ctx, cx, cy, rw, rh){
   // Approximate a rounded ellipse with stacked pixel rects
   const steps = 6;
@@ -2458,7 +2720,8 @@ function roundBlob(ctx, cx, cy, rw, rh){
 // Draw tree by variant index (0=green, 1=apple, 2=autumn)
 // screenX = where to draw; variant = fixed per tree from cache
 function drawTreeByVariant(ctx, screenX, y, scale, t, variant){
-  if(variant===0)      drawPixelTree(ctx, screenX, y, scale, t, 1);
+  if(variant===99)     drawCherryTree(ctx, screenX, y, scale, t);
+  else if(variant===0) drawPixelTree(ctx, screenX, y, scale, t, 1);
   else if(variant===1) drawPixelTree(ctx, screenX, y, scale, t, 2);
   else                 drawAutumnTree(ctx, screenX, y, scale, t);
 }
@@ -2466,6 +2729,68 @@ function drawTreeByVariant(ctx, screenX, y, scale, t, variant){
 function drawMango(ctx, x, y, scale, t){ drawPixelTree(ctx,x,y,scale,t,1); }
 function drawBanyan(ctx, x, y, scale, t){ drawAutumnTree(ctx,x,y,scale,t); }
 
+
+// ═══════════════════════════════════════════
+// SAKURA PETALS — falling from cherry tree
+// ═══════════════════════════════════════════
+let sakuraPetals = [];
+const CHERRY_X = 1200; // center of world
+
+function initSakuraPetals(){
+  sakuraPetals = [];
+  for(let i=0;i<35;i++) sakuraPetals.push(newSakuraPetal(true));
+}
+
+function newSakuraPetal(randomY=false){
+  return {
+    // World X near cherry tree
+    wx: CHERRY_X + (Math.random()-0.5)*120,
+    wy: randomY ? GROUND_Y - Math.random()*160 : GROUND_Y - 155 - Math.random()*20,
+    vx: (Math.random()-0.4)*18,
+    vy: 12 + Math.random()*18,
+    rot: Math.random()*Math.PI*2,
+    rotV: (Math.random()-0.5)*3,
+    size: 3 + Math.random()*3,
+    alpha: 0.6 + Math.random()*0.4,
+    swing: Math.random()*Math.PI*2, // phase for side-to-side
+    swingSpeed: 0.8 + Math.random()*1.2,
+  };
+}
+
+function updateSakuraPetals(dt){
+  sakuraPetals.forEach(p=>{
+    p.swing += p.swingSpeed * dt;
+    p.wx += p.vx * dt + Math.sin(p.swing) * 18 * dt;
+    p.wy += p.vy * dt;
+    p.rot += p.rotV * dt;
+    if(p.wy > GROUND_Y + 20) Object.assign(p, newSakuraPetal(false));
+  });
+  // Spawn new petals from tree
+  if(sakuraPetals.length < 35) sakuraPetals.push(newSakuraPetal(false));
+}
+
+function drawSakuraPetals(ctx, cx){
+  ctx.save();
+  sakuraPetals.forEach(p=>{
+    const sx = p.wx - cx;
+    if(sx < -30 || sx > W+30) return;
+    ctx.save();
+    ctx.globalAlpha = p.alpha;
+    ctx.translate(sx, p.wy);
+    ctx.rotate(p.rot);
+    // Petal shape: 4-pixel flower / oval
+    ctx.fillStyle='#F8C0D8';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, p.size, p.size*0.55, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='#FFE8F4';
+    ctx.beginPath();
+    ctx.ellipse(-p.size*0.3, -p.size*0.2, p.size*0.4, p.size*0.3, -0.5, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
+  ctx.restore();
+}
 
 // ═══════════════════════════════════════════
 // RIVER PARTICLES (current effect: top→bottom)
@@ -2966,6 +3291,11 @@ function update(dt){
 
   // Update particles
   updateParticles(dt);
+  updateSakuraPetals(dt);
+
+  // Update weather
+  updateWeather(dt);
+  updateMusic();
 
   // Update bobber animation
   // Update splash particles
@@ -2984,21 +3314,24 @@ function rebuildStaticBg(){
   const oc = offscreenBg.getContext('2d');
   oc.imageSmoothingEnabled = false;
 
-  // SKY gradient
+  // SKY gradient — dynamic based on real time
+  const _sky = getSkyColors();
   const skyGrad=oc.createLinearGradient(0,0,0,SKY_H+FAR_BANK_H);
-  skyGrad.addColorStop(0,'#0A1A3A');
-  skyGrad.addColorStop(0.35,'#102448');
-  skyGrad.addColorStop(0.7,'#1A3A6A');
-  skyGrad.addColorStop(1,'#1E5A6A');
+  skyGrad.addColorStop(0, _sky.top);
+  skyGrad.addColorStop(0.4, _sky.mid);
+  skyGrad.addColorStop(0.75, _sky.bot);
+  skyGrad.addColorStop(1, _sky.horizon);
   oc.fillStyle=skyGrad;
   oc.fillRect(0,0,W,SKY_H+FAR_BANK_H);
 
-  // Stars (static positions)
-  const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4],[130,11],[270,9],[450,4],[680,7],[870,2],[55,12],[180,2],[350,11]];
-  starList.forEach(([sx,sy])=>{
-    oc.fillStyle='rgba(255,255,255,0.7)';
-    oc.fillRect(sx%W, sy, 2, 2);
-  });
+  // Stars — only visible at night
+  if(_sky.starAlpha > 0.1){
+    const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4],[130,11],[270,9],[450,4],[680,7],[870,2],[55,12],[180,2],[350,11]];
+    starList.forEach(([sx,sy])=>{
+      oc.fillStyle=`rgba(255,255,255,${_sky.starAlpha*0.8})`;
+      oc.fillRect(sx%W, sy, 2, 2);
+    });
+  }
 
   // Far bank base
   const fbGrad=oc.createLinearGradient(0,FAR_BANK_Y,0,FAR_BANK_Y+FAR_BANK_H);
@@ -3019,7 +3352,8 @@ function render(){
   const cx=Math.round(G.camX);
   const activeRod = RODS[G.rod] || RODS[0];
 
-  // ── Draw cached static background (sky + base ground color) ──
+  // ── Draw cached background — rebuild every 60s for day/night ──
+  if(!offscreenBg || G.t - _bgLastBuilt > 60){ rebuildStaticBg(); _bgLastBuilt = G.t; }
   if(offscreenBg) ctx.drawImage(offscreenBg,0,0);
   else { ctx.fillStyle='#0A1A3A'; ctx.fillRect(0,0,W,H); }
 
@@ -3081,28 +3415,89 @@ function render(){
     ctx.fillRect(0,GROUND_Y,W,2);
   }
 
-  // Stars twinkle (just alpha changes on existing positions — cheap)
-  ctx.save();
-  const starList=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4]];
-  starList.forEach(([wx,wy])=>{
-    const sx=(wx-cx*0.04+WORLD_W)%WORLD_W;
-    if(sx>W+4) return;
-    const twinkle=Math.abs(Math.sin(G.t*1.2+wx*0.3));
-    ctx.globalAlpha=twinkle*0.6;
-    ctx.fillStyle='#FFFFFF';
-    ctx.fillRect(sx,wy,2,2);
-  });
-  ctx.restore(); // end star section
+  // ── SUN / MOON + STARS (real-time) ──
+  const _sky = getSkyColors();
+  // Twinkling stars
+  if(_sky.starAlpha > 0){
+    ctx.save();
+    const starList2=[[40,6],[90,3],[160,8],[230,4],[310,2],[400,7],[500,5],[620,3],[720,8],[820,4]];
+    starList2.forEach(([wx,wy])=>{
+      const sx=(wx-cx*0.04+WORLD_W)%WORLD_W;
+      if(sx>W+4) return;
+      const twinkle=0.3+Math.abs(Math.sin(G.t*1.2+wx*0.3))*0.7;
+      ctx.globalAlpha=_sky.starAlpha*twinkle;
+      ctx.fillStyle='#FFFFFF';
+      ctx.fillRect(sx,wy,2,2);
+    });
+    ctx.restore();
+  }
 
-  // Clouds — simple pixel blocks, few rects each
+  // Sun or Moon
+  if(_sky.sun){
+    const sy2 = getSunMoonY(true);
+    const sunX = Math.round(W*0.7 - cx*0.02);
+    ctx.save();
+    // Sun glow
+    ctx.globalAlpha=0.18;
+    ctx.fillStyle=_sky.sunColor||'#FFEF80';
+    ctx.beginPath(); ctx.arc(sunX, sy2, 28, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.35;
+    ctx.beginPath(); ctx.arc(sunX, sy2, 18, 0, Math.PI*2); ctx.fill();
+    // Sun body
+    ctx.globalAlpha=1;
+    ctx.fillStyle=_sky.sunColor||'#FFEF80';
+    ctx.beginPath(); ctx.arc(sunX, sy2, 12, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#FFFFC0';
+    ctx.beginPath(); ctx.arc(sunX-3, sy2-3, 5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  if(_sky.moon){
+    const moonY2 = getSunMoonY(false);
+    const moonX = Math.round(W*0.15 - cx*0.02 + WORLD_W) % Math.round(W*1.2);
+    ctx.save();
+    // Moon glow
+    ctx.globalAlpha=0.12;
+    ctx.fillStyle='#EEF0C8';
+    ctx.beginPath(); ctx.arc(moonX, moonY2, 20, 0, Math.PI*2); ctx.fill();
+    // Moon body
+    ctx.globalAlpha=1;
+    ctx.fillStyle='#E8EAB8';
+    ctx.beginPath(); ctx.arc(moonX, moonY2, 11, 0, Math.PI*2); ctx.fill();
+    // Crescent shadow
+    ctx.fillStyle='#1a2a50';
+    ctx.beginPath(); ctx.arc(moonX+4, moonY2-2, 9, 0, Math.PI*2); ctx.fill();
+    // Craters
+    ctx.fillStyle='#C8CAA0';
+    ctx.beginPath(); ctx.arc(moonX-3, moonY2+2, 2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(moonX-6, moonY2-3, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Day ambient overlay (make daytime brighter)
+  if(_sky.ambientAlpha > 0){
+    const h2 = new Date().getHours();
+    // Sky color overlay on ground during day
+    if(h2 >= 7 && h2 < 19){
+      ctx.save();
+      ctx.globalAlpha = _sky.ambientAlpha * 0.08;
+      ctx.fillStyle = '#aad4ff';
+      ctx.fillRect(0, 0, W, GROUND_Y);
+      ctx.restore();
+    }
+  }
+
+  // Clouds — color changes based on time
+  const cloudCol1 = _sky.ambientAlpha > 0.4 ? '#B0C8E8' : '#2A4A7A';
+  const cloudCol2 = _sky.ambientAlpha > 0.4 ? '#D0E4F8' : '#3A5A9A';
+  const cloudCol3 = _sky.ambientAlpha > 0.4 ? '#E8F4FF' : '#4A6AAA';
   ctx.save();
   [[80,9,56,20],[520,11,48,18],[1080,8,56,20],[1650,10,52,18]].forEach(([wx,wy,cw,ch])=>{
     const sx=(wx-cx*0.08+WORLD_W)%WORLD_W;
     if(sx<-cw||sx>W+cw) return;
-    ctx.fillStyle='#2A4A7A'; ctx.fillRect(sx,wy+ch*0.5,cw,ch*0.5);
-    ctx.fillStyle='#3A5A9A'; ctx.fillRect(sx+4,wy+ch*0.2,cw-8,ch*0.6);
-    ctx.fillStyle='#4A6AAA'; ctx.fillRect(sx+8,wy,cw-16,ch*0.5);
-    ctx.fillStyle='#5A7ABB'; ctx.fillRect(sx+8,wy,cw-16,4);
+    ctx.fillStyle=cloudCol1; ctx.fillRect(sx,wy+ch*0.5,cw,ch*0.5);
+    ctx.fillStyle=cloudCol2; ctx.fillRect(sx+4,wy+ch*0.2,cw-8,ch*0.6);
+    ctx.fillStyle=cloudCol3; ctx.fillRect(sx+8,wy,cw-16,ch*0.5);
+    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(sx+8,wy,cw-16,3);
   });
   ctx.restore();
 
@@ -3150,14 +3545,24 @@ function render(){
   ctx.fillStyle='#0A2040'; ctx.fillRect(0,RIVER_Y,W,Math.round(RIVER_H*0.4));
   ctx.fillStyle='#071428'; ctx.fillRect(0,RIVER_Y+Math.round(RIVER_H*0.4),W,Math.round(RIVER_H*0.6));
 
-  // Moon reflection — simple bright strip
+  // Sun/Moon reflection in river
   {
-    const mx=Math.round((WORLD_W*0.15-cx*0.05+WORLD_W)%WORLD_W);
-    ctx.save(); ctx.globalAlpha=0.12;
-    ctx.fillStyle='#EEF0C8';
-    ctx.fillRect(mx-30,RIVER_Y,60,RIVER_H*0.35);
-    ctx.globalAlpha=0.06;
-    ctx.fillRect(mx-60,RIVER_Y,120,RIVER_H*0.2);
+    const _sky2 = getSkyColors();
+    const mx=Math.round((W*0.15-cx*0.02+WORLD_W)%Math.round(W*1.2));
+    ctx.save();
+    if(_sky2.sun){
+      ctx.globalAlpha=0.18;
+      ctx.fillStyle=_sky2.sunColor||'#FFEF80';
+      ctx.fillRect(mx-20,RIVER_Y,40,RIVER_H*0.4);
+      ctx.globalAlpha=0.09;
+      ctx.fillRect(mx-40,RIVER_Y,80,RIVER_H*0.25);
+    } else if(_sky2.moon) {
+      ctx.globalAlpha=0.12;
+      ctx.fillStyle='#EEF0C8';
+      ctx.fillRect(mx-25,RIVER_Y,50,RIVER_H*0.35);
+      ctx.globalAlpha=0.06;
+      ctx.fillRect(mx-50,RIVER_Y,100,RIVER_H*0.2);
+    }
     ctx.restore();
   }
 
@@ -3258,6 +3663,9 @@ function render(){
       ctx.restore();
     });
   }
+
+  // ── SAKURA PETALS ──
+  drawSakuraPetals(ctx, cx);
 
   // ── GOZO CHARACTER ──
   const gzScreenX=Math.round(G.gz.x-cx);
@@ -3995,6 +4403,7 @@ function startGame(){
   resizeCanvas();
   buildTrees();
   initParticles();
+  initSakuraPetals();
   renderBaits();
   updateHUD();
   G.gz.x=220;
@@ -4003,7 +4412,8 @@ function startGame(){
   notify('🎁 Starter bonus: 10 Free Earthworms!');
   initQuests();
   G.weather='clear'; G.weatherTimer=90;
-  document.getElementById('weatherHud').textContent='☀️ Clear';
+  { const h=new Date().getHours(); const tod=h<6?'🌑 Night':h<9?'🌅 Dawn':h<18?'☀️ Day':h<20?'🌆 Dusk':'🌙 Night';
+    document.getElementById('weatherHud').textContent=tod+' · ☀️ Clear'; }
   setTimeout(()=>startFishingMusic(), 500);
   if(!localStorage.getItem('gozoTutDone')) setTimeout(openTut, 600);
   G.weather='clear'; G.weatherTimer=30+Math.random()*60;
