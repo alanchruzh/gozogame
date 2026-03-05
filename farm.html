@@ -5045,6 +5045,13 @@ window.handleClick = function(fid, pid){
   <button class="feat-btn" onclick="openStatsPanel()">
     <span class="fb-icon">📊</span><span class="fb-label">Stats</span>
   </button>
+  <button class="feat-btn" onclick="exportSave()">
+    <span class="fb-icon">💾</span><span class="fb-label">Save</span>
+  </button>
+  <button class="feat-btn" onclick="document.getElementById('importSaveInput').click()">
+    <span class="fb-icon">📂</span><span class="fb-label">Load</span>
+  </button>
+  <input type="file" id="importSaveInput" accept=".json" style="display:none" onchange="importSave(event)">
 </div>
 
 <!-- 🎯 QUEST PANEL -->
@@ -6062,6 +6069,44 @@ function runTrainAnimation() {
     else wrapper.remove();
   }
   requestAnimationFrame(animateTrain);
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE / LOAD FROM FILE
+// ═══════════════════════════════════════════════════
+function exportSave() {
+  try {
+    const main = localStorage.getItem(SAVE_KEY) || '{}';
+    const extra = localStorage.getItem('gozofarm_extra_v2') || '{}';
+    const bundle = { version: SAVE_KEY, main: JSON.parse(main), extra: JSON.parse(extra), exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gozofarm_save_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('💾 Save file downloaded!');
+  } catch(e) { showToast('❌ Failed to export save!'); }
+}
+
+function importSave(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const bundle = JSON.parse(e.target.result);
+      if (!bundle.main || !bundle.extra) { showToast('❌ Invalid save file!'); return; }
+      if (!confirm('Load this save? Current progress will be overwritten!')) return;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(bundle.main));
+      localStorage.setItem('gozofarm_extra_v2', JSON.stringify(bundle.extra));
+      showToast('📂 Save loaded! Restarting...');
+      setTimeout(() => location.reload(), 1000);
+    } catch(e) { showToast('❌ Failed to load save file!'); }
+  };
+  reader.readAsText(file);
+  event.target.value = ''; // reset input
 }
 
 // Run train every 5 minutes, first appearance after 30 seconds
