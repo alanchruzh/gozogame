@@ -3233,8 +3233,8 @@ function doHarvest(fid, pid){
   harvestBasket[p.plant]++;
   totalHarvested++;
 
-  // 80% chance to get 1 seed per harvest
-  if(Math.random() < 0.8){ inventory[plantKey] = (inventory[plantKey] || 0) + 1; }
+  // 70% chance to get 1 seed per harvest
+  if(Math.random() < 0.7){ inventory[plantKey] = (inventory[plantKey] || 0) + 1; }
 
   // Unlock new crops based on total harvested — give 5 free seeds
   CROP_KEYS.forEach(k => {
@@ -3319,8 +3319,6 @@ function doHarvest(fid, pid){
   checkFieldUnlocks();
   updateScoreUI();
   saveState();
-  // Harvest Tool: auto-harvest nearby ready plots
-  if(typeof doHarvestToolEffect === 'function') setTimeout(()=>doHarvestToolEffect(fid), 50);
 }
 
 // ═══════════════════════════════════════════════════
@@ -4283,9 +4281,8 @@ const UPGRADES = {
   fastGrow:    { name:'🧬 Soil Boost',    desc:'All crops grow 10% faster/lvl', price:400,  maxLevel:5, color:'#60a040' },
   sellBonus:   { name:'💎 Expert Trader',  desc:'Sell price +15% per level',                price:600,  maxLevel:5, color:'#d0a020' },
   multiHarvest:{ name:'🎁 Harvest Bonus',   desc:'Each harvest +1 bonus item/lvl',            price:800,  maxLevel:3, color:'#d06030' },
-  harvestTool: { name:'⚒️ Harvest Tool',  desc:'Harvest all ready crops in 1 tap/lvl area', price:700,  maxLevel:3, color:'#c08030' },
 };
-let upgradeLevels = { autoWater:0, bigBucket:0, fastGrow:0, sellBonus:0, multiHarvest:0, harvestTool:0 };
+let upgradeLevels = { autoWater:0, bigBucket:0, fastGrow:0, sellBonus:0, multiHarvest:0 };
 let autoWaterInterval = null;
 
 function getUpgradePrice(key){
@@ -4339,25 +4336,6 @@ function getEffectiveWaterMax(){ return WATER_MAX + upgradeLevels.bigBucket * 5;
 function getGrowMult(){ return 1 / (1 + upgradeLevels.fastGrow * 0.10); }
 function getSellMult(){ return 1 + upgradeLevels.sellBonus * 0.15; }
 function getBonusHarvest(){ return upgradeLevels.multiHarvest; }
-function getHarvestToolRange(){ return upgradeLevels.harvestTool; } // 0=single, 1=field, 2=2fields, 3=all
-
-// Harvest Tool: auto-harvest all ready plots in range when one is harvested
-function doHarvestToolEffect(fid){
-  const range = getHarvestToolRange();
-  if(range === 0) return;
-  let fieldIds = [];
-  if(range === 1) fieldIds = [fid];
-  else if(range === 2) fieldIds = Object.keys(fieldData).map(Number).filter(id => Math.abs(id-fid)<=1);
-  else fieldIds = Object.keys(fieldData).map(Number);
-  let count = 0;
-  fieldIds.forEach(id => {
-    const fd = fieldData[id]; if(!fd?.unlocked) return;
-    fd.plots.forEach((p,pid) => {
-      if(p.state==='ready'){ doHarvest(id,pid); count++; }
-    });
-  });
-  if(count>1) showToast(`⚒️ Harvest Tool: +${count} crops harvested!`);
-}
 
 // Override sellCrop to apply sell bonus
 const _origSellCrop = sellCrop;
@@ -5891,6 +5869,133 @@ setTimeout(syncFieldAnimals, 500);
 setTimeout(syncFieldAnimals, 1000);
 setTimeout(syncFieldAnimals, 2000);
 setTimeout(syncFieldAnimals, 3000);
+
+// ═══════════════════════════════════════════
+// TRAIN ANIMATION - every 5 minutes
+// ═══════════════════════════════════════════
+function makeTrainCanvas() {
+  // Train: locomotive + 2 wagons, pixel art style
+  // Total width: ~120px logical = 40 pixels wide at S=3
+  const S = 3;
+  const W = 72, H = 18;
+  const canvas = document.createElement('canvas');
+  canvas.width = W*S; canvas.height = H*S;
+  canvas.style.imageRendering = 'pixelated';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  function p(x,y,c,w=1,h=1){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,w*S,h*S); }
+
+  // === LOCOMOTIVE (right side, x=42..71) ===
+  // body
+  p(44,4, '#cc2020',18,8); // red body
+  p(44,4, '#aa1818',9,8);  // shadow left half
+  // cab
+  p(53,2, '#cc2020',9,10);
+  p(54,2, '#222',7,4);     // windows
+  p(55,3, '#88ccff',5,2);  // window glass
+  // chimney
+  p(60,1, '#333',3,4);
+  p(59,0, '#333',5,2);
+  // front cowcatcher
+  p(62,9, '#888',8,2);
+  p(63,10,'#888',7,2);
+  p(64,11,'#888',6,1);
+  // boiler dome
+  p(48,2, '#dd3030',6,3);
+  p(49,1, '#ee4040',4,2);
+  // wheels locomotive
+  p(45,11,'#333',4,5); p(46,11,'#555',2,4); // wheel1
+  p(51,11,'#333',4,5); p(52,11,'#555',2,4); // wheel2
+  p(57,11,'#333',4,5); p(58,11,'#555',2,4); // wheel3
+  // wheel highlights
+  p(47,12,'#aaa',1,1); p(53,12,'#aaa',1,1); p(59,12,'#aaa',1,1);
+  // undercarriage
+  p(44,11,'#555',24,2);
+  // headlight
+  p(62,6,'#ffff88',3,2);
+  p(63,6,'#ffffff',1,1);
+
+  // === WAGON 1 (x=22..43) ===
+  p(23,5, '#4466cc',19,8); // blue body
+  p(23,5, '#3355aa',9,8);  // shadow
+  // windows
+  p(25,6,'#222',4,4); p(26,6,'#88ccff',2,3);
+  p(31,6,'#222',4,4); p(32,6,'#88ccff',2,3);
+  p(37,6,'#222',4,4); p(38,6,'#88ccff',2,3);
+  // wheels
+  p(24,11,'#333',4,5); p(25,11,'#555',2,4);
+  p(32,11,'#333',4,5); p(33,11,'#555',2,4);
+  p(25,12,'#aaa',1,1); p(33,12,'#aaa',1,1);
+  p(23,11,'#555',20,2);
+  // coupler
+  p(22,12,'#888',2,2); p(41,12,'#888',2,2);
+
+  // === WAGON 2 (x=0..22) ===
+  p(1,5, '#4466cc',20,8);
+  p(1,5, '#3355aa',10,8);
+  p(3,6,'#222',4,4); p(4,6,'#88ccff',2,3);
+  p(9,6,'#222',4,4); p(10,6,'#88ccff',2,3);
+  p(15,6,'#222',4,4); p(16,6,'#88ccff',2,3);
+  p(2,11,'#333',4,5); p(3,11,'#555',2,4);
+  p(10,11,'#333',4,5); p(11,11,'#555',2,4);
+  p(3,12,'#aaa',1,1); p(11,12,'#aaa',1,1);
+  p(1,11,'#555',20,2);
+  p(0,12,'#888',2,2); p(19,12,'#888',2,2);
+
+  // smoke puffs (above chimney area - drawn as circles)
+  ctx.fillStyle = 'rgba(200,200,200,0.7)';
+  ctx.beginPath(); ctx.arc(62*S, 1*S, S*2, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(220,220,220,0.5)';
+  ctx.beginPath(); ctx.arc(64*S, -1*S, S*1.5, 0, Math.PI*2); ctx.fill();
+
+  return canvas;
+}
+
+function runTrainAnimation() {
+  const layer = document.getElementById('animalLayer');
+  if (!layer) return;
+
+  const trainCanvas = makeTrainCanvas();
+  const screenW = layer.offsetWidth || window.innerWidth;
+  const trainW = trainCanvas.width;
+
+  trainCanvas.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;image-rendering:pixelated;z-index:50;`;
+  layer.appendChild(trainCanvas);
+
+  // Whistle sound effect using Web Audio
+  try {
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.frequency.setValueAtTime(880, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(660, ac.currentTime+0.3);
+    gain.gain.setValueAtTime(0.15, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+0.5);
+    osc.start(); osc.stop(ac.currentTime+0.5);
+  } catch(e){}
+
+  showToast('🚂 Train is passing by!');
+
+  const speed = 6; // px per frame
+  let x = screenW;
+
+  function animateTrain() {
+    x -= speed;
+    trainCanvas.style.left = x + 'px';
+    if (x > -trainW) {
+      requestAnimationFrame(animateTrain);
+    } else {
+      trainCanvas.remove();
+    }
+  }
+  requestAnimationFrame(animateTrain);
+}
+
+// Run train every 5 minutes, first appearance after 30 seconds
+setTimeout(runTrainAnimation, 30000);
+setInterval(runTrainAnimation, 5 * 60 * 1000);
 </script>
 </body>
 </html>
