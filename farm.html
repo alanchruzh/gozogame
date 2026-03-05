@@ -5277,6 +5277,7 @@ const _fieldAnimals = {}; // { 'chicken_0': { el, x, y, vx, type, frame, frameTi
 function makeAnimalCanvas(type, flipX, frame) {
   if (type === 'cow') return makeCowCanvas(flipX, frame);
   if (type === 'chicken') return makeChickenCanvas(flipX, frame);
+  if (type === 'rabbit') return makeRabbitCanvas(flipX, frame);
   const def = ANIMAL_PIXELS[type];
   if (!def) return null;
   const rows = def.frames[frame];
@@ -5313,7 +5314,9 @@ function makeChickenCanvas(flipX, frame) {
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (flipX) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+  // chicken sprite faces RIGHT by default, so flip when going LEFT (flipX=false means going right)
+  const doFlip = !flipX;
+  if (doFlip) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
 
   function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
   const BR='#c8854a', LB='#e8a060', CW='#fff0d0', RD='#cc2200', OR='#e8900a', YL='#e8c040', DK='#3a1a00', WG='#d4b070';
@@ -5363,62 +5366,64 @@ function makeChickenCanvas(flipX, frame) {
     p(7,13,YL); p(8,13,YL); // right foot back
   }
 
-  if (flipX) ctx.restore();
+  if (doFlip) ctx.restore();
   return canvas;
 }
 
-function makeCowCanvas(flipX, frame) {
-  const S = 3; // pixel size
-  const W = 22, H = 14;
+function makeRabbitCanvas(flipX, frame) {
+  const S = 3;
+  const W = 12, H = 14;
   const canvas = document.createElement('canvas');
   canvas.width = W * S; canvas.height = H * S;
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (flipX) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+  const doFlip = !flipX;
+  if (doFlip) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
 
   function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
-  const W2='#f2f2ee', BK='#1a1a1a', PK='#f0aab8', GY='#888888';
+  const GR='#9898c0', LG='#c0c0d8', PK='#ffaabb', DK='#333355', WH='#eeeeee';
 
-  // --- BODY ---
-  for(let x=5;x<=17;x++) for(let y=3;y<=8;y++) p(x,y,W2);
-  // black patches on body
-  for(let x=7;x<=9;x++) for(let y=3;y<=5;y++) p(x,y,BK);
-  for(let x=14;x<=16;x++) for(let y=5;y<=7;y++) p(x,y,BK);
-  // body outline
-  for(let x=5;x<=17;x++){p(x,3,BK);p(x,8,BK);}
-  for(let y=3;y<=8;y++){p(5,y,BK);p(17,y,BK);}
+  // --- EARS ---
+  p(3,0,GR); p(4,0,GR);
+  p(3,1,GR); p(4,1,GR);
+  p(3,2,PK); p(4,2,PK);
+  p(3,3,GR); p(4,3,GR);
+  p(7,0,GR); p(8,0,GR);
+  p(7,1,GR); p(8,1,GR);
+  p(7,2,PK); p(8,2,PK);
+  p(7,3,GR); p(8,3,GR);
 
   // --- HEAD ---
-  for(let x=0;x<=5;x++) for(let y=2;y<=7;y++) p(x,y,W2);
-  // nose/muzzle pink
-  for(let x=0;x<=2;x++) for(let y=5;y<=6;y++) p(x,y,PK);
-  // eye
-  p(3,3,BK); p(4,3,BK);
-  // head outline
-  for(let x=0;x<=5;x++){p(x,2,BK);p(x,7,BK);}
-  for(let y=2;y<=7;y++){p(0,y,BK);p(5,y,BK);}
-  // horn
-  p(3,1,GY); p(4,1,GY);
+  for(let x=2;x<=9;x++) for(let y=3;y<=6;y++) p(x,y,GR);
+  for(let x=3;x<=8;x++) for(let y=4;y<=6;y++) p(x,y,LG);
+  p(3,4,DK); p(4,4,DK); // eyes
+  p(6,5,PK); p(7,5,PK); // nose
+  p(8,5,WH); p(9,5,WH); p(8,6,WH); // cheek
 
-  // --- LEGS ---
-  const legFrame0 = [[7,9],[8,9],[13,9],[14,9]];
-  const legFrame1 = [[7,9],[8,9],[13,9],[15,9]];
-  const legBases = frame===0 ? legFrame0 : legFrame1;
-  legBases.forEach(([lx,ly])=>{
-    for(let dy=0;dy<4;dy++){
-      p(lx,ly+dy,BK); p(lx+1,ly+dy,BK);
-    }
-  });
+  // --- BODY ---
+  for(let x=1;x<=10;x++) for(let y=6;y<=11;y++) p(x,y,GR);
+  for(let x=3;x<=8;x++) for(let y=7;y<=10;y++) p(x,y,LG);
+  p(0,8,WH); p(0,9,WH); p(1,8,WH); // tail
 
-  // --- TAIL ---
-  p(18,4,BK); p(19,5,BK); p(20,6,BK); p(20,7,BK);
+  // --- PAWS ---
+  p(2,11,GR); p(3,11,GR);
+  p(8,11,GR); p(9,11,GR);
 
-  // --- UDDER ---
-  for(let x=9;x<=12;x++) p(x,9,PK);
-  for(let x=9;x<=12;x++) p(x,8,PK);
+  // --- FEET ---
+  if (frame === 0) {
+    p(1,12,GR); p(2,12,GR); p(3,12,GR);
+    p(7,12,GR); p(8,12,GR); p(9,12,GR);
+    p(1,13,GR); p(2,13,GR); p(3,13,GR);
+    p(7,13,GR); p(8,13,GR); p(9,13,GR);
+  } else {
+    p(0,12,GR); p(1,12,GR); p(2,12,GR);
+    p(8,12,GR); p(9,12,GR); p(10,12,GR);
+    p(0,13,GR); p(1,13,GR);
+    p(9,13,GR); p(10,13,GR);
+  }
 
-  if(flipX) ctx.restore();
+  if (doFlip) ctx.restore();
   return canvas;
 }
 
@@ -5437,7 +5442,8 @@ function spawnFieldAnimal(type, uid) {
   layer.appendChild(wrapper);
 
   const lw = layer.offsetWidth || 300;
-  const startX = Math.random() * (lw - def.w * PIXEL_SIZE);
+  const animalW = type==='cow' ? 22*3 : type==='chicken' ? 14*3 : type==='rabbit' ? 12*3 : type==='bee' ? 16*3 : (def ? def.w*PIXEL_SIZE : 48);
+  const startX = Math.random() * (lw - animalW);
   const speed = (type === 'bee') ? (0.4 + Math.random() * 0.4) : (0.2 + Math.random() * 0.3);
   const dir = Math.random() > 0.5 ? 1 : -1;
 
@@ -5483,7 +5489,8 @@ function animalLoop(ts) {
   for (const uid in _fieldAnimals) {
     const a = _fieldAnimals[uid];
     const def = ANIMAL_PIXELS[a.type];
-    if (!def) continue;
+    const animalW = a.type==='cow' ? 22*3 : a.type==='chicken' ? 14*3 : a.type==='rabbit' ? 12*3 : a.type==='bee' ? 16*3 : (def ? def.w*PIXEL_SIZE : 48);
+    if (!def && !['cow','chicken','rabbit','bee'].includes(a.type)) continue;
 
     // pause sometimes
     if (a.paused) {
@@ -5500,7 +5507,7 @@ function animalLoop(ts) {
     }
 
     a.x += a.vx;
-    const maxX = lw - def.w * PIXEL_SIZE;
+    const maxX = lw - animalW;
 
     if (a.x <= 0) { a.x = 0; a.vx = Math.abs(a.vx); a.flipX = true; }
     if (a.x >= maxX) { a.x = maxX; a.vx = -Math.abs(a.vx); a.flipX = false; }
