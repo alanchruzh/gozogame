@@ -6219,7 +6219,20 @@ function updateBattleHP(){
 }
 
 function setBattleLog(t){const el=document.getElementById('battle-log');if(el)el.textContent=t;}
-function setBattleButtons(on){if(!state.inBattle)return;document.querySelectorAll('.battle-btn').forEach(b=>b.disabled=!on);}
+function setBattleButtons(on){
+  if(!state.inBattle) return;
+  document.querySelectorAll('.battle-btn').forEach(b=>b.disabled=!on);
+}
+
+// Safety: if still in battle after 4s and buttons are all disabled, re-enable them
+function battleButtonsSafetyCheck(){
+  if(!state.inBattle) return;
+  const btns = document.querySelectorAll('.battle-btn');
+  const allDisabled = [...btns].every(b=>b.disabled);
+  if(allDisabled && state.battleTurn === 'player'){
+    setBattleButtons(true);
+  }
+}
 
 function battleAction(action){
   if(state.battleTurn!=='player')return;
@@ -6243,7 +6256,7 @@ function battleAction(action){
     const ratio   = atkRoll / (atkRoll + defVal * 2.5);
     let dmg = Math.max(1, Math.round(atkRoll * ratio * 0.85));
     // Boss damage resistance — hard cap per hit, scales with boss HP tier
-    const isBossEnemy = e.maxHp >= 150 || e.isBoss || e.isMiniBoss;
+    const isBossEnemy = e.isBoss || e.isMiniBoss || (e.maxHp >= 400 && !e.t);
     if(isBossEnemy){
       // Armor: 35-65% of def depending on boss HP (tougher = more armor)
       const bossArmorPct = Math.min(0.65, 0.35 + (e.maxHp / 2500));
@@ -6315,7 +6328,7 @@ function battleAction(action){
       const spRatio   = spAtkRoll / (spAtkRoll + effectiveDef * 2.0);
       let dmg = Math.max(1, Math.round(spAtkRoll * spRatio * 0.85));
       // Boss damage cap on specials too (max 12% HP per special)
-      const isSpecialBoss = e.maxHp >= 150 || e.isBoss || e.isMiniBoss;
+      const isSpecialBoss = e.isBoss || e.isMiniBoss || (e.maxHp >= 400 && !e.t);
       if(isSpecialBoss){
         const specialCap = Math.max(18, Math.floor(e.maxHp * 0.12));
         dmg = Math.min(specialCap, dmg);
@@ -6366,6 +6379,8 @@ function battleAction(action){
   if(e.hp<=0){setTimeout(winBattle,1000);return;}
   state.battleTurn='enemy';
   setTimeout(enemyTurn,1200);
+  // Safety: if enemy turn never completes, unlock after 5s
+  setTimeout(battleButtonsSafetyCheck, 5000);
 }
 
 function enemyTurn(){
@@ -6507,6 +6522,8 @@ function enemyTurn(){
   if(p.hp<=0){p.hp=0;updateBattleHP();setBattleLog('💀 Gozo fainted...');setTimeout(loseBattle,1500);return;}
   state.battleTurn='player';
   setBattleButtons(true);
+  // Safety fallback: re-check after 3s in case something went wrong
+  setTimeout(battleButtonsSafetyCheck, 3000);
 }
 
 function winBattle(){
