@@ -3044,6 +3044,8 @@ function doHarvest(fid, pid){
   checkFieldUnlocks();
   updateScoreUI();
   saveState();
+  // Harvest Tool: auto-harvest nearby ready plots
+  if(typeof doHarvestToolEffect === 'function') setTimeout(()=>doHarvestToolEffect(fid), 50);
 }
 
 // ═══════════════════════════════════════════════════
@@ -4006,8 +4008,9 @@ const UPGRADES = {
   fastGrow:    { name:'🧬 Soil Boost',    desc:'All crops grow 10% faster/lvl', price:400,  maxLevel:5, color:'#60a040' },
   sellBonus:   { name:'💎 Expert Trader',  desc:'Sell price +15% per level',                price:600,  maxLevel:5, color:'#d0a020' },
   multiHarvest:{ name:'🎁 Harvest Bonus',   desc:'Each harvest +1 bonus item/lvl',            price:800,  maxLevel:3, color:'#d06030' },
+  harvestTool: { name:'⚒️ Harvest Tool',  desc:'Harvest all ready crops in 1 tap/lvl area', price:700,  maxLevel:3, color:'#c08030' },
 };
-let upgradeLevels = { autoWater:0, bigBucket:0, fastGrow:0, sellBonus:0, multiHarvest:0 };
+let upgradeLevels = { autoWater:0, bigBucket:0, fastGrow:0, sellBonus:0, multiHarvest:0, harvestTool:0 };
 let autoWaterInterval = null;
 
 function getUpgradePrice(key){
@@ -4061,6 +4064,25 @@ function getEffectiveWaterMax(){ return WATER_MAX + upgradeLevels.bigBucket * 5;
 function getGrowMult(){ return 1 / (1 + upgradeLevels.fastGrow * 0.10); }
 function getSellMult(){ return 1 + upgradeLevels.sellBonus * 0.15; }
 function getBonusHarvest(){ return upgradeLevels.multiHarvest; }
+function getHarvestToolRange(){ return upgradeLevels.harvestTool; } // 0=single, 1=field, 2=2fields, 3=all
+
+// Harvest Tool: auto-harvest all ready plots in range when one is harvested
+function doHarvestToolEffect(fid){
+  const range = getHarvestToolRange();
+  if(range === 0) return;
+  let fieldIds = [];
+  if(range === 1) fieldIds = [fid];
+  else if(range === 2) fieldIds = Object.keys(fieldData).map(Number).filter(id => Math.abs(id-fid)<=1);
+  else fieldIds = Object.keys(fieldData).map(Number);
+  let count = 0;
+  fieldIds.forEach(id => {
+    const fd = fieldData[id]; if(!fd?.unlocked) return;
+    fd.plots.forEach((p,pid) => {
+      if(p.state==='ready'){ doHarvest(id,pid); count++; }
+    });
+  });
+  if(count>1) showToast(`⚒️ Harvest Tool: +${count} crops harvested!`);
+}
 
 // Override sellCrop to apply sell bonus
 const _origSellCrop = sellCrop;
