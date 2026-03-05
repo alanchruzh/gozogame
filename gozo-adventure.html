@@ -232,9 +232,9 @@
   /* ═══════════════════════════════════════
      ALL OVERLAY SCREENS
   ═══════════════════════════════════════ */
-  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
-  #event-screen{justify-content:center;background:rgba(0,0,10,.95);}
-  #story-screen{justify-content:center;}
+  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen,#prestige-screen,#puzzle-screen,#dex-screen,#lb-screen,#craft-screen,#worldmap-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #event-screen,#puzzle-screen{justify-content:center;background:rgba(0,0,10,.95);}
+  #story-screen,#prestige-screen{justify-content:center;}
   @keyframes achIn{0%{transform:translateX(120%);opacity:0}100%{transform:translateX(0);opacity:1}}
   @keyframes achOut{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(120%)}}
 
@@ -737,6 +737,7 @@
       <button class="battle-btn" id="btn-special" onclick="battleAction('special')">⚡ SKILL</button>
       <button class="battle-btn" onclick="battleAction('heal')">💊 POTION</button>
       <button class="battle-btn" onclick="battleAction('run')">🏃 RUN</button>
+      <button class="battle-btn" id="btn-puzzle" onclick="openBattlePuzzle()" style="grid-column:span 2;border-color:#aa88ff55;color:#aa88ff;font-size:6px;">🧩 ELEMENT CHALLENGE (bonus dmg)</button>
     </div>
   </div>
 </div>
@@ -1087,12 +1088,21 @@ const WILD = [
 ];
 
 const BOSS_LIST = [
-  { name:'BOSS WIZARD',     emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null,    lore:'An ancient mage corrupted by forbidden magic.' },
-  { name:'DARK GOLEM KING', emoji:'🗿', color:'#cc6600', hp:220, atk:44, def:22, exp:180, coins:160, element:'earth', lore:'A golem that achieved consciousness through dark arts.' },
-  { name:'VOID SOVEREIGN',  emoji:'🌌', color:'#330066', hp:300, atk:58, def:18, exp:250, coins:220, element:'dark',  lore:'A being born from the collapse of a dead star.' },
-  { name:'CHAOS LICH',      emoji:'💀', color:'#ff0044', hp:380, atk:70, def:24, exp:320, coins:280, element:null,    lore:'Death given will. The final guardian of the abyss.' },
+  { name:'BOSS WIZARD',     emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null,      lore:'An ancient mage corrupted by forbidden magic.',        mechanic:'heal',    mechanicDesc:'Heals 20 HP every 3 turns!' },
+  { name:'DARK GOLEM KING', emoji:'🗿', color:'#cc6600', hp:220, atk:44, def:22, exp:180, coins:160, element:'earth',   lore:'A golem that achieved consciousness through dark arts.', mechanic:'shield',  mechanicDesc:'Blocks all damage every 4th turn!' },
+  { name:'VOID SOVEREIGN',  emoji:'🌌', color:'#330066', hp:300, atk:58, def:18, exp:250, coins:220, element:'dark',    lore:'A being born from the collapse of a dead star.',        mechanic:'drain',   mechanicDesc:'Drains 10 HP from you each attack!' },
+  { name:'CHAOS LICH',      emoji:'💀', color:'#ff0044', hp:380, atk:70, def:24, exp:320, coins:280, element:null,      lore:'Death given will. The final guardian of the abyss.',   mechanic:'revive',  mechanicDesc:'Revives once with 80 HP!' },
+  { name:'STORM DRAGON',    emoji:'🐉', color:'#44aaff', hp:450, atk:76, def:20, exp:400, coins:350, element:'wind',    lore:'A dragon born from a thousand-year tempest.',          mechanic:'multi',   mechanicDesc:'Attacks twice per turn!' },
+  { name:'INFERNO GOD',     emoji:'🔥', color:'#ff6600', hp:520, atk:82, def:16, exp:480, coins:420, element:'fire',    lore:'The deity of destruction incarnate.',                  mechanic:'burn',    mechanicDesc:'Burns you for 15 dmg/turn for 3 turns!' },
+  { name:'ABYSSAL TITAN',   emoji:'🌊', color:'#0044aa', hp:600, atk:88, def:28, exp:560, coins:500, element:'water',   lore:'Ancient leviathan of the sunken realm.',               mechanic:'flood',   mechanicDesc:'Raises its own DEF by 5 each turn!' },
+  { name:'OMEGA OVERLORD',  emoji:'⚡', color:'#ffffff', hp:700, atk:95, def:32, exp:700, coins:650, element:'electric',lore:'The final sovereign. Existence itself trembles.',        mechanic:'overload',mechanicDesc:'Every 5th turn deals 3x damage!' },
 ];
 let bossIndex = 0;
+// Per-boss mechanic state
+let bossMechanicTurn = 0;
+let bossRevived = false;
+let bossBurnTurns = 0;
+let bossBurnActive = false;
 const BOSS = BOSS_LIST[0];
 let bossDefeated = false;
 
@@ -2905,7 +2915,23 @@ function initGame(fromLoad){
   initQuests();
   initSkills();
   initAchievements();
-  // Hook enemy pool reference for random events
+  // Try to load persisted data from localStorage
+  try{
+    const saved = lsLoad();
+    if(saved){
+      // skills/ach/quests/etc already loaded by lsLoad
+      // Apply prestige bonuses to player
+      if(prestigeState.level>0){
+        const p=state.player;
+        p.attack += prestigeState.bonusAtk;
+        p.defense += prestigeState.bonusDef;
+        p.maxHp += prestigeState.bonusHp;
+        p.hp = p.maxHp;
+        p.critChance = (p.critChance||0) + prestigeState.bonusCrit;
+      }
+      updateHUD();
+    }
+  }catch(e){}
   window._ENEMY_POOL = WILD;
   setTimeout(()=>bgmFadeTo('explore'), 500);
   state.world.w = WORLD_W;
@@ -3996,10 +4022,18 @@ function gameLoop() {
     tickRandomEvents();
     checkWaypointUnlock();
     tickFootstep(moving);
+    if(moving) updateFogOfWar();
     // Check achievements periodically
     if(Math.random()<0.01) checkAchievements();
   }
   requestAnimationFrame(gameLoop);
+}
+
+function toggleMoreMenu(){
+  const m=document.getElementById('more-menu');
+  if(!m) return;
+  playSoundUIClick();
+  m.style.display = m.style.display==='none'||!m.style.display ? 'flex' : 'none';
 }
 
 // ==============================================
@@ -4130,6 +4164,7 @@ function triggerEncounter(zone){
   let enemy;
   if(zone.isBoss&&!bossDefeated&&state.player.level>=3){
     const curBoss=BOSS_LIST[bossIndex]; enemy={...curBoss,hp:curBoss.hp,maxHp:curBoss.hp};
+  bossMechanicTurn=0; bossRevived=false; bossBurnActive=false; bossBurnTurns=0;
   } else {
     enemy = pickWildMonster(zone);
   }
@@ -4166,6 +4201,7 @@ function startBattle(enemy){
   state.battleTurn='player';
   if(questState) questState.stats.battles++;
   bgmFadeTo('battle');
+  trackDexEncounter(enemy);
 
   const bscr=document.getElementById('battle-screen');
   if(!bscr) return;
@@ -4247,6 +4283,8 @@ function battleAction(action){
       dmg = Math.floor(dmg*2);
       if(questState) questState.stats.critHits = (questState.stats.critHits||0)+1;
     }
+    // Apply puzzle bonus
+    if(puzzleReward>0){ dmg=Math.floor(dmg*(1+puzzleReward)); puzzleReward=0; }
     e.hp-=dmg;
     playSoundAttack();
     attackLungePlayer();
@@ -4341,36 +4379,93 @@ function battleAction(action){
 
 function enemyTurn(){
   const p=state.player,e=state.currentEnemy;
-  const dmg=Math.max(1,e.atk+Math.floor(Math.random()*6)-p.defense);
-  p.hp-=dmg;
-  if(questState) questState.stats.damageTaken += dmg;
-  playSoundPlayerHurt();
-  showDmgPopup(dmg,false,true);
-  shakeSprite('player-battle-sprite');
-  flashArena('rgba(255,50,50,0.3)');
-  if(dmg>=30) arenaShake();
+  bossMechanicTurn++;
+
+  // ── BOSS MECHANICS ──
+  const curBoss = BOSS_LIST[bossIndex];
+  const isBossFight = e.name === curBoss.name;
+  let mechLog = '';
+  let skipAtk = false;
+
+  if(isBossFight){
+    const m = curBoss.mechanic;
+    if(m==='heal' && bossMechanicTurn%3===0){
+      e.hp=Math.min(e.maxHp||e.hp, e.hp+20);
+      mechLog=' 💚 Boss healed 20 HP!'; flashArena('rgba(0,255,100,0.2)');
+    }
+    if(m==='shield' && bossMechanicTurn%4===0){
+      e._shielded=1; mechLog=' 🛡️ Boss is shielded this turn!'; skipAtk=true;
+    }
+    if(m==='drain'){
+      const drain=10; p.hp=Math.max(0,p.hp-drain); e.hp=Math.min(e.maxHp||999,e.hp+drain);
+      mechLog=` 🌑 Boss drained ${drain} HP from you!`;
+    }
+    if(m==='burn'){
+      bossBurnActive=true; bossBurnTurns=3;
+      mechLog=' 🔥 You are burning for 3 turns!';
+    }
+    if(m==='multi'){ /* handled below — attack twice */ }
+    if(m==='flood'){
+      e.def=(e.def||0)+5; mechLog=` 🌊 Boss DEF increased to ${e.def}!`;
+    }
+    if(m==='overload' && bossMechanicTurn%5===0){
+      // Triple damage this turn - handled in dmg calc below
+      e._overload=true; mechLog=' ⚡ OVERLOAD — incoming mega strike!';
+    }
+  }
+
+  // Apply burn to player
+  if(bossBurnActive && bossBurnTurns>0){
+    p.hp=Math.max(0,p.hp-15); bossBurnTurns--;
+    if(bossBurnTurns<=0) bossBurnActive=false;
+    mechLog+=' 🔥 Burn -15HP!';
+  }
+
+  if(!skipAtk){
+    let dmgMult = (isBossFight && e._overload) ? 3 : 1;
+    e._overload=false;
+    const atkCount = (isBossFight && curBoss.mechanic==='multi') ? 2 : 1;
+    for(let ai=0;ai<atkCount;ai++){
+      const dmg=Math.max(1,Math.floor((e.atk+Math.floor(Math.random()*6)-p.defense)*dmgMult));
+      p.hp-=dmg;
+      if(questState) questState.stats.damageTaken += dmg;
+      playSoundPlayerHurt();
+      showDmgPopup(dmg,false,true);
+      shakeSprite('player-battle-sprite');
+      flashArena('rgba(255,50,50,0.3)');
+      if(dmg>=30) arenaShake();
+    }
+  }
+
   updateBattleHP();
-  let log=`${e.name} attacks! Gozo took ${dmg} damage!`;
+  let log=`${e.name} attacks!${mechLog}`;
 
   // Tick status effects on enemy
   if(e._poisoned>0){
     const pdmg=Math.max(1,Math.floor(e.maxHp*0.06));
-    e.hp-=pdmg; e._poisoned--;
-    showDmgPopup(pdmg,false);
+    e.hp-=pdmg; e._poisoned--; showDmgPopup(pdmg,false);
     log+=` ☠️ Poison -${pdmg}HP`;
   }
   if(e._burned>0){
     const bdmg=Math.max(1,Math.floor(e.maxHp*0.08));
-    e.hp-=bdmg; e._burned--;
-    showDmgPopup(bdmg,false);
+    e.hp-=bdmg; e._burned--; showDmgPopup(bdmg,false);
     log+=` 🔥 Burn -${bdmg}HP`;
   }
   // Partner regen
   if(partner&&partner.regenPct){
     const regen=Math.max(1,Math.floor(p.maxHp*partner.regenPct));
-    p.hp=Math.min(p.maxHp,p.hp+regen);
-    showDmgPopup(regen,true,true);
+    p.hp=Math.min(p.maxHp,p.hp+regen); showDmgPopup(regen,true,true);
     log+=` 💧 Regen +${regen}HP`;
+  }
+
+  // Chaos Lich revive mechanic
+  if(isBossFight && curBoss.mechanic==='revive' && e.hp<=0 && !bossRevived){
+    bossRevived=true; e.hp=80; e.maxHp=e.maxHp||380;
+    flashArena('rgba(255,0,100,0.5)'); arenaShake();
+    setBattleLog('💀 CHAOS LICH REVIVES! "You cannot kill what is already dead!"');
+    updateBattleHP();
+    state.battleTurn='player'; setBattleButtons(true);
+    return;
   }
 
   setBattleLog(log);
@@ -4396,6 +4491,7 @@ function winBattle(){
     }, 3000);
   }
   p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||5,p.potions+1);
+  trackDexKill(e);
   if(p.hp<=10 && questState) questState.stats.closeWins=(questState.stats.closeWins||0)+1;
   checkAchievements();
   playSoundVictory();
@@ -5405,24 +5501,43 @@ function closeSaveScreen(){
 }
 
 // ---- Build save payload ----
+function openBattlePuzzle(){
+  if(!state.inBattle || state.battleTurn!=='player') return;
+  setBattleButtons(false);
+  showElementPuzzle(state.currentEnemy);
+}
+
 function buildSaveData(){
   const p = state.player;
   return {
-    v: 2,
+    v: 3,
     ts: Date.now(),
     lv: p.level,
     hp: p.hp, mhp: p.maxHp,
     atk: p.attack, def: p.defense,
     exp: p.exp, exl: p.expToLevel,
     coins: p.coins, pot: p.potions,
+    maxPot: p.maxPotions||5,
+    crit: p.critChance||0,
+    spd: p.speedBonus||0,
     px: Math.round(p.x), py: Math.round(p.y),
     pt: pType,
     ps: partnerStage,
     bd: bossDefeated ? 1 : 0,
+    bossIdx: bossIndex,
     weq: equipped.weapon ? equipped.weapon.id : null,
     aeq: equipped.armor  ? equipped.armor.id  : null,
-    winv: inventory.weapons.slice(-20).map(w=>w.id),
-    ainv: inventory.armors.slice(-20).map(a=>a.id),
+    winv: inventory.weapons.slice(-30).map(w=>w.id),
+    ainv: inventory.armors.slice(-30).map(a=>a.id),
+    skills: skillState,
+    ach: achievementState,
+    prestige: prestigeState,
+    dex: monsterDex,
+    leaderboard: leaderboardData,
+    craftLog: craftingLog,
+    waypoints: [...unlockedWaypoints],
+    fogReveal: fogReveal,
+    questSt: questState,
   };
 }
 
@@ -5907,6 +6022,421 @@ function openStatsScreen(){
 function closeStatsScreen(){
   const sc = document.getElementById('stats-screen');
   if(sc) sc.style.display='none';
+}
+
+// ==============================================
+// 💾 LOCALSTORAGE SAVE / LOAD
+// ==============================================
+function lsSave(){
+  try{
+    const data = buildSaveData();
+    // Extend with new fields
+    data.skills    = skillState;
+    data.ach       = achievementState;
+    data.questSt   = questState;
+    data.bossIdx   = bossIndex;
+    data.waypoints = [...unlockedWaypoints];
+    data.prestige  = prestigeState;
+    data.dex       = monsterDex;
+    data.leaderboard = leaderboardData;
+    data.craftLog  = craftingLog;
+    data.playtime  = (data.playtime||0) + (Date.now() - _sessionStart);
+    localStorage.setItem('gozo_save', JSON.stringify(data));
+    showSellToast('💾 Auto-saved!','#44aaff');
+  } catch(e){ console.warn('lsSave failed',e); }
+}
+
+function lsLoad(){
+  try{
+    const raw = localStorage.getItem('gozo_save');
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(d.skills)     skillState = d.skills;
+    if(d.ach)        achievementState = d.ach;
+    if(d.questSt)    questState = d.questSt;
+    if(d.bossIdx!=null) bossIndex = d.bossIdx;
+    if(d.waypoints)  unlockedWaypoints = new Set(d.waypoints);
+    if(d.prestige)   prestigeState = d.prestige;
+    if(d.dex)        monsterDex = d.dex;
+    if(d.leaderboard) leaderboardData = d.leaderboard;
+    if(d.craftLog)   craftingLog = d.craftLog;
+    if(d.fogReveal)  Object.assign(fogReveal, d.fogReveal);
+    return d;
+  } catch(e){ return false; }
+}
+
+let _sessionStart = Date.now();
+// Auto-save every 60s
+setInterval(()=>{ if(state.player && !state.inBattle) lsSave(); }, 60000);
+
+// ==============================================
+// 🌟 PRESTIGE SYSTEM
+// ==============================================
+let prestigeState = { level:0, bonusAtk:0, bonusDef:0, bonusHp:0, bonusCrit:0 };
+
+function canPrestige(){
+  // Must have defeated all 8 bosses (bossIndex wrapped all the way)
+  return bossIndex === 0 && bossDefeated && state.player.level >= 20;
+}
+
+function openPrestigeScreen(){
+  const sc = document.getElementById('prestige-screen');
+  if(!sc) return;
+  const p = state.player;
+  const can = canPrestige();
+  sc.innerHTML = `
+    <div style="width:100%;max-width:480px;padding:20px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:12px;">🌟</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:18px;color:#FFD700;margin-bottom:6px;">PRESTIGE</div>
+      <div style="font-size:7px;color:#555;margin-bottom:16px;line-height:2;">Reset your journey for permanent bonuses.<br>Defeat all 8 bosses at LV 20+ to unlock.</div>
+      <div style="background:#0a0a14;border:2px solid #FFD70033;padding:12px;margin-bottom:14px;">
+        <div style="font-size:7px;color:#888;margin-bottom:8px;">CURRENT PRESTIGE: <span style="color:#FFD700">⭐ ${prestigeState.level}</span></div>
+        <div style="font-size:6px;color:#44ff88;line-height:2;">
+          +${prestigeState.bonusAtk} ATK &nbsp; +${prestigeState.bonusDef} DEF &nbsp; +${prestigeState.bonusHp} Max HP &nbsp; +${Math.round(prestigeState.bonusCrit*100)}% Crit
+        </div>
+      </div>
+      ${can ? `
+        <div style="font-size:7px;color:#FFD700;margin-bottom:12px;">Next prestige grants: +5 ATK, +3 DEF, +50 HP, +3% Crit</div>
+        <button onclick="doPrestige()"
+          style="background:linear-gradient(135deg,#FFD700,#ff8800);color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:9px;padding:12px 24px;cursor:pointer;">
+          ⭐ PRESTIGE NOW</button>
+      ` : `<div style="font-size:7px;color:#555;">Defeat all 8 bosses at LV 20+ to prestige.</div>`}
+      <button onclick="document.getElementById('prestige-screen').style.display='none'"
+        style="display:block;margin:16px auto 0;background:none;border:2px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;cursor:pointer;">CLOSE</button>
+    </div>`;
+  sc.style.display='flex';
+}
+
+function doPrestige(){
+  if(!canPrestige()) return;
+  prestigeState.level++;
+  prestigeState.bonusAtk += 5;
+  prestigeState.bonusDef += 3;
+  prestigeState.bonusHp  += 50;
+  prestigeState.bonusCrit += 0.03;
+  // Reset player but keep prestige bonuses
+  const p = state.player;
+  p.level=1; p.exp=0; p.expToLevel=50;
+  p.hp=100+prestigeState.bonusHp; p.maxHp=100+prestigeState.bonusHp;
+  p.attack=15+prestigeState.bonusAtk; p.defense=5+prestigeState.bonusDef;
+  p.critChance=prestigeState.bonusCrit;
+  p.coins=0; p.potions=3;
+  inventory.weapons=[]; inventory.armors=[];
+  equipped.weapon=null; equipped.armor=null;
+  skillState={}; bossIndex=0; bossDefeated=false;
+  updateHUD(); lsSave();
+  document.getElementById('prestige-screen').style.display='none';
+  showSellToast(`⭐ Prestige ${prestigeState.level} achieved!`,'#FFD700');
+  spawnBattleParticles(20,['⭐','🌟','✨','💫'],200,200);
+}
+
+// ==============================================
+// 🧩 ELEMENT PUZZLE MINI-GAME
+// ==============================================
+const ELEMENT_CHART = {
+  fire:['grass','ice']  , water:['fire','earth'],  grass:['water','rock'],
+  electric:['water'],   ice:['grass','earth'],     dark:['light'],
+  light:['dark'],       earth:['electric','wind'], wind:['earth'],
+};
+
+let puzzleActive = false;
+let puzzleReward = 0;
+
+function showElementPuzzle(enemy){
+  const sc = document.getElementById('puzzle-screen');
+  if(!sc || puzzleActive) return;
+  puzzleActive = true;
+  const elements = ['fire','water','grass','electric','ice','dark','light','earth','wind'];
+  const correct = elements.filter(el => (ELEMENT_CHART[el]||[]).includes(enemy.element||'none') || (enemy.element && (ELEMENT_CHART[enemy.element]||[]).includes(el)));
+  const wrongPool = elements.filter(el=>!correct.includes(el));
+  // 4 options: 1-2 correct + 2-3 wrong
+  const correctCount = Math.min(correct.length, 2);
+  const choices = [
+    ...correct.slice(0,correctCount),
+    ...wrongPool.sort(()=>Math.random()-.5).slice(0, 4-correctCount)
+  ].sort(()=>Math.random()-.5);
+  puzzleReward = 0;
+
+  const EMOJIS = {fire:'🔥',water:'💧',grass:'🌿',electric:'⚡',ice:'❄️',dark:'🌑',light:'☀️',earth:'🪨',wind:'🌪️'};
+  window._puzzleCorrect = correct;
+  window._puzzleEnemy = enemy;
+  sc.innerHTML = `
+    <div style="width:100%;max-width:400px;padding:20px;text-align:center;">
+      <div style="font-size:10px;color:#FFD700;margin-bottom:6px;">⚡ ELEMENT CHALLENGE!</div>
+      <div style="font-size:8px;color:#888;margin-bottom:16px;line-height:2;">
+        ${enemy.emoji} <b style="color:#fff">${enemy.name}</b> is ${enemy.element?`<span style="color:#ff8844">[${enemy.element.toUpperCase()}]</span>`:'elementless'}.<br>Pick the element that deals BONUS damage!
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        ${choices.map(el=>`
+          <button onclick="solvePuzzle('${el}')"
+            style="background:#0a0a14;border:2px solid #334;color:#ccc;font-family:'Press Start 2P',monospace;font-size:8px;padding:12px;cursor:pointer;transition:all .15s;"
+            onmouseenter="this.style.borderColor='#FFD700'" onmouseleave="this.style.borderColor='#334'">
+            ${EMOJIS[el]||'?'} ${el.toUpperCase()}</button>`).join('')}
+      </div>
+      <div style="margin-top:12px;font-size:6px;color:#333;">Correct = +50% damage next attack! Skip = no bonus.</div>
+      <button onclick="closePuzzle()" style="margin-top:8px;background:none;border:1px solid #222;color:#333;font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 12px;cursor:pointer;">SKIP</button>
+    </div>`;
+  sc.style.display='flex';
+}
+
+function solvePuzzle(chosen){
+  const correct = window._puzzleCorrect || [];
+  const isCorrect = correct.includes(chosen);
+  if(isCorrect){
+    puzzleReward = 0.5; // 50% damage bonus next attack
+    showSellToast('✅ Correct! +50% damage next attack!','#44ff88');
+  } else {
+    puzzleReward = 0;
+    showSellToast('❌ Wrong element!','#ff4444');
+  }
+  closePuzzle();
+}
+function closePuzzle(){
+  puzzleActive=false;
+  const sc=document.getElementById('puzzle-screen');
+  if(sc) sc.style.display='none';
+  setBattleButtons(true);
+}
+
+// ==============================================
+// 📸 MONSTER DEX (Pokedex-style)
+// ==============================================
+let monsterDex = {}; // {name: {seen:N, killed:N, firstSeen:ts}}
+
+function trackDexEncounter(enemy){
+  if(!monsterDex[enemy.name]) monsterDex[enemy.name]={seen:0,killed:0,firstSeen:Date.now(),t:enemy.t||1,emoji:enemy.emoji,element:enemy.element||null,color:enemy.color||'#FFD700'};
+  monsterDex[enemy.name].seen++;
+}
+function trackDexKill(enemy){
+  if(!monsterDex[enemy.name]) trackDexEncounter(enemy);
+  monsterDex[enemy.name].killed++;
+}
+
+function openMonsterDex(){
+  const sc=document.getElementById('dex-screen');
+  if(!sc) return;
+  const allMonsters = [...WILD, ...BOSS_LIST.map(b=>({...b,t:11}))];
+  const seen = Object.keys(monsterDex).length;
+  const total = allMonsters.length;
+  sc.innerHTML=`
+    <div style="width:100%;max-width:620px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">📸 MONSTER DEX</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">${seen}/${total} discovered</div>
+        </div>
+        <button onclick="document.getElementById('dex-screen').style.display='none'"
+          style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;">
+        ${allMonsters.map(m=>{
+          const entry=monsterDex[m.name];
+          const discovered=!!entry;
+          return `<div style="background:#080810;border:2px solid ${discovered?m.color+'44':'#1a1a2a'};padding:8px;text-align:center;opacity:${discovered?1:0.35};">
+            <div style="font-size:22px;">${discovered?m.emoji:'❓'}</div>
+            <div style="font-size:6px;color:${discovered?m.color:'#444'};margin-top:3px;">${discovered?m.name:'???'}</div>
+            ${discovered?`
+              <div style="font-size:5px;color:#555;margin-top:2px;">T${m.t||'?'} ${m.element?'['+m.element.toUpperCase()+']':''}</div>
+              <div style="font-size:5px;color:#888;margin-top:2px;">👁️ ${entry.seen} · ⚔️ ${entry.killed}</div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  sc.style.display='flex';
+}
+
+// ==============================================
+// 🏅 LEADERBOARD (local high scores)
+// ==============================================
+let leaderboardData = [];
+const MAX_LB_ENTRIES = 10;
+
+function submitScore(){
+  const p=state.player;
+  const entry={
+    name: `LV${p.level} ${pType?pType.toUpperCase():'?'}`,
+    score: p.level*1000 + (questState?questState.stats.kills:0)*50 + Math.floor(p.coins/10) + prestigeState.level*5000,
+    kills: questState?questState.stats.kills:0,
+    level: p.level,
+    prestige: prestigeState.level,
+    ts: Date.now(),
+  };
+  leaderboardData.push(entry);
+  leaderboardData.sort((a,b)=>b.score-a.score);
+  leaderboardData = leaderboardData.slice(0,MAX_LB_ENTRIES);
+  lsSave();
+}
+
+function openLeaderboard(){
+  const sc=document.getElementById('lb-screen');
+  if(!sc) return;
+  submitScore(); // update score on open
+  sc.innerHTML=`
+    <div style="width:100%;max-width:500px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🏅 LEADERBOARD</div>
+        <button onclick="document.getElementById('lb-screen').style.display='none'"
+          style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      ${leaderboardData.length===0?'<div style="color:#444;text-align:center;font-size:8px;padding:20px;">No scores yet. Keep playing!</div>':
+        leaderboardData.map((e,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;background:${i===0?'#0a0800':'#080810'};border:2px solid ${i===0?'#FFD70066':'#1a1a2a'};padding:10px 14px;margin-bottom:4px;">
+            <span style="font-size:16px;">${['🥇','🥈','🥉'][i]||`#${i+1}`}</span>
+            <div style="flex:1;">
+              <div style="font-size:8px;color:${i===0?'#FFD700':'#aaa'};">${e.name}</div>
+              <div style="font-size:6px;color:#555;margin-top:2px;">⚔️ ${e.kills} kills · ${e.prestige>0?`⭐P${e.prestige}`:''}</div>
+            </div>
+            <div style="font-size:9px;color:#FFD700;">${e.score.toLocaleString()}</div>
+          </div>`).join('')}
+    </div>`;
+  sc.style.display='flex';
+}
+
+// ==============================================
+// 📝 CRAFTING SYSTEM
+// ==============================================
+const CRAFT_RECIPES = [
+  { id:'power_gem',  name:'⚡ Power Gem',   desc:'ATK +8 permanently',    ingredients:[{type:'weapon',minT:3,count:2}],  effect:(p)=>{p.attack+=8;},   cost:0 },
+  { id:'iron_will',  name:'🛡️ Iron Will',   desc:'DEF +6, HP +30',        ingredients:[{type:'armor',minT:3,count:2}],   effect:(p)=>{p.defense+=6;p.maxHp+=30;p.hp+=30;}, cost:0 },
+  { id:'elixir',     name:'💎 Grand Elixir', desc:'HP +60, Crit +5%',      ingredients:[{type:'weapon',minT:5,count:1},{type:'armor',minT:5,count:1}], effect:(p)=>{p.maxHp+=60;p.hp+=60;p.critChance=Math.min(.75,(p.critChance||0)+.05);}, cost:100 },
+  { id:'void_blade', name:'🌌 Void Shard',   desc:'ATK +15, unlocks void element', ingredients:[{type:'weapon',minT:7,count:3}], effect:(p)=>{p.attack+=15;}, cost:200 },
+  { id:'titan_core', name:'🏔️ Titan Core',  desc:'DEF +12, HP +80',       ingredients:[{type:'armor',minT:7,count:3}],   effect:(p)=>{p.defense+=12;p.maxHp+=80;p.hp+=80;}, cost:200 },
+];
+let craftingLog = [];
+
+function openCrafting(){
+  const sc=document.getElementById('craft-screen');
+  if(!sc) return;
+  const p=state.player;
+  sc.innerHTML=`
+    <div style="width:100%;max-width:560px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">📝 CRAFTING</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">Sacrifice items to forge permanent power</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <span style="font-size:8px;color:#FFD700;">💰 ${p.coins}g</span>
+          <button onclick="document.getElementById('craft-screen').style.display='none'"
+            style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+        </div>
+      </div>
+      ${CRAFT_RECIPES.map(r=>{
+        const {canCraft,missing}=checkCraftable(r);
+        return `<div style="background:#080810;border:2px solid ${canCraft?'#FFD70044':'#1a1a2a'};padding:12px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-size:9px;color:${canCraft?'#FFD700':'#666'};">${r.name}</div>
+              <div style="font-size:6px;color:#44ff88;margin-top:3px;">${r.desc}</div>
+              <div style="font-size:6px;color:#555;margin-top:3px;">${formatIngredients(r)}</div>
+              ${r.cost>0?`<div style="font-size:6px;color:#888;margin-top:2px;">+ 💰 ${r.cost}g</div>`:''}
+              ${missing?`<div style="font-size:5px;color:#ff4444;margin-top:2px;">❌ ${missing}</div>`:''}
+            </div>
+            <button onclick="doCraft('${r.id}')" ${canCraft?'':'disabled'}
+              style="background:${canCraft?'#0a0a14':'#050508'};border:2px solid ${canCraft?'#FFD70066':'#222'};color:${canCraft?'#FFD700':'#333'};
+              font-family:'Press Start 2P',monospace;font-size:6px;padding:8px 10px;cursor:${canCraft?'pointer':'not-allowed'};">CRAFT</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  sc.style.display='flex';
+}
+
+function formatIngredients(r){
+  return r.ingredients.map(ing=>`${ing.count}x ${ing.type} (T${ing.minT}+)`).join(' + ');
+}
+
+function checkCraftable(r){
+  const p=state.player;
+  if(r.cost>0 && p.coins<r.cost) return {canCraft:false,missing:`Need ${r.cost}g`};
+  for(const ing of r.ingredients){
+    const pool = ing.type==='weapon' ? inventory.weapons : inventory.armors;
+    const valid = pool.filter(item=>(item.t||1)>=ing.minT && item!==equipped.weapon && item!==equipped.armor);
+    if(valid.length<ing.count) return {canCraft:false,missing:`Need ${ing.count}x T${ing.minT}+ ${ing.type}`};
+  }
+  return {canCraft:true,missing:null};
+}
+
+function doCraft(recipeId){
+  const r=CRAFT_RECIPES.find(x=>x.id===recipeId);
+  if(!r) return;
+  const {canCraft}=checkCraftable(r);
+  if(!canCraft) return;
+  const p=state.player;
+  if(r.cost>0) p.coins-=r.cost;
+  // Consume ingredients
+  for(const ing of r.ingredients){
+    const pool = ing.type==='weapon' ? inventory.weapons : inventory.armors;
+    const valid = pool.filter(item=>(item.t||1)>=ing.minT && item!==equipped.weapon && item!==equipped.armor);
+    for(let i=0;i<ing.count;i++){
+      const idx=inventory[ing.type==='weapon'?'weapons':'armors'].indexOf(valid[i]);
+      if(idx>-1) inventory[ing.type==='weapon'?'weapons':'armors'].splice(idx,1);
+    }
+  }
+  r.effect(p);
+  craftingLog.push({name:r.name,ts:Date.now()});
+  updateHUD(); lsSave();
+  spawnCoinBurst(50,'#FFD700');
+  showSellToast(`✨ Crafted ${r.name}!`,'#FFD700');
+  openCrafting(); // refresh
+}
+
+// ==============================================
+// 🌍 WORLD MAP (fog of war)
+// ==============================================
+let fogReveal = {}; // grid cell keys revealed
+
+function updateFogOfWar(){
+  const p=state.player;
+  const gridX=Math.floor(p.x/120), gridY=Math.floor(p.y/120);
+  for(let dx=-2;dx<=2;dx++) for(let dy=-2;dy<=2;dy++) fogReveal[`${gridX+dx}_${gridY+dy}`]=true;
+}
+
+function openWorldMap(){
+  const sc=document.getElementById('worldmap-screen');
+  if(!sc) return;
+  updateFogOfWar();
+  const COLS=20, ROWS=15;
+  const cellW=Math.floor(WORLD_W/COLS), cellH=Math.floor(WORLD_H/ROWS);
+  const p=state.player;
+  const playerCell={x:Math.floor(p.x/cellW),y:Math.floor(p.y/cellH)};
+  const wpCells=WAYPOINTS.map(wp=>({...wp,cx:Math.floor(wp.x*COLS),cy:Math.floor(wp.y*ROWS)}));
+  let cells='';
+  for(let row=0;row<ROWS;row++){
+    for(let col=0;col<COLS;col++){
+      const key=`${col}_${row}`;
+      const rev=!!fogReveal[key];
+      const isPlayer=col===playerCell.x&&row===playerCell.y;
+      const wp=wpCells.find(w=>w.cx===col&&w.cy===row);
+      const isWP=!!wp&&unlockedWaypoints.has(wp.id);
+      // Terrain color guess by position
+      const isPath=Math.abs(col-COLS/2)<1||Math.abs(row-ROWS/2)<1;
+      const isCorner=(col<3||col>COLS-4)&&(row<3||row>ROWS-4);
+      const bg=!rev?'#050508':isPlayer?'#FFD700':isWP?'#44aaff':isPath?'#5a4a30':isCorner?'#1a2a1a':'#1a1a14';
+      cells+=`<div title="${isWP?wp.label:''}" style="width:${100/COLS}%;aspect-ratio:1;background:${bg};outline:0.5px solid #0a0a0a;display:inline-block;font-size:${isPlayer?8:6}px;display:flex;align-items:center;justify-content:center;">
+        ${isPlayer?'⚡':isWP?wp.label[0]:''}
+      </div>`;
+    }
+  }
+  const revealed=Object.keys(fogReveal).length;
+  const total=COLS*ROWS;
+  sc.innerHTML=`
+    <div style="width:100%;max-width:660px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🌍 WORLD MAP</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">${Math.round(revealed/total*100)}% explored · Walk to reveal fog</div>
+        </div>
+        <button onclick="document.getElementById('worldmap-screen').style.display='none'"
+          style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;width:100%;border:2px solid #222;background:#050508;">${cells}</div>
+      <div style="display:flex;gap:12px;margin-top:8px;font-size:6px;color:#555;flex-wrap:wrap;">
+        <span>⚡ You</span><span style="color:#44aaff">🔵 Waypoint</span>
+        <span style="color:#5a4a30">■ Path</span><span style="color:#333">■ Unexplored</span>
+      </div>
+    </div>`;
+  sc.style.display='flex';
 }
 
 // ==============================================
@@ -6739,8 +7269,8 @@ function renderQuestScreen(){
     <span class="tb-icon">🏆</span>ACH
     <span class="tb-dot" id="ach-dot-tb"></span>
   </button>
-  <button class="tb-btn" id="tb-stats" onclick="openStatsScreen();playSoundUIClick()">
-    <span class="tb-icon">📊</span>STATS
+  <button class="tb-btn" id="tb-more" onclick="toggleMoreMenu()">
+    <span class="tb-icon">⋯</span>MORE
   </button>
   <button class="tb-btn" id="tb-music" onclick="bgmToggleMute();playSoundUIClick()">
     <span class="tb-icon">🎵</span><span id="tb-music-label">MUSIC</span>
@@ -6748,6 +7278,17 @@ function renderQuestScreen(){
   <button class="tb-btn" id="tb-save" onclick="openSaveScreen();playSoundUIClick()">
     <span class="tb-icon">💾</span>SAVE
   </button>
+</div>
+<!-- MORE MENU popup above toolbar -->
+<div id="more-menu" style="display:none;position:fixed;bottom:52px;left:0;right:0;z-index:63;
+  background:rgba(5,5,20,.97);border-top:2px solid #FFD70022;
+  display:none;flex-wrap:wrap;justify-content:center;gap:4px;padding:8px;">
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openMonsterDex();toggleMoreMenu()"><span class="tb-icon">📸</span>DEX</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openCrafting();toggleMoreMenu()"><span class="tb-icon">📝</span>CRAFT</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openLeaderboard();toggleMoreMenu()"><span class="tb-icon">🏅</span>SCORES</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openWorldMap();toggleMoreMenu()"><span class="tb-icon">🌍</span>MAP</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openPrestigeScreen();toggleMoreMenu()"><span class="tb-icon">⭐</span>PRESTIGE</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openStatsScreen();toggleMoreMenu()"><span class="tb-icon">📊</span>STATS</button>
 </div>
 <div id="quest-screen"></div>
 <div id="stats-screen"></div>
@@ -6757,5 +7298,11 @@ function renderQuestScreen(){
 <div id="travel-screen"></div>
 <div id="event-screen"></div>
 <div id="story-screen"></div>
+<div id="prestige-screen"></div>
+<div id="puzzle-screen"></div>
+<div id="dex-screen"></div>
+<div id="lb-screen"></div>
+<div id="craft-screen"></div>
+<div id="worldmap-screen"></div>
 </body>
 </html>
