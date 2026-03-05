@@ -1945,6 +1945,8 @@ let G={
       dir:'down',
       walking:false, walkFrame:0, walkTimer:0,
       isFishing:false, atWater:false},
+  expression:'idle',   // idle|fishing|reeling|excited|rare
+  exprTimer:0,         // countdown to revert to idle
   // Camera / world
   camX:0,
   // Bobber
@@ -1959,6 +1961,8 @@ let G={
   weather:'clear', weatherTimer:0,
   // Rain particles
   rainP:[],
+  puddles:[],   // persistent puddles on ground
+  ripples:[],   // expanding rings in puddles + river
   // Catch jump FX
   jumpFx:[],
 };
@@ -2048,6 +2052,21 @@ function playSound(type){
         break;
       }
 
+      case 'puddle': {
+        // Short water drip / puddle splash
+        const pb = ctx.createBuffer(1, ctx.sampleRate*0.15, ctx.sampleRate);
+        const pd = pb.getChannelData(0);
+        for(let i=0;i<pd.length;i++){
+          pd[i] = (Math.random()*2-1) * Math.pow(1-i/pd.length,3) * 0.18;
+        }
+        const ps2 = ctx.createBufferSource();
+        const pf = ctx.createBiquadFilter();
+        pf.type='bandpass'; pf.frequency.value=800; pf.Q.value=0.5;
+        const pg = ctx.createGain(); pg.gain.value=0.35;
+        ps2.buffer=pb; ps2.connect(pf); pf.connect(pg); pg.connect(ctx.destination);
+        ps2.start(); break;
+      }
+
       case 'splash': {
         // Water splash noise
         const buf2 = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate);
@@ -2095,6 +2114,31 @@ function playSound(type){
         g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
         o.start(ctx.currentTime);
         o.stop(ctx.currentTime + 0.5);
+        break;
+      }
+
+      case 'rain_drop': {
+        // Soft pitter-patter drip sound
+        const rd = ctx.createOscillator();
+        const rg = ctx.createGain();
+        const rf = ctx.createBiquadFilter();
+        rd.connect(rf); rf.connect(rg); rg.connect(ctx.destination);
+        rf.type='bandpass'; rf.frequency.value=1800+Math.random()*800; rf.Q.value=8;
+        rd.type='sine';
+        rd.frequency.setValueAtTime(1200+Math.random()*600, ctx.currentTime);
+        rd.frequency.exponentialRampToValueAtTime(400, ctx.currentTime+0.06);
+        rg.gain.setValueAtTime(0.06+Math.random()*0.05, ctx.currentTime);
+        rg.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.08);
+        rd.start(ctx.currentTime); rd.stop(ctx.currentTime+0.09);
+        // Occasional gurgle
+        if(Math.random()<0.15){
+          const rg2=ctx.createOscillator(), rgg=ctx.createGain();
+          rg2.connect(rgg); rgg.connect(ctx.destination);
+          rg2.type='triangle'; rg2.frequency.value=200+Math.random()*100;
+          rgg.gain.setValueAtTime(0.04,ctx.currentTime+0.01);
+          rgg.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12);
+          rg2.start(ctx.currentTime+0.01); rg2.stop(ctx.currentTime+0.13);
+        }
         break;
       }
 
@@ -2429,23 +2473,128 @@ function updateWeather(dt){
     if(el){ const h=new Date().getHours(); const tod=h<6?'🌑 Night':h<9?'🌅 Dawn':h<18?'☀️ Day':h<20?'🌆 Dusk':'🌙 Night'; el.textContent=tod+' · '+w.label; }
     if(G.weather==='storm') notify('⛈ Storm approaching! Rare fish more likely!');
     else if(G.weather==='rain') notify('🌧 Rain! Better fishing conditions!');
+    startRainAmbience(G.weather);
+  } else if(G._lastWeather !== G.weather){
+    G._lastWeather = G.weather;
+    startRainAmbience(G.weather);
   }
 
   // Spawn rain particles
   const w = WEATHERS.find(x=>x.id===G.weather)||WEATHERS[0];
+  const isStorm = G.weather==='storm';
+  const isRain  = G.weather==='rain' || isStorm;
   if(w.rainRate > 0 && Math.random() < w.rainRate){
-    for(let i=0;i<3;i++){
+    const spawnCount = isStorm ? 6 : 3;
+    for(let i=0;i<spawnCount;i++){
+      const windX = isStorm ? (-2 + Math.random()*0.5) : (-0.8 + Math.random()*0.3);
+      const spd   = isStorm ? (10+Math.random()*7) : (6+Math.random()*4);
+      const len   = isStorm ? (8+Math.random()*14) : (4+Math.random()*8);
       G.rainP.push({ x:Math.random()*W, y:-10,
-        vx:-0.5 + Math.random()*0.3, vy:6+Math.random()*4,
-        len:4+Math.random()*8, alpha:0.3+Math.random()*0.4 });
+        vx:windX, vy:spd, len, alpha:0.3+Math.random()*0.4 });
     }
   }
-  // Update rain particles
+  // Update rain particles — spawn puddles on ground hit
   G.rainP = G.rainP.filter(p=>{
     p.x+=p.vx; p.y+=p.vy;
+    if(p.y >= GROUND_Y && p.y < GROUND_Y+p.vy+2){
+      // Spawn ripple on puddle
+      const px = Math.round((p.x + G.camX) / 60) * 60; // snap to grid
+      let puddle = G.puddles.find(q=>Math.abs(q.wx-px)<35);
+      if(!puddle && G.puddles.length < 18){
+        puddle = {wx:px, size:6, maxSize:12+Math.random()*16, life:1};
+        G.puddles.push(puddle);
+        if(Math.random()<0.08) playSound('puddle');
+      } else if(puddle){
+        puddle.maxSize = Math.min(puddle.maxSize+1, 40);
+        puddle.life = Math.min(1, puddle.life+0.15);
+        puddle.size = Math.min(puddle.size+0.5, puddle.maxSize);
+      }
+      // Spawn tiny ground splash ripples
+      G.jumpFx.push({x:p.x+G.camX, y:GROUND_Y,
+        vx:(Math.random()-0.5)*1.5, vy:-1.5-Math.random()*1,
+        life:0.5, maxLife:0.5, size:2, type:'raindrop'});
+      return false;
+    }
     return p.y < H+20;
   });
-  if(G.rainP.length > 400) G.rainP.splice(0, G.rainP.length-400);
+  if(G.rainP.length > 600) G.rainP.splice(0, G.rainP.length-600);
+
+  // Update puddles
+  if(!isRain){
+    G.puddles.forEach(q=>{ q.life -= 0.008; q.size *= 0.998; });
+  } else {
+    G.puddles.forEach(q=>{ q.life = Math.min(1, q.life+0.002); });
+  }
+  G.puddles = G.puddles.filter(q=>q.life>0.02 && q.size>1);
+
+  // ── FIREFLIES ──
+  const skyC = getSkyColors();
+  const isNight = skyC.starAlpha > 0.3;
+  if(isNight){
+    while(G.fireflies.length < 22){
+      G.fireflies.push(_newFirefly());
+    }
+  } else {
+    // Fade out during day
+    if(G.fireflies.length > 0 && Math.random()<0.02) G.fireflies.shift();
+  }
+  G.fireflies.forEach(f=>{
+    f.x  += Math.cos(f.angle)*f.spd;
+    f.y  += Math.sin(f.angle)*f.spd * 0.5 + Math.sin(G.t*f.wobble+f.phase)*0.3;
+    f.angle += (Math.random()-0.5)*0.08;
+    f.pulseT += f.pulseSpd;
+    f.alpha  = 0.4 + Math.sin(f.pulseT)*0.55;
+    // Respawn at edge
+    if(f.x < G.camX-60 || f.x > G.camX+W+60) f.x = G.camX + Math.random()*W;
+    if(f.y < SKY_H || f.y > GROUND_Y-8) f.y = SKY_H+20 + Math.random()*(GROUND_Y-SKY_H-40);
+  });
+}
+
+function _newFirefly(){
+  return {
+    x: G.camX + Math.random()*W,
+    y: SKY_H+20 + Math.random()*(GROUND_Y - SKY_H - 50),
+    angle: Math.random()*Math.PI*2,
+    spd: 0.3 + Math.random()*0.5,
+    wobble: 1.5+Math.random()*2,
+    phase: Math.random()*Math.PI*2,
+    pulseT: Math.random()*Math.PI*2,
+    pulseSpd: 0.04+Math.random()*0.06,
+    alpha: 0.6,
+    size: 1.5+Math.random()*1.5,
+    hue: 55+Math.floor(Math.random()*40), // gold-yellow-green
+  };
+}
+
+let _rainNode = null, _rainGainNode = null;
+function startRainAmbience(weather){
+  try{
+    const ctx = getAudioCtx();
+    if(ctx.state==='suspended') ctx.resume();
+    // Stop old rain node
+    if(_rainNode){ try{_rainGainNode.gain.setTargetAtTime(0,ctx.currentTime,0.5);}catch(e){} }
+    if(weather!=='rain' && weather!=='storm'){ _rainNode=null; return; }
+    // White noise buffer (2s looping)
+    const bufLen = ctx.sampleRate*2;
+    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bufLen;i++) d[i]=(Math.random()*2-1);
+    const src = ctx.createBufferSource();
+    src.buffer=buf; src.loop=true;
+    // Low-pass to get rain sound
+    const lp = ctx.createBiquadFilter();
+    lp.type='lowpass';
+    lp.frequency.value = weather==='storm' ? 900 : 600;
+    // High-pass to remove rumble
+    const hp = ctx.createBiquadFilter();
+    hp.type='highpass'; hp.frequency.value=200;
+    const gain = ctx.createGain();
+    gain.gain.value=0;
+    gain.gain.setTargetAtTime(weather==='storm'?0.12:0.07, ctx.currentTime, 1.2);
+    src.connect(lp); lp.connect(hp); hp.connect(gain); gain.connect(ctx.destination);
+    src.start();
+    _rainNode=src; _rainGainNode=gain;
+  } catch(e){}
 }
 
 function getWeatherFishBonus(){
@@ -2454,18 +2603,101 @@ function getWeatherFishBonus(){
 }
 
 function drawRain(ctx){
-  if(!G.rainP.length) return;
-  ctx.save();
-  ctx.strokeStyle='rgba(180,220,255,0.5)';
-  ctx.lineWidth=1;
-  G.rainP.forEach(p=>{
-    ctx.globalAlpha=p.alpha;
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x+p.vx*p.len*0.3, p.y+p.len);
-    ctx.stroke();
-  });
-  ctx.restore();
+  const cx = G.camX;
+  const isStorm = G.weather==='storm';
+
+  // ── Rain streaks ──
+  if(G.rainP.length){
+    ctx.save();
+    // Layered: far (thin, pale) and near (thicker, brighter)
+    G.rainP.forEach((p,i)=>{
+      const near = i%3===0;
+      ctx.globalAlpha = near ? p.alpha*0.9 : p.alpha*0.45;
+      ctx.strokeStyle = near ? 'rgba(200,230,255,1)' : 'rgba(160,200,240,1)';
+      ctx.lineWidth   = near ? (isStorm?1.5:1) : 0.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx*(near?2:1), p.y + p.len*(near?1:0.7));
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── Ground splash mini-ripples from raindrops ──
+  const rainDrops = G.jumpFx.filter(f=>f.type==='raindrop');
+  if(rainDrops.length){
+    ctx.save();
+    rainDrops.forEach(f=>{
+      const sx = Math.round(f.x - cx);
+      ctx.globalAlpha = f.life/f.maxLife * 0.7;
+      ctx.strokeStyle='rgba(180,220,255,0.8)';
+      ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.arc(sx, f.y, f.size*(1-f.life/f.maxLife)*4+1, 0, Math.PI*2);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── Puddles on ground ──
+  if(G.puddles.length){
+    ctx.save();
+    G.puddles.forEach(q=>{
+      const sx = Math.round(q.wx - cx);
+      if(sx < -80 || sx > W+80) return;
+      // Puddle body
+      ctx.globalAlpha = q.life * 0.55;
+      const pg = ctx.createLinearGradient(sx-q.size,GROUND_Y-1,sx+q.size,GROUND_Y+4);
+      pg.addColorStop(0,'rgba(100,160,220,0)');
+      pg.addColorStop(0.4,'rgba(140,190,240,0.6)');
+      pg.addColorStop(0.6,'rgba(140,190,240,0.6)');
+      pg.addColorStop(1,'rgba(100,160,220,0)');
+      ctx.fillStyle=pg;
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND_Y+2, q.size, q.size*0.28, 0, 0, Math.PI*2);
+      ctx.fill();
+      // Puddle highlight reflection
+      ctx.globalAlpha = q.life*0.35;
+      ctx.fillStyle='rgba(255,255,255,0.9)';
+      ctx.beginPath();
+      ctx.ellipse(sx-q.size*0.2, GROUND_Y+1, q.size*0.22, q.size*0.08, -0.3, 0, Math.PI*2);
+      ctx.fill();
+      // Ripple ring when rain hits
+      const rippleR = (q.size * 0.6 + Math.sin(G.t*3+q.wx)*q.size*0.2);
+      ctx.globalAlpha = q.life * 0.3;
+      ctx.strokeStyle='rgba(180,220,255,0.8)';
+      ctx.lineWidth=0.8;
+      ctx.beginPath();
+      ctx.ellipse(sx, GROUND_Y+2, rippleR, rippleR*0.25, 0, 0, Math.PI*2);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+
+  // ── Fireflies ──
+  if(G.fireflies.length){
+    ctx.save();
+    G.fireflies.forEach(f=>{
+      const sx = Math.round(f.x - cx);
+      if(sx < -20 || sx > W+20) return;
+      // Glow halo
+      ctx.globalAlpha = f.alpha * 0.3;
+      const gr = ctx.createRadialGradient(sx,f.y,0,sx,f.y,f.size*5);
+      gr.addColorStop(0,`hsla(${f.hue},100%,75%,1)`);
+      gr.addColorStop(1,`hsla(${f.hue},100%,60%,0)`);
+      ctx.fillStyle=gr;
+      ctx.beginPath(); ctx.arc(sx,f.y,f.size*5,0,Math.PI*2); ctx.fill();
+      // Core dot
+      ctx.globalAlpha = f.alpha;
+      ctx.fillStyle=`hsl(${f.hue},100%,85%)`;
+      ctx.beginPath(); ctx.arc(sx,f.y,f.size,0,Math.PI*2); ctx.fill();
+      // Bright center
+      ctx.globalAlpha = f.alpha * 0.8;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath(); ctx.arc(sx,f.y,f.size*0.4,0,Math.PI*2); ctx.fill();
+    });
+    ctx.restore();
+  }
 }
 
 // ── Music state manager — called from update loop ──
@@ -2878,6 +3110,16 @@ let SKY_H, FAR_BANK_Y, FAR_BANK_H, RIVER_Y, RIVER_H, GROUND_Y;
 // Zone 1: Lake           x=2400..4800   (calm, big fish)
 // Zone 2: Rapid River    x=4800..7200   (fast water, rare fish)
 // Zone 3: Ocean Shore    x=7200..9600   (salt water, legendary)
+// roundRect polyfill
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h,r){
+    this.beginPath();this.moveTo(x+r,y);this.lineTo(x+w-r,y);
+    this.arcTo(x+w,y,x+w,y+r,r);this.lineTo(x+w,y+h-r);
+    this.arcTo(x+w,y+h,x+w-r,y+h,r);this.lineTo(x+r,y+h);
+    this.arcTo(x,y+h,x,y+h-r,r);this.lineTo(x,y+r);
+    this.arcTo(x,y,x+r,y,r);this.closePath();
+  };
+}
 const ZONE_W   = 2400;
 const WORLD_W  = ZONE_W * 4; // total scrollable width
 const ZONES = [
@@ -2935,6 +3177,32 @@ const ACHIEVEMENTS = [
 ];
 
 // G.achievements = {id: true/false} — stored in save
+function spawnCatchBurst(rarity){
+  const colors = rarity>=4
+    ? ['#FFD700','#FF8C00','#FF4500','#FFFFFF','#FFB700']
+    : rarity>=3
+    ? ['#AB47BC','#CE93D8','#FFFFFF','#E040FB']
+    : ['#42A5F5','#80D8FF','#FFFFFF','#00B0FF'];
+  const gx = G.gz.x;
+  const gy = G.gz.y - 40;
+  const count = rarity>=4 ? 24 : rarity>=3 ? 16 : 10;
+  for(let i=0;i<count;i++){
+    const ang = (i/count)*Math.PI*2 + Math.random()*0.4;
+    const spd = 60 + Math.random()*80;
+    G.particles = G.particles||[];
+    G.particles.push({
+      x: gx, y: gy,
+      vx: Math.cos(ang)*spd,
+      vy: Math.sin(ang)*spd - (rarity>=4?50:30),
+      life:1, maxLife:1,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      size: rarity>=4 ? 4 : 3,
+      gravity: 80,
+      isBurst: true,
+    });
+  }
+}
+
 function checkAchievements(){
   if(!G.achievements) G.achievements={};
   if(!G.zonesVisited) G.zonesVisited=[];
@@ -3576,6 +3844,110 @@ function drawBanyan(ctx, x, y, scale, t){ drawAutumnTree(ctx,x,y,scale,t); }
 let sakuraPetals = [];
 const CHERRY_X = 1200; // center of world
 
+// ═══════════════════════════════════════════
+// FIREFLY SYSTEM
+// ═══════════════════════════════════════════
+const MAX_FIREFLIES = 28;
+let _fireflies = [];
+
+function initFireflies(){
+  _fireflies = [];
+  for(let i=0;i<MAX_FIREFLIES;i++){
+    _fireflies.push(spawnFirefly(true));
+  }
+}
+
+function spawnFirefly(randomY){
+  const wx = Math.random() * WORLD_W;
+  return {
+    wx,                                      // world X (scrolls with camera)
+    y: randomY
+      ? GROUND_Y - 30 - Math.random()*120
+      : GROUND_Y - 20 - Math.random()*10,   // start near ground, float up
+    vy: -(8 + Math.random()*12),             // drifts upward
+    vx: (Math.random()-0.5)*18,
+    phase: Math.random()*Math.PI*2,          // blink phase offset
+    blinkSpeed: 0.8 + Math.random()*1.4,
+    size: 1.5 + Math.random()*1.5,
+    life: 1,
+    maxLife: 4 + Math.random()*6,
+    color: Math.random()<0.7 ? '#AAFF44' :   // warm yellow-green (common)
+           Math.random()<0.5 ? '#FFEE44' :   // gold
+                               '#88FFCC',    // rare teal
+  };
+}
+
+function updateFireflies(dt){
+  const sky = getSkyColors();
+  const alpha = sky.starAlpha || 0;
+  // Only active at night (starAlpha > 0.1) and not raining hard
+  if(alpha < 0.15 || G.weather==='storm') {
+    _fireflies = [];
+    return;
+  }
+  // Fade count in/out based on how dark it is
+  const targetCount = Math.round(MAX_FIREFLIES * Math.min(1, (alpha-0.15)/0.5));
+
+  while(_fireflies.length < targetCount) _fireflies.push(spawnFirefly(true));
+
+  _fireflies = _fireflies.filter(f=>{
+    f.wx += f.vx * dt;
+    f.y  += f.vy * dt;
+    f.vy += 0.4 * dt; // slight gravity pull back
+    // Gentle horizontal drift
+    f.vx += (Math.random()-0.5)*6*dt;
+    f.vx = Math.max(-20, Math.min(20, f.vx));
+    f.phase += f.blinkSpeed * dt;
+    f.life += dt;
+    return f.life < f.maxLife && f.y > SKY_H && f.y < GROUND_Y+5;
+  });
+  // Respawn dead ones
+  while(_fireflies.length < targetCount) _fireflies.push(spawnFirefly(false));
+}
+
+function drawFireflies(ctx, cx){
+  if(!_fireflies.length) return;
+  ctx.save();
+  _fireflies.forEach(f=>{
+    const sx = f.wx - cx;
+    if(sx < -20 || sx > W+20) return;
+
+    // Blink: sine wave 0–1
+    const blink = (Math.sin(f.phase * Math.PI * 2) + 1) / 2;
+    if(blink < 0.05) return; // off phase — invisible
+
+    // Fade in/out over life
+    const lifeAlpha = Math.min(1, Math.min(f.life, f.maxLife-f.life) * 0.8);
+    const alpha = blink * lifeAlpha * 0.85;
+
+    // Outer glow
+    const grd = ctx.createRadialGradient(sx,f.y,0, sx,f.y,f.size*5);
+    grd.addColorStop(0, f.color.replace(')', `,${alpha})`).replace('rgb','rgba').replace('#','rgba(').replace(/([0-9a-fA-F]{2})/g,v=>parseInt(v,16)+',').replace(/,$/,`,${alpha})`));
+    // Simpler approach:
+    ctx.globalAlpha = alpha * 0.25;
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(sx, f.y, f.size*4, 0, Math.PI*2);
+    ctx.fill();
+
+    // Core bright dot
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(sx, f.y, f.size*0.6, 0, Math.PI*2);
+    ctx.fill();
+
+    // Mid glow
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = f.color;
+    ctx.beginPath();
+    ctx.arc(sx, f.y, f.size*1.8, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 function initSakuraPetals(){
   sakuraPetals = [];
   for(let i=0;i<35;i++) sakuraPetals.push(newSakuraPetal(true));
@@ -3865,6 +4237,72 @@ const PH_SIDE_B = [
   ['_','_','_','_','K','K','_','_','K','K','_'],
 ];
 
+// Fishing — rod bent forward (reeling)
+const PH_FISH_REEL = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Ew','E','Y','E','Ew','H','Y','_'],
+  ['_','Y','Y','Y','Y','Y','Y','Y','Y','Y','_'],
+  ['_','Yd','Y','W','W','W','W','W','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['T','T','T','Yd','Yd','Yd','Yd','Y','T','T','T'],
+  ['Y','Y','T','Yd','Yd','Yd','Yd','Y','T','Y','Y'],
+  ['_','Y','Ts','Yd','Yd','Yd','Y','Ts','T','Yd','_'],
+  ['_','Yd','T','Y','Y','Y','Y','Yd','T','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','_','B','Bl','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// Excited / happy expression (common catch)
+const PH_EXCITED = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Y','Y','Y','Y','Y','H','Y','_'],
+  ['_','Y','Y','Ew','Y','Y','Y','Ew','Y','Y','_'],
+  ['_','Yd','Y','Y','r','r','r','Y','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['T','T','T','Yd','Yd','Yd','Yd','Yd','T','T','T'],
+  ['Y','Y','T','Yd','Yd','Yd','Yd','Yd','T','Y','Y'],
+  ['_','Y','T','Yd','Yd','Yd','Yd','Yd','T','Y','_'],
+  ['_','Yd','Ts','Yd','Yd','Yd','Yd','Yd','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','Bl','B','Bl','_','_','Bl','B','Bl','_','_'],
+  ['_','_','B','Bl','_','_','_','B','Bl','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
+// RARE/EPIC/LEGENDARY catch — jaw drop, arms spread
+const PH_RARE = [
+  ['_','_','_','R','R','R','R','R','_','_','_'],
+  ['_','_','R','R','R','R','R','R','R','_','_'],
+  ['_','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','Rd','_'],
+  ['_','_','Y','Y','Y','Y','Y','Y','Y','_','_'],
+  ['_','Y','H','Y','Y','Y','Y','Y','H','Y','_'],
+  ['_','Y','Y','Ew','Y','Y','Y','Ew','Y','Y','_'],
+  ['_','Yd','Y','Y','Y','C','Y','Y','Y','Yd','_'],
+  ['_','_','C','C','C','C','C','C','C','_','_'],
+  ['T','T','T','Yd','Yd','Yd','Yd','Yd','T','T','T'],
+  ['Y','T','Yd','T','Yd','Yd','Yd','T','Yd','T','Y'],
+  ['Y','Yd','T','Yd','Yd','Yd','Yd','Yd','T','Yd','Y'],
+  ['_','Yd','Ts','Yd','Yd','Yd','Yd','Yd','Ts','Yd','_'],
+  ['_','K','K','K','K','K','K','K','K','K','_'],
+  ['_','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','Bl','_'],
+  ['_','_','B','Bl','_','_','Bl','B','_','_','_'],
+  ['_','_','B','_','_','_','_','_','B','_','_'],
+  ['_','Bl','Bl','_','_','_','_','Bl','Bl','_','_'],
+  ['_','K','K','_','_','_','_','K','K','_','_'],
+];
+
 // ── Core sprite renderer ──────────────────────────────
 function phDrawSprite(ctx, sprite, px, py, ps, flipX){
   const cols = sprite[0].length;
@@ -4040,10 +4478,19 @@ function drawGozoCharacter(ctx, px, py, facing, dir, walking, frame, isFishing, 
   ctx.beginPath(); ctx.ellipse(0,4,22,5,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 
-  // Choose sprite
+  // Choose sprite — expression takes priority
+  const expr = G.expression||'idle';
   let sprite;
-  if(isFishing){
-    sprite = PH_FISH;
+  if(expr==='rare'){
+    sprite = PH_RARE;
+  } else if(expr==='excited'){
+    sprite = PH_EXCITED;
+  } else if(expr==='reeling' && isFishing){
+    sprite = PH_FISH_REEL;
+  } else if(isFishing){
+    // Subtle rod bob when waiting for bite
+    const rodBob = Math.floor(G.t*2)%2===0;
+    sprite = rodBob ? PH_FISH : PH_BACK_FISH;
   } else if(walking && isSide){
     sprite = (Math.floor(frame/8)%2 === 0) ? PH_SIDE_A : PH_SIDE_B;
   } else if(walking){
@@ -4135,7 +4582,17 @@ function update(dt){
   // Update particles
   updateParticles(dt);
   updateSakuraPetals(dt);
+  // Expression countdown
+  if(G.gzExpressionT > 0) G.gzExpressionT -= dt;
+  else G.gzExpression = null;
+  updateFireflies(dt);
   updateReelGame(dt);
+  // Tick expression timer
+  if(G.reeling) G.expression='reeling';
+  if(G.exprTimer > 0){
+    G.exprTimer -= dt;
+    if(G.exprTimer <= 0){ G.expression = G.casting||G.waiting ? 'fishing':'idle'; }
+  }
 
   // Update weather
   updateWeather(dt);
@@ -4603,6 +5060,84 @@ function render(){
   drawGozoCharacter(ctx, gzScreenX, gzScreenY, G.gz.facing, G.gz.dir,
     G.gz.walking, G.gz.walkFrame, G.gz.isFishing, G.sel);
 
+  // ── EXPRESSION BUBBLE ──
+  if(G.gzExpression && G.gzExpressionT > 0){
+    const ex = gzScreenX + G.gz.facing*8;
+    const ey = gzScreenY - 50;
+    const prog = G.gzExpressionT / 3.5;
+    const scale = prog > 0.85 ? (1+(1-prog/0.85)*0.5) : (prog < 0.2 ? prog/0.2 : 1);
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = Math.min(1, prog*3);
+    // Bubble bg
+    ctx.fillStyle='rgba(0,0,0,0.75)';
+    ctx.beginPath(); ctx.roundRect(-14,-10,28,18,4); ctx.fill();
+    ctx.strokeStyle='#FFD700'; ctx.lineWidth=1.5;
+    ctx.stroke();
+    // Tail
+    ctx.fillStyle='rgba(0,0,0,0.75)';
+    ctx.beginPath(); ctx.moveTo(-3,8); ctx.lineTo(3,8); ctx.lineTo(0,14); ctx.fill();
+    // Text
+    ctx.fillStyle = G.gzExpression==='!!!' ? '#FF4444'
+                  : G.gzExpression==='!!'  ? '#FFD700'
+                  : G.gzExpression==='heart' ? '#FF80C0'
+                  : G.gzExpression==='star'  ? '#FFD700'
+                  : '#aaaaaa';
+    ctx.font = 'bold 8px "Press Start 2P", monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    const txt = G.gzExpression==='!!!'   ? '!!!'
+              : G.gzExpression==='!!'    ? '!!'
+              : G.gzExpression==='heart' ? '♥'
+              : G.gzExpression==='star'  ? '★★'
+              : '...';
+    ctx.fillText(txt, 0, 0);
+    ctx.restore();
+  }
+
+  // ── REEL STRAIN EFFECT — rod bends more when holding ──
+  if(G.reeling && G.reelHolding){
+    const _reelBob = Math.sin(G.t*12)*2;
+    const _reelGlow = 0.3 + Math.abs(Math.sin(G.t*8))*0.4;
+    ctx.save();
+    ctx.globalAlpha = _reelGlow;
+    ctx.strokeStyle = G.reelLineHP < 25 ? '#FF4444' : '#FFD700';
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = G.reelLineHP < 25 ? '#FF0000' : '#FFD700';
+    ctx.shadowBlur = 8;
+    // Draw a vibrating arc over the rod tip area
+    const rtx = gzScreenX + G.gz.facing * 18;
+    ctx.beginPath();
+    ctx.arc(rtx, gzScreenY - 36 + _reelBob, 6, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── CATCH BURST PARTICLES ──
+  if(G.particles && G.particles.length){
+    const cx2 = G.camX;
+    G.particles.forEach(p=>{
+      const sx = p.x - cx2;
+      const alpha = Math.max(0, p.life);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      // Star shape for burst
+      const s = p.size * (0.5 + p.life*0.5);
+      ctx.beginPath();
+      for(let i=0;i<5;i++){
+        const a = (i/5)*Math.PI*2 - Math.PI/2;
+        const a2 = a + Math.PI/5;
+        const r1=s, r2=s*0.4;
+        if(i===0) ctx.moveTo(sx+Math.cos(a)*r1, p.y+Math.sin(a)*r1);
+        else ctx.lineTo(sx+Math.cos(a)*r1, p.y+Math.sin(a)*r1);
+        ctx.lineTo(sx+Math.cos(a2)*r2, p.y+Math.sin(a2)*r2);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    });
+  }
+
   // ── FISHING LINE & BOBBER ──
   if(G.casting||G.waiting){
     const bait=BAITS[G.sel];
@@ -4653,6 +5188,23 @@ function render(){
     ctx.restore();
 
     // Splash rings on water surface around bobber
+    // Rod tip vibration while bite alert
+    if(G.bob.alert){
+      const _vibAmp = 1.2 + Math.sin(G.t*18)*0.8;
+      ctx.save();
+      ctx.globalAlpha=0.45;
+      ctx.strokeStyle='rgba(255,200,0,0.9)';
+      ctx.lineWidth=1;
+      // Vibration lines around rod tip
+      for(let vi=0;vi<3;vi++){
+        const va = (vi/3)*Math.PI*2 + G.t*5;
+        ctx.beginPath();
+        ctx.moveTo(rodTipSX + Math.cos(va)*4, rodTipSY+2 + Math.sin(va)*4);
+        ctx.lineTo(rodTipSX + Math.cos(va)*8, rodTipSY+2 + Math.sin(va)*8);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     if(G.bob.active && !G.bob.alert){
       const ringSz=4+Math.sin(G.bob.phase*0.5)*2;
       ctx.save();ctx.globalAlpha=0.2;
@@ -4726,6 +5278,9 @@ function render(){
   }
 
   // (foreground grass removed)
+
+  // ── FIREFLIES ──
+  drawFireflies(ctx, cx);
 
   // ── RAIN ──
   drawRain(ctx);
@@ -4877,8 +5432,11 @@ function updateReelGame(dt){
   const reelPull = 45;
   if(G.reelHolding){
     G.reelTension = Math.min(100, G.reelTension + reelPull*dt);
+    G.gzReelT += dt * 8;
+    G.gzReelFrame = Math.floor(G.gzReelT) % 4;
   } else {
     G.reelTension = Math.max(0, G.reelTension - fishPull*dt);
+    G.gzReelFrame = 0;
   }
 
   // Check if needle is in safe zone
@@ -4946,6 +5504,10 @@ function endReelGame(success){
     G.caught[fish.id]=(G.caught[fish.id]||0)+1; G.total++;
     updateHUD(); showCatch(fish);
     checkAchievements();
+    // Set expression based on rarity
+    if(fish.r >= 4){ G.expression='rare'; G.exprTimer=4; spawnCatchBurst(fish.r); }
+    else if(fish.r >= 2){ G.expression='excited'; G.exprTimer=2.5; spawnCatchBurst(fish.r); }
+    else { G.expression='excited'; G.exprTimer=1.5; }
   } else {
     G.reelFish=null;
     playSound('miss');
@@ -5195,11 +5757,16 @@ function rollFish(pw){
 }
 function resetRod(){
   G.bob.active=false;G.casting=false;G.waiting=false;
+  G.reeling=false; G.gzReelFrame=0;
   const btn=document.getElementById('castBtn');
   btn.textContent='🎣 CAST';btn.disabled=false;btn.className='castbtn';
 }
 function showCatch(f){
   if(!f || !f.w || !f.l){ return; }
+  // Trigger expression based on rarity
+  const exprs = ['sweat','!!','heart','star','!!!'];
+  G.gzExpression = exprs[Math.min(f.r, exprs.length-1)];
+  G.gzExpressionT = 3.5;
   const safeR = Math.min(Math.max(f.r||0, 0), 4);
   const rnd=(a,b)=>((+a||0)+Math.random()*((+b||1)-(+a||0))).toFixed(1);
   const catchWeight = parseFloat(rnd(f.w[0],f.w[1]));
@@ -5661,6 +6228,7 @@ function startGame(){
   buildTrees();
   initParticles();
   initSakuraPetals();
+  initFireflies();
   renderBaits();
   updateHUD();
   G.gz.x=220;
