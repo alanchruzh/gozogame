@@ -5150,125 +5150,9 @@ const ANIMAL_PIXELS = {
     ],
     palette: { R:'#cc2200', O:'#e8a030', Y:'#c8854a', B:'#1a0a00', '.':'transparent' }
   },
-  cow: {
-    w: 20, h: 14,
-    frames: [
-      [
-        // head
-        '...BBBB.............',
-        '..BWWWBB............',
-        '..BPWWWB............',
-        '..BWWWWBBBBBBBBBBB..',
-        '..BBBBWWWWWWBBWWWWB.',
-        '.......BWWWWWWWWWWB.',
-        '.......BWWBBWWWWWWB.',
-        '.......BWWBBWWWWWWB.',
-        '.......BBBBBBBBBBB..',
-        '.........BB...BB....',
-        '.........BB...BB....',
-        '.........BB...BB....',
-        '........BBB...BBB...',
-        '.................... ',
-      ],
-      [
-        '...BBBB.............',
-        '..BWWWBB............',
-        '..BPWWWB............',
-        '..BWWWWBBBBBBBBBBB..',
-        '..BBBBWWWWWWBBWWWWB.',
-        '.......BWWWWWWWWWWB.',
-        '.......BWWBBWWWWWWB.',
-        '.......BWWBBWWWWWWB.',
-        '.......BBBBBBBBBBB..',
-        '.........BBB..BB....',
-        '..........BB..BBB...',
-        '..........B....BB...',
-        '.................   ',
-        '.................... ',
-      ]
-    ],
-    palette: { W:'#f0f0ec', B:'#1a1a1a', P:'#f0b0b8', '.':'transparent', ' ':'transparent' }
-  },
-  rabbit: {
-    w: 16, h: 16,
-    frames: [
-      [
-        '....GGG.GGGG....',
-        '...GPPG.GPPGG...',
-        '...GGGG.GGGGG...',
-        '....GGGGGGGG....',
-        '...GGGGGGGGGG...',
-        '..GGGGGGGGGGGG..',
-        '..GDGGGGGGGDGG..',
-        '..GGGGGGGGGGG...',
-        '..GGGGGGGGGGG...',
-        '..GGGWWWGGGGGG..',
-        '..GGWWWWGGGGG...',
-        '..GGGWWWGGGGGG..',
-        '...GGGGGGGGGGG..',
-        '...GGGGGGGGGGGG.',
-        '....GGGGGGGGGGG.',
-        '.....GGGGG.GGGG.',
-      ],
-      [
-        '....GGG.GGGG....',
-        '...GPPG.GPPGG...',
-        '...GGGG.GGGGG...',
-        '....GGGGGGGG....',
-        '...GGGGGGGGGG...',
-        '..GGGGGGGGGGGG..',
-        '..GDGGGGGGGDGG..',
-        '..GGGGGGGGGGG...',
-        '..GGGGGGGGGGG...',
-        '..GGGWWWGGGGGG..',
-        '..GGWWWWGGGGG...',
-        '..GGGWWWGGGGGG..',
-        '...GGGGGGGGGGG..',
-        '....GGGGGGGGGG..',
-        '.....GGGGG.GGGGG',
-        '......GGGG..GGGG',
-      ]
-    ],
-    palette: { G:'#9090b8', P:'#ffaabb', W:'#e8e8f0', D:'#333355', '.':'transparent' }
-  },
-  bee: {
-    w: 16, h: 14,
-    frames: [
-      [
-        '....WWWW.WWWW...',
-        '...WWWWWWWWWWW..',
-        '...WWWWWWWWWWW..',
-        '....WWWW.WWWW...',
-        '..BBBBBBBBBBBB..',
-        '.BBYYBBBBBYYBB..',
-        'BBYYYYBBBBYYYYB.',
-        'BBYYYYYYYYYYYY B',
-        'BBYYYYBBBBYYYYB.',
-        '.BBYYBBBBBYYBB..',
-        '..BBBBBBBBBBBB..',
-        '...BBBYYYYBBB...',
-        '....BYYYYYBBB...',
-        '.....BBBBB......',
-      ],
-      [
-        '...WWWW..WWWW...',
-        '..WWWWW..WWWWW..',
-        '..WWWWWWWWWWWW..',
-        '...WWWW..WWWW...',
-        '..BBBBBBBBBBBB..',
-        '.BBYYBBBBBYYBB..',
-        'BBYYYYBBBBYYYYB.',
-        'BBYYYYYYYYYYYY B',
-        'BBYYYYBBBBYYYYB.',
-        '.BBYYBBBBBYYBB..',
-        '..BBBBBBBBBBBB..',
-        '...BBBYYYYBBB...',
-        '....BYYYYYBBB...',
-        '.....BBBBB......',
-      ]
-    ],
-    palette: { Y:'#f5c200', B:'#1a1a1a', W:'#eef4ff', ' ':'#f5c200', '.':'transparent' }
-  }
+  cow:    { w:22, h:14, frames:[[],[]], palette:{} },
+  rabbit: { w:12, h:14, frames:[[],[]], palette:{} },
+  bee:    { w:16, h:14, frames:[[],[]], palette:{} }
 };
 
 const PIXEL_SIZE = 3;
@@ -5278,6 +5162,7 @@ function makeAnimalCanvas(type, flipX, frame) {
   if (type === 'cow') return makeCowCanvas(flipX, frame);
   if (type === 'chicken') return makeChickenCanvas(flipX, frame);
   if (type === 'rabbit') return makeRabbitCanvas(flipX, frame);
+  if (type === 'bee') return makeBeeCanvas(flipX, frame);
   const def = ANIMAL_PIXELS[type];
   if (!def) return null;
   const rows = def.frames[frame];
@@ -5302,6 +5187,46 @@ function makeAnimalCanvas(type, flipX, frame) {
       ctx.fillRect(c * PIXEL_SIZE, r * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
     }
   }
+  if (flipX) ctx.restore();
+  return canvas;
+}
+
+function makeBeeCanvas(flipX, frame) {
+  const S = 3;
+  const W = 16, H = 12;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * S; canvas.height = H * S;
+  canvas.style.imageRendering = 'pixelated';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (flipX) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+
+  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
+  const YL='#f5c200', BK='#1a1a1a', WG='#ddeeff', AM='#e8a000';
+
+  // wings (animate up/down)
+  const wingY = frame === 0 ? 0 : 1;
+  for(let x=2;x<=5;x++) p(x, wingY, WG);
+  for(let x=2;x<=5;x++) p(x, wingY+1, WG);
+  for(let x=10;x<=13;x++) p(x, wingY, WG);
+  for(let x=10;x<=13;x++) p(x, wingY+1, WG);
+
+  // body stripes (yellow & black)
+  for(let x=4;x<=11;x++) p(x,3,BK); // head black
+  for(let x=3;x<=12;x++) p(x,4,YL);
+  for(let x=3;x<=12;x++) p(x,5,YL);
+  for(let x=3;x<=12;x++) p(x,6,BK);
+  for(let x=3;x<=12;x++) p(x,7,BK);
+  for(let x=3;x<=12;x++) p(x,8,YL);
+  for(let x=3;x<=12;x++) p(x,9,YL);
+  for(let x=4;x<=11;x++) p(x,10,BK);
+
+  // eye
+  p(11,4,WG); p(11,5,WG);
+
+  // stinger
+  p(2,7,AM); p(1,7,AM);
+
   if (flipX) ctx.restore();
   return canvas;
 }
@@ -5493,7 +5418,6 @@ function animalLoop(ts) {
     const def = ANIMAL_PIXELS[a.type];
     const animalW = a.type==='cow' ? 22*3 : a.type==='chicken' ? 14*3 : a.type==='rabbit' ? 12*3 : a.type==='bee' ? 16*3 : (def ? def.w*PIXEL_SIZE : 48);
     if (!def && !['cow','chicken','rabbit','bee'].includes(a.type)) continue;
-
     // pause sometimes
     if (a.paused) {
       a.pauseTimer -= dt;
