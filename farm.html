@@ -3847,12 +3847,12 @@ document.addEventListener('keydown', function(e){ if(e.key === 'Escape') { close
 // 🌦️ WEATHER SYSTEM
 // ══════════════════════════════════════════════════════════════════
 const WEATHER_TYPES = {
-  sunny:   { name:'☀️ Cerah',      icon:'☀️', growMult:1.0, autoWater:false, drought:false, color:'#f7c948' },
-  cloudy:  { name:'⛅ Berawan',    icon:'⛅', growMult:0.9, autoWater:false, drought:false, color:'#b0b8c8' },
-  rainy:   { name:'🌧️ Hujan',      icon:'🌧️', growMult:1.2, autoWater:true,  drought:false, color:'#5a90d0' },
-  storm:   { name:'⛈️ Badai',      icon:'⛈️', growMult:0.7, autoWater:true,  drought:false, color:'#6040a0' },
-  drought: { name:'🌵 Kemarau',    icon:'🌵', growMult:0.6, autoWater:false, drought:true,  color:'#d08030' },
-  windy:   { name:'💨 Berangin',   icon:'💨', growMult:1.1, autoWater:false, drought:false, color:'#80c8a0' },
+  sunny:   { name:'☀️ Sunny',      icon:'☀️', growMult:1.0, autoWater:false, drought:false, color:'#f7c948' },
+  cloudy:  { name:'⛅ Cloudy',    icon:'⛅', growMult:0.9, autoWater:false, drought:false, color:'#b0b8c8' },
+  rainy:   { name:'🌧️ Rain',      icon:'🌧️', growMult:1.2, autoWater:true,  drought:false, color:'#5a90d0' },
+  storm:   { name:'⛈️ Storm',      icon:'⛈️', growMult:0.7, autoWater:true,  drought:false, color:'#6040a0' },
+  drought: { name:'🌵 Dry',    icon:'🌵', growMult:0.6, autoWater:false, drought:true,  color:'#d08030' },
+  windy:   { name:'💨 Windy',   icon:'💨', growMult:1.1, autoWater:false, drought:false, color:'#80c8a0' },
 };
 let currentWeather = 'sunny';
 let weatherTimer = null;
