@@ -5882,11 +5882,11 @@ setTimeout(syncFieldAnimals, 3000);
 // TRAIN ANIMATION - every 5 minutes
 // ═══════════════════════════════════════════
 function makeTrainCanvas() {
-  const S = 4; // scale
-  const H = 20; // height in pixels
-  const LOCO_W = 28;
-  const WAGON_W = 20;
-  const GAP = 2;
+  const S = 5;
+  const H = 22;
+  const LOCO_W = 32;
+  const WAGON_W = 28;
+  const GAP = 1;
   const WAGON_COUNT = 20;
   const TOTAL_W = LOCO_W + GAP + WAGON_COUNT * (WAGON_W + GAP);
 
@@ -5899,102 +5899,119 @@ function makeTrainCanvas() {
 
   function px(x, y, w, h, color) {
     ctx.fillStyle = color;
-    ctx.fillRect(x * S, y * S, w * S, h * S);
+    ctx.fillRect(x*S, y*S, w*S, h*S);
   }
 
-  // Draw locomotive (facing left = front on left)
-  function drawLoco(ox) {
-    // Body
-    px(ox+2, 4, 24, 10, '#cc2020');
-    px(ox+2, 4, 12, 10, '#aa1515'); // shadow
-    // Cab (right/back side)
-    px(ox+18, 2, 8, 12, '#bb1818');
-    px(ox+19, 3, 6, 4, '#111'); // window frame
-    px(ox+20, 4, 4, 3, '#7ec8e3'); // window glass
-    // Chimney (slightly left of center)
-    px(ox+8, 0, 4, 2, '#333');
-    px(ox+7, 2, 6, 2, '#444');
-    // Boiler dome
-    px(ox+12, 2, 5, 3, '#dd2222');
-    px(ox+13, 1, 3, 2, '#ee3333');
-    // Cowcatcher (front/left)
-    px(ox+0, 10, 4, 2, '#888');
-    px(ox+1, 12, 3, 2, '#777');
-    px(ox+2, 14, 2, 1, '#666');
-    // Headlight
-    px(ox+2, 6, 3, 2, '#ffee88');
-    px(ox+3, 6, 1, 1, '#ffffff');
-    // Underframe
-    px(ox+2, 14, 24, 2, '#333');
-    // Wheels (3 big wheels)
-    for (let wx of [3, 10, 18]) {
-      px(ox+wx,   14, 6, 6, '#222'); // wheel
-      px(ox+wx+1, 15, 4, 4, '#444'); // inner
-      px(ox+wx+2, 15, 1, 1, '#aaa'); // highlight
-      px(ox+wx+2, 16, 2, 2, '#333'); // spoke
-    }
-    // Connect rod
-    px(ox+4, 16, 16, 1, '#555');
-    // Smoke puff
-    ctx.fillStyle = 'rgba(210,210,210,0.8)';
-    ctx.beginPath(); ctx.arc((ox+10)*S, 0, S*3, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = 'rgba(230,230,230,0.5)';
-    ctx.beginPath(); ctx.arc((ox+14)*S, -S, S*2, 0, Math.PI*2); ctx.fill();
-  }
+  // Colors
+  const BODY   = '#d44020'; // orange-red body
+  const BODY2  = '#b83318'; // darker body
+  const ROOF   = '#222233'; // dark roof
+  const WIN    = '#a8d8f0'; // window blue
+  const WIND   = '#7ab8d8'; // window dark
+  const STRIPE = '#ff8844'; // accent stripe
+  const WHEEL  = '#222';
+  const AXLE   = '#555';
+  const UNDER  = '#1a1a2a';
+  const GLASS  = '#c8eaff';
+  const NOSE   = '#cc3010';
 
-  // Draw wagon
-  function drawWagon(ox, color) {
-    const dark = '#00000033';
-    // Body
-    px(ox+1, 5, 18, 9, color);
-    // Shadow on left
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect((ox+1)*S, 5*S, 6*S, 9*S);
-    ctx.fillStyle = color;
+  function drawLocomotive(ox) {
     // Roof
-    px(ox+1, 4, 18, 2, shadeColor(color, -30));
-    px(ox+2, 3, 16, 2, shadeColor(color, -20));
-    // Windows (2 per wagon)
-    for (let wx of [3, 11]) {
-      px(ox+wx, 6, 5, 4, '#111');
-      px(ox+wx+1, 7, 3, 2, '#7ec8e3');
+    px(ox+2,  0, 28, 3, ROOF);
+    px(ox+3,  0, 26, 1, '#333344');
+    // Nose (angled front - left side)
+    px(ox+0,  3, 4,  9, NOSE);
+    px(ox+1,  2, 3,  1, NOSE);
+    px(ox+0,  3, 2, 10, BODY2);
+    // Body
+    px(ox+4,  3, 26, 10, BODY);
+    px(ox+4,  3, 26,  2, BODY2); // top shadow
+    // Accent stripe
+    px(ox+0,  8,  4,  2, STRIPE);
+    px(ox+4,  8, 26,  2, STRIPE);
+    // Front light
+    px(ox+1,  5,  2,  2, '#ffee88');
+    px(ox+1,  5,  1,  1, '#ffffff');
+    // Large windshield
+    px(ox+5,  4, 10,  6, '#111');
+    px(ox+6,  5,  8,  4, GLASS);
+    px(ox+6,  5,  3,  2, '#e8f8ff'); // highlight
+    // Side windows (2)
+    px(ox+17, 4,  6,  5, '#111');
+    px(ox+18, 5,  4,  3, WIN);
+    px(ox+24, 4,  5,  5, '#111');
+    px(ox+25, 5,  3,  3, WIN);
+    // Bottom panel
+    px(ox+0,  13, 30, 3, UNDER);
+    px(ox+4,  13, 26, 1, '#2a2a3a');
+    // Skirt/undercarriage
+    px(ox+2,  16, 28, 2, '#111122');
+    // Wheels (bogie style)
+    for(let wx of [3, 12, 22]) {
+      px(ox+wx,   16, 7, 5, WHEEL);
+      px(ox+wx+1, 17, 5, 3, AXLE);
+      px(ox+wx+2, 17, 2, 2, '#444');
+      px(ox+wx+3, 18, 1, 1, '#888'); // highlight
     }
-    // Bottom stripe
-    px(ox+1, 13, 18, 1, shadeColor(color, -40));
-    // Underframe
-    px(ox+1, 14, 18, 2, '#333');
+    // Rail
+    px(ox+0, 20, 32, 2, '#333');
+  }
+
+  function drawWagon(ox, color) {
+    const dark = shadeColor(color, -35);
+    const light = shadeColor(color, 15);
+    // Roof
+    px(ox+0,  0, 28, 3, ROOF);
+    px(ox+0,  0, 28, 1, '#333344');
+    // Body
+    px(ox+0,  3, 28, 10, color);
+    px(ox+0,  3, 28,  2, dark); // top shadow
+    // Accent stripe
+    px(ox+0,  8, 28,  2, shadeColor(color, 40));
+    // Windows (3 wide windows)
+    for(let wx of [1, 10, 19]) {
+      px(ox+wx,   4,  7,  5, '#111');
+      px(ox+wx+1, 5,  5,  3, WIN);
+      px(ox+wx+1, 5,  2,  1, GLASS); // highlight
+    }
+    // Bottom panel
+    px(ox+0,  13, 28, 3, UNDER);
+    // Undercarriage
+    px(ox+0,  16, 28, 2, '#111122');
     // Wheels (2 bogies)
-    for (let wx of [2, 13]) {
-      px(ox+wx,   14, 5, 5, '#222');
-      px(ox+wx+1, 15, 3, 3, '#444');
-      px(ox+wx+1, 15, 1, 1, '#aaa');
+    for(let wx of [3, 18]) {
+      px(ox+wx,   16, 7, 5, WHEEL);
+      px(ox+wx+1, 17, 5, 3, AXLE);
+      px(ox+wx+2, 17, 2, 2, '#444');
+      px(ox+wx+3, 18, 1, 1, '#888');
     }
-    // Couplers
-    px(ox+0,   15, 2, 2, '#888');
-    px(ox+18,  15, 2, 2, '#888');
+    // Rail
+    px(ox+0, 20, 28, 2, '#333');
+    // Coupler
+    px(ox+0,  14, 2, 2, '#666');
+    px(ox+26, 14, 2, 2, '#666');
   }
 
   function shadeColor(hex, amt) {
     const n = parseInt(hex.replace('#',''), 16);
-    const r = Math.max(0, Math.min(255, (n>>16) + amt));
-    const g = Math.max(0, Math.min(255, ((n>>8)&0xff) + amt));
-    const b = Math.max(0, Math.min(255, (n&0xff) + amt));
-    return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+    const r = Math.max(0, Math.min(255, (n>>16)+amt));
+    const g = Math.max(0, Math.min(255, ((n>>8)&0xff)+amt));
+    const b = Math.max(0, Math.min(255, (n&0xff)+amt));
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
   }
 
-  // DRAW: locomotive first (leftmost = front)
-  drawLoco(0);
+  // Locomotive (front/left)
+  drawLocomotive(0);
 
-  // DRAW: 20 wagons behind
+  // 20 wagons
   const wagonColors = [
-    '#3355bb','#bb3333','#338833','#bb7711','#773388',
-    '#117788','#bb3355','#335577','#778811','#bb5511',
-    '#2266aa','#aa1133','#117755','#99bb11','#5533aa',
-    '#aa3311','#11aa88','#883366','#77aa33','#3311aa',
+    '#3355cc','#3355cc','#3355cc','#3355cc','#3355cc',
+    '#cc3322','#cc3322','#cc3322','#cc3322','#cc3322',
+    '#3355cc','#3355cc','#3355cc','#3355cc','#3355cc',
+    '#cc3322','#cc3322','#cc3322','#cc3322','#cc3322',
   ];
-  for (let i = 0; i < WAGON_COUNT; i++) {
-    const wx = LOCO_W + GAP + i * (WAGON_W + GAP);
-    drawWagon(wx, wagonColors[i]);
+  for(let i = 0; i < WAGON_COUNT; i++) {
+    drawWagon(LOCO_W + GAP + i*(WAGON_W+GAP), wagonColors[i]);
   }
 
   return canvas;
