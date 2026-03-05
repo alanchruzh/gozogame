@@ -380,7 +380,10 @@ header{
     <div class="horizon">
       <div class="tree-row" id="treeRow"></div>
     </div>
-    <div class="fence-strip" id="fence"><canvas id="fenceCanvas"></canvas></div>
+    <div class="fence-strip" id="fence" style="position:relative;overflow:visible;">
+      <canvas id="fenceCanvas"></canvas>
+      <div id="animalLayer" style="position:absolute;left:0;right:0;bottom:0;height:80px;pointer-events:none;z-index:20;overflow:hidden;"></div>
+    </div>
 
     <div class="ground-area">
       <div class="fields-container">
@@ -390,7 +393,6 @@ header{
           <div class="fields-row" id="rowBot"></div>
         </div>
       </div>
-      <div id="animalLayer" style="position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden;"></div>
     </div>
   </div>
 
@@ -5261,7 +5263,7 @@ function spawnFieldAnimal(type, uid) {
   if (!def) return;
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:absolute;bottom:' + (10 + Math.random() * 30) + 'px;transition:none;';
+  wrapper.style.cssText = 'position:absolute;bottom:4px;transition:none;';
   wrapper.dataset.animalUid = uid;
 
   const canvas = makeAnimalCanvas(type, false, 0);
@@ -5339,7 +5341,7 @@ function animalLoop(ts) {
 
     // bee bobs vertically
     if (a.type === 'bee') {
-      a.y = 20 + Math.sin(ts / 400) * 8;
+      a.y = 4 + Math.sin(ts / 400) * 6;
       a.el.style.bottom = a.y + 'px';
     }
 
