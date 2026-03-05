@@ -3126,7 +3126,7 @@ function handleClick(fid, pid){
     } else { showToast('⛏️ CANNOT HOE THIS!'); }
   } else if(selectedTool === 'sickle'){
     if(p.state === 'ready'){ doHarvest(fid, pid); }
-    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast(p.plant === 'cabe' ? '⏳ NOT READY YET! Chili plant is regrowing...' : p.plant === 'jagung' ? '⏳ NOT READY YET! Corn is regrowing...' : p.plant === 'stroberi' ? '⏳ NOT READY YET! Strawberry bush is regrowing...' : '⏳ NOT READY YET! Tomato tree is regrowing...'); }
+    else if(p.state === 'planted' || p.state === 'regrowing'){ showToast(p.plant === 'cabe' ? '⏳ NOT READY — still growing!' : p.plant === 'jagung' ? '⏳ NOT READY — still growing!' : p.plant === 'stroberi' ? '⏳ NOT READY — still growing!' : '⏳ NOT READY — still growing!'); }
     else { showToast('🔪 NOTHING TO HARVEST!'); }
   } else if(selectedTool === 'water'){
     if(p.state === 'planted' && !p.watered){
@@ -4152,7 +4152,8 @@ let weatherChangedAt = Date.now();
 const WEATHER_DURATION_MS = 3 * 60 * 1000; // 3 minutes per weather
 
 function pickRandomWeather(){
-  const w = ['sunny','sunny','cloudy','cloudy','rainy','storm','drought','windy'];
+  const bias = (typeof getCurrentSeason === 'function' && getCurrentSeason()) ? getCurrentSeason().weatherBias : null;
+  const w = bias || ['sunny','sunny','cloudy','cloudy','rainy','storm','drought','windy'];
   return w[Math.floor(Math.random()*w.length)];
 }
 
@@ -4345,7 +4346,9 @@ function startAutoWater(){
 
 function getEffectiveWaterMax(){ return WATER_MAX + upgradeLevels.bigBucket * 5; }
 function getGrowMult(){ return 1 / (1 + upgradeLevels.fastGrow * 0.10); }
-function getSellMult(){ return 1 + upgradeLevels.sellBonus * 0.15; }
+function getSellMult(){
+  const decoBonus = (decoPlaced&&decoPlaced['rainbow_arch']) ? 1.15 : 1.0;
+  const statueBonus = (decoPlaced&&decoPlaced['statue']) ? 1.05 : 1.0; return 1 + upgradeLevels.sellBonus * 0.15; }
 function getBonusHarvest(){ return upgradeLevels.multiHarvest; }
 
 // Override sellCrop to apply sell bonus
@@ -4379,7 +4382,7 @@ Object.keys(ANIMALS).forEach(k => { ownedAnimals[k] = []; animalBasket[k] = 0; }
 
 function buyAnimal(type){
   const a = ANIMALS[type];
-  if(totalHarvested < a.unlockAt){ showToast(`🔒 Need ${a.unlockAt} total panen untuk unlock!`); return; }
+  if(totalHarvested < a.unlockAt){ showToast(`🔒 Need ${a.unlockAt} total harvests to unlock!`); return; }
   if((ownedAnimals[type]||[]).length >= 2){ showToast(`${a.icon} Maksimal 2 ${a.name} saja!`); return; }
   if(gold < a.price){ showToast('💸 Not enough gold! Need ' + a.price + ' 🪙'); return; }
   gold -= a.price;
@@ -4421,7 +4424,7 @@ function feedAnimal(type, idx){
 function collectAnimal(type, idx){
   const a = ANIMALS[type];
   const animal = ownedAnimals[type]?.[idx];
-  if(!animal || Date.now() < animal.readyAt){ showToast('⏳ Belum is ready to collect!'); return; }
+  if(!animal || Date.now() < animal.readyAt){ showToast('⏳ Not ready to collect yet!'); return; }
   const qty = 1 + getBonusHarvest();
   animalBasket[type] = (animalBasket[type]||0) + qty;
   animal.readyAt = Date.now() + a.cooldownMs;
@@ -4485,7 +4488,7 @@ function renderAnimalPanel(){
     html += `<div style="flex:1"><div style="color:#f5c842;font-weight:bold;font-size:14px">${a.name}</div>`;
     html += `<div style="color:#a0d080;font-size:14px">${a.desc}</div></div>`;
     if(!unlocked){
-      html += `<div style="color:#f05050;font-size:14px;text-align:center">🔒 ${a.unlockAt} panen</div>`;
+      html += `<div style="color:#f05050;font-size:14px;text-align:center">🔒 ${a.unlockAt} harvests needed</div>`;
     } else if(owned.length >= 2){
       html += `<button disabled style="background:#555;border:none;border-radius:6px;color:#aaa;font-size:14px;padding:4px 8px;white-space:nowrap;cursor:not-allowed">Max ✓</button>`;
     } else {
@@ -4524,7 +4527,7 @@ function renderAnimalPanel(){
     if((animalBasket[type]||0) > 0){
       html += `<div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:14px">`;
       html += `<span>${a.productIcon} x${animalBasket[type]}</span>`;
-      html += `<button onclick="sellAnimalProduct('${type}')" style="background:#a06020;border:none;border-radius:5px;color:#fff;padding:2px 8px;cursor:pointer;font-size:14px">Jual +${Math.floor(animalBasket[type]*a.productGold*getSellMult())}🪙</button>`;
+      html += `<button onclick="sellAnimalProduct('${type}')" style="background:#a06020;border:none;border-radius:5px;color:#fff;padding:2px 8px;cursor:pointer;font-size:14px">Sell +${Math.floor(animalBasket[type]*a.productGold*getSellMult())}🪙</button>`;
       html += `</div>`;
     }
     html += `</div>`;
@@ -4998,6 +5001,14 @@ window.plantCrop = function(fid, pid){
 // Apply fertilizer on click when fertilizer is selected
 const _origHandleClick3 = window.handleClick;
 window.handleClick = function(fid, pid){
+  // Winter block: prevent planting unless greenhouse is placed
+  if(typeof currentSeason !== 'undefined' && currentSeason === 'winter'){
+    const p = fieldData[fid]?.plots[pid];
+    if(p && p.state === 'tilled' && !decoPlaced?.['greenhouse']){
+      showToast('❄️ Winter — cannot plant! Buy a Greenhouse to override.');
+      return;
+    }
+  }
   if(selectedFertilizer){
     const applied = applyFertilizer(fid, pid);
     if(applied) return;
@@ -6296,6 +6307,8 @@ function advanceSeason(){
   seasonDay = 1;
   seasonStartTime = Date.now();
   applySeasonEffects();
+  if(typeof achievSeasonsSeen !== 'undefined') achievSeasonsSeen.add(currentSeason);
+  if(typeof checkAchievements === 'function') checkAchievements();
   saveState();
 }
 
@@ -6352,28 +6365,10 @@ function updateSeasonUI(){
   }
 }
 
-// Patch pickRandomWeather to use season bias
-const _origPickWeather = pickRandomWeather;
-function pickRandomWeather(){
-  const bias = (getCurrentSeason()||{}).weatherBias || ['sunny','cloudy','rainy','windy'];
-  return bias[Math.floor(Math.random()*bias.length)];
-}
+// pickRandomWeather already uses season bias (merged above)
 
 // Patch doHarvest to add autumn bonus gold
-const _origDoHarvest2 = window.doHarvest || doHarvest;
-
-// Patch plantCrop to block planting in winter
-const _origHandlePlotClick = handlePlotClick;
-function handlePlotClick(fid, pid){
-  const s = getCurrentSeason();
-  const p = fieldData[fid]?.plots[pid];
-  // Block new planting in winter
-  if(currentSeason === 'winter' && p && p.state === 'tilled'){
-    showToast('❄️ Winter — cannot plant! Wait for Spring.');
-    return;
-  }
-  _origHandlePlotClick(fid, pid);
-}
+// Winter plant block handled by greenhouse patch below
 
 function openSeasonPanel(){
   const s = getCurrentSeason();
@@ -6508,7 +6503,7 @@ const NPCS = {
     shop: [
       { id:'rain_charm',    name:'Rain Charm',      icon:'🌧️', price:180, give:{forceWeather:'rainy'} },
       { id:'sun_charm',     name:'Sun Charm',       icon:'☀️', price:180, give:{forceWeather:'sunny'} },
-      { id:'bibit_bawang',  name:'Garlic Seeds ×5', icon:'🧅', price:110, give:{bawang:5} },
+      { id:'bibit_bawang',  name:'Garlic Seeds ×5', icon:'🧅', price:110, give:{bawangPutih:5} },
     ],
     dialogs: [
       "My child, nature speaks through the wind and rain. Listen carefully...",
@@ -6518,11 +6513,11 @@ const NPCS = {
       "If you want good weather, buy a charm from me. They really work!",
     ],
     quests: [
-      { id:'tini_q1', title:'Herbs for Grandma', desc:'Harvest 6 garlic', type:'harvest', crop:'bawang', amount:6, reward:{ gold:280, item:'rain_charm' }, done:false },
+      { id:'tini_q1', title:'Herbs for Grandma', desc:'Harvest 6 garlic', type:'harvest', crop:'bawangPutih', amount:6, reward:{ gold:280, item:'rain_charm' }, done:false },
       { id:'tini_q2', title:"Grandma's Rain Prayer", desc:'Survive drought weather for 2 minutes', type:'survive_drought', amount:1, reward:{ gold:350 }, done:false },
     ],
     friendship: 0, maxFriendship: 100,
-    gifts: ['bawang','wortel','stroberi'],
+    gifts: ['bawangPutih','wortel','stroberi'],
   },
 };
 
@@ -6647,6 +6642,7 @@ function openNPCShop(npcId){
   document.getElementById('npcDialogContent').innerHTML = html;
 }
 
+let marketBoostUntil = 0;
 function buyNPCItem(npcId, itemId){
   const npc = NPCS[npcId];
   const item = npc.shop.find(s => s.id === itemId);
@@ -6668,7 +6664,7 @@ function buyNPCItem(npcId, itemId){
   if(g.fertilizer && fertilizerInventory){ fertilizerInventory[g.fertilizer] = (fertilizerInventory[g.fertilizer]||0) + 1; }
   // Friendship +5 per purchase
   npcData[npcId].friendship = Math.min(100, (npcData[npcId].friendship||0) + 5);
-  updateInventoryUI();
+  renderSeedShop();
   saveState();
   showToast(`✅ Bought ${item.name} from ${npc.name}!`);
   openNPCShop(npcId);
@@ -6926,7 +6922,7 @@ function collectExpedition(areaId){
   gold += totalGold;
   st.totalGoldEarned = (st.totalGoldEarned||0) + totalGold;
   updateGoldUI();
-  updateInventoryUI();
+  renderSeedShop();
 
   // Random event flavor
   const evt = area.events[Math.floor(Math.random()*area.events.length)];
@@ -7101,7 +7097,7 @@ const RANDOM_EVENTS = [
       const crops = Object.keys(CROPS);
       const pick = crops[Math.floor(Math.random()*crops.length)];
       inventory[pick] = (inventory[pick]||0) + 5;
-      updateInventoryUI();
+      renderSeedShop();
       saveState();
     }
   },
@@ -7123,7 +7119,7 @@ const RANDOM_EVENTS = [
     type:'positive', weight:5,
     effect(){
       Object.entries(ownedAnimals).forEach(([type, list])=>{
-        list.forEach((a,i)=>{ if(a){ collectAnimalProduct(type,i); }});
+        list.forEach((a,i)=>{ if(a && typeof collectAnimal==="function"){ collectAnimal(type,i); }});
       });
     }
   },
@@ -7149,7 +7145,6 @@ let randomEventTimer = null;
 let lastEventTime = Date.now();
 const EVENT_INTERVAL_MIN = 3 * 60 * 1000;
 const EVENT_INTERVAL_MAX = 6 * 60 * 1000;
-let marketBoostUntil = 0;
 
 function startRandomEvents(){
   scheduleNextEvent();
@@ -7300,6 +7295,8 @@ let decoOwned = {}; // {id: count}
 let decoPlaced = {}; // {id: true/false}
 
 function openDecoPanel(){
+  if(!decoOwned) decoOwned = {};
+  if(!decoPlaced) decoPlaced = {};
   let html = `<div style="font-size:12px;color:#80a060;text-align:center;margin-bottom:10px">Buy and place decorations to get permanent farm buffs!</div>`;
 
   // Placed decorations summary
@@ -7381,15 +7378,7 @@ function renderDecoOnFarm(){
   bar.innerHTML = Object.entries(decoPlaced).filter(([k,v])=>v).map(([k])=>`<span style="font-size:18px;filter:drop-shadow(1px 1px 2px #000)">${DECO_ITEMS[k].icon}</span>`).join('');
 }
 
-// Greenhouse lets you plant in winter
-const _origHandlePlotClick2 = handlePlotClick;
-function handlePlotClick(fid,pid){
-  if(currentSeason==='winter' && !decoPlaced['greenhouse']){
-    const p = fieldData[fid]?.plots[pid];
-    if(p && p.state==='tilled'){ showToast('❄️ Winter — cannot plant! Buy a Greenhouse to override.'); return; }
-  }
-  _origHandlePlotClick2(fid,pid);
-}
+// Winter block + greenhouse check is already handled in window.handleClick override above
 
 // ══════════════════════════════════════════════════════════════════
 // 🏆 ACHIEVEMENT SYSTEM
@@ -7467,13 +7456,7 @@ function openAchievPanel(){
 }
 function openAchievPanel_alias(){ openAchievPanel(); }
 
-// Track seasons for achievement
-const _origAdvanceSeason2 = advanceSeason;
-function advanceSeason(){
-  _origAdvanceSeason2();
-  achievSeasonsSeen.add(currentSeason);
-  checkAchievements();
-}
+// advanceSeason already tracks achievements (merged above)
 
 // ══════════════════════════════════════════════════════════════════
 // 🎣 FISHING MINI-GAME
