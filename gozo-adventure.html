@@ -232,11 +232,20 @@
   /* ═══════════════════════════════════════
      ALL OVERLAY SCREENS
   ═══════════════════════════════════════ */
-  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen,#prestige-screen,#puzzle-screen,#dex-screen,#lb-screen,#craft-screen,#worldmap-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen,#prestige-screen,#puzzle-screen,#dex-screen,#lb-screen,#craft-screen,#worldmap-screen,#settings-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
   #event-screen,#puzzle-screen{justify-content:center;background:rgba(0,0,10,.95);}
   #story-screen,#prestige-screen{justify-content:center;}
   @keyframes achIn{0%{transform:translateX(120%);opacity:0}100%{transform:translateX(0);opacity:1}}
   @keyframes achOut{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(120%)}}
+  @keyframes comboIn{0%{transform:translateX(-50%) scale(0.5);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
+  @keyframes battleIntroBg{0%{background:rgba(0,0,0,0)}50%{background:rgba(0,0,0,.85)}100%{background:rgba(0,0,0,.6)}}
+  @keyframes battleIntroOut{0%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+  @keyframes introNamePop{0%{opacity:0;transform:scale(0.3) translateY(20px)}70%{transform:scale(1.15) translateY(-5px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes introLineIn{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:translateY(0)}}
+  #hud-status{font-size:7px;color:#ff8844;margin-top:1px;min-height:10px;}
+  .partner-exp-bar{width:100%;height:3px;background:#111;margin-top:2px;}
+  .partner-exp-fill{height:100%;background:linear-gradient(90deg,#44aaff,#88ddff);transition:width .3s;}
+  #hud-clock{font-size:6px;color:#8888bb;margin-top:1px;}
 
   /* ═══════════════════════════════════════
      MOBILE / RESPONSIVE
@@ -520,6 +529,7 @@
       <div class="hp-bar"><div class="hp-fill" id="player-hp-bar" style="width:100%"></div></div>
       <div class="exp-bar-wrap"><div class="exp-bar-fill" id="player-exp-bar" style="width:0%"></div></div>
       <div class="hud-stats" id="hud-stats">HP: 100/100</div>
+      <div id="hud-status"></div>
       <div id="hud-partner"></div>
     </div>
     <div class="hud-center">
@@ -530,10 +540,12 @@
       </div>
     </div>
     <div class="hud-box right">
-      <div class="hud-name" style="color:#cc88ff">PARTNER</div>
+      <div class="hud-name" style="color:#cc88ff">PARTNER <span id="partner-level-display" style="color:#44aaff;font-size:6px;">LV1</span></div>
+      <div class="exp-bar-wrap partner-exp-bar"><div class="exp-bar-fill partner-exp-fill" id="partner-exp-bar" style="width:0%"></div></div>
       <div class="hud-stats">EXP: <span id="hud-exp">0</span></div>
       <div style="font-size:6px;color:#555;margin-top:2px;" id="hud-potions">💊 3/5</div>
       <div style="font-size:6px;color:#888;margin-top:2px;" id="hud-crit"></div>
+      <div id="hud-clock"></div>
     </div>
   </div>
 
@@ -1109,9 +1121,9 @@ let bossDefeated = false;
 // Pick monsters by player level → tier
 function pickWildMonster(zone) {
   const lv = state.player.level;
-  // Tier range based on level
+  const nightBonus = getDayNightEncounterBonus(); // +1 tier at night
   const minT = Math.max(1, Math.floor(lv * 0.8));
-  const maxT = Math.min(10, Math.ceil(lv * 1.2) + 1);
+  const maxT = Math.min(10, Math.ceil(lv * 1.2) + 1 + nightBonus);
   let pool = WILD.filter(m => m.t >= minT && m.t <= maxT);
   if (!pool.length) pool = WILD.filter(m => m.t === 1);
   // Boss zone: bias toward higher tier
@@ -2915,6 +2927,8 @@ function initGame(fromLoad){
   initQuests();
   initSkills();
   initAchievements();
+  loadSettings();
+  applySettings();
   // Try to load persisted data from localStorage
   try{
     const saved = lsLoad();
@@ -2933,6 +2947,8 @@ function initGame(fromLoad){
     }
   }catch(e){}
   window._ENEMY_POOL = WILD;
+  // Show tutorial for new players after a short delay
+  setTimeout(()=>{ if(!SETTINGS.tutorialDone) startTutorial(); }, 2000);
   setTimeout(()=>bgmFadeTo('explore'), 500);
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
@@ -4023,6 +4039,8 @@ function gameLoop() {
     checkWaypointUnlock();
     tickFootstep(moving);
     if(moving) updateFogOfWar();
+    tickDayNight();
+    tickCombo();
     // Check achievements periodically
     if(Math.random()<0.01) checkAchievements();
   }
@@ -4217,6 +4235,11 @@ function startBattle(enemy){
       arena.appendChild(s);
     }
   }
+  // Reset per-battle state
+  resetCombo();
+  clearPlayerStatus();
+  setBattleButtons(false);
+  showBattleIntro(enemy, ()=>setBattleButtons(true));
   const en=document.getElementById('enemy-name'); if(en) en.textContent=enemy.name;
   const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
   const ec=enemy.element?elemColors[enemy.element]:'#FFD700';
@@ -4277,15 +4300,27 @@ function battleAction(action){
   let log='';
 
   if(action==='attack'){
+    // Blind miss chance
+    if(playerStatus.blind>0 && Math.random()<0.3){
+      playerStatus.blind--;
+      setBattleLog('You attack but MISSED! (Blinded 👁️)');
+      updateStatusHUD();
+      setTimeout(()=>{ state.battleTurn='enemy'; setTimeout(enemyTurn,600); },600);
+      return;
+    }
     let dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
     const isCrit = Math.random() < (p.critChance||0);
     if(isCrit){
       dmg = Math.floor(dmg*2);
       if(questState) questState.stats.critHits = (questState.stats.critHits||0)+1;
     }
+    // Apply combo multiplier
+    const comboMult = getComboMultiplier();
+    if(comboMult > 1) dmg = Math.floor(dmg * comboMult);
     // Apply puzzle bonus
     if(puzzleReward>0){ dmg=Math.floor(dmg*(1+puzzleReward)); puzzleReward=0; }
     e.hp-=dmg;
+    registerHit();
     playSoundAttack();
     attackLungePlayer();
     setTimeout(()=>{
@@ -4380,6 +4415,8 @@ function battleAction(action){
 function enemyTurn(){
   const p=state.player,e=state.currentEnemy;
   bossMechanicTurn++;
+  // Tick player status effects at start of enemy turn
+  const statusDmgLog = tickPlayerStatus();
 
   // ── BOSS MECHANICS ──
   const curBoss = BOSS_LIST[bossIndex];
@@ -4425,15 +4462,32 @@ function enemyTurn(){
     let dmgMult = (isBossFight && e._overload) ? 3 : 1;
     e._overload=false;
     const atkCount = (isBossFight && curBoss.mechanic==='multi') ? 2 : 1;
+
+    // Try enemy special move (non-boss only, 28% chance)
+    if(!isBossFight){
+      const special = maybeEnemySpecial(e, p);
+      if(special){
+        log = `${e.name} ${special.log}`;
+        if(SETTINGS.showDamageNumbers) showDmgPopup(special.dmg, false, true);
+        shakeSprite('player-battle-sprite');
+        flashArena('rgba(255,80,80,0.35)');
+        updateBattleHP(); updateStatusHUD();
+        setBattleLog(log);
+        if(p.hp<=0){ p.hp=0; updateBattleHP(); setBattleLog('💀 Gozo fainted...'); setTimeout(loseBattle,1500); return; }
+        state.battleTurn='player'; setBattleButtons(true);
+        return;
+      }
+    }
+
     for(let ai=0;ai<atkCount;ai++){
       const dmg=Math.max(1,Math.floor((e.atk+Math.floor(Math.random()*6)-p.defense)*dmgMult));
       p.hp-=dmg;
       if(questState) questState.stats.damageTaken += dmg;
       playSoundPlayerHurt();
-      showDmgPopup(dmg,false,true);
+      if(SETTINGS.showDamageNumbers) showDmgPopup(dmg,false,true);
       shakeSprite('player-battle-sprite');
       flashArena('rgba(255,50,50,0.3)');
-      if(dmg>=30) arenaShake();
+      if(dmg>=30 && SETTINGS.screenShake) arenaShake();
     }
   }
 
@@ -4470,6 +4524,7 @@ function enemyTurn(){
 
   setBattleLog(log);
   updateBattleHP();
+  updateStatusHUD();
   if(e.hp<=0){setTimeout(winBattle,800);return;}
   if(p.hp<=0){p.hp=0;updateBattleHP();setBattleLog('💀 Gozo fainted...');setTimeout(loseBattle,1500);return;}
   state.battleTurn='player';
@@ -4492,6 +4547,7 @@ function winBattle(){
   }
   p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||5,p.potions+1);
   trackDexKill(e);
+  gainPartnerExp(Math.floor(e.exp * 0.3));
   if(p.hp<=10 && questState) questState.stats.closeWins=(questState.stats.closeWins||0)+1;
   checkAchievements();
   playSoundVictory();
@@ -6972,6 +7028,441 @@ function tickFootstep(moving){
 }
 
 // ==============================================
+// ⚙️ SETTINGS SYSTEM
+// ==============================================
+const SETTINGS = {
+  bgmVolume: 0.4,
+  sfxVolume: 1.0,
+  textSpeed: 'normal', // slow / normal / fast
+  showDamageNumbers: true,
+  screenShake: true,
+  autoSave: true,
+  nightMode: true,
+  tutorialDone: false,
+};
+
+function loadSettings(){
+  try{
+    const s = localStorage.getItem('gozo_settings');
+    if(s) Object.assign(SETTINGS, JSON.parse(s));
+  }catch(e){}
+}
+function saveSettings(){
+  try{ localStorage.setItem('gozo_settings', JSON.stringify(SETTINGS)); }catch(e){}
+}
+
+function openSettings(){
+  const sc = document.getElementById('settings-screen');
+  if(!sc) return;
+  sc.innerHTML = `
+    <div style="width:100%;max-width:480px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">⚙️ SETTINGS</div>
+        <button onclick="document.getElementById('settings-screen').style.display='none';saveSettings();"
+          style="background:none;border:2px solid #44ff88;color:#44ff88;font-family:'Press Start 2P',monospace;font-size:7px;padding:6px 10px;cursor:pointer;">SAVE ✓</button>
+      </div>
+      ${settingRow('🎵 Music Volume', 'range', 'bgmVolume', 0, 1, 0.05)}
+      ${settingRow('🔊 SFX Volume',   'range', 'sfxVolume', 0, 1, 0.05)}
+      ${settingRow('💬 Text Speed',   'select','textSpeed',  ['slow','normal','fast'])}
+      ${settingRow('💥 Damage Numbers','toggle','showDamageNumbers')}
+      ${settingRow('📳 Screen Shake', 'toggle','screenShake')}
+      ${settingRow('💾 Auto Save',    'toggle','autoSave')}
+      ${settingRow('🌙 Day/Night Cycle','toggle','nightMode')}
+      <div style="margin-top:16px;border-top:1px solid #111;padding-top:12px;display:flex;gap:8px;justify-content:center;">
+        <button onclick="if(confirm('Reset all settings?')){Object.assign(SETTINGS,{bgmVolume:.4,sfxVolume:1,textSpeed:'normal',showDamageNumbers:true,screenShake:true,autoSave:true,nightMode:true});saveSettings();openSettings();}"
+          style="background:none;border:1px solid #444;color:#555;font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 12px;cursor:pointer;">RESET</button>
+        <button onclick="if(confirm('Delete ALL save data?')){localStorage.clear();location.reload();}"
+          style="background:none;border:1px solid #cc2222;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 12px;cursor:pointer;">⚠️ CLEAR DATA</button>
+      </div>
+    </div>`;
+  sc.style.display='flex';
+}
+
+function settingRow(label, type, key, ...args){
+  const val = SETTINGS[key];
+  if(type==='toggle'){
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #111;">
+      <span style="font-size:8px;color:#aaa;">${label}</span>
+      <button onclick="SETTINGS['${key}']=!SETTINGS['${key}'];applySettings();openSettings();"
+        style="background:${val?'#0a1a0a':'#1a0a0a'};border:2px solid ${val?'#44ff88':'#ff4444'};color:${val?'#44ff88':'#ff4444'};
+        font-family:'Press Start 2P',monospace;font-size:7px;padding:5px 12px;cursor:pointer;min-width:60px;">
+        ${val?'ON':'OFF'}</button>
+    </div>`;
+  }
+  if(type==='range'){
+    const [min,max,step]=args;
+    return `<div style="padding:10px 0;border-bottom:1px solid #111;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:8px;color:#aaa;">${label}</span>
+        <span style="font-size:7px;color:#FFD700;">${Math.round(val*100)}%</span>
+      </div>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+        oninput="SETTINGS['${key}']=parseFloat(this.value);applySettings();this.previousElementSibling.lastElementChild.textContent=Math.round(this.value*100)+'%';"
+        style="width:100%;accent-color:#FFD700;">
+    </div>`;
+  }
+  if(type==='select'){
+    const opts = args[0];
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #111;">
+      <span style="font-size:8px;color:#aaa;">${label}</span>
+      <select onchange="SETTINGS['${key}']=this.value;applySettings();"
+        style="background:#0a0a14;border:1px solid #333;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:7px;padding:4px 8px;cursor:pointer;">
+        ${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o.toUpperCase()}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  return '';
+}
+
+function applySettings(){
+  // Apply BGM volume
+  if(BGM._masterGain && !BGM.muted) BGM._masterGain.gain.setTargetAtTime(SETTINGS.bgmVolume, getAudio().currentTime, 0.1);
+  BGM.volume = SETTINGS.bgmVolume;
+  // Auto-save toggle
+  if(!SETTINGS.autoSave){ clearInterval(window._autoSaveInterval); }
+  else if(!window._autoSaveInterval){ window._autoSaveInterval = setInterval(()=>{ if(SETTINGS.autoSave&&state.player&&!state.inBattle) lsSave(); },60000); }
+}
+
+// ==============================================
+// 🌙 DAY/NIGHT CYCLE
+// ==============================================
+let dayNightTime = 0;    // 0-1 (0=noon, 0.5=midnight)
+let isDaytime = true;
+const DAY_CYCLE_TICKS = 7200; // ~2min full cycle at 60fps
+
+function tickDayNight(){
+  if(!SETTINGS.nightMode) return;
+  dayNightTime = (dayNightTime + 1/DAY_CYCLE_TICKS) % 1;
+  const wasDaytime = isDaytime;
+  isDaytime = dayNightTime < 0.5;
+
+  // Transition notification
+  if(wasDaytime !== isDaytime){
+    if(!isDaytime){
+      showSellToast('🌙 Night falls... rare monsters appear!','#8888ff');
+      playSoundWeather();
+    } else {
+      showSellToast('☀️ Dawn breaks!','#FFD700');
+    }
+  }
+
+  // Apply night overlay
+  let overlay = document.getElementById('night-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'night-overlay';
+    overlay.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:13;transition:background 3s ease;';
+    document.body.appendChild(overlay);
+  }
+  const nightPct = Math.sin(dayNightTime * Math.PI); // peaks at 0.5 (midnight)
+  const darkness = Math.floor(nightPct * 140);
+  overlay.style.background = `rgba(0,0,${Math.floor(nightPct*40)},${(nightPct*0.55).toFixed(2)})`;
+
+  // Stars visible at night
+  const stars = document.getElementById('stars');
+  if(stars) stars.style.opacity = nightPct.toFixed(2);
+
+  // Update HUD clock
+  const hourOfDay = Math.floor((1 - dayNightTime) * 24);
+  const timeStr = isDaytime ? `☀️ ${hourOfDay}:00` : `🌙 ${hourOfDay}:00`;
+  const clockEl = document.getElementById('hud-clock');
+  if(clockEl) clockEl.textContent = timeStr;
+}
+
+function getDayNightEncounterBonus(){
+  // At night, tier+1 monsters can appear (rarer enemies)
+  if(!isDaytime && Math.random() < 0.35) return 1;
+  return 0;
+}
+
+// ==============================================
+// 💥 COMBO SYSTEM
+// ==============================================
+let comboCount = 0;
+let comboTimer = 0;
+const COMBO_TIMEOUT = 180; // 3s at 60fps
+const COMBO_BONUSES = [
+  {at:3, bonus:0.1,  label:'x3 COMBO! +10% DMG'},
+  {at:5, bonus:0.25, label:'x5 COMBO! +25% DMG'},
+  {at:7, bonus:0.5,  label:'x7 COMBO! +50% DMG'},
+  {at:10,bonus:1.0,  label:'x10 COMBO!! DOUBLE DAMAGE!!'},
+];
+
+function tickCombo(){
+  if(comboTimer > 0){
+    comboTimer--;
+    if(comboTimer === 0 && comboCount > 0){
+      comboCount = 0;
+      const el=document.getElementById('combo-display');
+      if(el) el.style.display='none';
+    }
+  }
+}
+
+function registerHit(){
+  comboCount++;
+  comboTimer = COMBO_TIMEOUT;
+  updateComboDisplay();
+}
+
+function resetCombo(){
+  comboCount = 0; comboTimer = 0;
+  const el=document.getElementById('combo-display');
+  if(el) el.style.display='none';
+}
+
+function getComboMultiplier(){
+  let mult = 1.0;
+  for(const cb of COMBO_BONUSES){
+    if(comboCount >= cb.at) mult = 1 + cb.bonus;
+  }
+  return mult;
+}
+
+function updateComboDisplay(){
+  let el = document.getElementById('combo-display');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'combo-display';
+    el.style.cssText = `position:fixed;top:70px;left:50%;transform:translateX(-50%);
+      font-family:'Press Start 2P',monospace;font-size:10px;color:#FFD700;z-index:82;
+      text-shadow:0 0 12px #FFD700,2px 2px 0 #000;pointer-events:none;
+      animation:comboIn .2s cubic-bezier(.175,.885,.32,1.275) both;`;
+    document.body.appendChild(el);
+  }
+  const bonus = COMBO_BONUSES.slice().reverse().find(cb=>comboCount>=cb.at);
+  el.style.display='block';
+  el.style.animation='none'; void el.offsetWidth; el.style.animation='comboIn .2s cubic-bezier(.175,.885,.32,1.275) both';
+  el.textContent = bonus ? `${bonus.label}` : `💥 ${comboCount} HIT COMBO!`;
+  el.style.color = comboCount>=10?'#ff4444':comboCount>=7?'#ff8844':comboCount>=5?'#ffaa00':'#FFD700';
+}
+
+// ==============================================
+// 🎬 BATTLE INTRO ANIMATION
+// ==============================================
+function showBattleIntro(enemy, onDone){
+  const bscr = document.getElementById('battle-screen');
+  if(!bscr){ onDone&&onDone(); return; }
+
+  const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
+  const ec = enemy.element ? elemColors[enemy.element] : '#FFD700';
+
+  const intro = document.createElement('div');
+  intro.id = 'battle-intro-overlay';
+  intro.style.cssText=`position:absolute;inset:0;z-index:99;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;background:rgba(0,0,0,0);pointer-events:none;
+    animation:battleIntroBg .4s ease forwards;`;
+  intro.innerHTML = `
+    <div style="font-size:clamp(9px,2.5vw,13px);color:#888;letter-spacing:4px;
+      animation:introLineIn .3s .1s both;">A WILD ENEMY APPEARS!</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:clamp(20px,5vw,40px);
+      color:${ec};text-shadow:0 0 20px ${ec}88,3px 3px 0 #000;
+      animation:introNamePop .5s .3s cubic-bezier(.175,.885,.32,1.275) both;margin:8px 0;">
+      ${enemy.emoji} ${enemy.name}
+    </div>
+    <div style="font-size:8px;color:#666;letter-spacing:2px;
+      animation:introLineIn .3s .6s both;">
+      ${enemy.element?`[${enemy.element.toUpperCase()}]`:''} ${enemy.t?`TIER ${enemy.t}`:''}
+    </div>
+    ${BOSS_LIST.some(b=>b.name===enemy.name)?`
+      <div style="font-size:7px;color:#ff4444;margin-top:8px;animation:introLineIn .3s .8s both;">
+        ⚠️ ${BOSS_LIST.find(b=>b.name===enemy.name).mechanicDesc||''}
+      </div>
+      <div style="font-size:6px;color:#555;font-style:italic;margin-top:4px;max-width:280px;text-align:center;animation:introLineIn .3s 1s both;">
+        "${BOSS_LIST.find(b=>b.name===enemy.name).lore||''}"
+      </div>` : ''}
+  `;
+  bscr.appendChild(intro);
+  setTimeout(()=>{
+    intro.style.animation='battleIntroOut .3s ease forwards';
+    setTimeout(()=>{ intro.remove(); onDone&&onDone(); }, 350);
+  }, SETTINGS.textSpeed==='fast'?800:SETTINGS.textSpeed==='slow'?2000:1300);
+}
+
+// ==============================================
+// ⚔️ ENEMY SPECIAL MOVES
+// ==============================================
+const ENEMY_SPECIALS = {
+  // Format: element → special move
+  fire:     { name:'🔥 INFERNO BURST', effect:(p,e)=>{ const d=Math.floor(e.atk*1.8); p.hp-=d; return {dmg:d,log:'unleashes INFERNO BURST!',status:'burn'}; }},
+  water:    { name:'🌊 TIDAL CRASH',   effect:(p,e)=>{ const d=Math.floor(e.atk*1.5); p.hp-=d; return {dmg:d,log:'crashes a TIDAL WAVE!',status:null}; }},
+  grass:    { name:'🌿 SPORE CLOUD',   effect:(p,e)=>{ const d=Math.floor(e.atk*0.8); p.hp-=d; return {dmg:d,log:'releases SPORE CLOUD!',status:'poison'}; }},
+  electric: { name:'⚡ THUNDERSTRIKE', effect:(p,e)=>{ const d=Math.floor(e.atk*2.0); p.hp-=d; return {dmg:d,log:'fires THUNDERSTRIKE!',status:null}; }},
+  ice:      { name:'❄️ FROZEN GRAVE',  effect:(p,e)=>{ const d=Math.floor(e.atk*1.2); p.hp-=d; return {dmg:d,log:'casts FROZEN GRAVE! Speed halved!',status:'slow'}; }},
+  dark:     { name:'🌑 SOUL DRAIN',    effect:(p,e)=>{ const d=Math.floor(e.atk*1.0); p.hp-=d; e.hp=Math.min(e.maxHp||999,e.hp+Math.floor(d/2)); return {dmg:d,log:'uses SOUL DRAIN! Steals HP!',status:null}; }},
+  earth:    { name:'🪨 ROCKSLIDE',     effect:(p,e)=>{ const d=Math.floor(e.atk*1.6); p.hp-=d; return {dmg:d,log:'triggers ROCKSLIDE!',status:null}; }},
+  wind:     { name:'🌪️ CYCLONE',       effect:(p,e)=>{ const d=Math.floor(e.atk*1.4); p.hp-=d; return {dmg:d,log:'spins a CYCLONE!',status:null}; }},
+  light:    { name:'☀️ SOLAR FLARE',   effect:(p,e)=>{ const d=Math.floor(e.atk*1.7); p.hp-=d; return {dmg:d,log:'fires SOLAR FLARE!',status:'blind'}; }},
+};
+
+// Player status effects
+let playerStatus = {
+  poison: 0,   // turns remaining
+  burn: 0,
+  slow: 0,
+  blind: 0,    // reduces player accuracy
+};
+
+function tickPlayerStatus(){
+  const p = state.player;
+  let statusLog = '';
+  if(playerStatus.poison > 0){
+    const dmg = Math.max(1, Math.floor(p.maxHp * 0.04));
+    p.hp = Math.max(1, p.hp - dmg);
+    playerStatus.poison--;
+    statusLog += ` ☠️ Poison -${dmg}HP`;
+    showDmgPopup(dmg, false, true);
+  }
+  if(playerStatus.burn > 0){
+    const dmg = Math.max(1, Math.floor(p.maxHp * 0.06));
+    p.hp = Math.max(1, p.hp - dmg);
+    playerStatus.burn--;
+    statusLog += ` 🔥 Burn -${dmg}HP`;
+    showDmgPopup(dmg, false, true);
+  }
+  updateHUD();
+  return statusLog;
+}
+
+function applyStatusToPlayer(status){
+  if(!status) return;
+  if(status==='poison' && playerStatus.poison<3) playerStatus.poison=3;
+  if(status==='burn'   && playerStatus.burn<2)   playerStatus.burn=2;
+  if(status==='slow'   && playerStatus.slow<2)   playerStatus.slow=2;
+  if(status==='blind'  && playerStatus.blind<2)  playerStatus.blind=2;
+  updateStatusHUD();
+}
+
+function clearPlayerStatus(){
+  playerStatus = {poison:0, burn:0, slow:0, blind:0};
+  updateStatusHUD();
+}
+
+function updateStatusHUD(){
+  const el = document.getElementById('hud-status');
+  if(!el) return;
+  const parts = [];
+  if(playerStatus.poison>0) parts.push(`☠️${playerStatus.poison}`);
+  if(playerStatus.burn>0)   parts.push(`🔥${playerStatus.burn}`);
+  if(playerStatus.slow>0)   parts.push(`🧊${playerStatus.slow}`);
+  if(playerStatus.blind>0)  parts.push(`👁️${playerStatus.blind}`);
+  el.textContent = parts.join(' ');
+}
+
+// 30% chance enemy uses special move on their turn
+function maybeEnemySpecial(e, p){
+  const sp = ENEMY_SPECIALS[e.element];
+  if(!sp || Math.random() > 0.28) return null;
+  const result = sp.effect(p, e);
+  if(result.status) applyStatusToPlayer(result.status);
+  return result;
+}
+
+// ==============================================
+// 🐾 PARTNER LEVEL UP SYSTEM
+// ==============================================
+let partnerExp = 0;
+let partnerLevel = 1;
+const PARTNER_EXP_TO_LEVEL = [0,30,70,130,210,320,460,630,840,1100]; // levels 1-10
+
+function gainPartnerExp(amount){
+  partnerExp += amount;
+  const threshold = PARTNER_EXP_TO_LEVEL[Math.min(partnerLevel, PARTNER_EXP_TO_LEVEL.length-1)];
+  if(partnerLevel < 10 && partnerExp >= threshold){
+    partnerExp -= threshold;
+    partnerLevel++;
+    // Apply bonus
+    if(partner){
+      partner.bonusAtk = (partner.bonusAtk||0) + 2;
+      partner.bonusDef = (partner.bonusDef||0) + 1;
+    }
+    const el = document.getElementById('partner-level-display');
+    if(el) el.textContent = `LV${partnerLevel}`;
+    showSellToast(`${partner?.emoji||'🐾'} Partner reached LV${partnerLevel}! +2 ATK +1 DEF`, '#44aaff');
+    spawnBattleParticles(8, ['✨','⭐','💫'], 200, 300);
+  }
+  updatePartnerExpBar();
+}
+
+function updatePartnerExpBar(){
+  const bar = document.getElementById('partner-exp-bar');
+  const threshold = PARTNER_EXP_TO_LEVEL[Math.min(partnerLevel, PARTNER_EXP_TO_LEVEL.length-1)];
+  if(bar) bar.style.width = (Math.min(1,partnerExp/threshold)*100)+'%';
+}
+
+// ==============================================
+// 📚 TUTORIAL SYSTEM
+// ==============================================
+const TUTORIAL_STEPS = [
+  { target:'#hud',        msg:'This is your HUD. ⚡ HP bar shows your health. EXP bar shows progress to next level. 💰 shows your coins.', pos:'bottom' },
+  { target:'#minimap',    msg:'🗺️ This minimap shows your position. Walk around to reveal the fog of war!', pos:'bottom' },
+  { target:'#toolbar',    msg:'🎮 Toolbar has all your tools: BAG, QUESTS, SKILLS, FAST TRAVEL, ACHIEVEMENTS, and MORE.', pos:'top' },
+  { target:null,          msg:'🌿 Walk into the TALL GRASS (dark green areas) to encounter wild monsters and start battles!', pos:'center' },
+  { target:null,          msg:'⚔️ In battle: ATTACK for normal damage, SKILL for your partner\'s special, POTION to heal, and 🧩 ELEMENT CHALLENGE for a damage bonus!', pos:'center' },
+  { target:null,          msg:'💰 Earn coins from battles and spend them at the NPC shops in the center of the map!', pos:'center' },
+  { target:null,          msg:'🌟 Open SKILLS in the toolbar to unlock permanent upgrades. Check QUEST for daily missions!', pos:'center' },
+  { target:null,          msg:'🎯 Tip: Defeat the boss in the bottom-right grass zone to unlock stronger bosses. Good luck, Gozo!', pos:'center' },
+];
+let tutorialStep = 0;
+let tutorialActive = false;
+
+function startTutorial(){
+  if(SETTINGS.tutorialDone) return;
+  tutorialActive = true;
+  tutorialStep = 0;
+  showTutorialStep();
+}
+
+function showTutorialStep(){
+  let overlay = document.getElementById('tutorial-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'tutorial-overlay';
+    overlay.style.cssText='position:fixed;inset:0;z-index:200;pointer-events:none;';
+    document.body.appendChild(overlay);
+  }
+  const step = TUTORIAL_STEPS[tutorialStep];
+  const isLast = tutorialStep >= TUTORIAL_STEPS.length - 1;
+  overlay.innerHTML = `
+    <div style="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);
+      background:#050510;border:3px solid #FFD700;padding:14px 18px;
+      max-width:340px;width:90%;z-index:201;pointer-events:all;
+      clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);
+      animation:fadeIn .3s ease;box-shadow:0 0 30px rgba(255,215,0,.2);">
+      <div style="font-size:6px;color:#555;letter-spacing:2px;margin-bottom:6px;">📚 TUTORIAL ${tutorialStep+1}/${TUTORIAL_STEPS.length}</div>
+      <div style="font-size:8px;color:#ddeeff;line-height:2;">${step.msg}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:12px;gap:8px;">
+        <button onclick="skipTutorial()"
+          style="background:none;border:1px solid #333;color:#555;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 10px;cursor:pointer;pointer-events:all;">SKIP</button>
+        <button onclick="nextTutorialStep()"
+          style="background:#0a0a14;border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:7px;padding:7px 14px;cursor:pointer;pointer-events:all;">
+          ${isLast ? 'FINISH! ✓' : 'NEXT ▶'}</button>
+      </div>
+    </div>`;
+}
+
+function nextTutorialStep(){
+  tutorialStep++;
+  if(tutorialStep >= TUTORIAL_STEPS.length){ skipTutorial(); return; }
+  showTutorialStep();
+}
+
+function skipTutorial(){
+  tutorialActive = false;
+  SETTINGS.tutorialDone = true;
+  saveSettings();
+  const overlay = document.getElementById('tutorial-overlay');
+  if(overlay) overlay.remove();
+}
+
+function openTutorial(){
+  SETTINGS.tutorialDone = false; // allow re-open
+  tutorialStep = 0;
+  tutorialActive = true;
+  showTutorialStep();
+}
+
+// ==============================================
 // SHOP SYSTEM
 // ==============================================
 // Buy price: based on rarity + tier
@@ -7289,6 +7780,8 @@ function renderQuestScreen(){
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openWorldMap();toggleMoreMenu()"><span class="tb-icon">🌍</span>MAP</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openPrestigeScreen();toggleMoreMenu()"><span class="tb-icon">⭐</span>PRESTIGE</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openStatsScreen();toggleMoreMenu()"><span class="tb-icon">📊</span>STATS</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openSettings();toggleMoreMenu()"><span class="tb-icon">⚙️</span>SETTINGS</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openTutorial();toggleMoreMenu()"><span class="tb-icon">📚</span>HELP</button>
 </div>
 <div id="quest-screen"></div>
 <div id="stats-screen"></div>
@@ -7304,5 +7797,6 @@ function renderQuestScreen(){
 <div id="lb-screen"></div>
 <div id="craft-screen"></div>
 <div id="worldmap-screen"></div>
+<div id="settings-screen"></div>
 </body>
 </html>
