@@ -3261,7 +3261,7 @@ function doHarvest(fid, pid){
         p.regrowAt = Date.now() + 30000;
         refreshPlot(fid, pid);
         startRegrowTimer(fid, pid, 30000);
-        showToast('🍅 Tomato tree regrowing in 30s! (' + (5 - p.harvestCount) + 'x harvest left)');
+        
       }, 500);
     } else {
       // Max harvests reached, tree dies
@@ -3276,7 +3276,7 @@ function doHarvest(fid, pid){
         p.regrowAt = Date.now() + 25000;
         refreshPlot(fid, pid);
         startRegrowTimer(fid, pid, 25000);
-        showToast('🌶️ Chili plant regrowing in 25s! (' + (5 - p.harvestCount) + 'x harvest left)');
+        
       }, 500);
     } else {
       setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
@@ -3290,7 +3290,7 @@ function doHarvest(fid, pid){
         p.regrowAt = Date.now() + 35000;
         refreshPlot(fid, pid);
         startRegrowTimer(fid, pid, 35000);
-        showToast('🌽 Corn regrowing in 35s! (' + (5 - p.harvestCount) + 'x harvest left)');
+        
       }, 500);
     } else {
       setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
@@ -3304,7 +3304,7 @@ function doHarvest(fid, pid){
         p.regrowAt = Date.now() + 20000;
         refreshPlot(fid, pid);
         startRegrowTimer(fid, pid, 20000);
-        showToast('🍓 Strawberry bush regrowing in 20s! (' + (5 - p.harvestCount) + 'x harvest left)');
+        
       }, 500);
     } else {
       setTimeout(()=>{ p.state = 'tilled'; p.plant = null; p.plantedAt = null; p.watered = false; p.harvestCount = 0; p.regrowAt = null; refreshPlot(fid, pid);
