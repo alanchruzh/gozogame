@@ -4104,6 +4104,7 @@ function buyAnimal(type){
   renderAnimalPanel();
   startAnimalTimers();
   saveState();
+  setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 100);
 }
 
 function feedAnimal(type, idx){
@@ -4595,6 +4596,9 @@ function loadExtraState(){
     if(d.marketLastUpdate) marketLastUpdate = d.marketLastUpdate;
     if(d.currentWeather) currentWeather = d.currentWeather;
   } catch(e){}
+  // Sync animal sprites after extra state loaded
+  setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 100);
+  setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 500);
 }
 
 // Override startFarm to init new systems
