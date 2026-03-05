@@ -4847,10 +4847,10 @@ window.handleClick = function(fid, pid){
 </style>
 
 <div id="music-player">
-  <div class="mp-icon">🌿</div>
+  <div class="mp-icon">🚜</div>
   <div class="mp-info">
-    <div class="mp-title">Calming Melody</div>
-    <div class="mp-sub" id="mp-track-name">Peaceful Piano</div>
+    <div class="mp-title">Farming Tune</div>
+    <div class="mp-sub" id="mp-track-name">Country Harvest 🌾</div>
   </div>
   <div class="mp-eq paused" id="mp-eq">
     <span></span><span></span><span></span><span></span><span></span>
@@ -4861,69 +4861,188 @@ window.handleClick = function(fid, pid){
 
 <script>
 (function(){
-  // Calming melody using Web Audio API
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let ctx, masterGain;
-  let melodyTimeout = null;
+  let loopTimeout = null;
   let playing = false;
 
-  // Pentatonic scale notes (Hz) - very soothing
-  const notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 784.00];
+  // === FARMING FOLK / COUNTRY MUSIC ===
+  // Scale: G major (G A B D E) pentatonic + full G major
+  // Notes in Hz
+  const N = {
+    G3:196.00, A3:220.00, B3:246.94, C4:261.63, D4:293.66,
+    E4:329.63, F4:349.23, G4:392.00, A4:440.00, B4:493.88,
+    C5:523.25, D5:587.33, E5:659.25, G5:784.00,
+    G2:98.00,  D3:146.83, B2:123.47
+  };
 
-  // Gentle melody sequence
-  const melody = [4,2,0,2,4,6,4,2,4,5,4,2,0,1,2,4,2,0,6,5,4,2,4,2,0];
+  const BPM = 132;
+  const B = 60 / BPM; // one beat
+  const H = B / 2;    // half beat
+  const Q = B / 4;    // quarter beat
 
-  function playNote(freq, startTime, duration, vol) {
-    vol = vol || 0.10;
+  // -- Banjo/Mandolin pluck: sawtooth + fast decay --
+  function pluck(freq, t, dur, vol, type) {
+    vol = vol || 0.13;
+    type = type || 'sawtooth';
     const osc = ctx.createOscillator();
-    const g = ctx.createGain();
+    const g   = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(vol * 0.3, t + dur * 0.35);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+
+  // -- Fiddle/accordion: square wave, slower attack --
+  function fiddle(freq, t, dur, vol) {
+    vol = vol || 0.07;
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.06);
+    g.gain.setValueAtTime(vol, t + dur - 0.06);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
+
+  // -- Bass thump: sine, low freq --
+  function bass(freq, t, dur, vol) {
+    vol = vol || 0.18;
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
-    g.gain.setValueAtTime(0, startTime);
-    g.gain.linearRampToValueAtTime(vol, startTime + 0.09);
-    g.gain.exponentialRampToValueAtTime(vol * 0.5, startTime + duration * 0.6);
-    g.gain.linearRampToValueAtTime(0.0001, startTime + duration);
-    osc.connect(g);
-    g.connect(masterGain);
-    osc.start(startTime);
-    osc.stop(startTime + duration + 0.1);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + dur + 0.05);
   }
 
-  function playPad(freqs, startTime, duration) {
-    freqs.forEach(function(f) {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = f / 2;
-      g.gain.setValueAtTime(0, startTime);
-      g.gain.linearRampToValueAtTime(0.035, startTime + 0.5);
-      g.gain.linearRampToValueAtTime(0.02, startTime + duration - 0.4);
-      g.gain.linearRampToValueAtTime(0.0001, startTime + duration);
-      osc.connect(g);
-      g.connect(masterGain);
-      osc.start(startTime);
-      osc.stop(startTime + duration + 0.1);
-    });
+  // -- Kick drum: pitched sine sweep --
+  function kick(t, vol) {
+    vol = vol || 0.22;
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+    osc.connect(g); g.connect(masterGain);
+    osc.start(t); osc.stop(t + 0.22);
   }
 
-  function scheduleMelody() {
+  // -- Hi-hat: noise burst --
+  function hat(t, vol) {
+    vol = vol || 0.06;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
+    const d   = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const hpf = ctx.createBiquadFilter();
+    hpf.type = 'highpass'; hpf.frequency.value = 7000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+    src.connect(hpf); hpf.connect(g); g.connect(masterGain);
+    src.start(t); src.stop(t + 0.05);
+  }
+
+  // -- Snare/clap --
+  function snare(t, vol) {
+    vol = vol || 0.09;
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.1, ctx.sampleRate);
+    const d   = buf.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 1.5);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bpf = ctx.createBiquadFilter();
+    bpf.type = 'bandpass'; bpf.frequency.value = 1800; bpf.Q.value = 0.5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.1);
+    src.connect(bpf); bpf.connect(g); g.connect(masterGain);
+    src.start(t); src.stop(t + 0.12);
+  }
+
+  function scheduleLoop() {
     if (!playing) return;
-    const now = ctx.currentTime;
-    const tempo = 0.55;
-    const total = melody.length * tempo;
+    const now = ctx.currentTime + 0.05;
 
-    // Ambient pads
-    playPad([261.63, 329.63, 392.00], now, total);
-    playPad([220.00, 261.63, 329.63], now + total * 0.5, total * 0.5);
+    // === 4 bars of country/folk farming tune ===
+    // Each bar = 4 beats
+    const bar = B * 4;
 
-    // Melody
-    melody.forEach(function(ni, i) {
-      const freq = notes[ni];
-      playNote(freq, now + i * tempo, tempo * 1.15);
-      if (i % 5 === 0) playNote(freq * 1.5, now + i * tempo, tempo * 1.1, 0.035);
-    });
+    for (let rep = 0; rep < 2; rep++) {
+      const off = now + rep * bar * 2;
 
-    melodyTimeout = setTimeout(scheduleMelody, (total - 0.2) * 1000);
+      // --- BAR 1: G major feel ---
+      // Melody (banjo/mandolin style)
+      pluck(N.G4, off+0*B, H*1.8, 0.14);
+      pluck(N.B4, off+H,   H*1.8, 0.12);
+      pluck(N.D5, off+1*B, B*0.9, 0.14);
+      pluck(N.E5, off+2*B, H*1.8, 0.13);
+      pluck(N.D5, off+2*B+H, H, 0.11);
+      pluck(N.B4, off+3*B, H*1.8, 0.12);
+      pluck(N.G4, off+3*B+H, H, 0.10);
+
+      // Harmony fiddle
+      fiddle(N.G4, off+0*B, bar*0.48, 0.055);
+      fiddle(N.D4, off+bar*0.5, bar*0.48, 0.055);
+
+      // Bass walk: G D G D
+      bass(N.G2, off+0*B, B*0.7, 0.20);
+      bass(N.D3, off+1*B, B*0.7, 0.18);
+      bass(N.G2, off+2*B, B*0.7, 0.20);
+      bass(N.D3, off+3*B, B*0.7, 0.18);
+
+      // Drums
+      for (let bt = 0; bt < 4; bt++) {
+        kick(off + bt*B, 0.20);
+        hat(off + bt*B + H, 0.065);
+        if (bt===1||bt===3) snare(off + bt*B, 0.10);
+        hat(off + bt*B + H*0.5, 0.04);
+        hat(off + bt*B + H*1.5, 0.04);
+      }
+
+      // --- BAR 2: C → D turnaround ---
+      const o2 = off + bar;
+      pluck(N.C5, o2+0*B, H*1.8, 0.13);
+      pluck(N.B4, o2+H,   H,     0.11);
+      pluck(N.A4, o2+1*B, B*0.9, 0.13);
+      pluck(N.G4, o2+2*B, H*1.8, 0.14);
+      pluck(N.A4, o2+2*B+H, H,   0.11);
+      pluck(N.B4, o2+3*B, H,     0.12);
+      pluck(N.D5, o2+3*B+H, H,   0.14);
+
+      fiddle(N.C4, o2+0*B, bar*0.48, 0.055);
+      fiddle(N.B3, o2+bar*0.5, bar*0.48, 0.050);
+
+      bass(N.G2, o2+0*B, B*0.7, 0.20);
+      bass(N.C4, o2+1*B, B*0.7, 0.17);
+      bass(N.D3, o2+2*B, B*0.7, 0.19);
+      bass(N.G2, o2+3*B, B*0.7, 0.20);
+
+      for (let bt = 0; bt < 4; bt++) {
+        kick(o2 + bt*B, 0.20);
+        hat(o2 + bt*B + H, 0.065);
+        if (bt===1||bt===3) snare(o2 + bt*B, 0.10);
+        hat(o2 + bt*B + H*0.5, 0.04);
+        hat(o2 + bt*B + H*1.5, 0.04);
+      }
+    }
+
+    const loopDur = bar * 4;
+    loopTimeout = setTimeout(scheduleLoop, (loopDur - 0.25) * 1000);
   }
 
   window.toggleMusic = function() {
@@ -4940,19 +5059,19 @@ window.handleClick = function(fid, pid){
     masterGain = ctx.createGain();
     masterGain.gain.value = parseFloat(document.querySelector('.mp-vol').value);
     const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -18;
-    comp.ratio.value = 4;
+    comp.threshold.value = -12;
+    comp.ratio.value = 5;
     masterGain.connect(comp);
     comp.connect(ctx.destination);
     playing = true;
-    scheduleMelody();
+    scheduleLoop();
     document.getElementById('mp-btn').textContent = '⏸';
     document.getElementById('mp-eq').classList.remove('paused');
   }
 
   function stopMusic() {
     playing = false;
-    clearTimeout(melodyTimeout);
+    clearTimeout(loopTimeout);
     if (ctx) { ctx.close(); ctx = null; }
     document.getElementById('mp-btn').textContent = '▶';
     document.getElementById('mp-eq').classList.add('paused');
