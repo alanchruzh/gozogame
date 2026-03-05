@@ -4431,7 +4431,7 @@ function updateMarketPrices(){
   });
   const bigMover = CROP_KEYS.reduce((a,b) => Math.abs(marketMultipliers[b]-1) > Math.abs(marketMultipliers[a]-1) ? b : a);
   const mval = marketMultipliers[bigMover];
-  showToast(`📈 Pasar bergerak! ${CROPS[bigMover].emoji} ${CROPS[bigMover].name}: ${mval > 1 ? '▲' : '▼'} ${Math.round(Math.abs(mval-1)*100)}%`);
+  showToast(`📈 Market moves! ${CROPS[bigMover].emoji} ${CROPS[bigMover].name}: ${mval > 1 ? '▲' : '▼'} ${Math.round(Math.abs(mval-1)*100)}%`);
   renderMarketUI();
   saveState();
 }
