@@ -31,9 +31,9 @@ header{
 }
 .logo{font-size:1.1rem;color:var(--yellow);text-shadow:3px 3px 0 #000,5px 5px 0 rgba(0,0,0,0.3);white-space:nowrap;letter-spacing:1px}
 .nav-links{display:flex;gap:1.2rem;list-style:none}
-.nav-links a{font-size:0.38rem;color:#7ab87a;text-decoration:none;text-shadow:1px 1px 0 #000;letter-spacing:1px}
+.nav-links a{font-size:17px;color:#7ab87a;text-decoration:none;text-shadow:1px 1px 0 #000;letter-spacing:1px}
 .hud-right{display:flex;align-items:center;gap:10px}
-.hud-score{font-size:0.42rem;color:#f7c948;text-shadow:1px 1px 0 #000;background:#0a0818;border:3px solid #5a40cc;padding:5px 12px;white-space:nowrap}
+.hud-score{font-size:18px;color:#f7c948;text-shadow:1px 1px 0 #000;background:#0a0818;border:3px solid #5a40cc;padding:5px 12px;white-space:nowrap}
 
 .main{display:flex;flex:1;overflow:hidden}
 
@@ -66,13 +66,13 @@ header{
   position:relative;z-index:7;display:flex;gap:0;padding:10px 10px 6px}
 
 .fields-container{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
-.field-label-top{font-size:0.55rem;color:var(--yellow);text-shadow:2px 2px 0 #000;letter-spacing:2px;text-align:center;flex-shrink:0}
+.field-label-top{font-size:22px;color:var(--yellow);text-shadow:2px 2px 0 #000;letter-spacing:2px;text-align:center;flex-shrink:0}
 .fields-rows{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden}
 .fields-row{flex:1;display:flex;gap:10px;align-items:stretch;overflow:hidden}
 
 .field-block{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0}
 /* small field name label, Stardew-style subtle sign */
-.field-title{font-size:0.24rem;color:#d4b87a;text-shadow:1px 1px 0 #000;white-space:nowrap;background:#5a3010;border:1px solid #8a5020;padding:1px 4px;border-radius:1px}
+.field-title{font-size:16px;color:#d4b87a;text-shadow:1px 1px 0 #000;white-space:nowrap;background:#5a3010;border:1px solid #8a5020;padding:1px 4px;border-radius:1px}
 
 /* ── Stardew-style field: one big land patch containing 4 plot tiles ── */
 .field-grid{
@@ -104,15 +104,15 @@ header{
 .field-locked.next-unlock{border-color:#7b61ff;animation:nextGlow 2s ease-in-out infinite}
 @keyframes nextGlow{0%,100%{box-shadow:3px 3px 0 #000,0 0 8px rgba(123,97,255,0.2)}50%{box-shadow:3px 3px 0 #000,0 0 20px rgba(123,97,255,0.5)}}
 .lock-icon{font-size:1.4rem;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.6));z-index:1}
-.lock-cost{font-size:0.28rem;color:#80c8f0;text-shadow:1px 1px 0 #000;text-align:center;line-height:1.8;z-index:1}
-.lock-name{font-size:0.24rem;color:#a09070;text-shadow:1px 1px 0 #000;z-index:1}
-.lock-hidden{font-size:0.22rem;color:#5a4a3a;text-shadow:1px 1px 0 #000;z-index:1;text-align:center}
-.lock-plots{font-size:0.22rem;color:#8a7a5a;text-shadow:1px 1px 0 #000;z-index:1}
-.unlock-now-btn{font-family:var(--font);font-size:0.24rem;background:#5dc85d;color:#fff;border:3px solid #2a7a2a;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s}
+.lock-cost{font-size:18px;color:#80c8f0;text-shadow:1px 1px 0 #000;text-align:center;line-height:1.8;z-index:1}
+.lock-name{font-size:16px;color:#a09070;text-shadow:1px 1px 0 #000;z-index:1}
+.lock-hidden{font-size:15px;color:#5a4a3a;text-shadow:1px 1px 0 #000;z-index:1;text-align:center}
+.lock-plots{font-size:15px;color:#8a7a5a;text-shadow:1px 1px 0 #000;z-index:1}
+.unlock-now-btn{font-family:var(--font);font-size:16px;background:#5dc85d;color:#fff;border:3px solid #2a7a2a;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s}
 .unlock-now-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #000}
 
 /* Buy land button */
-.buy-field-btn{font-family:var(--font);font-size:0.26rem;background:#2a1a08;color:#a09070;border:2px solid #6a4020;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s;margin-top:2px;white-space:nowrap}
+.buy-field-btn{font-family:var(--font);font-size:17px;background:#2a1a08;color:#a09070;border:2px solid #6a4020;padding:4px 8px;cursor:pointer;box-shadow:2px 2px 0 #000;z-index:1;transition:all 0.08s;margin-top:2px;white-space:nowrap}
 .buy-field-btn.can-afford{background:#2a5a10;color:#c0f080;border-color:#4a9020;animation:buyGlow 1.6s ease-in-out infinite}
 .buy-field-btn.can-afford:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #000;filter:brightness(1.2)}
 @keyframes buyGlow{0%,100%{box-shadow:2px 2px 0 #000}50%{box-shadow:2px 2px 0 #000,0 0 8px rgba(100,220,50,0.6)}}
@@ -213,8 +213,8 @@ header{
 @keyframes plantBob{0%,100%{transform:translateX(-50%) scaleY(1)}50%{transform:translateX(-50%) scaleY(1.08)}}
 .plot[data-s=ready] .cs{font-size:1.5rem}
 
-.pl{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:0.22rem;color:rgba(255,255,255,0.75);text-shadow:1px 1px 0 #000;pointer-events:none}
-.pt-timer{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:0.2rem;color:var(--yellow);text-shadow:1px 1px 0 #000;pointer-events:none;z-index:3}
+.pl{position:absolute;top:2px;left:0;right:0;text-align:center;font-size:15px;color:rgba(255,255,255,0.75);text-shadow:1px 1px 0 #000;pointer-events:none}
+.pt-timer{position:absolute;bottom:7px;left:0;right:0;text-align:center;font-size:14px;color:var(--yellow);text-shadow:1px 1px 0 #000;pointer-events:none;z-index:3}
 
 /* SIDEBAR */
 .sidebar{
@@ -223,16 +223,16 @@ header{
   display:flex;flex-direction:column;overflow-y:auto;z-index:200;
 }
 .sb-card{padding:10px 12px;border-bottom:3px solid var(--ui-border)}
-.sb-card h3{font-size:0.38rem;color:var(--yellow);text-shadow:2px 2px 0 #000;margin-bottom:8px;border-bottom:2px solid var(--ui-border);padding-bottom:5px}
+.sb-card h3{font-size:17px;color:var(--yellow);text-shadow:2px 2px 0 #000;margin-bottom:8px;border-bottom:2px solid var(--ui-border);padding-bottom:5px}
 
 /* CHARACTER */
 .character-wrap{display:flex;align-items:flex-end;gap:8px;margin-bottom:4px}
 .char-sprite{font-size:2rem;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.6))}
-.bubble{font-size:0.26rem;color:#c0e8c0;background:#0a180a;border:2px solid var(--ui-border);padding:5px 7px;flex:1;line-height:1.6;text-shadow:1px 1px 0 #000}
+.bubble{font-size:17px;color:#c0e8c0;background:#0a180a;border:2px solid var(--ui-border);padding:5px 7px;flex:1;line-height:1.6;text-shadow:1px 1px 0 #000}
 
 /* TOOLS */
 .tools-row{display:flex;gap:6px}
-.tool-btn{flex:1;font-family:var(--font);font-size:0.3rem;background:#162416;color:#a0c8a0;border:3px solid var(--ui-border);padding:6px 4px;cursor:pointer;box-shadow:2px 2px 0 #000;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.08s}
+.tool-btn{flex:1;font-family:var(--font);font-size:20px;background:#162416;color:#a0c8a0;border:3px solid var(--ui-border);padding:6px 4px;cursor:pointer;box-shadow:2px 2px 0 #000;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all 0.08s}
 .tool-btn:hover{background:#1e3a1e}
 .tool-btn.active{background:#2a5a2a;color:var(--yellow);border-color:var(--yellow)}
 .ti{font-size:1rem}
@@ -243,19 +243,19 @@ header{
 .seed-item.selected{background:#1e3a1e;border-color:var(--yellow)}
 .si-emoji{font-size:1.2rem}
 .si-info{flex:1;min-width:0}
-.si-name{font-size:0.3rem;color:#e0f0e0;text-shadow:1px 1px 0 #000}
-.si-time{font-size:0.22rem;color:#8ab88a;text-shadow:1px 1px 0 #000}
-.si-inv{font-size:0.22rem;color:var(--yellow);text-shadow:1px 1px 0 #000}
-.si-count{font-size:0.26rem;color:#a0c870;background:#0e200e;border:2px solid #3a6a3a;padding:2px 6px;text-shadow:1px 1px 0 #000}
+.si-name{font-size:20px;color:#e0f0e0;text-shadow:1px 1px 0 #000}
+.si-time{font-size:15px;color:#8ab88a;text-shadow:1px 1px 0 #000}
+.si-inv{font-size:15px;color:var(--yellow);text-shadow:1px 1px 0 #000}
+.si-count{font-size:17px;color:#a0c870;background:#0e200e;border:2px solid #3a6a3a;padding:2px 6px;text-shadow:1px 1px 0 #000}
 
 /* WATER */
-.water-info{font-size:0.28rem;color:#a0d0f0;text-shadow:1px 1px 0 #000;margin-bottom:6px;line-height:1.8}
+.water-info{font-size:18px;color:#a0d0f0;text-shadow:1px 1px 0 #000;margin-bottom:6px;line-height:1.8}
 
 /* HARVEST */
 .h-item{display:flex;align-items:center;gap:5px;margin-bottom:4px;padding:3px}
 .h-emoji{font-size:1rem}
-.h-name{font-size:0.26rem;color:#c0e8c0;text-shadow:1px 1px 0 #000;flex:1}
-.h-count{font-size:0.3rem;color:var(--yellow);text-shadow:1px 1px 0 #000;min-width:20px;text-align:center}
+.h-name{font-size:17px;color:#c0e8c0;text-shadow:1px 1px 0 #000;flex:1}
+.h-count{font-size:20px;color:var(--yellow);text-shadow:1px 1px 0 #000;min-width:20px;text-align:center}
 
 /* OVERLAY */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:flex;align-items:center;justify-content:center}
@@ -263,23 +263,23 @@ header{
 .overlay-box{background:#0a180a;border:4px solid var(--yellow);padding:24px 28px;max-width:480px;width:90%;box-shadow:8px 8px 0 #000,0 0 40px rgba(247,201,72,0.15);max-height:90vh;overflow-y:auto}
 .ov-icon{font-size:2.5rem;display:block;text-align:center;margin-bottom:8px}
 .ov-title{font-size:1.2rem;color:var(--yellow);text-shadow:3px 3px 0 #000;text-align:center;letter-spacing:2px;margin-bottom:8px}
-.ov-sub{font-size:0.35rem;color:#a0c8a0;text-align:center;line-height:2;margin-bottom:16px;text-shadow:1px 1px 0 #000}
+.ov-sub{font-size:16px;color:#a0c8a0;text-align:center;line-height:2;margin-bottom:16px;text-shadow:1px 1px 0 #000}
 .crop-table{width:100%;border-collapse:collapse;margin-bottom:16px}
-.crop-table th{font-size:0.28rem;color:var(--yellow);text-shadow:1px 1px 0 #000;padding:4px 6px;border-bottom:2px solid var(--ui-border);text-align:left}
-.crop-table td{font-size:0.26rem;padding:4px 6px;border-bottom:1px solid #1a3a1a;text-shadow:1px 1px 0 #000}
+.crop-table th{font-size:18px;color:var(--yellow);text-shadow:1px 1px 0 #000;padding:4px 6px;border-bottom:2px solid var(--ui-border);text-align:left}
+.crop-table td{font-size:17px;padding:4px 6px;border-bottom:1px solid #1a3a1a;text-shadow:1px 1px 0 #000}
 .c-crop{color:#c0e8c0}
 .c-time{color:#80c8f0}
 .c-seeds{color:var(--yellow)}
-.play-btn{width:100%;font-family:var(--font);font-size:0.5rem;background:var(--yellow);color:#1a0800;border:4px solid var(--yellow2);padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:12px}
+.play-btn{width:100%;font-family:var(--font);font-size:22px;background:var(--yellow);color:#1a0800;border:4px solid var(--yellow2);padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:12px}
 .play-btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
 .how-to{border-top:2px solid var(--ui-border);padding-top:12px}
-.how-to h4{font-size:0.35rem;color:var(--yellow);text-shadow:2px 2px 0 #000;margin-bottom:8px}
+.how-to h4{font-size:16px;color:var(--yellow);text-shadow:2px 2px 0 #000;margin-bottom:8px}
 .how-step{display:flex;gap:8px;margin-bottom:6px;align-items:flex-start}
 .how-step .ico{font-size:0.8rem;flex-shrink:0}
-.how-step span:last-child{font-size:0.26rem;color:#a0c8a0;text-shadow:1px 1px 0 #000;line-height:1.6}
+.how-step span:last-child{font-size:17px;color:#a0c8a0;text-shadow:1px 1px 0 #000;line-height:1.6}
 
 /* TOAST */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#0a1a0a;border:3px solid var(--yellow);padding:8px 16px;font-size:0.4rem;color:var(--yellow);text-shadow:2px 2px 0 #000;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:4px 4px 0 #000;white-space:nowrap}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#0a1a0a;border:3px solid var(--yellow);padding:8px 16px;font-size:18px;color:var(--yellow);text-shadow:2px 2px 0 #000;z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;box-shadow:4px 4px 0 #000;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* PARTICLE */
@@ -287,13 +287,13 @@ header{
 @keyframes partAnim{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.4)}}
 
 /* SCORE */
-.score-display{font-size:0.3rem;color:#80e080;text-shadow:1px 1px 0 #000;text-align:center;margin-top:4px}
+.score-display{font-size:20px;color:#80e080;text-shadow:1px 1px 0 #000;text-align:center;margin-top:4px}
 
 /* WALLET */
-.wallet-btn{font-family:var(--font);font-size:0.34rem;background:#2a1a5a;color:#c0a0ff;border:3px solid #7b61ff;padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 #000;white-space:nowrap;transition:all 0.08s}
+.wallet-btn{font-family:var(--font);font-size:15px;background:#2a1a5a;color:#c0a0ff;border:3px solid #7b61ff;padding:6px 12px;cursor:pointer;box-shadow:3px 3px 0 #000;white-space:nowrap;transition:all 0.08s}
 .wallet-btn:hover{background:#3a2a7a;transform:translate(-1px,-1px);box-shadow:4px 4px 0 #000}
 .wallet-btn.connected{background:#1a3a2a;color:#60ff90;border-color:#40c060}
-.wallet-addr{font-size:0.28rem;color:#60ff90;text-shadow:1px 1px 0 #000}
+.wallet-addr{font-size:18px;color:#60ff90;text-shadow:1px 1px 0 #000}
 
 /* BURN OVERLAY */
 .burn-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;display:flex;align-items:center;justify-content:center}
@@ -302,17 +302,17 @@ header{
 .burn-icon{font-size:3rem;display:block;margin-bottom:12px;animation:burnPulse 1s ease-in-out infinite}
 @keyframes burnPulse{0%,100%{filter:drop-shadow(0 0 8px rgba(255,80,0,0.6))}50%{filter:drop-shadow(0 0 20px rgba(255,80,0,0.9))}}
 .burn-title{font-size:0.9rem;color:#f7c948;text-shadow:3px 3px 0 #000;letter-spacing:2px;margin-bottom:8px}
-.burn-desc{font-size:0.3rem;color:#c0a0ff;line-height:2;margin-bottom:16px;text-shadow:1px 1px 0 #000}
-.burn-info{background:#0d0d1a;border:2px solid #3a2a6a;padding:12px;margin-bottom:16px;font-size:0.26rem;color:#a090d0;line-height:2;text-shadow:1px 1px 0 #000}
+.burn-desc{font-size:20px;color:#c0a0ff;line-height:2;margin-bottom:16px;text-shadow:1px 1px 0 #000}
+.burn-info{background:#0d0d1a;border:2px solid #3a2a6a;padding:12px;margin-bottom:16px;font-size:17px;color:#a090d0;line-height:2;text-shadow:1px 1px 0 #000}
 .burn-info span{color:#f7c948}
-.burn-btn{width:100%;font-family:var(--font);font-size:0.45rem;background:linear-gradient(135deg,#7b61ff,#ff4040);color:#fff;border:4px solid #ff6040;padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:8px;text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
+.burn-btn{width:100%;font-family:var(--font);font-size:19px;background:linear-gradient(135deg,#7b61ff,#ff4040);color:#fff;border:4px solid #ff6040;padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:8px;text-shadow:2px 2px 0 rgba(0,0,0,0.5)}
 .burn-btn:hover:not(:disabled){transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
 .burn-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
-.connect-first-btn{width:100%;font-family:var(--font);font-size:0.4rem;background:#2a1a5a;color:#c0a0ff;border:4px solid #7b61ff;padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:8px}
+.connect-first-btn{width:100%;font-family:var(--font);font-size:18px;background:#2a1a5a;color:#c0a0ff;border:4px solid #7b61ff;padding:12px;cursor:pointer;box-shadow:4px 4px 0 #000;transition:all 0.08s;margin-bottom:8px}
 .connect-first-btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 #000}
-.burn-status{font-size:0.28rem;color:#ff8040;text-shadow:1px 1px 0 #000;min-height:20px;line-height:1.6}
+.burn-status{font-size:18px;color:#ff8040;text-shadow:1px 1px 0 #000;min-height:20px;line-height:1.6}
 .burn-success{color:#60ff60}
-.burn-warn{font-size:0.24rem;color:#806060;margin-top:8px;line-height:1.8}
+.burn-warn{font-size:16px;color:#806060;margin-top:8px;line-height:1.8}
 .tx-link{color:#7b61ff;text-decoration:none}
 .tx-link:hover{color:#c0a0ff}
 
@@ -331,9 +331,9 @@ header{
 .seed-store-overlay.hidden{display:none}
 .seed-store-box{background:#0d1f0d;border:4px solid #4aaa4a;padding:0;max-width:520px;width:92%;box-shadow:8px 8px 0 #000,0 0 40px rgba(74,170,74,0.2);max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
 .seed-store-header{background:linear-gradient(180deg,#1a3a1a,#0d1f0d);padding:14px 18px;border-bottom:3px solid #2a5a2a;display:flex;align-items:center;justify-content:space-between}
-.seed-store-title{font-size:0.5rem;color:#a0f0a0;text-shadow:2px 2px 0 #000}
-.seed-store-gold{font-size:0.32rem;color:#f5c842;text-shadow:1px 1px 0 #000}
-.seed-store-close{background:none;border:2px solid #4a7a4a;color:#80c080;font-size:0.4rem;cursor:pointer;padding:2px 8px;font-family:var(--font);border-radius:4px}
+.seed-store-title{font-size:22px;color:#a0f0a0;text-shadow:2px 2px 0 #000}
+.seed-store-gold{font-size:20px;color:#f5c842;text-shadow:1px 1px 0 #000}
+.seed-store-close{background:none;border:2px solid #4a7a4a;color:#80c080;font-size:18px;cursor:pointer;padding:2px 8px;font-family:var(--font);border-radius:4px}
 .seed-store-close:hover{border-color:#a0d0a0;color:#c0f0c0}
 .seed-store-body{overflow-y:auto;padding:12px 14px;flex:1}
 .store-crop-row{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;background:#111f11;border:2px solid #1e3a1e;border-radius:6px;transition:all 0.1s}
@@ -341,17 +341,17 @@ header{
 .store-crop-row.locked{opacity:0.45;pointer-events:none}
 .store-crop-emoji{font-size:1.5rem;min-width:32px;text-align:center}
 .store-crop-info{flex:1}
-.store-crop-name{font-size:0.32rem;color:#c0e8c0;text-shadow:1px 1px 0 #000}
-.store-crop-detail{font-size:0.22rem;color:#6a9a6a;margin-top:1px}
-.store-crop-inv{font-size:0.22rem;color:#f5c842;margin-top:1px}
+.store-crop-name{font-size:20px;color:#c0e8c0;text-shadow:1px 1px 0 #000}
+.store-crop-detail{font-size:15px;color:#6a9a6a;margin-top:1px}
+.store-crop-inv{font-size:15px;color:#f5c842;margin-top:1px}
 .store-qty-btns{display:flex;align-items:center;gap:5px}
-.qty-btn{background:#1a3a1a;border:2px solid #2a5a2a;color:#80c080;font-family:var(--font);font-size:0.28rem;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px}
+.qty-btn{background:#1a3a1a;border:2px solid #2a5a2a;color:#80c080;font-family:var(--font);font-size:18px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px}
 .qty-btn:hover{border-color:#4aaa4a;color:#a0f0a0}
-.store-qty-num{font-size:0.32rem;color:#fff;text-shadow:1px 1px 0 #000;min-width:22px;text-align:center}
-.store-buy-btn{background:linear-gradient(180deg,#2a7a2a,#1a5a1a);border:2px solid #4aaa4a;color:#a0f0a0;font-family:var(--font);font-size:0.24rem;padding:5px 10px;cursor:pointer;border-radius:5px;text-shadow:1px 1px 0 #000;white-space:nowrap;box-shadow:0 2px 0 #0a2a0a}
+.store-qty-num{font-size:20px;color:#fff;text-shadow:1px 1px 0 #000;min-width:22px;text-align:center}
+.store-buy-btn{background:linear-gradient(180deg,#2a7a2a,#1a5a1a);border:2px solid #4aaa4a;color:#a0f0a0;font-family:var(--font);font-size:16px;padding:5px 10px;cursor:pointer;border-radius:5px;text-shadow:1px 1px 0 #000;white-space:nowrap;box-shadow:0 2px 0 #0a2a0a}
 .store-buy-btn:hover{background:linear-gradient(180deg,#3a8a3a,#2a6a2a)}
 .store-buy-btn:disabled{opacity:0.4;cursor:not-allowed}
-.store-lock-tag{font-size:0.2rem;color:#a09070;background:#1a1408;border:1px solid #3a3020;padding:2px 6px;border-radius:4px}
+.store-lock-tag{font-size:14px;color:#a09070;background:#1a1408;border:1px solid #3a3020;padding:2px 6px;border-radius:4px}
 
 </style>
 </head>
@@ -413,14 +413,14 @@ header{
       <div class="tools-row">
         <button class="tool-btn active" id="toolHoe" onclick="selectTool('hoe')"><span class="ti">⛏️</span><span>HOE</span></button>
         <button class="tool-btn" id="toolSickle" onclick="selectTool('sickle')"><span class="ti">🔪</span><span>SICKLE</span></button>
-        <button class="tool-btn" id="toolWater" onclick="selectTool('water')"><span class="ti">🪣</span><span id="waterLabel">WATER<br><span id="waterCount" style="font-size:0.22rem;color:#80c8f0">10 left</span></span></button>
+        <button class="tool-btn" id="toolWater" onclick="selectTool('water')"><span class="ti">🪣</span><span id="waterLabel">WATER<br><span id="waterCount" style="font-size:15px;color:#80c8f0">10 left</span></span></button>
       </div>
     </div>
 
     <!-- Seeds -->
     <div class="sb-card">
       <h3>🌱 SEEDS</h3>
-      <button onclick="openSeedStore()" style="width:100%;font-family:var(--font);font-size:0.26rem;background:linear-gradient(180deg,#2a6a2a,#1a4a1a);color:#a0f0a0;border:2px solid #4aaa4a;border-radius:6px;padding:6px 10px;cursor:pointer;text-shadow:1px 1px 0 #000;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 0 #0a2a0a">🛒 <span>SEED STORE</span> <span style="font-size:0.2rem;color:#6a9a6a">Buy with 🪙</span></button>
+      <button onclick="openSeedStore()" style="width:100%;font-family:var(--font);font-size:17px;background:linear-gradient(180deg,#2a6a2a,#1a4a1a);color:#a0f0a0;border:2px solid #4aaa4a;border-radius:6px;padding:6px 10px;cursor:pointer;text-shadow:1px 1px 0 #000;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 0 #0a2a0a">🛒 <span>SEED STORE</span> <span style="font-size:14px;color:#6a9a6a">Buy with 🪙</span></button>
       <div id="seedShop"></div>
     </div>
 
@@ -429,7 +429,7 @@ header{
       <h3 style="color:#80c8f0;border-color:#3a6aaa">💧 WATER BUCKET</h3>
       <div class="water-info">
         <div>Charges: <span id="waterChargesBig" style="color:var(--yellow)">10</span> / 10</div>
-        <div style="font-size:0.22rem;color:#6090b0;margin-top:2px">+1 charge per minute</div>
+        <div style="font-size:15px;color:#6090b0;margin-top:2px">+1 charge per minute</div>
       </div>
     </div>
 
@@ -437,8 +437,8 @@ header{
     <div class="sb-card">
       <h3>🧺 HARVEST BASKET</h3>
       <div id="goldDisplay" style="display:flex;flex-direction:column;gap:4px;background:rgba(255,200,50,0.10);border:1px solid #c8962a;border-radius:6px;padding:6px 10px;margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:6px;font-size:0.28rem;font-weight:bold;color:#f5c842;text-shadow:1px 1px 0 #000">🪙 <span style="color:#fff;font-weight:normal">Gold:</span> <span id="goldAmount">0</span></div>
-        <div style="font-size:0.18rem;color:#6a7a6a">Earned from selling crops · used for seeds</div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:18px;font-weight:bold;color:#f5c842;text-shadow:1px 1px 0 #000">🪙 <span style="color:#fff;font-weight:normal">Gold:</span> <span id="goldAmount">0</span></div>
+        <div style="font-size:13px;color:#6a7a6a">Earned from selling crops · used for seeds</div>
       </div>
       <div id="harvestList"></div>
     </div>
@@ -446,15 +446,15 @@ header{
     <!-- Unlock Fields -->
     <div class="sb-card">
       <h3>🏡 FIELDS</h3>
-      <div style="font-size:0.24rem;color:#8ab88a;text-shadow:1px 1px 0 #000;line-height:1.9">
+      <div style="font-size:16px;color:#8ab88a;text-shadow:1px 1px 0 #000;line-height:1.9">
         Buy land with <span style="color:#f7c948">GOZO token</span> 🔥<br>
-        <span style="color:#a09070;font-size:0.2rem">Token burned on purchase</span>
+        <span style="color:#a09070;font-size:14px">Token burned on purchase</span>
       </div>
-      <div style="display:flex;align-items:center;gap:4px;margin-top:5px;font-size:0.24rem;color:#80d0ff;text-shadow:1px 1px 0 #000">
+      <div style="display:flex;align-items:center;gap:4px;margin-top:5px;font-size:16px;color:#80d0ff;text-shadow:1px 1px 0 #000">
         ⛓️ GOZO: <span id="chainGozoAmt" style="color:#f7c948;font-weight:bold">—</span>
-        <button onclick="refreshGozoBalance()" style="font-family:var(--font);font-size:0.18rem;background:#162416;color:#80c8a0;border:1px solid #2a4a2a;padding:1px 5px;cursor:pointer;margin-left:2px">↻</button>
+        <button onclick="refreshGozoBalance()" style="font-family:var(--font);font-size:13px;background:#162416;color:#80c8a0;border:1px solid #2a4a2a;padding:1px 5px;cursor:pointer;margin-left:2px">↻</button>
       </div>
-      <div style="font-size:0.24rem;color:#6a8a6a;margin-top:4px">Unlocked: <span id="fieldsUnlocked">1</span>/10</div>
+      <div style="font-size:16px;color:#6a8a6a;margin-top:4px">Unlocked: <span id="fieldsUnlocked">1</span>/10</div>
     </div>
   </div>
 </div>
@@ -466,7 +466,7 @@ header{
     <div class="burn-title">GOZO FARM</div>
     <div class="burn-desc">
       To enter the farm, you must burn<br>
-      <span style="color:#ff8040;font-size:1.1em">10 GOZO tokens</span><br>
+      <span style="color:#ff8040;font-size:22px">10 GOZO tokens</span><br>
       <span style="color:#8070b0;font-size:0.8em">(tokens are permanently destroyed)</span>
     </div>
     <div class="burn-info">
@@ -479,7 +479,7 @@ header{
       <button class="connect-first-btn" id="connectBtn" onclick="connectWallet()">🦊 CONNECT METAMASK</button>
     </div>
     <div id="burnActionSection" style="display:none">
-      <div style="font-size:0.26rem;color:#60c060;margin-bottom:10px;text-shadow:1px 1px 0 #000">
+      <div style="font-size:17px;color:#60c060;margin-bottom:10px;text-shadow:1px 1px 0 #000">
         ✅ Connected: <span id="burnWalletAddr" style="color:#f7c948"></span>
       </div>
       <button class="burn-btn" id="burnBtn" onclick="burnAndEnter()">🔥 BURN 10 GOZO & ENTER</button>
@@ -2679,8 +2679,8 @@ function renderAllFields(){
           <div class="lock-icon">🔒</div>
           <div class="lock-name">${cfg.name}</div>
           <div class="lock-plots">4 plots (2×2)</div>
-          <div class="lock-price" style="font-size:0.32rem;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">${cfg.price.toLocaleString()} GOZO 🔥</div>
-          <div style="font-size:0.2rem;color:#a09070;text-shadow:1px 1px 0 #000;margin-top:1px">Burns on purchase</div>
+          <div class="lock-price" style="font-size:20px;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">${cfg.price.toLocaleString()} GOZO 🔥</div>
+          <div style="font-size:14px;color:#a09070;text-shadow:1px 1px 0 #000;margin-top:1px">Burns on purchase</div>
           <button class="buy-field-btn can-afford" onclick="buyField(${cfg.id})">🔥 BUY WITH GOZO</button>`;
       } else {
         lockDiv.innerHTML = `
@@ -3091,12 +3091,12 @@ function renderHarvestList(){
       <span class="h-emoji">${c.emoji}</span>
       <span class="h-name" style="flex:1">${c.name}</span>
       <span class="h-count" id="h-${key}">${qty}</span>
-      <button onclick="sellCrop('${key}',1)" style="background:#c8962a;border:none;border-radius:5px;color:#fff;font-size:0.2rem;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell 1 for ${c.price} 🪙">Sell 1</button>
-      <button onclick="sellCrop('${key}', harvestBasket['${key}'])" style="background:#a05a10;border:none;border-radius:5px;color:#ffe;font-size:0.2rem;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell all">All</button>`;
+      <button onclick="sellCrop('${key}',1)" style="background:#c8962a;border:none;border-radius:5px;color:#fff;font-size:14px;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell 1 for ${c.price} 🪙">Sell 1</button>
+      <button onclick="sellCrop('${key}', harvestBasket['${key}'])" style="background:#a05a10;border:none;border-radius:5px;color:#ffe;font-size:14px;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell all">All</button>`;
     el.appendChild(row);
   });
   if(!hasAny){
-    el.innerHTML = '<div style="font-size:0.26rem;color:#4a7a4a;text-shadow:1px 1px 0 #000">No harvest yet...</div>';
+    el.innerHTML = '<div style="font-size:17px;color:#4a7a4a;text-shadow:1px 1px 0 #000">No harvest yet...</div>';
   }
 }
 
@@ -3135,7 +3135,7 @@ function refreshGozoBalance(){
 function showGoldFloat(text){
   const div = document.createElement('div');
   div.textContent = text;
-  div.style.cssText = 'position:fixed;right:220px;top:50%;transform:translateY(-50%);color:#f5c842;font-size:0.35rem;font-weight:bold;text-shadow:2px 2px 0 #000,0 0 10px #f5c842;pointer-events:none;z-index:9999;animation:goldFloat 1.2s ease forwards';
+  div.style.cssText = 'position:fixed;right:220px;top:50%;transform:translateY(-50%);color:#f5c842;font-size:16px;font-weight:bold;text-shadow:2px 2px 0 #000,0 0 10px #f5c842;pointer-events:none;z-index:9999;animation:goldFloat 1.2s ease forwards';
   document.body.appendChild(div);
   setTimeout(()=>div.remove(), 1200);
 }
@@ -3838,11 +3838,11 @@ function renderSeedStoreModal(){
           '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',-1)">−</button>',
           '<div class="store-qty-num">' + qty + '</div>',
           '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',1)">+</button>',
-          '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',10)" style="font-size:0.2rem;width:auto;padding:0 5px">+10</button>',
+          '<button class="qty-btn" onclick="changeStoreQty(\'' + key + '\',10)" style="font-size:14px;width:auto;padding:0 5px">+10</button>',
         '</div>',
         '<button class="store-buy-btn" onclick="buySeeds(\'' + key + '\')" ' + disabledAttr + '>',
           'BUY x' + qty + '<br>',
-          '<span style="font-size:0.2rem;color:' + costColor + '">' + totalCost.toLocaleString() + ' 🪙</span>',
+          '<span style="font-size:14px;color:' + costColor + '">' + totalCost.toLocaleString() + ' 🪙</span>',
         '</button>'
       ].join('');
     }
@@ -3910,7 +3910,7 @@ function updateWeatherUI(){
   const wt = WEATHER_TYPES[currentWeather];
   const el = document.getElementById('weatherDisplay');
   if(el){
-    el.innerHTML = `<span style="font-size:1.1em">${wt.icon}</span> <span style="color:${wt.color};font-weight:bold;text-shadow:1px 1px 0 #000">${wt.name}</span>`;
+    el.innerHTML = `<span style="font-size:22px">${wt.icon}</span> <span style="color:${wt.color};font-weight:bold;text-shadow:1px 1px 0 #000">${wt.name}</span>`;
   }
   // Apply sky tint for weather
   const overlay = document.getElementById('weatherOverlay');
@@ -4192,13 +4192,13 @@ function renderAnimalPanel(){
     const owned = ownedAnimals[type] || [];
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.1)">`;
     html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">`;
-    html += `<span style="font-size:1.5em">${a.icon}</span>`;
-    html += `<div style="flex:1"><div style="color:#f5c842;font-weight:bold;font-size:0.28rem">${a.name}</div>`;
-    html += `<div style="color:#a0d080;font-size:0.2rem">${a.desc}</div></div>`;
+    html += `<span style="font-size:32px">${a.icon}</span>`;
+    html += `<div style="flex:1"><div style="color:#f5c842;font-weight:bold;font-size:18px">${a.name}</div>`;
+    html += `<div style="color:#a0d080;font-size:14px">${a.desc}</div></div>`;
     if(!unlocked){
-      html += `<div style="color:#f05050;font-size:0.2rem;text-align:center">🔒 ${a.unlockAt} panen</div>`;
+      html += `<div style="color:#f05050;font-size:14px;text-align:center">🔒 ${a.unlockAt} panen</div>`;
     } else {
-      html += `<button onclick="buyAnimal('${type}')" style="background:#4a8a20;border:none;border-radius:6px;color:#fff;font-size:0.2rem;padding:4px 8px;cursor:pointer;white-space:nowrap">Beli ${a.price}🪙</button>`;
+      html += `<button onclick="buyAnimal('${type}')" style="background:#4a8a20;border:none;border-radius:6px;color:#fff;font-size:14px;padding:4px 8px;cursor:pointer;white-space:nowrap">Beli ${a.price}🪙</button>`;
     }
     html += `</div>`;
     // Owned animals
@@ -4208,19 +4208,19 @@ function renderAnimalPanel(){
       const hunger = Math.round(animal.hunger || 100);
       html += `<div style="background:rgba(255,255,255,0.05);border-radius:6px;padding:4px 6px;margin-top:4px;display:flex;align-items:center;gap:6px">`;
       html += `<span>${a.icon}</span>`;
-      html += `<div style="flex:1;font-size:0.2rem">`;
+      html += `<div style="flex:1;font-size:14px">`;
       html += `<div style="color:#c0e090">Lapar: ${hunger}% ${'🟩'.repeat(Math.ceil(hunger/20))}${'⬛'.repeat(5-Math.ceil(hunger/20))}</div>`;
       html += `<div style="color:${ready?'#80ff80':'#f0c060'}">${ready ? `✅ Siap! (${animalBasket[type]||0} ${a.productIcon})` : `⏳ ${fmtTime(timeLeft)}`}</div>`;
       html += `</div>`;
-      if(a.feedCrop) html += `<button onclick="feedAnimal('${type}',${idx})" style="background:#5a8020;border:none;border-radius:5px;color:#fff;font-size:0.18rem;padding:3px 5px;cursor:pointer">🍽️</button>`;
-      if(ready) html += `<button onclick="collectAnimal('${type}',${idx})" style="background:#c08020;border:none;border-radius:5px;color:#fff;font-size:0.18rem;padding:3px 5px;cursor:pointer">Ambil</button>`;
+      if(a.feedCrop) html += `<button onclick="feedAnimal('${type}',${idx})" style="background:#5a8020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">🍽️</button>`;
+      if(ready) html += `<button onclick="collectAnimal('${type}',${idx})" style="background:#c08020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">Ambil</button>`;
       html += `</div>`;
     });
     // Basket
     if((animalBasket[type]||0) > 0){
-      html += `<div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:0.2rem">`;
+      html += `<div style="margin-top:4px;display:flex;align-items:center;gap:6px;font-size:14px">`;
       html += `<span>${a.productIcon} x${animalBasket[type]}</span>`;
-      html += `<button onclick="sellAnimalProduct('${type}')" style="background:#a06020;border:none;border-radius:5px;color:#fff;padding:2px 8px;cursor:pointer;font-size:0.2rem">Jual +${Math.floor(animalBasket[type]*a.productGold*getSellMult())}🪙</button>`;
+      html += `<button onclick="sellAnimalProduct('${type}')" style="background:#a06020;border:none;border-radius:5px;color:#fff;padding:2px 8px;cursor:pointer;font-size:14px">Jual +${Math.floor(animalBasket[type]*a.productGold*getSellMult())}🪙</button>`;
       html += `</div>`;
     }
     html += `</div>`;
@@ -4286,18 +4286,18 @@ function renderQuestPanel(){
   const el = document.getElementById('questPanelBody');
   if(!el) return;
   generateDailyQuests();
-  let html = `<div style="color:#f5c842;font-size:0.22rem;margin-bottom:8px;text-align:center">📅 Quest Harian — ${getTodayStr()}</div>`;
+  let html = `<div style="color:#f5c842;font-size:15px;margin-bottom:8px;text-align:center">📅 Quest Harian — ${getTodayStr()}</div>`;
   dailyQuests.forEach(q => {
     const prog = Math.min(q.target, questProgress[q.id]||0);
     const pct = Math.round(prog/q.target*100);
     const done = q.completed || prog >= q.target;
     html += `<div style="background:${done?'rgba(80,160,40,0.2)':'rgba(0,0,0,0.3)'};border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid ${done?'#60c040':'rgba(255,255,255,0.1)'}">`;
     html += `<div style="display:flex;align-items:center;gap:6px">`;
-    html += `<span style="font-size:1.3em">${q.icon}</span>`;
-    html += `<div style="flex:1"><div style="color:${done?'#80ff60':'#e0e0c0'};font-size:0.22rem">${q.desc}</div>`;
+    html += `<span style="font-size:28px">${q.icon}</span>`;
+    html += `<div style="flex:1"><div style="color:${done?'#80ff60':'#e0e0c0'};font-size:15px">${q.desc}</div>`;
     html += `<div style="background:#1a2a1a;border-radius:4px;height:6px;margin-top:3px;overflow:hidden"><div style="background:${done?'#60c040':'#f0a020'};width:${pct}%;height:100%;transition:width 0.4s"></div></div>`;
-    html += `<div style="color:#a0c080;font-size:0.18rem;margin-top:2px">${prog}/${q.target} ${done?'✅ SELESAI':''}</div></div>`;
-    html += `<div style="color:#f5c842;font-weight:bold;font-size:0.22rem">+${q.reward}🪙</div>`;
+    html += `<div style="color:#a0c080;font-size:13px;margin-top:2px">${prog}/${q.target} ${done?'✅ SELESAI':''}</div></div>`;
+    html += `<div style="color:#f5c842;font-weight:bold;font-size:15px">+${q.reward}🪙</div>`;
     html += `</div></div>`;
   });
   el.innerHTML = html;
@@ -4386,34 +4386,34 @@ function renderStatsPanel(){
   ];
   statCards.forEach(s => {
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:6px;text-align:center">`;
-    html += `<div style="font-size:1.2em">${s.icon}</div>`;
-    html += `<div style="color:#f5c842;font-weight:bold;font-size:0.22rem">${s.val}</div>`;
-    html += `<div style="color:#80a080;font-size:0.18rem">${s.label}</div>`;
+    html += `<div style="font-size:26px">${s.icon}</div>`;
+    html += `<div style="color:#f5c842;font-weight:bold;font-size:15px">${s.val}</div>`;
+    html += `<div style="color:#80a080;font-size:13px">${s.label}</div>`;
     html += `</div>`;
   });
   html += `</div>`;
 
   // Top crop
   html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px;margin-bottom:6px">`;
-  html += `<div style="color:#f5c842;font-size:0.2rem;margin-bottom:4px">🏆 Panen Terbanyak</div>`;
+  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">🏆 Panen Terbanyak</div>`;
   let cropRows = CROP_KEYS.filter(k => (stats.harvestByType[k]||0) > 0).sort((a,b) => (stats.harvestByType[b]||0)-(stats.harvestByType[a]||0)).slice(0,5);
   cropRows.forEach(k => {
     const c = CROPS[k];
     const pct = topCount > 0 ? Math.round((stats.harvestByType[k]||0)/topCount*100) : 0;
-    html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:0.2rem">`;
+    html += `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:14px">`;
     html += `<span>${c.emoji}</span><span style="flex:1;color:#c0e0a0">${c.name}</span>`;
     html += `<div style="background:#1a2a1a;border-radius:3px;width:60px;height:5px;overflow:hidden"><div style="background:#60c040;width:${pct}%;height:100%"></div></div>`;
     html += `<span style="color:#f5c842;min-width:20px;text-align:right">${stats.harvestByType[k]||0}</span></div>`;
   });
-  if(cropRows.length === 0) html += `<div style="color:#607060;font-size:0.2rem">Belum ada panen</div>`;
+  if(cropRows.length === 0) html += `<div style="color:#607060;font-size:14px">Belum ada panen</div>`;
   html += `</div>`;
 
   // Upgrade levels
   html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px">`;
-  html += `<div style="color:#f5c842;font-size:0.2rem;margin-bottom:4px">⚙️ Level Upgrade</div>`;
+  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">⚙️ Level Upgrade</div>`;
   Object.keys(UPGRADES).forEach(k => {
     const u = UPGRADES[k]; const lv = upgradeLevels[k]||0;
-    html += `<div style="display:flex;align-items:center;gap:6px;font-size:0.2rem;margin-bottom:2px">`;
+    html += `<div style="display:flex;align-items:center;gap:6px;font-size:14px;margin-bottom:2px">`;
     html += `<span style="flex:1;color:#c0d0b0">${u.name}</span>`;
     html += `<span style="color:#f5c842">Lv.${lv}/${u.maxLevel}</span>`;
     html += `</div>`;
@@ -4473,7 +4473,7 @@ function renderMarketUI(){
   const el = document.getElementById('marketBody');
   if(!el) return;
   const nextUpdate = Math.max(0, MARKET_UPDATE_MS - (Date.now() - marketLastUpdate));
-  let html = `<div style="color:#a0c080;font-size:0.2rem;margin-bottom:6px;text-align:center">⏱ Harga berubah dalam: <span style="color:#f5c842" id="marketCountdown">${fmtTime(nextUpdate)}</span></div>`;
+  let html = `<div style="color:#a0c080;font-size:14px;margin-bottom:6px;text-align:center">⏱ Harga berubah dalam: <span style="color:#f5c842" id="marketCountdown">${fmtTime(nextUpdate)}</span></div>`;
   html += `<div style="display:grid;gap:4px">`;
   CROP_KEYS.forEach(k => {
     const c = CROPS[k];
@@ -4484,12 +4484,12 @@ function renderMarketUI(){
     const col = ratio > 1.1 ? '#80ff80' : ratio < 0.9 ? '#ff8080' : '#f5c842';
     const qty = harvestBasket[k] || 0;
     html += `<div style="background:rgba(0,0,0,0.25);border-radius:6px;padding:5px 8px;display:flex;align-items:center;gap:6px;border:1px solid ${ratio>1.2?'rgba(80,200,80,0.3)':ratio<0.8?'rgba(200,80,80,0.3)':'rgba(255,255,255,0.06)'}">`;
-    html += `<span style="font-size:1.3em">${c.emoji}</span>`;
-    html += `<div style="flex:1"><div style="color:#e0d0a0;font-size:0.22rem">${c.name}</div>`;
-    html += `<div style="font-size:0.18rem;color:#809070">Dasar: ${baseP}🪙 | Stok: ${qty}</div></div>`;
-    html += `<div style="text-align:right"><div style="color:${col};font-weight:bold;font-size:0.26rem">${trend} ${mktP}🪙</div>`;
+    html += `<span style="font-size:28px">${c.emoji}</span>`;
+    html += `<div style="flex:1"><div style="color:#e0d0a0;font-size:15px">${c.name}</div>`;
+    html += `<div style="font-size:13px;color:#809070">Dasar: ${baseP}🪙 | Stok: ${qty}</div></div>`;
+    html += `<div style="text-align:right"><div style="color:${col};font-weight:bold;font-size:17px">${trend} ${mktP}🪙</div>`;
     if(qty > 0){
-      html += `<button onclick="sellAtMarket('${k}',${qty})" style="background:#a05818;border:none;border-radius:5px;color:#fff;font-size:0.18rem;padding:2px 6px;cursor:pointer;margin-top:2px">Jual Semua</button>`;
+      html += `<button onclick="sellAtMarket('${k}',${qty})" style="background:#a05818;border:none;border-radius:5px;color:#fff;font-size:13px;padding:2px 6px;cursor:pointer;margin-top:2px">Jual Semua</button>`;
     }
     html += `</div></div>`;
   });
@@ -4525,7 +4525,7 @@ function closeMarketPanel(){ document.getElementById('marketOverlay').classList.
 function renderUpgradePanel(){
   const el = document.getElementById('upgradePanelBody');
   if(!el) return;
-  let html = `<div style="color:#f5c842;font-size:0.22rem;margin-bottom:8px;text-align:center">⚙️ Upgrade Farm Kamu</div>`;
+  let html = `<div style="color:#f5c842;font-size:15px;margin-bottom:8px;text-align:center">⚙️ Upgrade Farm Kamu</div>`;
   // Upgrades
   Object.keys(UPGRADES).forEach(k => {
     const u = UPGRADES[k]; const lv = upgradeLevels[k]||0;
@@ -4534,24 +4534,24 @@ function renderUpgradePanel(){
     const canAfford = gold >= price;
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.08)">`;
     html += `<div style="display:flex;align-items:center;gap:8px">`;
-    html += `<div style="flex:1"><div style="color:#e0d080;font-size:0.24rem;font-weight:bold">${u.name} <span style="color:${u.color}">Lv.${lv}/${u.maxLevel}</span></div>`;
-    html += `<div style="color:#80a070;font-size:0.2rem">${u.desc}</div></div>`;
-    if(maxed){ html += `<div style="color:#60c040;font-size:0.2rem">✅ MAX</div>`; }
-    else { html += `<button onclick="buyUpgrade('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#805020':'#3a2a18'};border:none;border-radius:6px;color:${canAfford?'#fff':'#666'};font-size:0.2rem;padding:5px 8px;cursor:${canAfford?'pointer':'default'}">Upgrade<br><span style="color:#f5c842">${price.toLocaleString()}🪙</span></button>`; }
+    html += `<div style="flex:1"><div style="color:#e0d080;font-size:16px;font-weight:bold">${u.name} <span style="color:${u.color}">Lv.${lv}/${u.maxLevel}</span></div>`;
+    html += `<div style="color:#80a070;font-size:14px">${u.desc}</div></div>`;
+    if(maxed){ html += `<div style="color:#60c040;font-size:14px">✅ MAX</div>`; }
+    else { html += `<button onclick="buyUpgrade('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#805020':'#3a2a18'};border:none;border-radius:6px;color:${canAfford?'#fff':'#666'};font-size:14px;padding:5px 8px;cursor:${canAfford?'pointer':'default'}">Upgrade<br><span style="color:#f5c842">${price.toLocaleString()}🪙</span></button>`; }
     html += `</div></div>`;
   });
   // Fertilizer shop
-  html += `<div style="color:#f5c842;font-size:0.22rem;margin:10px 0 6px;text-align:center">⚡ Pupuk & Booster</div>`;
+  html += `<div style="color:#f5c842;font-size:15px;margin:10px 0 6px;text-align:center">⚡ Pupuk & Booster</div>`;
   Object.keys(FERTILIZERS).forEach(k => {
     const f = FERTILIZERS[k]; const inv = fertilizerInventory[k]||0;
     const canAfford = gold >= f.price;
     const isSelected = selectedFertilizer === k;
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 8px;margin-bottom:5px;border:1px solid ${isSelected?f.color:'rgba(255,255,255,0.08)'}">`;
     html += `<div style="display:flex;align-items:center;gap:8px">`;
-    html += `<span style="font-size:1.3em">${f.icon}</span>`;
-    html += `<div style="flex:1"><div style="color:#e0d080;font-size:0.22rem">${f.name}</div><div style="color:#80a070;font-size:0.2rem">${f.desc} · Stok: ${inv}</div></div>`;
-    html += `<button onclick="buyFertilizer('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:5px;color:${canAfford?'#fff':'#555'};font-size:0.18rem;padding:4px 6px;cursor:${canAfford?'pointer':'default'};margin-right:4px">Beli<br>${f.price}🪙</button>`;
-    if(inv > 0) html += `<button onclick="selectFertilizer('${k}')" style="background:${isSelected?f.color:'#304020'};border:none;border-radius:5px;color:#fff;font-size:0.18rem;padding:4px 6px;cursor:pointer">${isSelected?'✅ Aktif':'Pakai'}</button>`;
+    html += `<span style="font-size:28px">${f.icon}</span>`;
+    html += `<div style="flex:1"><div style="color:#e0d080;font-size:15px">${f.name}</div><div style="color:#80a070;font-size:14px">${f.desc} · Stok: ${inv}</div></div>`;
+    html += `<button onclick="buyFertilizer('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:5px;color:${canAfford?'#fff':'#555'};font-size:13px;padding:4px 6px;cursor:${canAfford?'pointer':'default'};margin-right:4px">Beli<br>${f.price}🪙</button>`;
+    if(inv > 0) html += `<button onclick="selectFertilizer('${k}')" style="background:${isSelected?f.color:'#304020'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:4px 6px;cursor:pointer">${isSelected?'✅ Aktif':'Pakai'}</button>`;
     html += `</div></div>`;
   });
   el.innerHTML = html;
@@ -4681,17 +4681,17 @@ window.handleClick = function(fid, pid){
 }
 .feat-btn{
   background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.15);
-  border-radius:10px;color:#e0d080;font-size:0.28rem;padding:5px 10px;
+  border-radius:10px;color:#e0d080;font-size:18px;padding:5px 10px;
   cursor:pointer;transition:all 0.2s;white-space:nowrap;
   text-shadow:1px 1px 0 #000;display:flex;flex-direction:column;align-items:center;gap:1px;
 }
 .feat-btn:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px);border-color:rgba(180,220,80,0.5);}
-.feat-btn .fb-icon{font-size:0.5rem;}
-.feat-btn .fb-label{font-size:0.16rem;color:#90c060;}
+.feat-btn .fb-icon{font-size:22px;}
+.feat-btn .fb-label{font-size:12px;color:#90c060;}
 #weatherDisplay{
   position:fixed;top:10px;left:50%;transform:translateX(-50%);
   background:rgba(0,0,0,0.5);border-radius:12px;padding:4px 14px;
-  font-size:0.24rem;z-index:9995;backdrop-filter:blur(8px);
+  font-size:16px;z-index:9995;backdrop-filter:blur(8px);
   border:1px solid rgba(255,255,255,0.15);pointer-events:none;
   text-shadow:1px 1px 0 #000;
 }
@@ -4705,17 +4705,21 @@ window.handleClick = function(fid, pid){
 .modal-box{
   background:linear-gradient(160deg,#0d1f0d,#162816,#1a1a2e);
   border:2px solid rgba(120,180,60,0.4);border-radius:16px;
-  padding:16px;width:min(92vw,380px);max-height:80vh;overflow-y:auto;
+  padding:20px;width:min(94vw,480px);max-height:85vh;overflow-y:auto;
   box-shadow:0 8px 40px rgba(0,0,0,0.7);
   scrollbar-width:thin;scrollbar-color:#3a5a20 transparent;
+  font-size:14px !important;
 }
+.modal-box * { font-size:14px !important; }
+.modal-box .big-text { font-size:16px !important; font-weight:bold; }
+.modal-box .emoji-big { font-size:28px !important; }
 .modal-title{
   display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px;
+  margin-bottom:14px;
 }
-.modal-title h2{color:#f5c842;font-size:0.32rem;text-shadow:1px 1px 0 #000;margin:0;}
+.modal-title h2{color:#f5c842;font-size:20px !important;text-shadow:1px 1px 0 #000;margin:0;}
 .modal-close{background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.4);border-radius:6px;
-  color:#ff8080;font-size:0.26rem;padding:3px 9px;cursor:pointer;}
+  color:#ff8080;font-size:16px !important;padding:5px 13px;cursor:pointer;}
 .modal-close:hover{background:rgba(255,80,80,0.4);}
 </style>
 
