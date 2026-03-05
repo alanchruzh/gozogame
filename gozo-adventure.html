@@ -78,7 +78,7 @@
       repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
       repeating-linear-gradient(0deg,  rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
       radial-gradient(ellipse at 25% 25%, #6a5228 0%, #5a3e18 50%, #442e0e 100%);
-    overflow:visible;}
+    overflow:visible;will-change:transform;}
   #world::before{display:none;}
 
   /* PATHS — dirt road with texture */
@@ -119,7 +119,7 @@
   .tg-back[data-zone="misty"]{border-color:rgba(100,180,100,.4);box-shadow:0 0 10px rgba(80,180,80,.2);}
 
   /* PLAYER */
-  #player{position:absolute;width:48px;height:64px;z-index:15;image-rendering:pixelated;}
+  #player{position:absolute;width:48px;height:64px;z-index:15;image-rendering:pixelated;will-change:left,top;transform:translateZ(0);}
   #player.in-grass{filter:drop-shadow(0 6px 4px rgba(5,70,5,.95));}
 
   /* EXCLAMATION */
@@ -254,12 +254,14 @@
   /* ═══════════════════════════════════════
      ALL OVERLAY SCREENS
   ═══════════════════════════════════════ */
-  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen,#prestige-screen,#puzzle-screen,#dex-screen,#lb-screen,#craft-screen,#worldmap-screen,#settings-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen,#prestige-screen,#puzzle-screen,#dex-screen,#lb-screen,#craft-screen,#worldmap-screen,#settings-screen,#bestiary-screen,#storyev-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
   #event-screen,#puzzle-screen{justify-content:center;background:rgba(0,0,10,.95);}
   #story-screen,#prestige-screen{justify-content:center;}
   @keyframes achIn{0%{transform:translateX(120%);opacity:0}100%{transform:translateX(0);opacity:1}}
   @keyframes achOut{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(120%)}}
   @keyframes comboIn{0%{transform:translateX(-50%) scale(0.5);opacity:0}100%{transform:translateX(-50%) scale(1);opacity:1}}
+  @keyframes miniBossIn{0%{opacity:0;transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+  @keyframes miniBossOut{0%{opacity:1}100%{opacity:0;transform:scale(0.95)}}
   @keyframes battleIntroBg{0%{background:rgba(0,0,0,0)}50%{background:rgba(0,0,0,.85)}100%{background:rgba(0,0,0,.6)}}
   @keyframes battleIntroOut{0%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
   @keyframes introNamePop{0%{opacity:0;transform:scale(0.3) translateY(20px)}70%{transform:scale(1.15) translateY(-5px)}100%{opacity:1;transform:scale(1) translateY(0)}}
@@ -765,6 +767,7 @@
     </div>
   </div>
   <div id="battle-ui">
+    <div id="weather-battle-hint" style="font-size:6px;color:#88aaff;text-align:center;padding:2px 8px;opacity:0;transition:opacity .5s;min-height:12px;"></div>
     <div id="battle-log">A wild monster appeared!</div>
     <div id="battle-actions">
       <button class="battle-btn" onclick="battleAction('attack')">⚔️ ATTACK</button>
@@ -855,6 +858,16 @@
           <button class="inv-sort-btn" id="wsort-tier" onclick="setSortW('tier')">TIER</button>
           <button class="inv-sort-btn" id="wsort-new" onclick="setSortW('new')">NEW</button>
         </div>
+        <div class="inv-filter-bar" style="border-top:1px solid #111;padding-top:4px;gap:3px;">
+          <span style="font-size:5px;color:#444;font-family:'Press Start 2P',monospace;">ELEMENT:</span>
+          ${['all','🔥fire','💧water','🌿grass','⚡electric','❄️ice','🌑dark','🪨earth','🌪️wind'].map(f=>{
+            const key=f==='all'?'all':f.slice(2);
+            return `<button onclick="setInvFilter('${key}');renderWeaponList();"
+              style="background:${_invFilterEl===key?'#FFD70022':'none'};border:1px solid ${_invFilterEl===key?'#FFD700':'#222'};
+              color:${_invFilterEl===key?'#FFD700':'#444'};font-family:'Press Start 2P',monospace;
+              font-size:5px;padding:2px 5px;cursor:pointer;" id="wf-${key}">${f==='all'?'ALL':f.slice(0,2)}</button>`;
+          }).join('')}
+        </div>
         <div id="inv-weapon-list" style="display:flex;flex-direction:column;gap:5px;"></div>
       </div>
 
@@ -934,6 +947,20 @@
 // ==============================================
 // Obstacle collision boxes [{x,y,w,h}]
 const obstacles = [];
+// Spatial partitioning: only test obstacles in ~200px radius of player
+function collidesObstacleFast(px, py){
+  const left  = px + 12, right = left + 24;
+  const top   = py + 52, bot   = top  + 16;
+  const MARGIN = 80;
+  for(let i = 0; i < obstacles.length; i++){
+    const ob = obstacles[i];
+    // Quick broad-phase: skip if clearly out of range
+    if(ob.x > right + MARGIN || ob.x+ob.w < left - MARGIN) continue;
+    if(ob.y > bot  + MARGIN || ob.y+ob.h < top  - MARGIN) continue;
+    if(right > ob.x && left < ob.x+ob.w && bot > ob.y && top < ob.y+ob.h) return true;
+  }
+  return false;
+}
 
 // Hardcoded grass zone rectangles — used to exclude decorations from spawning inside grass
 // Must match the zones array in buildMap()
@@ -3869,14 +3896,34 @@ function playSoundSkill(partnerType){
 const CAM = { x:0, y:0 };
 const WORLD_W = 2400, WORLD_H = 1800;
 
+let _worldEl = null;
+let _minimapPlayer = null;
+let _camX = 0, _camY = 0;
+let _minimapFrame = 0;
+
 function updateCamera(){
   const vw = window.innerWidth, vh = window.innerHeight;
   const px = state.player.x + 24, py = state.player.y + 32;
-  CAM.x = Math.max(0, Math.min(WORLD_W - vw, px - vw/2));
-  CAM.y = Math.max(0, Math.min(WORLD_H - vh, py - vh/2));
-  const worldEl = document.getElementById('world');
-  if(worldEl) worldEl.style.transform = `translate(${-CAM.x}px,${-CAM.y}px)`;
-  updateMinimap();
+  const newCX = Math.max(0, Math.min(WORLD_W - vw, px - vw/2));
+  const newCY = Math.max(0, Math.min(WORLD_H - vh, py - vh/2));
+  // Only update DOM if camera moved
+  if(newCX !== _camX || newCY !== _camY){
+    _camX = newCX; _camY = newCY;
+    CAM.x = _camX; CAM.y = _camY;
+    if(!_worldEl) _worldEl = document.getElementById('world');
+    if(_worldEl) _worldEl.style.transform = `translate(${-_camX|0}px,${-_camY|0}px)`;
+  }
+  // Minimap: only update player dot every 3 frames
+  _minimapFrame++;
+  if(_minimapFrame % 3 === 0){
+    const scaleX = 120/WORLD_W, scaleY = 90/WORLD_H;
+    if(!_minimapPlayer) _minimapPlayer = document.getElementById('minimap-player');
+    if(_minimapPlayer){
+      _minimapPlayer.style.left = (state.player.x * scaleX)|0 + 'px';
+      _minimapPlayer.style.top  = (state.player.y * scaleY)|0 + 'px';
+    }
+    updateMinimap();
+  }
 }
 
 let _minimapDrawn = false;
@@ -3887,28 +3934,18 @@ function updateMinimap(){
   const MW = 120, MH = 90;
   const scaleX = MW / WORLD_W, scaleY = MH / WORLD_H;
 
-  // Draw static map once (background + zones)
+  // Draw static map once
   if(!_minimapDrawn){
     _minimapDrawn = true;
     ctx.fillStyle = '#8c6234';
     ctx.fillRect(0, 0, MW, MH);
-    // Paths — horizontal
     ctx.fillStyle = '#c9a96e';
     ctx.fillRect(0, (WORLD_H/2-30)*scaleY, MW, 60*scaleY);
-    // Paths — vertical
     ctx.fillRect((WORLD_W/2-30)*scaleX, 0, 60*scaleX, MH);
-    // Grass zones
     state.grassZones.forEach(z => {
       ctx.fillStyle = z.isBoss ? 'rgba(170,68,255,.55)' : 'rgba(30,160,30,.5)';
       ctx.fillRect(z.x*scaleX, z.y*scaleY, z.w*scaleX, z.h*scaleY);
     });
-  }
-
-  // Player dot
-  const mp = document.getElementById('minimap-player');
-  if(mp){
-    mp.style.left = (state.player.x * scaleX) + 'px';
-    mp.style.top  = (state.player.y * scaleY) + 'px';
   }
 }
 
@@ -4084,6 +4121,7 @@ function initGame(fromLoad){
   }
   buildMap();
   spawnDecorations();
+  initNpcPatrol();
   renderGroundCanvas();
   updatePlayerPos();
   updateCamera();
@@ -4981,22 +5019,36 @@ function makeGrassCanvas(w, h, isBoss, isFront, zoneType){
 let _grassSwayOffset = 0;
 let _grassSwayDir = 1;
 const _grassSwayMax = 3; // px
+// Cache grass canvases once (never re-query every frame)
+let _grassCanvasCache = null;
+function getGrassCanvases(){
+  if(!_grassCanvasCache || _grassCanvasCache.length === 0){
+    _grassCanvasCache = Array.from(document.querySelectorAll('.tg-back canvas, .tg-front canvas'));
+  }
+  return _grassCanvasCache;
+}
+
+let _swayFrame = 0;
 function tickGrassSway(){
-  if(!document.getElementById('world')) return;
+  // Only update sway every 3 frames — imperceptible visually, 3x faster
+  _swayFrame++;
+  if(_swayFrame % 3 !== 0) return;
   _grassSwayOffset += 0.018 * _grassSwayDir;
   if(Math.abs(_grassSwayOffset) >= _grassSwayMax) _grassSwayDir *= -1;
-  document.querySelectorAll('.tg-back canvas, .tg-front canvas').forEach(c => {
-    c.style.transform = `translateX(${_grassSwayOffset.toFixed(2)}px) skewX(${(_grassSwayOffset*0.4).toFixed(2)}deg)`;
-  });
+  const tx = _grassSwayOffset.toFixed(1);
+  const sk = (_grassSwayOffset * 0.4).toFixed(1);
+  const t = `translateX(${tx}px) skewX(${sk}deg)`;
+  const canvases = getGrassCanvases();
+  for(let i = 0; i < canvases.length; i++) canvases[i].style.transform = t;
 }
 // ==============================================
 // PLAYER POSITION
 // ==============================================
 function updatePlayerPos(){
-  const el=document.getElementById('player');
-  if(!el) return;
-  el.style.left=state.player.x+'px';
-  el.style.top=state.player.y+'px';
+  if(!_playerEl) _playerEl = document.getElementById('player');
+  if(!_playerEl) return;
+  _playerEl.style.left = (state.player.x|0)+'px';
+  _playerEl.style.top  = (state.player.y|0)+'px';
 }
 
 // ==============================================
@@ -5216,21 +5268,29 @@ function drawUp(ctx, step) {
 }
 
 // ── MAIN RENDERER ────────────────────────────
+let _gozoCtx = null;
+let _lastGozoKey = '';
 function renderGozo(dir, step) {
-  const canvas = document.getElementById('gozo-canvas');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, 48, 64);
-  if      (dir === 'up')    drawUp(ctx, step);
-  else if (dir === 'left')  drawLeft(ctx, step);
-  else if (dir === 'right') drawRight(ctx, step);
-  else                      drawDown(ctx, step);
+  // Only redraw if direction or step changed
+  const key = dir + step;
+  if(key === _lastGozoKey) return;
+  _lastGozoKey = key;
+  if(!_gozoCtx){
+    const canvas = document.getElementById('gozo-canvas');
+    if(!canvas) return;
+    _gozoCtx = canvas.getContext('2d');
+  }
+  _gozoCtx.clearRect(0, 0, 48, 64);
+  if      (dir === 'up')    drawUp(_gozoCtx, step);
+  else if (dir === 'left')  drawLeft(_gozoCtx, step);
+  else if (dir === 'right') drawRight(_gozoCtx, step);
+  else                      drawDown(_gozoCtx, step);
 }
 
 // ==============================================
 // GAME LOOP  — direction + walk cycle
 // ==============================================
-const SPEED = 4;
+const SPEED = 8;
 const STEP_FRAMES = 10;   // frames per half-step
 let   stepTimer   = 0;
 let   stepPhase   = 0;    // 0=idle, cycles 1→2→1→2...
@@ -5256,25 +5316,9 @@ function gameLoop() {
       const newX = Math.max(0, Math.min(WORLD_W - 48, oldX + dx));
       const newY = Math.max(45, Math.min(WORLD_H - 64, oldY + dy));
 
-      // Player hitbox: feet area (24px wide, 12px tall at bottom of sprite)
-      const PW = 24, PH = 16;
-      const pFeetXoff = 12, pFeetYoff = 52; // offset from sprite top-left
-
-      function collidesObstacle(px, py){
-        const left  = px + pFeetXoff;
-        const right = left + PW;
-        const top   = py + pFeetYoff;
-        const bot   = top + PH;
-        for(const ob of obstacles){
-          if(right > ob.x && left < ob.x+ob.w &&
-             bot   > ob.y && top  < ob.y+ob.h) return true;
-        }
-        return false;
-      }
-
-      // Slide collision: try X and Y separately for smooth sliding
-      const canX = !collidesObstacle(newX, oldY);
-      const canY = !collidesObstacle(oldX, newY);
+      // Slide collision using fast spatial check
+      const canX = !collidesObstacleFast(newX, oldY);
+      const canY = !collidesObstacleFast(oldX, newY);
 
       state.player.x = canX ? newX : oldX;
       state.player.y = canY ? newY : oldY;
@@ -5304,15 +5348,20 @@ function gameLoop() {
     updateCamera();
     tickGrassSway();
     if(state.inGrass && moving) drawGrassPart();
-    tickWeather();
-    tickRandomEvents();
-    checkWaypointUnlock();
+    // Throttle: weather/events/waypoints only every 4 frames
+    if(_swayFrame % 4 === 0){
+      tickWeather();
+      tickRandomEvents();
+      checkWaypointUnlock();
+    }
     tickFootstep(moving);
     if(moving) updateFogOfWar();
     tickDayNight();
     tickCombo();
-    // Check achievements periodically
-    if(Math.random()<0.01) checkAchievements();
+    tickMiniBoss();
+    if(npcPatrollers.length) tickNpcPatrol();
+    // Check achievements & story events periodically
+    if(Math.random()<0.01){ checkAchievements(); checkStoryEvents(); }
   }
   requestAnimationFrame(gameLoop);
 }
@@ -5332,54 +5381,49 @@ let grassPartTrail = []; // [{x,y,age,maxAge}]
 function drawGrassPart(){
   const px = state.player.x + 24;
   const py = state.player.y + 54;
-  // Add new parting point at feet
-  grassPartTrail.push({ x:px, y:py, age:0, maxAge:18 });
-  if(grassPartTrail.length > 40) grassPartTrail.shift();
+  grassPartTrail.push({ x:px, y:py, age:0, maxAge:14 });
+  if(grassPartTrail.length > 20) grassPartTrail.shift();
 
   const canvas = document.getElementById('grass-part-canvas');
   if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, WORLD_W, WORLD_H);
 
-  // Draw each trail point as parted blades
+  // Only draw in a small region around the player — NOT the full world canvas
+  const VIEW_W = 160, VIEW_H = 160;
+  const ox = px - VIEW_W/2, oy = py - VIEW_H/2;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(ox, oy, VIEW_W, VIEW_H);
+
   grassPartTrail = grassPartTrail.filter(p => p.age < p.maxAge);
-  grassPartTrail.forEach(p => {
+  for(const p of grassPartTrail){
     p.age++;
     const life = 1 - p.age / p.maxAge;
-    const radius = 22 + (1 - life) * 8;
-
-    // Left parted blades
-    for(let i = 0; i < 5; i++){
-      const angle = Math.PI + (i / 4) * Math.PI * 0.55;
-      const bx = p.x + Math.cos(angle) * radius * (0.5 + i*0.12);
-      const by = p.y + Math.sin(angle) * radius * 0.4;
-      ctx.strokeStyle = `rgba(30,160,30,${life * 0.75})`;
-      ctx.lineWidth = 2.5;
+    const radius = 18 + (1 - life) * 6;
+    ctx.globalAlpha = life * 0.7;
+    ctx.lineWidth = 2;
+    // Left blades
+    for(let i = 0; i < 3; i++){
+      const angle = Math.PI + (i/2)*Math.PI*0.5;
+      const bx = p.x + Math.cos(angle)*radius*0.7;
+      const by = p.y + Math.sin(angle)*radius*0.35;
+      ctx.strokeStyle = '#28b828';
       ctx.beginPath();
-      ctx.moveTo(bx, by + 12);
-      ctx.quadraticCurveTo(bx - 6, by, bx + (i%2===0?-8:8), by - 14);
+      ctx.moveTo(bx, by+10);
+      ctx.quadraticCurveTo(bx-4, by, bx+(i%2===0?-6:6), by-10);
       ctx.stroke();
     }
-    // Right parted blades
-    for(let i = 0; i < 5; i++){
-      const angle = (i / 4) * Math.PI * 0.55;
-      const bx = p.x + Math.cos(angle) * radius * (0.5 + i*0.12);
-      const by = p.y + Math.sin(angle) * radius * 0.4;
-      ctx.strokeStyle = `rgba(50,200,50,${life * 0.7})`;
-      ctx.lineWidth = 2.5;
+    // Right blades
+    for(let i = 0; i < 3; i++){
+      const angle = (i/2)*Math.PI*0.5;
+      const bx = p.x + Math.cos(angle)*radius*0.7;
+      const by = p.y + Math.sin(angle)*radius*0.35;
+      ctx.strokeStyle = '#44cc44';
       ctx.beginPath();
-      ctx.moveTo(bx, by + 12);
-      ctx.quadraticCurveTo(bx + 6, by, bx + (i%2===0?8:-8), by - 14);
+      ctx.moveTo(bx, by+10);
+      ctx.quadraticCurveTo(bx+4, by, bx+(i%2===0?6:-6), by-10);
       ctx.stroke();
     }
-    // Bright center split line
-    ctx.strokeStyle = `rgba(120,255,80,${life * 0.35})`;
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y + 8);
-    ctx.lineTo(p.x, p.y - 10);
-    ctx.stroke();
-  });
+  }
+  ctx.globalAlpha = 1;
 }
 
 // Grass rustle sound — throttled so it doesn't fire every frame
@@ -5395,46 +5439,46 @@ function maybeRustle(){
 // ==============================================
 // GRASS / ENCOUNTER CHECK  ← Core Pokemon mechanic
 // ==============================================
+let _playerEl = null;
+let _grassBadge = null;
+let _activeGrassZone = null;
+
 function checkGrass(){
-  const px=state.player.x+24; // center x
-  const py=state.player.y+52; // feet y
+  const px = state.player.x + 24;
+  const py = state.player.y + 52;
 
-  const zone=getZoneAt(px,py);
-  const wasIn=state.inGrass;
-  state.inGrass=!!zone;
+  const zone = getZoneAt(px, py);
+  const wasIn = state.inGrass;
+  state.inGrass = !!zone;
 
-  const playerEl=document.getElementById('player');
-  const badge=document.getElementById('grass-badge');
-  if(!playerEl||!badge) return;
+  if(!_playerEl) _playerEl = document.getElementById('player');
+  if(!_grassBadge) _grassBadge = document.getElementById('grass-badge');
+  if(!_playerEl || !_grassBadge) return;
 
   if(state.inGrass){
-    playerEl.classList.add('in-grass');
-    badge.style.display='block';
-    // Activate back layer glow
-    state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
-    if(zone.back) zone.back.classList.add('active');
-    // Track grass entry for quests (only on fresh entry)
-    if(!wasIn) questTrackGrass();
-    if(!wasIn) bgmFadeTo('grass');
-
-    // Rustle sound while walking through grass
+    if(!wasIn){
+      _playerEl.classList.add('in-grass');
+      _grassBadge.style.display = 'block';
+      // Deactivate previous zone, activate new
+      if(_activeGrassZone && _activeGrassZone !== zone) _activeGrassZone.back?.classList.remove('active');
+      if(zone.back) zone.back.classList.add('active');
+      _activeGrassZone = zone;
+      questTrackGrass();
+      bgmFadeTo('grass');
+    }
     maybeRustle();
-
-    // Random wild encounter — ~6% per frame when moving in grass
-    if(state.encounterCooldown<=0){
-      const encounterRate = zone.isBoss ? 0.05 : 0.065;
-      if(Math.random()<encounterRate){
-        triggerEncounter(zone);
-      }
+    if(state.encounterCooldown <= 0){
+      const rate = zone.isBoss ? 0.05 : 0.065;
+      if(Math.random() < rate) triggerEncounter(zone);
     }
   } else {
-    playerEl.classList.remove('in-grass');
-    badge.style.display='none';
     if(wasIn){
-      state.grassZones.forEach(z=>{ if(z.back) z.back.classList.remove('active'); });
+      _playerEl.classList.remove('in-grass');
+      _grassBadge.style.display = 'none';
+      if(_activeGrassZone){ _activeGrassZone.back?.classList.remove('active'); _activeGrassZone = null; }
       grassPartTrail = [];
-      const canvas = document.getElementById('grass-part-canvas');
-      if(canvas) canvas.getContext('2d').clearRect(0,0,WORLD_W,WORLD_H);
+      const gpc = document.getElementById('grass-part-canvas');
+      if(gpc){ const c=gpc.getContext('2d'); c.clearRect(0,0,WORLD_W,WORLD_H); }
       bgmFadeTo('explore');
     }
   }
@@ -5540,6 +5584,10 @@ function startBattle(enemy){
   }
   updateBattleHP();
   setBattleLog(intro);
+  // Show weather effect hint
+  showWeatherBattleHint();
+  const wHint = document.getElementById('weather-battle-hint');
+  if(wHint && currentWeather !== 'clear'){ wHint.style.opacity='1'; setTimeout(()=>wHint.style.opacity='0',4000); }
   setBattleButtons(true);
 }
 
@@ -5587,10 +5635,14 @@ function battleAction(action){
     // Apply combo multiplier
     const comboMult = getComboMultiplier();
     if(comboMult > 1) dmg = Math.floor(dmg * comboMult);
+    // Apply weather element bonus on player weapon element
+    const weaponEl = equipped.weapon ? equipped.weapon.element : null;
+    if(weaponEl) dmg = applyWeatherDmgMult(dmg, weaponEl);
     // Apply puzzle bonus
     if(puzzleReward>0){ dmg=Math.floor(dmg*(1+puzzleReward)); puzzleReward=0; }
     e.hp-=dmg;
     registerHit();
+    if(questState) questState.stats.maxCombo = Math.max(questState.stats.maxCombo||0, comboCount);
     playSoundAttack();
     attackLungePlayer();
     setTimeout(()=>{
@@ -5792,7 +5844,18 @@ function enemyTurn(){
     return;
   }
 
-  setBattleLog(log);
+  setBattleLog(log + (statusDmgLog||''));
+  // Weather effects on enemy element
+  if(e.element){
+    const weatherMult = (getWeatherBattleEffect().dmgMult||{})[e.element]||1;
+    if(weatherMult !== 1){
+      const wHint = document.getElementById('weather-battle-hint');
+      if(wHint){ const eff=getWeatherBattleEffect(); wHint.textContent=`${eff.label}: ${eff.desc}`; wHint.style.opacity='1'; setTimeout(()=>wHint.style.opacity='0',3000); }
+    }
+  }
+  // Sunny weather heals player each enemy turn
+  const sunnyHeal = getWeatherBattleEffect().healBonus||0;
+  if(sunnyHeal>0 && p.hp<p.maxHp){ p.hp=Math.min(p.maxHp,p.hp+sunnyHeal); }
   updateBattleHP();
   updateStatusHUD();
   if(e.hp<=0){setTimeout(winBattle,800);return;}
@@ -5817,6 +5880,7 @@ function winBattle(){
   }
   p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||5,p.potions+1);
   trackDexKill(e);
+  if(e.isMiniBoss && questState) questState.stats.miniBossKills = (questState.stats.miniBossKills||0)+1;
   gainPartnerExp(Math.floor(e.exp * 0.3));
   if(p.hp<=10 && questState) questState.stats.closeWins=(questState.stats.closeWins||0)+1;
   checkAchievements();
@@ -6634,12 +6698,13 @@ function renderWeaponList(){
   const wList = document.getElementById('inv-weapon-list');
   if(!wList) return;
   let items = [...inventory.weapons];
-  // Filter
+  // Rarity filter
   if(_wFilter !== 'all') items = items.filter(w => w.rarity === _wFilter);
+  // Element filter (global)
+  if(_invFilterEl !== 'all') items = items.filter(w => (w.element||'none') === _invFilterEl);
   // Sort
   if(_wSort==='atk') items.sort((a,b)=>b.atk-a.atk);
   else if(_wSort==='tier') items.sort((a,b)=>b.t-a.t);
-  // 'new' = original order (reversed = newest first)
   else items = [...items].reverse();
   wList.innerHTML = '';
   if(!items.length){
@@ -7712,9 +7777,13 @@ function doCraft(recipeId){
 // ==============================================
 let fogReveal = {}; // grid cell keys revealed
 
+let _lastFogX = -999, _lastFogY = -999;
 function updateFogOfWar(){
-  const p=state.player;
-  const gridX=Math.floor(p.x/120), gridY=Math.floor(p.y/120);
+  const p = state.player;
+  const gridX = Math.floor(p.x/120), gridY = Math.floor(p.y/120);
+  // Only update if player moved to a new fog cell
+  if(gridX === _lastFogX && gridY === _lastFogY) return;
+  _lastFogX = gridX; _lastFogY = gridY;
   for(let dx=-2;dx<=2;dx++) for(let dy=-2;dy<=2;dy++) fogReveal[`${gridX+dx}_${gridY+dy}`]=true;
 }
 
@@ -7766,29 +7835,447 @@ function openWorldMap(){
 }
 
 // ==============================================
-// 🏆 ACHIEVEMENT SYSTEM
+// 🌦️ WEATHER BATTLE EFFECTS
+// ==============================================
+const WEATHER_BATTLE_EFFECTS = {
+  rain:  { label:'🌧️ Rain',    dmgMult:{water:1.3,electric:0.7,fire:0.8}, healBonus:0,   statusChance:{water:'slow'}, desc:'Water +30%, Fire -20%, Electric -30%' },
+  storm: { label:'⛈️ Storm',   dmgMult:{electric:1.5,water:1.2,wind:1.2,fire:0.6}, healBonus:0, statusChance:{electric:null}, desc:'Electric +50%, Wind +20%, Fire -40%' },
+  sunny: { label:'☀️ Sunny',   dmgMult:{fire:1.3,grass:1.2,ice:0.7,water:0.8}, healBonus:5, statusChance:{}, desc:'Fire +30%, Grass +20%, Ice -30%. Heal +5/turn' },
+  fog:   { label:'🌫️ Fog',     dmgMult:{dark:1.3,light:0.6}, healBonus:0, statusChance:{dark:null}, desc:'Dark +30%, Light -40%. Accuracy -15%' },
+  clear: { label:'🌤️ Clear',   dmgMult:{}, healBonus:0, statusChance:{}, desc:'No effects' },
+};
+
+function getWeatherBattleEffect(){
+  return WEATHER_BATTLE_EFFECTS[currentWeather] || WEATHER_BATTLE_EFFECTS.clear;
+}
+
+function applyWeatherDmgMult(baseDmg, element){
+  const eff = getWeatherBattleEffect();
+  const mult = (eff.dmgMult && element && eff.dmgMult[element]) || 1.0;
+  return mult !== 1.0 ? Math.floor(baseDmg * mult) : baseDmg;
+}
+
+function showWeatherBattleHint(){
+  const eff = getWeatherBattleEffect();
+  if(currentWeather === 'clear') return;
+  const el = document.getElementById('weather-battle-hint');
+  if(el){ el.textContent = `${eff.label}: ${eff.desc}`; el.style.opacity='1'; }
+}
+
+// ==============================================
+// 📖 MID-GAME STORY EVENTS
+// ==============================================
+const STORY_EVENTS = [
+  { level:5,  id:'lv5',  title:'The First Warning',
+    lines:['You feel a dark presence stirring...','A hooded figure appears at the crossroads.','Stranger: "Turn back, adventurer. The bosses grow stronger with each defeat."','Stranger: "They feed on your victories. Are you sure you wish to continue?"','[The stranger vanishes into the shadows]'],
+    reward:'EXP +200', rewardFn: p=>{ p.exp+=200; } },
+  { level:10, id:'lv10', title:'The Ancient Scroll',
+    lines:['You discover a glowing scroll by a fallen tree.','Scroll: "Seeker of power — the eight guardians were once protectors."','Scroll: "Corrupted by the Void Emperor, they now serve darkness."','Scroll: "Only one with a pure heart and strong partner can free them."','[You gain insight into the ancient war. ATK +3!]'],
+    reward:'ATK +3', rewardFn: p=>{ p.attack+=3; } },
+  { level:15, id:'lv15', title:'Your Partner Speaks',
+    lines:['Your partner glows with a mysterious light.','Partner: "I can feel it too. Something vast and ancient awakens."','Partner: "Every boss we defeat weakens the seal on the Void Emperor."','Partner: "But we have no choice. We must press forward."','[Bond strengthened! Partner gains +5 ATK permanently!]'],
+    reward:'Partner +5 ATK', rewardFn: p=>{ if(window.partner) partner.bonusAtk=(partner.bonusAtk||0)+5; p.attack+=2; } },
+  { level:20, id:'lv20', title:'The Void Cracks',
+    lines:['The sky turns black for a moment.','A voice booms: "YOU DARE REACH THIS FAR, MORTAL?"','Voice: "I am the Void Emperor. Your journey ends with my servants."','Voice: "Defeat them all, and face me. If you dare."','[Max HP +100! The final challenge awaits!]'],
+    reward:'Max HP +100', rewardFn: p=>{ p.maxHp+=100; p.hp=Math.min(p.hp+100,p.maxHp); } },
+  { level:25, id:'lv25', title:'The Last Guardian',
+    lines:['A spirit of light descends before you.','Spirit: "Few have come this far. You have proven your worth."','Spirit: "Take this blessing. You will need it for what lies ahead."','[DEF +5, CRIT +10%!]'],
+    reward:'DEF +5, Crit +10%', rewardFn: p=>{ p.defense+=5; p.critChance=Math.min(0.8,(p.critChance||0)+0.10); } },
+];
+let triggeredStoryEvents = {};
+
+function checkStoryEvents(){
+  const p = state.player;
+  for(const ev of STORY_EVENTS){
+    if(!triggeredStoryEvents[ev.id] && p.level >= ev.level){
+      triggeredStoryEvents[ev.id] = true;
+      setTimeout(()=>showStoryEvent(ev), 800);
+      break;
+    }
+  }
+}
+
+function showStoryEvent(ev){
+  const sc = document.getElementById('storyev-screen');
+  if(!sc) return;
+  let lineIdx = 0;
+  const render = ()=>{
+    const isLast = lineIdx >= ev.lines.length - 1;
+    sc.innerHTML = `
+      <div style="width:100%;max-width:480px;padding:24px;text-align:center;">
+        <div style="font-size:8px;color:#888;letter-spacing:3px;margin-bottom:8px;">📖 STORY EVENT</div>
+        <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#FFD700;margin-bottom:20px;
+          text-shadow:0 0 12px #FFD70066;">${ev.title}</div>
+        <div style="background:#080810;border:2px solid #222;padding:16px;margin-bottom:16px;min-height:80px;
+          font-size:8px;color:#ddeeff;line-height:2.2;animation:fadeIn .4s ease;">
+          ${ev.lines[lineIdx]}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:6px;color:#444;">${lineIdx+1}/${ev.lines.length}</div>
+          ${isLast ? `
+            <div style="font-size:7px;color:#44ff88;background:#0a1a0a;border:2px solid #44ff8866;
+              padding:6px 14px;">🎁 ${ev.reward}</div>
+            <button onclick="finishStoryEvent('${ev.id}')"
+              style="background:#FFD700;color:#000;border:none;font-family:'Press Start 2P',monospace;
+              font-size:8px;padding:10px 18px;cursor:pointer;">CLAIM ✓</button>
+          ` : `
+            <span></span>
+            <button onclick="advanceStoryLine()"
+              style="background:#0a0a14;border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P',monospace;
+              font-size:8px;padding:10px 18px;cursor:pointer;">NEXT ▶</button>
+          `}
+        </div>
+      </div>`;
+    sc.style.display='flex';
+  };
+  window._storyLineIdx = 0;
+  window._storyEv = ev;
+  window._storyRender = render;
+  render();
+}
+
+function advanceStoryLine(){
+  window._storyLineIdx = (window._storyLineIdx||0) + 1;
+  const ev = window._storyEv;
+  const sc = document.getElementById('storyev-screen');
+  if(!ev || !sc) return;
+  let lineIdx = window._storyLineIdx;
+  const isLast = lineIdx >= ev.lines.length - 1;
+  const linesDiv = sc.querySelector('div[style*="min-height"]');
+  if(linesDiv){ linesDiv.style.animation='none'; void linesDiv.offsetWidth; linesDiv.style.animation='fadeIn .4s ease'; linesDiv.textContent=ev.lines[lineIdx]; }
+  // swap buttons
+  const btns = sc.querySelectorAll('button');
+  btns.forEach(b=>b.remove());
+  const row = sc.querySelector('div[style*="justify-content"]');
+  if(isLast && row){
+    row.innerHTML=`<div style="font-size:6px;color:#444;">${lineIdx+1}/${ev.lines.length}</div>
+      <div style="font-size:7px;color:#44ff88;background:#0a1a0a;border:2px solid #44ff8866;padding:6px 14px;">🎁 ${ev.reward}</div>
+      <button onclick="finishStoryEvent('${ev.id}')" style="background:#FFD700;color:#000;border:none;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 18px;cursor:pointer;">CLAIM ✓</button>`;
+  } else if(row){
+    row.innerHTML=`<div style="font-size:6px;color:#444;">${lineIdx+1}/${ev.lines.length}</div><span></span>
+      <button onclick="advanceStoryLine()" style="background:#0a0a14;border:2px solid #FFD700;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 18px;cursor:pointer;">NEXT ▶</button>`;
+  }
+}
+
+function finishStoryEvent(evId){
+  const ev = STORY_EVENTS.find(e=>e.id===evId);
+  if(ev && ev.rewardFn){ ev.rewardFn(state.player); updateHUD(); lsSave(); }
+  const sc = document.getElementById('storyev-screen');
+  if(sc){ sc.style.animation='fadeOut .4s ease forwards'; setTimeout(()=>{ sc.style.display='none'; sc.style.animation=''; },400); }
+  spawnBattleParticles(12,['📖','✨','⭐','🎁'],200,250);
+}
+
+// ==============================================
+// ⚔️ MINI-BOSS SYSTEM
+// ==============================================
+const MINI_BOSSES = [
+  { name:'GOBLIN KING',   emoji:'👑', color:'#cc8800', t:3,  hp:120, atk:28, def:10, exp:80,  coins:60,  element:'dark',    lore:'Rules a tribe of 300 goblins from a rusted throne.', mechanic:'shield',   mechanicDesc:'Blocks every 4th turn!' },
+  { name:'CURSED KNIGHT', emoji:'⚔️', color:'#334455', t:5,  hp:180, atk:38, def:18, exp:130, coins:100, element:'dark',    lore:'A warrior who sold his soul for immortality.',         mechanic:'drain',    mechanicDesc:'Drains 8 HP per attack!' },
+  { name:'VENOM QUEEN',   emoji:'🕷️', color:'#448833', t:5,  hp:160, atk:34, def:12, exp:120, coins:90,  element:'grass',   lore:'Mother of all poison spiders. Her bite is death.',     mechanic:'heal',     mechanicDesc:'Heals 15 HP every 3 turns!' },
+  { name:'INFERNAL WARDEN',emoji:'🔥',color:'#cc4400', t:7,  hp:240, atk:50, def:16, exp:180, coins:140, element:'fire',    lore:'Guardian of the lava pits. Burns all who trespass.',   mechanic:'burn',     mechanicDesc:'Burns you for 3 turns!' },
+  { name:'FROST LICH',    emoji:'❄️', color:'#88aacc', t:7,  hp:220, atk:46, def:22, exp:170, coins:130, element:'ice',     lore:'An ancient lich preserved in eternal ice.',            mechanic:'slow',     mechanicDesc:'Slows and freezes every 3rd turn!' },
+  { name:'STORM WARLORD', emoji:'⚡', color:'#aacc00', t:9,  hp:300, atk:62, def:20, exp:240, coins:190, element:'electric',lore:'Commands legions with lightning from his fists.',       mechanic:'multi',    mechanicDesc:'Strikes twice!' },
+  { name:'SHADOW EMPRESS',emoji:'🌑', color:'#aa44dd', t:9,  hp:280, atk:58, def:26, exp:220, coins:175, element:'dark',    lore:'Ruler of the shadow realm. Reality bends at her will.', mechanic:'overload', mechanicDesc:'Mega strike every 5 turns!' },
+];
+
+let miniBossTimer = 0;
+const MINI_BOSS_INTERVAL = 900; // ~15s after last encounter
+let lastMiniBossZoneType = null;
+
+function tickMiniBoss(){
+  if(state.inBattle || !state.inGrass) return;
+  miniBossTimer++;
+  if(miniBossTimer >= MINI_BOSS_INTERVAL && Math.random() < 0.004){
+    miniBossTimer = 0;
+    spawnMiniBoss();
+  }
+}
+
+function spawnMiniBoss(){
+  const p = state.player;
+  // Pick appropriate tier mini-boss
+  const tier = Math.max(1, Math.floor(p.level * 0.8));
+  const pool = MINI_BOSSES.filter(b => b.t <= tier + 2);
+  if(!pool.length) return;
+  const mb = pool[Math.floor(Math.random() * pool.length)];
+  showMiniBossWarning(mb);
+}
+
+function showMiniBossWarning(mb){
+  // Screen flash + dramatic entrance
+  flashArena('rgba(255,50,50,0.6)');
+  const warn = document.createElement('div');
+  warn.style.cssText=`position:fixed;inset:0;z-index:88;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;pointer-events:none;
+    animation:miniBossIn .5s ease both;`;
+  warn.innerHTML=`
+    <div style="font-size:clamp(10px,3vw,16px);color:#ff4444;letter-spacing:4px;font-family:'Orbitron',sans-serif;
+      text-shadow:0 0 20px #ff444488;animation:pulse 0.3s ease infinite alternate;">⚠️ MINI-BOSS APPEARS! ⚠️</div>
+    <div style="font-size:clamp(24px,6vw,48px);margin:8px 0;filter:drop-shadow(0 0 12px #ff8800);">
+      ${mb.emoji}</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,3.5vw,28px);color:#ff8800;
+      text-shadow:0 0 16px #ff880088;">${mb.name}</div>
+    <div style="font-size:8px;color:#ff6644;margin-top:6px;">⚠️ ${mb.mechanicDesc||''}</div>`;
+  document.body.appendChild(warn);
+  playSoundAchievement();
+  setTimeout(()=>{ warn.remove(); startBattle({...mb, maxHp:mb.hp, isMiniBoss:true}); }, 1800);
+}
+
+// ==============================================
+// 🔃 INVENTORY SORT & FILTER
+// ==============================================
+let _invSortMode = 'tier'; // tier | atk | def | name
+let _invFilterEl = 'all';
+
+function setInvSort(mode){ _invSortMode = mode; renderWeaponList(); renderArmorList(); }
+function setInvFilter(el){ _invFilterEl = el; renderWeaponList(); renderArmorList(); }
+
+function sortAndFilterItems(items, type){
+  let arr = [...items];
+  if(_invFilterEl !== 'all') arr = arr.filter(i => i.element === _invFilterEl || (!i.element && _invFilterEl==='none'));
+  if(_invSortMode==='tier')  arr.sort((a,b)=>(b.t||1)-(a.t||1));
+  if(_invSortMode==='atk')   arr.sort((a,b)=>(b.atk||0)-(a.atk||0));
+  if(_invSortMode==='def')   arr.sort((a,b)=>(b.def||0)-(a.def||0));
+  if(_invSortMode==='name')  arr.sort((a,b)=>a.name.localeCompare(b.name));
+  return arr;
+}
+
+function buildInvSortBar(){
+  const sorts = ['tier','atk','def','name'];
+  const filters = ['all','fire','water','grass','electric','ice','dark','earth','wind','light'];
+  return `<div style="display:flex;gap:4px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid #111;margin-bottom:8px;">
+    <span style="font-size:5px;color:#555;align-self:center;margin-right:2px;">SORT:</span>
+    ${sorts.map(s=>`<button onclick="setInvSort('${s}')"
+      style="background:${_invSortMode===s?'#FFD70022':'none'};border:1px solid ${_invSortMode===s?'#FFD700':'#333'};
+      color:${_invSortMode===s?'#FFD700':'#555'};font-family:'Press Start 2P',monospace;font-size:5px;
+      padding:3px 6px;cursor:pointer;">${s.toUpperCase()}</button>`).join('')}
+    <span style="font-size:5px;color:#555;align-self:center;margin-left:6px;margin-right:2px;">FILTER:</span>
+    ${filters.slice(0,5).map(f=>`<button onclick="setInvFilter('${f}')"
+      style="background:${_invFilterEl===f?'#FFD70022':'none'};border:1px solid ${_invFilterEl===f?'#FFD700':'#333'};
+      color:${_invFilterEl===f?'#FFD700':'#555'};font-family:'Press Start 2P',monospace;font-size:5px;
+      padding:3px 6px;cursor:pointer;">${f==='all'?'ALL':f.slice(0,3).toUpperCase()}</button>`).join('')}
+    ${filters.slice(5).map(f=>`<button onclick="setInvFilter('${f}')"
+      style="background:${_invFilterEl===f?'#FFD70022':'none'};border:1px solid ${_invFilterEl===f?'#FFD700':'#333'};
+      color:${_invFilterEl===f?'#FFD700':'#555'};font-family:'Press Start 2P',monospace;font-size:5px;
+      padding:3px 6px;cursor:pointer;">${f.slice(0,3).toUpperCase()}</button>`).join('')}
+  </div>`;
+}
+
+// ==============================================
+// 🚶 NPC PATROL SYSTEM
+// ==============================================
+let npcPatrollers = []; // {el, x, y, tx, ty, speed, dir, timer, homeX, homeY, range}
+
+function initNpcPatrol(){
+  // Called after NPCs are added to DOM
+  setTimeout(()=>{
+    const npcs = document.querySelectorAll('.npc');
+    npcs.forEach((el, i)=>{
+      const x = parseFloat(el.style.left)||0;
+      const y = parseFloat(el.style.top)||0;
+      npcPatrollers.push({
+        el, x, y, homeX:x, homeY:y,
+        tx:x, ty:y, speed:0.4+i*0.1,
+        dir:1, timer:0, facing:'right',
+        range: 60 + i*20,
+      });
+    });
+  }, 500);
+}
+
+let _npcFrame = 0;
+function tickNpcPatrol(){
+  _npcFrame++;
+  if(_npcFrame % 3 !== 0) return; // run at 20fps max
+  for(const npc of npcPatrollers){
+    npc.timer++;
+    if(npc.timer > 80 + (npc.homeX % 60)){
+      npc.timer = 0;
+      npc.tx = npc.homeX + (Math.random()*2-1)*npc.range;
+      npc.ty = npc.homeY + (Math.random()*0.4-0.2)*20;
+      const newFacing = npc.tx > npc.x ? 'right' : 'left';
+      if(newFacing !== npc.facing){
+        npc.facing = newFacing;
+        if(!npc.svg) npc.svg = npc.el.querySelector('svg');
+        if(npc.svg) npc.svg.style.transform = npc.facing==='left' ? 'scaleX(-1)' : '';
+      }
+    }
+    const dx = npc.tx - npc.x, dy = npc.ty - npc.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if(dist > 2){
+      npc.x += (dx/dist)*npc.speed*3; // compensate for 3-frame skip
+      npc.y += (dy/dist)*npc.speed*3;
+      npc.el.style.left = (npc.x|0)+'px';
+      npc.el.style.top  = (npc.y|0)+'px';
+      const bob = (npc.timer%10 < 5) ? '-2px' : '0';
+      npc.el.style.transform = `translateY(${bob})`;
+    } else {
+      if(npc.el.style.transform) npc.el.style.transform = '';
+    }
+  }
+}
+
+// ==============================================
+// 📚 BESTIARY SYSTEM
+// ==============================================
+const BESTIARY_DATA = {};
+
+// Build bestiary from WILD + BOSS_LIST + MINI_BOSSES
+function buildBestiary(){
+  const allMonsters = [
+    ...WILD,
+    ...BOSS_LIST.map(b=>({...b, habitat:'Boss Territory', isBoss:true})),
+    ...MINI_BOSSES.map(b=>({...b, habitat:'Any Zone', isMiniBoss:true})),
+  ];
+  const habitats = {
+    1:'Beginner Fields', 2:'Beginner Fields', 3:'Misty Meadows',
+    4:'Misty Meadows', 5:'Dark Forest', 6:'Dark Forest',
+    7:'Boss Territory', 8:'Boss Territory', 9:'Boss Territory', 10:'Boss Territory',
+  };
+  const weaknesses = {
+    fire:['water','earth'], water:['electric','grass'], grass:['fire','ice'],
+    electric:['earth','water'], ice:['fire','electric'], dark:['light','electric'],
+    light:['dark'], earth:['water','grass'], wind:['electric','ice'],
+  };
+  allMonsters.forEach(m=>{
+    BESTIARY_DATA[m.name] = {
+      name: m.name, emoji: m.emoji, element: m.element||'—',
+      t: m.t||'—', hp: m.hp, atk: m.atk, def: m.def,
+      habitat: m.habitat || habitats[m.t]||'Unknown',
+      weakness: m.element ? (weaknesses[m.element]||[]).join(', ')||'—' : '—',
+      lore: m.lore || `A mysterious creature of the ${habitats[m.t]||'wilds'}.`,
+      mechanic: m.mechanic||null, mechanicDesc: m.mechanicDesc||null,
+      isBoss: !!m.isBoss, isMiniBoss: !!m.isMiniBoss,
+    };
+  });
+}
+
+function openBestiary(){
+  if(!Object.keys(BESTIARY_DATA).length) buildBestiary();
+  const sc = document.getElementById('bestiary-screen');
+  if(!sc) return;
+  const discovered = Object.keys(monsterDex).length;
+  const total = Object.keys(BESTIARY_DATA).length;
+
+  // Group by habitat
+  const groups = {};
+  Object.values(BESTIARY_DATA).forEach(m=>{
+    const g = m.isBoss?'👑 Bosses':m.isMiniBoss?'⚔️ Mini-Bosses':`🌿 ${m.habitat}`;
+    if(!groups[g]) groups[g]=[];
+    groups[g].push(m);
+  });
+
+  const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
+
+  sc.innerHTML=`
+    <div style="width:100%;max-width:680px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
+        border-bottom:2px solid #222;padding-bottom:10px;">
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">📚 BESTIARY</div>
+          <div style="font-size:6px;color:#555;margin-top:2px;">${discovered}/${total} discovered</div>
+        </div>
+        <button onclick="document.getElementById('bestiary-screen').style.display='none'"
+          style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;
+          font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      ${Object.entries(groups).map(([grpName,monsters])=>`
+        <div style="margin-bottom:16px;">
+          <div style="font-size:7px;color:#FFD700;letter-spacing:2px;margin-bottom:6px;
+            border-left:3px solid #FFD700;padding-left:8px;">${grpName}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;">
+            ${monsters.map(m=>{
+              const seen = monsterDex[m.name];
+              const ec = m.element && m.element!=='—' ? elemColors[m.element]||'#aaa' : '#555';
+              return `<div onclick="showBestiaryEntry('${m.name.replace(/'/g,"\\\\'")}',this)"
+                style="background:#080810;border:1px solid ${seen?ec+'44':'#111'};padding:7px 8px;
+                cursor:pointer;transition:all .15s;opacity:${seen?1:0.35};"
+                onmouseenter="this.style.borderColor='${ec}'" onmouseleave="this.style.borderColor='${seen?ec+'44':'#111'}'">
+                <div style="font-size:18px;">${seen?m.emoji:'❓'}</div>
+                <div style="font-size:5px;color:${seen?ec:'#333'};margin-top:2px;line-height:1.6;">
+                  ${seen?m.name:'???'}</div>
+                ${seen?`<div style="font-size:5px;color:#555;">T${m.t} · ${m.element||'—'}</div>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}
+      <div id="bestiary-detail" style="display:none;position:fixed;inset:0;background:rgba(0,0,10,.95);
+        z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;padding:16px;"></div>
+    </div>`;
+  sc.style.display='flex';
+}
+
+function showBestiaryEntry(name, fromEl){
+  if(!BESTIARY_DATA[name]) return;
+  if(!monsterDex[name]) return; // not discovered
+  const m = BESTIARY_DATA[name];
+  const dex = monsterDex[name]||{};
+  const elemColors={fire:'#ff6633',water:'#4488ff',grass:'#44cc44',dark:'#9933cc',electric:'#ffcc00',ice:'#aaddff',earth:'#aa8844',wind:'#88bbcc',light:'#ffffaa'};
+  const ec = m.element && m.element!=='—' ? elemColors[m.element]||'#FFD700' : '#FFD700';
+
+  const detail = document.getElementById('bestiary-detail');
+  if(!detail) return;
+  detail.style.display='flex';
+  detail.innerHTML=`
+    <div style="width:100%;max-width:420px;background:#060610;border:3px solid ${ec}44;padding:20px;
+      clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 12px,100% calc(100% - 12px),
+      calc(100% - 12px) 100%,12px 100%,0% calc(100% - 12px),0% 12px);">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+        <div style="font-size:48px;filter:drop-shadow(0 0 8px ${ec}88);">${m.emoji}</div>
+        <div>
+          <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:${ec};">${m.name}</div>
+          <div style="font-size:6px;color:#555;margin-top:3px;">
+            ${m.isBoss?'👑 BOSS':m.isMiniBoss?'⚔️ MINI-BOSS':`T${m.t} · ${m.habitat}`}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+        ${[['❤️ HP',m.hp],['⚔️ ATK',m.atk],['🛡️ DEF',m.def],['🌟 Element',m.element||'—'],
+           ['🏠 Habitat',m.habitat],['⚡ Weakness',m.weakness||'—'],
+           ['👁️ Seen',dex.seen||0],['☠️ Killed',dex.killed||0]
+        ].map(([l,v])=>`<div style="background:#0a0a18;padding:6px 8px;">
+          <div style="font-size:5px;color:#555;">${l}</div>
+          <div style="font-size:7px;color:#aaa;margin-top:2px;">${v}</div></div>`).join('')}
+      </div>
+      ${m.mechanic?`<div style="background:#0a0010;border:1px solid #330033;padding:8px;margin-bottom:10px;">
+        <div style="font-size:6px;color:#cc44cc;margin-bottom:2px;">⚠️ SPECIAL: ${m.mechanic.toUpperCase()}</div>
+        <div style="font-size:6px;color:#888;">${m.mechanicDesc||''}</div></div>`:''}
+      <div style="background:#080814;border-left:3px solid ${ec}44;padding:8px 10px;margin-bottom:14px;">
+        <div style="font-size:5px;color:#666;margin-bottom:3px;font-style:italic;">Lore</div>
+        <div style="font-size:7px;color:#99aacc;line-height:1.9;">"${m.lore}"</div>
+      </div>
+      <button onclick="document.getElementById('bestiary-detail').style.display='none'"
+        style="width:100%;background:none;border:2px solid #333;color:#555;font-family:'Press Start 2P',
+        monospace;font-size:7px;padding:8px;cursor:pointer;">← BACK</button>
+    </div>`;
+}
+
+// ==============================================
+// 🏆 ACHIEVEMENT REWARDS
 // ==============================================
 const ACHIEVEMENTS = [
-  {id:'first_blood',  icon:'🩸', name:'First Blood',      desc:'Win your first battle',           check:s=>s.kills>=1},
-  {id:'explorer',     icon:'🌿', name:'Grass Walker',      desc:'Enter tall grass 10 times',        check:s=>s.grassEntries>=10},
-  {id:'collector',    icon:'🎒', name:'Collector',         desc:'Own 10 items',                     check:s=>(inventory.weapons.length+inventory.armors.length)>=10},
-  {id:'rich',         icon:'💰', name:'Coin Hoarder',      desc:'Accumulate 500 coins',             check:s=>state.player.coins>=500},
-  {id:'killer10',     icon:'💀', name:'Monster Slayer',    desc:'Defeat 10 enemies',                check:s=>s.kills>=10},
-  {id:'killer50',     icon:'⚔️', name:'Veteran Warrior',  desc:'Defeat 50 enemies',                check:s=>s.kills>=50},
-  {id:'levelup5',     icon:'⬆️', name:'Growing Strong',   desc:'Reach level 5',                    check:_=>state.player.level>=5},
-  {id:'levelup10',    icon:'🌟', name:'Elite Adventurer',  desc:'Reach level 10',                   check:_=>state.player.level>=10},
-  {id:'rare_drop',    icon:'💎', name:'Lucky Find',        desc:'Find a Rare or better item',       check:s=>['Rare','Epic','Legendary'].includes(s.bestRarity)},
-  {id:'legendary',    icon:'🏅', name:'Legend',            desc:'Find a Legendary item',            check:s=>s.bestRarity==='Legendary'},
-  {id:'boss_slayer',  icon:'🧙', name:'Boss Slayer',       desc:'Defeat the first boss',            check:_=>bossIndex>=1},
-  {id:'all_bosses',   icon:'👑', name:'True Champion',     desc:'Defeat all 4 bosses',              check:_=>bossIndex===0&&bossDefeated},
-  {id:'crit_master',  icon:'🎯', name:'Crit Master',       desc:'Land 20 critical hits',            check:s=>(s.critHits||0)>=20},
-  {id:'shopaholic',   icon:'🛒', name:'Shopaholic',        desc:'Buy 5 items from shops',           check:s=>(s.bought||0)>=5},
-  {id:'quest_done5',  icon:'📋', name:'Quest Seeker',      desc:'Complete 5 quests',                check:_=>Object.keys(questState?.completed||{}).length>=5},
-  {id:'skill_tree10', icon:'🌳', name:'Skill Seeker',      desc:'Learn 10 skills',                  check:_=>Object.keys(skillState||{}).length>=10},
-  {id:'traveler',     icon:'🗺️', name:'Fast Traveler',     desc:'Use fast travel 3 times',          check:s=>(s.fastTravels||0)>=3},
-  {id:'survivor',     icon:'🛡️', name:'Survivor',          desc:'Win a battle with HP below 10',   check:s=>(s.closeWins||0)>=1},
-  {id:'weatherwatcher',icon:'🌦️',name:'Weather Watcher',   desc:'Experience 3 weather events',     check:s=>(s.weatherSeen||0)>=3},
-  {id:'event_found',  icon:'🎲', name:'Fortune Seeker',    desc:'Find a treasure chest event',      check:s=>(s.chestsFound||0)>=1},
+  {id:'first_blood',  icon:'🩸', name:'First Blood',      desc:'Win your first battle',           check:s=>s.kills>=1,                             reward:null},
+  {id:'explorer',     icon:'🌿', name:'Grass Walker',      desc:'Enter tall grass 10 times',        check:s=>s.grassEntries>=10,                     reward:null},
+  {id:'collector',    icon:'🎒', name:'Collector',         desc:'Own 10 items',                     check:s=>(inventory.weapons.length+inventory.armors.length)>=10, reward:null},
+  {id:'rich',         icon:'💰', name:'Coin Hoarder',      desc:'Accumulate 500 coins',             check:s=>state.player.coins>=500,                reward:{type:'atk',val:2,label:'+2 ATK'}},
+  {id:'killer10',     icon:'💀', name:'Monster Slayer',    desc:'Defeat 10 enemies',                check:s=>s.kills>=10,                            reward:{type:'atk',val:3,label:'+3 ATK'}},
+  {id:'killer50',     icon:'⚔️', name:'Veteran Warrior',  desc:'Defeat 50 enemies',                check:s=>s.kills>=50,                            reward:{type:'atk',val:6,label:'+6 ATK'}},
+  {id:'levelup5',     icon:'⬆️', name:'Growing Strong',   desc:'Reach level 5',                    check:_=>state.player.level>=5,                  reward:{type:'hp', val:30,label:'+30 MaxHP'}},
+  {id:'levelup10',    icon:'🌟', name:'Elite Adventurer',  desc:'Reach level 10',                   check:_=>state.player.level>=10,                 reward:{type:'def',val:4,label:'+4 DEF'}},
+  {id:'rare_drop',    icon:'💎', name:'Lucky Find',        desc:'Find a Rare or better item',       check:s=>['Rare','Epic','Legendary'].includes(s.bestRarity), reward:{type:'crit',val:0.05,label:'+5% Crit'}},
+  {id:'legendary',    icon:'🏅', name:'Legend',            desc:'Find a Legendary item',            check:s=>s.bestRarity==='Legendary',             reward:{type:'atk',val:10,label:'+10 ATK'}},
+  {id:'boss_slayer',  icon:'🧙', name:'Boss Slayer',       desc:'Defeat the first boss',            check:_=>bossIndex>=1,                           reward:{type:'hp', val:50,label:'+50 MaxHP'}},
+  {id:'all_bosses',   icon:'👑', name:'True Champion',     desc:'Defeat all 4 bosses',              check:_=>bossIndex===0&&bossDefeated,             reward:{type:'def',val:8,label:'+8 DEF'}},
+  {id:'crit_master',  icon:'🎯', name:'Crit Master',       desc:'Land 20 critical hits',            check:s=>(s.critHits||0)>=20,                    reward:{type:'crit',val:0.10,label:'+10% Crit'}},
+  {id:'shopaholic',   icon:'🛒', name:'Shopaholic',        desc:'Buy 5 items from shops',           check:s=>(s.bought||0)>=5,                       reward:{type:'hp', val:20,label:'+20 MaxHP'}},
+  {id:'quest_done5',  icon:'📋', name:'Quest Seeker',      desc:'Complete 5 quests',                check:_=>Object.keys(questState?.completed||{}).length>=5, reward:{type:'atk',val:4,label:'+4 ATK'}},
+  {id:'skill_tree10', icon:'🌳', name:'Skill Seeker',      desc:'Learn 10 skills',                  check:_=>Object.keys(skillState||{}).length>=10, reward:{type:'def',val:5,label:'+5 DEF'}},
+  {id:'traveler',     icon:'🗺️', name:'Fast Traveler',     desc:'Use fast travel 3 times',          check:s=>(s.fastTravels||0)>=3,                  reward:{type:'spd',val:1,label:'SPD+1'}},
+  {id:'survivor',     icon:'🛡️', name:'Survivor',          desc:'Win a battle with HP below 10',   check:s=>(s.closeWins||0)>=1,                    reward:{type:'hp', val:40,label:'+40 MaxHP'}},
+  {id:'weatherwatcher',icon:'🌦️',name:'Weather Watcher',   desc:'Experience 3 weather events',     check:s=>(s.weatherSeen||0)>=3,                  reward:{type:'crit',val:0.03,label:'+3% Crit'}},
+  {id:'event_found',  icon:'🎲', name:'Fortune Seeker',    desc:'Find a treasure chest event',      check:s=>(s.chestsFound||0)>=1,                  reward:{type:'atk',val:3,label:'+3 ATK'}},
+  {id:'miniboss1',    icon:'⚔️', name:'Mini Slayer',       desc:'Defeat your first mini-boss',      check:s=>(s.miniBossKills||0)>=1,                reward:{type:'atk',val:5,label:'+5 ATK'}},
+  {id:'combo10',      icon:'💥', name:'Combo King',        desc:'Land a x10 combo',                 check:s=>(s.maxCombo||0)>=10,                    reward:{type:'crit',val:0.05,label:'+5% Crit'}},
+  {id:'dex50',        icon:'📸', name:'Monster Expert',    desc:'Discover 50 monsters',             check:_=>Object.keys(monsterDex).length>=50,     reward:{type:'hp', val:60,label:'+60 MaxHP'}},
 ];
 
 let achievementState = {}; // {[id]: timestamp}
@@ -7811,9 +8298,19 @@ function unlockAchievement(a){
   achievementState[a.id] = Date.now();
   saveAchievements();
   playSoundAchievement();
+  // Apply stat reward
+  if(a.reward && state.player){
+    const p = state.player, r = a.reward;
+    if(r.type==='atk')  p.attack  = (p.attack||0)  + r.val;
+    if(r.type==='def')  p.defense = (p.defense||0) + r.val;
+    if(r.type==='hp'){ p.maxHp=(p.maxHp||100)+r.val; p.hp=Math.min(p.hp+r.val,p.maxHp); }
+    if(r.type==='crit') p.critChance = Math.min(0.8,(p.critChance||0)+r.val);
+    if(r.type==='spd')  p.speed = (p.speed||3)+r.val;
+    updateHUD();
+  }
   const achDot = document.getElementById('ach-dot-tb');
   if(achDot) achDot.style.display='block';
-  // Toast popup
+  const rewardLine = a.reward ? `<div style="font-size:5px;color:#44ff88;margin-top:3px;">🎁 Reward: ${a.reward.label}</div>` : '';
   const toast = document.createElement('div');
   toast.style.cssText=`position:fixed;top:70px;right:12px;background:#0a0a14;border:2px solid #FFD700;
     padding:10px 14px;font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;z-index:95;
@@ -7821,7 +8318,7 @@ function unlockAchievement(a){
     clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);
     max-width:220px;box-shadow:0 0 16px #FFD70044;`;
   toast.innerHTML=`<div style="color:#888;font-size:5px;margin-bottom:4px;letter-spacing:2px;">🏆 ACHIEVEMENT UNLOCKED</div>
-    <div>${a.icon} ${a.name}</div><div style="font-size:5px;color:#666;margin-top:3px;">${a.desc}</div>`;
+    <div>${a.icon} ${a.name}</div><div style="font-size:5px;color:#666;margin-top:3px;">${a.desc}</div>${rewardLine}`;
   document.body.appendChild(toast);
   setTimeout(()=>toast.remove(), 4200);
 }
@@ -7842,10 +8339,12 @@ function openAchievements(){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
     ${ACHIEVEMENTS.map(a=>{
       const done=!!achievementState[a.id];
+      const rewardBadge = a.reward ? `<div style="font-size:5px;color:${done?'#44ff88':'#333'};margin-top:3px;">🎁 ${a.reward.label}</div>` : '';
       return `<div style="background:${done?'#0a100a':'#080810'};border:2px solid ${done?'#44ff8866':'#1a1a2a'};padding:8px 10px;opacity:${done?1:0.5};">
         <div style="font-size:16px;margin-bottom:4px;">${a.icon}</div>
         <div style="font-size:7px;color:${done?'#44ff88':'#666'};">${a.name}</div>
         <div style="font-size:5px;color:#444;margin-top:2px;">${a.desc}</div>
+        ${rewardBadge}
         ${done?'<div style="font-size:5px;color:#44ff8877;margin-top:3px;">✅ UNLOCKED</div>':''}
       </div>`;
     }).join('')}
@@ -8400,43 +8899,51 @@ let dayNightTime = 0;    // 0-1 (0=noon, 0.5=midnight)
 let isDaytime = true;
 const DAY_CYCLE_TICKS = 7200; // ~2min full cycle at 60fps
 
+let _nightOverlay = null;
+let _starsEl = null;
+let _clockEl = null;
+let _lastDarkness = -1;
+let _dayNightFrame = 0;
+
 function tickDayNight(){
   if(!SETTINGS.nightMode) return;
   dayNightTime = (dayNightTime + 1/DAY_CYCLE_TICKS) % 1;
   const wasDaytime = isDaytime;
   isDaytime = dayNightTime < 0.5;
 
-  // Transition notification
   if(wasDaytime !== isDaytime){
-    if(!isDaytime){
-      showSellToast('🌙 Night falls... rare monsters appear!','#8888ff');
-      playSoundWeather();
-    } else {
-      showSellToast('☀️ Dawn breaks!','#FFD700');
+    if(!isDaytime){ showSellToast('🌙 Night falls... rare monsters appear!','#8888ff'); playSoundWeather(); }
+    else           { showSellToast('☀️ Dawn breaks!','#FFD700'); }
+  }
+
+  // Only update overlay visuals every 6 frames (imperceptible)
+  _dayNightFrame++;
+  if(_dayNightFrame % 6 !== 0) return;
+
+  const nightPct = Math.sin(dayNightTime * Math.PI);
+  const darkness = Math.floor(nightPct * 100);
+  if(darkness === _lastDarkness) return; // skip if unchanged
+  _lastDarkness = darkness;
+
+  if(!_nightOverlay){
+    _nightOverlay = document.getElementById('night-overlay');
+    if(!_nightOverlay){
+      _nightOverlay = document.createElement('div');
+      _nightOverlay.id = 'night-overlay';
+      _nightOverlay.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:13;';
+      document.body.appendChild(_nightOverlay);
     }
   }
+  _nightOverlay.style.background = `rgba(0,0,${Math.floor(nightPct*40)},${(nightPct*0.55).toFixed(2)})`;
 
-  // Apply night overlay
-  let overlay = document.getElementById('night-overlay');
-  if(!overlay){
-    overlay = document.createElement('div');
-    overlay.id = 'night-overlay';
-    overlay.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:13;transition:background 3s ease;';
-    document.body.appendChild(overlay);
+  if(!_starsEl) _starsEl = document.getElementById('stars');
+  if(_starsEl) _starsEl.style.opacity = nightPct.toFixed(2);
+
+  if(!_clockEl) _clockEl = document.getElementById('hud-clock');
+  if(_clockEl){
+    const h = Math.floor((1 - dayNightTime) * 24);
+    _clockEl.textContent = isDaytime ? `☀️ ${h}:00` : `🌙 ${h}:00`;
   }
-  const nightPct = Math.sin(dayNightTime * Math.PI); // peaks at 0.5 (midnight)
-  const darkness = Math.floor(nightPct * 140);
-  overlay.style.background = `rgba(0,0,${Math.floor(nightPct*40)},${(nightPct*0.55).toFixed(2)})`;
-
-  // Stars visible at night
-  const stars = document.getElementById('stars');
-  if(stars) stars.style.opacity = nightPct.toFixed(2);
-
-  // Update HUD clock
-  const hourOfDay = Math.floor((1 - dayNightTime) * 24);
-  const timeStr = isDaytime ? `☀️ ${hourOfDay}:00` : `🌙 ${hourOfDay}:00`;
-  const clockEl = document.getElementById('hud-clock');
-  if(clockEl) clockEl.textContent = timeStr;
 }
 
 function getDayNightEncounterBonus(){
@@ -9052,6 +9559,7 @@ function renderQuestScreen(){
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openStatsScreen();toggleMoreMenu()"><span class="tb-icon">📊</span>STATS</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openSettings();toggleMoreMenu()"><span class="tb-icon">⚙️</span>SETTINGS</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openTutorial();toggleMoreMenu()"><span class="tb-icon">📚</span>HELP</button>
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openBestiary();toggleMoreMenu()"><span class="tb-icon">📖</span>BESTIARY</button>
 </div>
 <div id="quest-screen"></div>
 <div id="stats-screen"></div>
@@ -9068,5 +9576,7 @@ function renderQuestScreen(){
 <div id="craft-screen"></div>
 <div id="worldmap-screen"></div>
 <div id="settings-screen"></div>
+<div id="bestiary-screen"></div>
+<div id="storyev-screen"></div>
 </body>
 </html>
