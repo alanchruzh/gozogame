@@ -3141,6 +3141,7 @@ function handleClick(fid, pid){
       startGrowTimer(fid, pid, CROPS[p.plant].grow);
       refreshPlot(fid, pid);
       say('water'); sfx('plant'); partsPlot(fid, pid, ['💧','🌊','✨']); gozoDoAction(fid,pid,'water');
+      trackNPCQuest('water', null, 1);
       saveState();
       showToast('💧 CROP WATERED! Growing now...');
     } else if(p.state === 'planted' && p.watered){
@@ -3234,6 +3235,7 @@ function doHarvest(fid, pid){
 
   harvestBasket[p.plant]++;
   totalHarvested++;
+  trackNPCQuest('harvest', plantKey, 1);
 
   // 70% chance to get 1 seed per harvest
   if(Math.random() < 0.7){ inventory[plantKey] = (inventory[plantKey] || 0) + 1; }
@@ -3376,14 +3378,21 @@ function renderHarvestList(){
 
 function sellCrop(key, qty){
   if(!harvestBasket[key] || harvestBasket[key] < qty) return;
-  const earned = qty * CROPS[key].price;
+  let baseEarned = qty * CROPS[key].price;
+  // Autumn bonus: +25% gold
+  if(currentSeason === 'autumn'){
+    baseEarned = Math.floor(baseEarned * 1.25);
+  }
+  const earned = baseEarned;
   harvestBasket[key] -= qty;
   gold += earned;
   sfx('coin');
   updateGoldUI();
   renderHarvestList();
+  trackNPCQuest('sell', key, qty);
+  trackNPCQuest('gold', null, earned);
   saveState();
-  showGoldFloat('+' + earned.toLocaleString() + ' 🪙');
+  showGoldFloat('+' + earned.toLocaleString() + (currentSeason==='autumn'?' 🍂':'') + ' 🪙');
 }
 
 function updateGoldUI(){
@@ -4228,7 +4237,7 @@ function buyFertilizer(type){
   fertilizerInventory[type]++;
   updateGoldUI();
   saveState();
-  showToast(`${f.icon} Beli ${f.name} berhasil! x${fertilizerInventory[type]}`);
+  showToast(`${f.icon} Purchased ${f.name}! x${fertilizerInventory[type]}`);
   renderUpgradePanel();
   sfx('coin');
 }
@@ -4418,7 +4427,7 @@ function collectAnimal(type, idx){
   animal.readyAt = Date.now() + a.cooldownMs;
   sfx('harvest');
   partsPlot(0, 0, [a.productIcon, '✨', '⭐']);
-  showToast(`${a.productIcon} +${qty} ${a.product} dari ${a.name}!`);
+  showToast(`${a.productIcon} +${qty} ${a.product} from ${a.name}!`);
   renderAnimalPanel();
   saveState();
 }
@@ -4567,7 +4576,7 @@ function progressQuest(type, amount, cropKey){
         gold += q.reward;
         updateGoldUI();
         showGoldFloat('+' + q.reward + ' 🪙');
-        showToast(`🎯 Quest selesai: ${q.desc}! +${q.reward} 🪙`);
+        showToast(`🎯 Quest completed: ${q.desc}! +${q.reward} 🪙`);
         sfx('harvest');
         parts(null, ['🎯','⭐','🪙','✨'], window.innerWidth/2, window.innerHeight*0.4);
       }
@@ -4675,7 +4684,7 @@ function renderStatsPanel(){
     { icon:'📅', label:'Days Played',    val: daysPlayed + ' days' },
     { icon:'⏱️', label:'This Session',        val: sessionMins + ' min' },
     { icon:'🌱', label:'Planted',         val: stats.plantsGrown.toLocaleString() },
-    { icon:'💧', label:'Siram',           val: stats.waterUsed.toLocaleString() + 'x' },
+    { icon:'💧', label:'Watered',           val: stats.waterUsed.toLocaleString() + 'x' },
     { icon:'🎯', label:'Quests Done',   val: stats.questsCompleted.toLocaleString() },
     { icon:'💎', label:'Biggest Sale',   val: stats.biggestSingleSell.toLocaleString() + ' 🪙' },
   ];
@@ -4845,8 +4854,8 @@ function renderUpgradePanel(){
     html += `<div style="display:flex;align-items:center;gap:8px">`;
     html += `<span style="font-size:15px">${f.icon}</span>`;
     html += `<div style="flex:1"><div style="color:#e0d080;font-size:13px">${f.name}</div><div style="color:#80a070;font-size:14px">${f.desc} · Stock: ${inv}</div></div>`;
-    html += `<button onclick="buyFertilizer('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:5px;color:${canAfford?'#fff':'#555'};font-size:13px;padding:4px 6px;cursor:${canAfford?'pointer':'default'};margin-right:4px">Beli<br>${f.price}🪙</button>`;
-    if(inv > 0) html += `<button onclick="selectFertilizer('${k}')" style="background:${isSelected?f.color:'#304020'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:4px 6px;cursor:pointer">${isSelected?'✅ Aktif':'Pakai'}</button>`;
+    html += `<button onclick="buyFertilizer('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:5px;color:${canAfford?'#fff':'#555'};font-size:13px;padding:4px 6px;cursor:${canAfford?'pointer':'default'};margin-right:4px">Buy<br>${f.price}🪙</button>`;
+    if(inv > 0) html += `<button onclick="selectFertilizer('${k}')" style="background:${isSelected?f.color:'#304020'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:4px 6px;cursor:pointer">${isSelected?'✅ Active':'Use'}</button>`;
     html += `</div></div>`;
   });
   el.innerHTML = html;
@@ -4864,7 +4873,10 @@ window.saveState = function(){
       ownedAnimals, animalBasket,
       dailyQuests, questProgress, questLastDay, questGoldEarned,
       stats, marketMultipliers, marketLastUpdate,
-      currentWeather, weatherChangedAt
+      currentWeather, weatherChangedAt,
+      currentSeason, seasonDay, seasonStartTime,
+      npcData, npcQuestProgress,
+      exploreState, currentHour, dayStartTime
     };
     localStorage.setItem('gozofarm_extra_v2', JSON.stringify(extra));
   } catch(e){}
@@ -4892,6 +4904,14 @@ function loadExtraState(){
     if(d.marketMultipliers) Object.assign(marketMultipliers, d.marketMultipliers);
     if(d.marketLastUpdate) marketLastUpdate = d.marketLastUpdate;
     if(d.currentWeather) currentWeather = d.currentWeather;
+    if(d.currentSeason) currentSeason = d.currentSeason;
+    if(d.seasonDay) seasonDay = d.seasonDay;
+    if(d.seasonStartTime) seasonStartTime = d.seasonStartTime;
+    if(d.npcData) Object.assign(npcData, d.npcData);
+    if(d.npcQuestProgress) Object.assign(npcQuestProgress, d.npcQuestProgress);
+    if(d.exploreState) Object.assign(exploreState, d.exploreState);
+    if(d.currentHour) currentHour = d.currentHour;
+    if(d.dayStartTime) dayStartTime = d.dayStartTime;
   } catch(e){}
   // Sync animal sprites after extra state loaded
   setTimeout(function(){ if(typeof syncFieldAnimals==='function') syncFieldAnimals(); }, 100);
@@ -4908,6 +4928,11 @@ window.startFarm = function(){
   startWeatherCycle();
   startMarketTimer();
   startAnimalTimers();
+  startSeasonSystem();
+  initNPCData();
+  initExploreState();
+  startDayNightCycle();
+  startRandomEvents();
   if(upgradeLevels.autoWater >= 1) startAutoWater();
   if(!stats.firstPlayDate) stats.firstPlayDate = getTodayStr();
   stats.sessionStart = Date.now();
@@ -5046,6 +5071,15 @@ window.handleClick = function(fid, pid){
   <button class="feat-btn" onclick="openStatsPanel()">
     <span class="fb-icon">📊</span><span class="fb-label">Stats</span>
   </button>
+  <button class="feat-btn" id="seasonNavBtn" onclick="openSeasonPanel()">
+    <span class="fb-icon" id="seasonNavIcon">🌸</span><span class="fb-label">Season</span>
+  </button>
+  <button class="feat-btn" onclick="openNPCPanel()">
+    <span class="fb-icon">👥</span><span class="fb-label">Neighbors</span>
+  </button>
+  <button class="feat-btn" onclick="openExploreMap()">
+    <span class="fb-icon">🗺️</span><span class="fb-label">Explore</span>
+  </button>
   <button class="feat-btn" onclick="exportSave()">
     <span class="fb-icon">💾</span><span class="fb-label">Save</span>
   </button>
@@ -5053,6 +5087,57 @@ window.handleClick = function(fid, pid){
     <span class="fb-icon">📂</span><span class="fb-label">Load</span>
   </button>
   <input type="file" id="importSaveInput" accept=".json" style="display:none" onchange="importSave(event)">
+</div>
+
+<!-- 🍂 SEASON PANEL -->
+<div id="seasonOverlay" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-title">
+      <h2 id="seasonPanelTitle">🌸 Season</h2>
+      <button class="modal-close" onclick="closeSeasonPanel()">✕</button>
+    </div>
+    <div id="seasonPanelContent"></div>
+  </div>
+</div>
+
+<!-- 👥 NPC PANEL -->
+<div id="npcOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-title">
+      <h2>👥 Neighbors</h2>
+      <button class="modal-close" onclick="closeNPCPanel()">✕</button>
+    </div>
+    <div id="npcPanelContent"></div>
+  </div>
+</div>
+
+<!-- 💬 NPC DIALOG -->
+<div id="npcDialogOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:360px">
+    <div id="npcDialogContent"></div>
+  </div>
+</div>
+
+<!-- 🗺️ EXPLORE MAP PANEL -->
+<div id="exploreOverlay" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-title">
+      <h2>🗺️ Exploration Map</h2>
+      <button class="modal-close" onclick="closeExploreMap()">✕</button>
+    </div>
+    <div id="exploreMapContent"></div>
+  </div>
+</div>
+
+<!-- 🌙 DAY/NIGHT indicator (always visible) -->
+<div id="dayNightBadge" style="position:fixed;top:8px;right:8px;z-index:999;font-size:11px;background:rgba(0,0,0,0.6);border:1px solid #444;border-radius:12px;padding:3px 8px;color:#ddd;pointer-events:none"></div>
+
+<!-- 🎪 RANDOM EVENT POPUP -->
+<div id="randomEventPopup" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9000;background:#0a1a0a;border:3px solid #f7c948;border-radius:12px;padding:20px 24px;text-align:center;min-width:260px;box-shadow:0 0 40px rgba(247,201,72,0.4)">
+  <div id="randomEventIcon" style="font-size:48px;margin-bottom:8px"></div>
+  <div id="randomEventTitle" style="color:#f7c948;font-size:16px;font-weight:bold;margin-bottom:6px"></div>
+  <div id="randomEventDesc" style="color:#c0d0a0;font-size:13px;margin-bottom:16px;line-height:1.5"></div>
+  <button onclick="dismissRandomEvent()" style="background:#604010;border:2px solid #f7c948;border-radius:8px;color:#f7c948;font-size:13px;padding:8px 20px;cursor:pointer">Got it!</button>
 </div>
 
 <!-- 🎯 QUEST PANEL -->
@@ -6089,9 +6174,954 @@ function runTrainAnimation() {
   setTimeout(() => requestAnimationFrame(animateTrain), 100);
 }
 
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
+// 🍂 SEASON SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const SEASONS = {
+  spring: {
+    name: 'Spring', icon: '🌸', color: '#ff88cc',
+    desc: 'Crops grow 20% faster. Rain is more frequent.',
+    growMult: 1.2, allowPlant: true, autoWaterChance: 0.4,
+    droughtRisk: false, weatherBias: ['sunny','rainy','rainy','cloudy','windy'],
+    skyColor: '#87ceeb', bgTint: 'rgba(255,150,200,0.06)'
+  },
+  summer: {
+    name: 'Summer', icon: '☀️', color: '#ffcc00',
+    desc: 'Normal growth. Drought is more frequent — water your crops daily!',
+    growMult: 1.0, allowPlant: true, autoWaterChance: 0,
+    droughtRisk: true, weatherBias: ['sunny','sunny','sunny','drought','drought','windy'],
+    skyColor: '#60b8ff', bgTint: 'rgba(255,200,0,0.06)'
+  },
+  autumn: {
+    name: 'Autumn', icon: '🍂', color: '#e08030',
+    desc: 'Harvest sells for +25% bonus gold. Crops grow slightly slower.',
+    growMult: 0.85, allowPlant: true, autoWaterChance: 0.2,
+    droughtRisk: false, weatherBias: ['cloudy','cloudy','rainy','windy','sunny'],
+    skyColor: '#d4a060', bgTint: 'rgba(200,100,0,0.07)'
+  },
+  winter: {
+    name: 'Winter', icon: '❄️', color: '#88ccff',
+    desc: 'Cannot plant anything! Take care of animals and stock up on seeds.',
+    growMult: 0.0, allowPlant: false, autoWaterChance: 0,
+    droughtRisk: false, weatherBias: ['cloudy','cloudy','storm','windy','cloudy'],
+    skyColor: '#b8d8f0', bgTint: 'rgba(150,200,255,0.10)'
+  }
+};
+
+const SEASON_ORDER = ['spring','summer','autumn','winter'];
+const SEASON_DURATION_MS = 5 * 60 * 1000; // 5 menit per musim (game time)
+
+let currentSeason = 'spring';
+let seasonDay = 1; // 1-30
+const SEASON_DAYS = 30;
+let seasonTimer = null;
+let seasonDayTimer = null;
+let seasonStartTime = Date.now();
+
+function getCurrentSeason(){ return SEASONS[currentSeason]; }
+
+function advanceSeason(){
+  const idx = SEASON_ORDER.indexOf(currentSeason);
+  currentSeason = SEASON_ORDER[(idx+1) % 4];
+  seasonDay = 1;
+  seasonStartTime = Date.now();
+  applySeasonEffects();
+  saveState();
+}
+
+function applySeasonEffects(){
+  const s = getCurrentSeason();
+  // Update weather bias for this season
+  pickRandomWeather._seasonBias = s.weatherBias;
+  // Apply sky tint
+  const overlay = document.getElementById('weatherOverlay');
+  if(overlay && s.bgTint){
+    overlay.style.background = s.bgTint;
+    overlay.style.opacity = '1';
+  }
+  // Winter: show frost overlay
+  let frost = document.getElementById('frostOverlay');
+  if(currentSeason === 'winter'){
+    if(!frost){
+      frost = document.createElement('div');
+      frost.id = 'frostOverlay';
+      frost.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:8;background:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'60\' height=\'60\'%3E%3Ccircle cx=\'10\' cy=\'10\' r=\'1\' fill=\'white\' opacity=\'0.4\'/%3E%3Ccircle cx=\'35\' cy=\'25\' r=\'1.5\' fill=\'white\' opacity=\'0.3\'/%3E%3Ccircle cx=\'50\' cy=\'5\' r=\'1\' fill=\'white\' opacity=\'0.4\'/%3E%3Ccircle cx=\'20\' cy=\'45\' r=\'2\' fill=\'white\' opacity=\'0.2\'/%3E%3C/svg%3E");opacity:0.5;';
+      document.body.appendChild(frost);
+    }
+  } else {
+    if(frost) frost.remove();
+  }
+  updateSeasonUI();
+  showToast(`${s.icon} Season changed: ${s.name}! ${s.desc}`);
+}
+
+function startSeasonSystem(){
+  if(seasonTimer) clearInterval(seasonTimer);
+  if(seasonDayTimer) clearInterval(seasonDayTimer);
+  // Advance season every SEASON_DURATION_MS
+  seasonTimer = setInterval(()=>{ advanceSeason(); }, SEASON_DURATION_MS);
+  // Advance day every SEASON_DURATION_MS/SEASON_DAYS
+  const dayMs = Math.floor(SEASON_DURATION_MS / SEASON_DAYS);
+  seasonDayTimer = setInterval(()=>{
+    seasonDay = Math.min(SEASON_DAYS, seasonDay + 1);
+    updateSeasonUI();
+  }, dayMs);
+  applySeasonEffects();
+}
+
+function updateSeasonUI(){
+  const s = getCurrentSeason();
+  // Update nav button
+  const icon = document.getElementById('seasonNavIcon');
+  if(icon) icon.textContent = s.icon;
+  // Update weather display area to show season too
+  const wd = document.getElementById('weatherDisplay');
+  if(wd) {
+    const wt = WEATHER_TYPES[currentWeather];
+    wd.innerHTML = `<span style="font-size:13px">${s.icon}</span><span style="color:${s.color};font-weight:bold;font-size:11px;margin:0 3px">${s.name}</span><span style="color:#666">|</span> <span style="font-size:13px">${wt.icon}</span> <span style="color:${wt.color};font-weight:bold;font-size:11px">${wt.name}</span>`;
+  }
+}
+
+// Patch pickRandomWeather to use season bias
+const _origPickWeather = pickRandomWeather;
+function pickRandomWeather(){
+  const bias = (getCurrentSeason()||{}).weatherBias || ['sunny','cloudy','rainy','windy'];
+  return bias[Math.floor(Math.random()*bias.length)];
+}
+
+// Patch doHarvest to add autumn bonus gold
+const _origDoHarvest2 = window.doHarvest || doHarvest;
+
+// Patch plantCrop to block planting in winter
+const _origHandlePlotClick = handlePlotClick;
+function handlePlotClick(fid, pid){
+  const s = getCurrentSeason();
+  const p = fieldData[fid]?.plots[pid];
+  // Block new planting in winter
+  if(currentSeason === 'winter' && p && p.state === 'tilled'){
+    showToast('❄️ Winter — cannot plant! Wait for Spring.');
+    return;
+  }
+  _origHandlePlotClick(fid, pid);
+}
+
+function openSeasonPanel(){
+  const s = getCurrentSeason();
+  const elapsed = Date.now() - seasonStartTime;
+  const progress = Math.min(100, Math.round(elapsed / SEASON_DURATION_MS * 100));
+  const daysLeft = SEASON_DAYS - seasonDay + 1;
+  let html = `
+    <div style="text-align:center;padding:10px 0 16px">
+      <div style="font-size:48px;margin-bottom:4px">${s.icon}</div>
+      <div style="font-size:20px;color:${s.color};font-weight:bold;text-shadow:2px 2px 0 #000">${s.name}</div>
+      <div style="color:#80a070;font-size:12px;margin-top:4px">Day ${seasonDay} / ${SEASON_DAYS} · ${daysLeft} days remaining</div>
+    </div>
+    <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:2px;margin-bottom:12px">
+      <div style="height:8px;border-radius:6px;background:${s.color};width:${progress}%;transition:width 0.5s;box-shadow:0 0 6px ${s.color}"></div>
+    </div>
+    <div style="background:rgba(0,0,0,0.25);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;color:#c0d0a0;line-height:1.6">
+      ${s.desc}
+    </div>
+    <div style="font-size:12px;color:#90a070;margin-bottom:8px;font-weight:bold">SEASON EFFECTS:</div>
+    <div style="display:grid;gap:6px">`;
+
+  const effects = [
+    { icon:'🌱', label:'Growth Speed', val: s.growMult === 0 ? '❌ Blocked' : s.growMult > 1 ? `+${Math.round((s.growMult-1)*100)}% faster` : s.growMult < 1 ? `-${Math.round((1-s.growMult)*100)}% slower` : 'Normal', col: s.growMult >= 1 ? '#80e080' : '#e08080' },
+    { icon:'🌿', label:'Can Plant', val: s.allowPlant ? '✅ Yes' : '❌ No (winter)', col: s.allowPlant ? '#80e080' : '#e08080' },
+    { icon:'💧', label:'Auto-Water', val: s.autoWaterChance > 0 ? `${Math.round(s.autoWaterChance*100)}% chance/cycle` : 'None', col: s.autoWaterChance > 0 ? '#80c8ff' : '#888' },
+    { icon:'🥀', label:'Drought Risk', val: s.droughtRisk ? 'High — water daily!' : 'Low', col: s.droughtRisk ? '#ff9060' : '#80e080' },
+    { icon:'🪙', label:'Harvest Bonus', val: currentSeason === 'autumn' ? '+25% gold' : 'None', col: currentSeason === 'autumn' ? '#f7c948' : '#888' },
+  ];
+  effects.forEach(e => {
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 10px">
+      <span style="color:#b0c090;font-size:13px">${e.icon} ${e.label}</span>
+      <span style="color:${e.col};font-size:13px;font-weight:bold">${e.val}</span>
+    </div>`;
+  });
+
+  html += `</div>
+    <div style="font-size:12px;color:#90a070;margin:12px 0 8px;font-weight:bold">ALL SEASONS:</div>
+    <div style="display:flex;gap:6px">`;
+  SEASON_ORDER.forEach(sk => {
+    const ss = SEASONS[sk];
+    const isCur = sk === currentSeason;
+    html += `<div style="flex:1;text-align:center;background:${isCur?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.2)'};border-radius:8px;padding:8px 4px;border:2px solid ${isCur?ss.color:'transparent'}">
+      <div style="font-size:22px">${ss.icon}</div>
+      <div style="font-size:10px;color:${ss.color};margin-top:2px">${ss.name}</div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  document.getElementById('seasonPanelTitle').innerHTML = `${s.icon} ${s.name} — Day ${seasonDay}`;
+  document.getElementById('seasonPanelContent').innerHTML = html;
+  document.getElementById('seasonOverlay').classList.remove('hidden');
+}
+function closeSeasonPanel(){ document.getElementById('seasonOverlay').classList.add('hidden'); }
+
+// ══════════════════════════════════════════════════════════════════
+// 👥 NPC NEIGHBOR SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const NPCS = {
+  pak_budi: {
+    name: 'Pak Budi', icon: '👨‍🌾', title: 'Senior Farmer',
+    color: '#c8a060',
+    intro: 'An old farmer who has been farming for 40 years. Loves sharing knowledge and rare seeds.',
+    shop: [
+      { id:'bibit_tomat_x5',  name:'Tomato Seeds ×5',   icon:'🍅', price:80,  give:{tomat:5} },
+      { id:'bibit_jagung_x5', name:'Corn Seeds ×5',  icon:'🌽', price:100, give:{jagung:5} },
+      { id:'pupuk_special',   name:'Special Fertilizer',    icon:'🌿', price:200, give:{fertilizer:'speedGrow'} },
+    ],
+    dialogs: [
+      "Good morning! Healthy crops need regular watering — don't forget!",
+      "Drought season is coming. I've seen many crops die from neglect. Be careful!",
+      "In spring, plant as much as you can! The harvest will be doubled.",
+      "Back in the day, I harvested 500 tomatoes in a single day. Those were the times...",
+      "Try combining fertilizer with spring season — the results are amazing!",
+    ],
+    quests: [
+      { id:'budi_q1', title:'Harvest for Pak Budi', desc:'Harvest 10 tomatoes', type:'harvest', crop:'tomat', amount:10, reward:{ gold:300, item:'bibit_tomat_x5' }, done:false },
+      { id:'budi_q2', title:'Help Budi Sow Seeds', desc:'Plant 5 corn', type:'plant', crop:'jagung', amount:5, reward:{ gold:200 }, done:false },
+    ],
+    friendship: 0, maxFriendship: 100,
+    gifts: ['tomat','jagung','wortel'],
+  },
+  ibu_sari: {
+    name: 'Ibu Sari', icon: '👩‍🍳', title: 'Market Trader',
+    color: '#e088cc',
+    intro: 'A friendly merchant at the village market. Her special prices are always better.',
+    shop: [
+      { id:'price_boost',  name:'Market Boost 5min', icon:'📈', price:150, give:{marketBoost:300000} },
+      { id:'bibit_stroberi', name:'Strawberry Seeds ×3', icon:'🍓', price:120, give:{stroberi:3} },
+      { id:'bibit_wortel_x5', name:'Carrot Seeds ×5', icon:'🥕', price:90,  give:{wortel:5} },
+    ],
+    dialogs: [
+      "Hey there! Want to sell your harvest? Come on over, my prices are always fair!",
+      "Autumn is the best time to sell your crops — prices are at their highest!",
+      "Have you tried growing strawberries? They grow fast and sell for a decent price!",
+      "If you want big profits, keep an eye on market price fluctuations!",
+      "Thanks for stopping by my stall! I'll let you know when new stock arrives.",
+    ],
+    quests: [
+      { id:'sari_q1', title:"Shop at Sari's", desc:'Sell 5 carrots at the market', type:'sell', crop:'wortel', amount:5, reward:{ gold:250 }, done:false },
+      { id:'sari_q2', title:'Sari Needs Chili', desc:'Harvest 8 chili peppers', type:'harvest', crop:'cabe', amount:8, reward:{ gold:350, item:'price_boost' }, done:false },
+    ],
+    friendship: 0, maxFriendship: 100,
+    gifts: ['stroberi','wortel','cabe'],
+  },
+  bang_rudi: {
+    name: 'Bang Rudi', icon: '🧑‍🔧', title: 'Village Mechanic',
+    color: '#80c0ff',
+    intro: 'A versatile mechanic who can upgrade farm equipment at a low price.',
+    shop: [
+      { id:'water_upgrade', name:'Upgrade Water Tank', icon:'💧', price:300, give:{waterBonus:5} },
+      { id:'speed_tool',    name:'Speed Hoe',          icon:'⚡', price:250, give:{speedBoost:1} },
+      { id:'golden_seed',   name:'Golden Seed Pack',  icon:'✨', price:500, give:{tomat:3,jagung:3,stroberi:2,wortel:3} },
+    ],
+    dialogs: [
+      "Bro! Your hoe still sharp? If it gets dull, bring it here — free service!",
+      "Winter is great for upgrading all your equipment without distractions!",
+      "My tip: upgrade the water tank first so you don't have to water manually all the time.",
+      "Ever seen a real tractor? My dream is to build one for this farm someday!",
+      "If anything breaks on the farm, call me! My rates are very affordable.",
+    ],
+    quests: [
+      { id:'rudi_q1', title:"Rudi's Spare Parts", desc:'Earn 200 gold', type:'gold', amount:200, reward:{ waterBonus:3 }, done:false },
+      { id:'rudi_q2', title:'Test New Tools', desc:'Water crops 15 times', type:'water', amount:15, reward:{ gold:400 }, done:false },
+    ],
+    friendship: 0, maxFriendship: 100,
+    gifts: ['jagung','tomat','cabe'],
+  },
+  nenek_tini: {
+    name: 'Nenek Tini', icon: '👵', title: 'Herbal Healer',
+    color: '#a0e090',
+    intro: 'A wise elder who knows all the secrets of herbal plants and village weather.',
+    shop: [
+      { id:'rain_charm',    name:'Rain Charm',      icon:'🌧️', price:180, give:{forceWeather:'rainy'} },
+      { id:'sun_charm',     name:'Sun Charm',       icon:'☀️', price:180, give:{forceWeather:'sunny'} },
+      { id:'bibit_bawang',  name:'Garlic Seeds ×5', icon:'🧅', price:110, give:{bawang:5} },
+    ],
+    dialogs: [
+      "My child, nature speaks through the wind and rain. Listen carefully...",
+      "Grandma knows when rain is coming — just watch the bamboo leaves in the south sway.",
+      "Spring is a blessing, winter is a test. Both are necessary.",
+      "Grandma used to have a lavender garden, but now it's all farmland.",
+      "If you want good weather, buy a charm from me. They really work!",
+    ],
+    quests: [
+      { id:'tini_q1', title:'Herbs for Grandma', desc:'Harvest 6 garlic', type:'harvest', crop:'bawang', amount:6, reward:{ gold:280, item:'rain_charm' }, done:false },
+      { id:'tini_q2', title:"Grandma's Rain Prayer", desc:'Survive drought weather for 2 minutes', type:'survive_drought', amount:1, reward:{ gold:350 }, done:false },
+    ],
+    friendship: 0, maxFriendship: 100,
+    gifts: ['bawang','wortel','stroberi'],
+  },
+};
+
+let npcData = {}; // runtime state: {npcId: {friendship, questsDone, lastGiftDay, lastDialog}}
+let activeNpcId = null;
+let npcQuestProgress = {}; // {questId: currentAmount}
+
+function initNPCData(){
+  Object.keys(NPCS).forEach(id => {
+    if(!npcData[id]) npcData[id] = { friendship:0, questsDone:[], lastGiftDay:null };
+  });
+}
+
+function openNPCPanel(){
+  initNPCData();
+  let html = `<div style="font-size:12px;color:#80a060;margin-bottom:10px;text-align:center">Visit your neighbors to trade, chat & get quests!</div>`;
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+  Object.entries(NPCS).forEach(([id, npc]) => {
+    const nd = npcData[id] || {friendship:0};
+    const fp = nd.friendship || 0;
+    const hearts = Math.floor(fp/20);
+    const heartStr = '❤️'.repeat(hearts) + '🤍'.repeat(5-hearts);
+    const pendingQuests = npc.quests.filter(q => !(nd.questsDone||[]).includes(q.id)).length;
+    html += `<div onclick="openNPCDialog('${id}')" style="background:rgba(0,0,0,0.3);border-radius:10px;padding:10px;cursor:pointer;border:2px solid rgba(255,255,255,0.06);text-align:center;transition:all 0.2s" onmouseover="this.style.borderColor='${npc.color}'" onmouseout="this.style.borderColor='rgba(255,255,255,0.06)'">
+      <div style="font-size:32px;margin-bottom:4px">${npc.icon}</div>
+      <div style="color:${npc.color};font-size:13px;font-weight:bold">${npc.name}</div>
+      <div style="color:#80a070;font-size:10px;margin:2px 0">${npc.title}</div>
+      <div style="font-size:10px;margin:4px 0">${heartStr}</div>
+      ${pendingQuests > 0 ? `<div style="background:#804010;border-radius:4px;font-size:10px;color:#f7c948;padding:2px 4px;margin-top:3px">📋 ${pendingQuests} quest</div>` : ''}
+    </div>`;
+  });
+  html += `</div>`;
+  document.getElementById('npcPanelContent').innerHTML = html;
+  document.getElementById('npcOverlay').classList.remove('hidden');
+}
+function closeNPCPanel(){ document.getElementById('npcOverlay').classList.add('hidden'); }
+
+function openNPCDialog(npcId){
+  activeNpcId = npcId;
+  const npc = NPCS[npcId];
+  const nd = npcData[npcId] || {friendship:0, questsDone:[]};
+  const fp = nd.friendship || 0;
+  const hearts = Math.floor(fp/20);
+  const heartStr = '❤️'.repeat(hearts) + '🤍'.repeat(5-hearts);
+
+  // Pick dialog
+  const dialogIdx = Math.floor(Math.random() * npc.dialogs.length);
+  const dialog = npc.dialogs[dialogIdx];
+
+  // Pending quests
+  const pendingQuests = npc.quests.filter(q => !(nd.questsDone||[]).includes(q.id));
+
+  let html = `
+    <div style="text-align:center;padding:8px 0 12px">
+      <div style="font-size:44px">${npc.icon}</div>
+      <div style="color:${npc.color};font-size:16px;font-weight:bold">${npc.name}</div>
+      <div style="color:#80a070;font-size:11px">${npc.title}</div>
+      <div style="font-size:12px;margin-top:4px">${heartStr} <span style="color:#888;font-size:10px">${fp}/100</span></div>
+    </div>
+    <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:10px 12px;margin-bottom:12px;border-left:3px solid ${npc.color}">
+      <div style="color:#c0d0a0;font-size:13px;line-height:1.6;font-style:italic">"${dialog}"</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <button onclick="openNPCShop('${npcId}')" style="background:#304818;border:2px solid #508030;border-radius:8px;color:#a0e080;font-size:13px;padding:8px;cursor:pointer">
+        🛒 Shop
+      </button>
+      <button onclick="openNPCGiftMenu('${npcId}')" style="background:#483018;border:2px solid #806030;border-radius:8px;color:#f0c060;font-size:13px;padding:8px;cursor:pointer">
+        🎁 Give Gift
+      </button>
+    </div>`;
+
+  if(pendingQuests.length > 0){
+    html += `<div style="font-size:12px;color:#f7c948;margin-bottom:6px;font-weight:bold">📋 AVAILABLE QUESTS:</div>`;
+    pendingQuests.forEach(q => {
+      const prog = npcQuestProgress[q.id] || 0;
+      const pct = Math.min(100, Math.round(prog/q.amount*100));
+      html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;margin-bottom:6px">
+        <div style="color:#e0c060;font-size:13px;font-weight:bold">${q.title}</div>
+        <div style="color:#80a060;font-size:11px;margin:2px 0">${q.desc}</div>
+        <div style="background:rgba(0,0,0,0.3);border-radius:4px;overflow:hidden;margin:5px 0 3px;height:6px">
+          <div style="height:6px;background:#a0c040;width:${pct}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:10px;color:#80a060">${prog}/${q.amount}</span>
+          <span style="font-size:11px;color:#f7c948">🏆 ${q.reward.gold||0}🪙${q.reward.item?` + item`:''}${q.reward.waterBonus?` + +${q.reward.waterBonus}💧`:''}</span>
+        </div>
+        ${prog >= q.amount ? `<button onclick="claimNPCQuest('${npcId}','${q.id}')" style="width:100%;margin-top:6px;background:#604010;border:none;border-radius:6px;color:#f7c948;font-size:13px;padding:5px;cursor:pointer">✅ Claim Reward!</button>` : ''}
+      </div>`;
+    });
+  }
+
+  html += `<button onclick="closeNPCDialog()" style="width:100%;margin-top:6px;background:rgba(0,0,0,0.3);border:1px solid #444;border-radius:8px;color:#888;font-size:13px;padding:8px;cursor:pointer">Close</button>`;
+
+  document.getElementById('npcDialogContent').innerHTML = html;
+  document.getElementById('npcDialogOverlay').classList.remove('hidden');
+  closeNPCPanel();
+}
+
+function closeNPCDialog(){
+  document.getElementById('npcDialogOverlay').classList.add('hidden');
+}
+
+function openNPCShop(npcId){
+  const npc = NPCS[npcId];
+  let html = `
+    <div style="text-align:center;padding:6px 0 12px">
+      <div style="font-size:28px">${npc.icon} 🛒</div>
+      <div style="color:${npc.color};font-size:15px;font-weight:bold">${npc.name}'s Shop</div>
+    </div>`;
+  npc.shop.forEach(item => {
+    const canAfford = gold >= item.price;
+    html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px 10px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">${item.icon}</span>
+      <div style="flex:1">
+        <div style="color:#e0d080;font-size:13px">${item.name}</div>
+        <div style="color:#f7c948;font-size:12px">${item.price} 🪙</div>
+      </div>
+      <button onclick="buyNPCItem('${npcId}','${item.id}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:6px;color:${canAfford?'#fff':'#555'};font-size:12px;padding:6px 10px;cursor:${canAfford?'pointer':'default'}">Buy</button>
+    </div>`;
+  });
+  html += `<button onclick="openNPCDialog('${npcId}')" style="width:100%;margin-top:4px;background:rgba(0,0,0,0.3);border:1px solid #444;border-radius:8px;color:#888;font-size:13px;padding:8px;cursor:pointer">← Back</button>`;
+  document.getElementById('npcDialogContent').innerHTML = html;
+}
+
+function buyNPCItem(npcId, itemId){
+  const npc = NPCS[npcId];
+  const item = npc.shop.find(s => s.id === itemId);
+  if(!item || gold < item.price){ showToast('❌ Not enough gold!'); return; }
+  gold -= item.price;
+  updateGoldUI();
+  // Apply give
+  const g = item.give;
+  if(g.forceWeather){ applyWeather(g.forceWeather); }
+  if(g.waterBonus){ waterCharges = Math.min(WATER_MAX + g.waterBonus, waterCharges + g.waterBonus); updateWaterUI(); }
+  if(g.marketBoost){ marketBoostUntil = Date.now() + g.marketBoost; showToast('📈 Market boost active for 5 minutes!'); }
+  if(g.speedBoost){ showToast('⚡ Speed boost active!'); }
+  // Give seeds/items
+  Object.entries(g).forEach(([k,v]) => {
+    if(['forceWeather','waterBonus','marketBoost','speedBoost','fertilizer'].includes(k)) return;
+    if(typeof v === 'number' && inventory[k] !== undefined){ inventory[k] += v; }
+    else if(typeof v === 'number'){ inventory[k] = (inventory[k]||0) + v; }
+  });
+  if(g.fertilizer && fertilizerInventory){ fertilizerInventory[g.fertilizer] = (fertilizerInventory[g.fertilizer]||0) + 1; }
+  // Friendship +5 per purchase
+  npcData[npcId].friendship = Math.min(100, (npcData[npcId].friendship||0) + 5);
+  updateInventoryUI();
+  saveState();
+  showToast(`✅ Bought ${item.name} from ${npc.name}!`);
+  openNPCShop(npcId);
+}
+
+function openNPCGiftMenu(npcId){
+  const npc = NPCS[npcId];
+  const nd = npcData[npcId];
+  const today = new Date().toDateString();
+  if(nd.lastGiftDay === today){ showToast(`💝 Already gave a gift to ${npc.name} today!`); return; }
+
+  let html = `
+    <div style="text-align:center;padding:6px 0 12px">
+      <div style="font-size:28px">${npc.icon} 🎁</div>
+      <div style="color:${npc.color};font-size:15px;font-weight:bold">Gift for ${npc.name}</div>
+      <div style="color:#80a070;font-size:11px;margin-top:3px">Liked: ${npc.gifts.map(g=>`${CROPS[g]?.icon||'🌿'}${g}`).join(', ')}</div>
+    </div>`;
+
+  const giftable = Object.entries(harvestBasket).filter(([k,v]) => v > 0);
+  if(giftable.length === 0){
+    html += `<div style="text-align:center;color:#888;padding:20px">Harvest basket is empty!</div>`;
+  } else {
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">`;
+    giftable.forEach(([k,v]) => {
+      const crop = CROPS[k];
+      const isLiked = npc.gifts.includes(k);
+      html += `<div onclick="giveGiftToNPC('${npcId}','${k}')" style="background:rgba(0,0,0,0.3);border-radius:8px;padding:8px;text-align:center;cursor:pointer;border:2px solid ${isLiked?npc.color:'rgba(255,255,255,0.06)'}">
+        <div style="font-size:22px">${crop?.icon||'🌿'}</div>
+        <div style="font-size:10px;color:#c0d0a0">${k}</div>
+        <div style="font-size:10px;color:#888">×${v}</div>
+        ${isLiked?`<div style="font-size:9px;color:${npc.color}">❤️ Suka!</div>`:''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<button onclick="openNPCDialog('${npcId}')" style="width:100%;margin-top:10px;background:rgba(0,0,0,0.3);border:1px solid #444;border-radius:8px;color:#888;font-size:13px;padding:8px;cursor:pointer">← Back</button>`;
+  document.getElementById('npcDialogContent').innerHTML = html;
+}
+
+function giveGiftToNPC(npcId, cropKey){
+  const npc = NPCS[npcId];
+  const nd = npcData[npcId];
+  const today = new Date().toDateString();
+  if(!harvestBasket[cropKey] || harvestBasket[cropKey] < 1){ showToast('❌ Not in basket!'); return; }
+  harvestBasket[cropKey]--;
+  const isLiked = npc.gifts.includes(cropKey);
+  const fpGain = isLiked ? 20 : 8;
+  nd.friendship = Math.min(100, (nd.friendship||0) + fpGain);
+  nd.lastGiftDay = today;
+  updateHarvestUI();
+  saveState();
+  showToast(`${isLiked?'❤️':'🙂'} ${npc.name} ${isLiked?'loves':'received'} hadiah ${cropKey}! +${fpGain} friendship`);
+  openNPCDialog(npcId);
+}
+
+function claimNPCQuest(npcId, questId){
+  const npc = NPCS[npcId];
+  const quest = npc.quests.find(q => q.id === questId);
+  if(!quest) return;
+  const nd = npcData[npcId];
+  if((nd.questsDone||[]).includes(questId)){ showToast('Quest already claimed!'); return; }
+  if((npcQuestProgress[questId]||0) < quest.amount){ showToast('Quest not completed yet!'); return; }
+  // Give reward
+  if(quest.reward.gold){ gold += quest.reward.gold; updateGoldUI(); }
+  if(quest.reward.waterBonus){ waterCharges = Math.min(WATER_MAX+quest.reward.waterBonus, waterCharges+quest.reward.waterBonus); updateWaterUI(); }
+  nd.questsDone = [...(nd.questsDone||[]), questId];
+  nd.friendship = Math.min(100, (nd.friendship||0) + 25);
+  saveState();
+  showToast(`🏆 Quest completed! +${quest.reward.gold||0}🪙`);
+  openNPCDialog(npcId);
+}
+
+// Track NPC quest progress on harvest/plant/sell/water events
+function trackNPCQuest(type, crop, amount){
+  Object.entries(NPCS).forEach(([npcId, npc]) => {
+    const nd = npcData[npcId] || {};
+    npc.quests.forEach(q => {
+      if((nd.questsDone||[]).includes(q.id)) return;
+      if(q.type === type && (q.crop === crop || !q.crop)){
+        npcQuestProgress[q.id] = Math.min(q.amount, (npcQuestProgress[q.id]||0) + amount);
+      }
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🗺️ EXPLORATION MAP SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const EXPLORE_AREAS = {
+  forest: {
+    name: 'Mystic Forest', icon: '🌲', color: '#40a860',
+    unlockCost: 500, unlockCrop: null,
+    desc: 'A dense forest full of wild berries and rare mushrooms.',
+    unlocked: false, explored: false,
+    expeditionMs: 60000, // 1 min expedition
+    rewards: [
+      { icon:'🍄', name:'Wild Mushroom',  gold:80,  chance:0.4 },
+      { icon:'🫐', name:'Wild Berries',   gold:60,  chance:0.5 },
+      { icon:'🌰', name:'Chestnut',       gold:100, chance:0.3 },
+      { icon:'🌿', name:'Rare Herb',      gold:150, chance:0.15, seedBonus:{bawangPutih:3} },
+      { icon:'💎', name:'Crystal Shard',  gold:300, chance:0.05 },
+    ],
+    events: ['Found a hidden spring!', 'A friendly deer showed the way!', 'Discovered ancient ruins...'],
+    bgColor: '#1a3a1a',
+  },
+  beach: {
+    name: 'Sunny Beach', icon: '🏖️', color: '#e8c840',
+    unlockCost: 1200, unlockCrop: null,
+    desc: 'Golden sands with fresh seafood and hidden treasure.',
+    unlocked: false, explored: false,
+    expeditionMs: 90000,
+    rewards: [
+      { icon:'🐟', name:'Fresh Fish',     gold:90,  chance:0.5 },
+      { icon:'🦀', name:'Crab',           gold:120, chance:0.35 },
+      { icon:'🐚', name:'Rare Shell',     gold:200, chance:0.2 },
+      { icon:'🪸', name:'Coral Fragment', gold:250, chance:0.15 },
+      { icon:'💰', name:'Treasure Chest', gold:500, chance:0.05 },
+    ],
+    events: ['The tide brought in rare fish!', 'Found a message in a bottle!', 'A fisherman shared his secret spot!'],
+    bgColor: '#1a2a3a',
+  },
+  mountain: {
+    name: 'Snow Mountain', icon: '⛰️', color: '#88aacc',
+    unlockCost: 2500, unlockCrop: null,
+    desc: 'Treacherous peaks hiding precious ores and rare seeds.',
+    unlocked: false, explored: false,
+    expeditionMs: 120000,
+    rewards: [
+      { icon:'⛏️', name:'Iron Ore',       gold:150, chance:0.45 },
+      { icon:'💎', name:'Gemstone',       gold:350, chance:0.2 },
+      { icon:'❄️', name:'Ice Crystal',    gold:200, chance:0.3 },
+      { icon:'🌸', name:'Alpine Flower',  gold:180, chance:0.25, seedBonus:{stroberi:5} },
+      { icon:'👑', name:'Ancient Crown',  gold:1000, chance:0.02 },
+    ],
+    events: ['An eagle guided you through the mist!', 'Found ancient cave paintings!', 'The summit revealed a breathtaking view!'],
+    bgColor: '#0a1a2a',
+  },
+  volcano: {
+    name: 'Fire Volcano', icon: '🌋', color: '#e04020',
+    unlockCost: 5000, unlockCrop: null,
+    desc: 'Dangerous volcanic land with the rarest minerals on earth.',
+    unlocked: false, explored: false,
+    expeditionMs: 180000,
+    rewards: [
+      { icon:'🔥', name:'Magma Stone',    gold:300, chance:0.4 },
+      { icon:'🌋', name:'Lava Crystal',   gold:500, chance:0.2 },
+      { icon:'⚡', name:'Thunder Gem',    gold:800, chance:0.1 },
+      { icon:'💫', name:'Star Fragment',  gold:1200, chance:0.05 },
+      { icon:'🏆', name:'Dragon Scale',   gold:2000, chance:0.01 },
+    ],
+    events: ['Survived a minor eruption!', 'Found a lost explorer\'s diary!', 'The heat revealed hidden crystals!'],
+    bgColor: '#2a0a00',
+  }
+};
+
+let exploreState = {}; // {areaId: {unlocked, expeditionEnd, totalGoldEarned, expeditions}}
+let exploreTimers = {};
+
+function initExploreState(){
+  Object.keys(EXPLORE_AREAS).forEach(id => {
+    if(!exploreState[id]) exploreState[id] = { unlocked:false, expeditionEnd:null, totalGoldEarned:0, expeditions:0 };
+  });
+}
+
+function openExploreMap(){
+  initExploreState();
+  const areaOrder = ['forest','beach','mountain','volcano'];
+  let html = `<div style="font-size:12px;color:#80a060;text-align:center;margin-bottom:12px">Unlock new areas and send expeditions to earn rare rewards!</div>`;
+  html += `<div style="display:flex;flex-direction:column;gap:8px">`;
+
+  areaOrder.forEach((id, idx) => {
+    const area = EXPLORE_AREAS[id];
+    const st = exploreState[id];
+    const unlocked = st.unlocked;
+    const canUnlock = !unlocked && gold >= area.unlockCost;
+    const prevUnlocked = idx === 0 || exploreState[areaOrder[idx-1]].unlocked;
+    const now = Date.now();
+    const onExpedition = st.expeditionEnd && st.expeditionEnd > now;
+    const readyToCollect = st.expeditionEnd && st.expeditionEnd <= now && st.expeditionEnd > 0;
+    const timeLeft = onExpedition ? Math.ceil((st.expeditionEnd - now)/1000) : 0;
+
+    html += `<div style="background:${unlocked ? area.bgColor : 'rgba(0,0,0,0.4)'};border:2px solid ${unlocked ? area.color : '#333'};border-radius:10px;padding:10px 12px;opacity:${!prevUnlocked && !unlocked ? '0.4' : '1'}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:32px">${area.icon}</div>
+        <div style="flex:1">
+          <div style="color:${area.color};font-size:14px;font-weight:bold">${area.name}</div>
+          <div style="color:#80a070;font-size:11px;margin-top:2px">${area.desc}</div>
+          ${unlocked ? `<div style="color:#888;font-size:10px;margin-top:2px">🗺️ ${st.expeditions||0} expeditions · 🪙 ${(st.totalGoldEarned||0).toLocaleString()} earned</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          ${!unlocked && prevUnlocked ? `<button onclick="unlockArea('${id}')" ${canUnlock?'':'disabled'} style="background:${canUnlock?'#604010':'#222'};border:2px solid ${canUnlock?area.color:'#444'};border-radius:8px;color:${canUnlock?area.color:'#555'};font-size:11px;padding:6px 8px;cursor:${canUnlock?'pointer':'default'}">🔓 Unlock<br>${area.unlockCost.toLocaleString()}🪙</button>` : ''}
+          ${!unlocked && !prevUnlocked ? `<div style="color:#555;font-size:11px">🔒 Locked</div>` : ''}
+          ${unlocked && onExpedition ? `<div style="color:#80c8ff;font-size:11px;text-align:center">⏳ ${Math.floor(timeLeft/60)}m ${timeLeft%60}s</div>` : ''}
+          ${unlocked && readyToCollect ? `<button onclick="collectExpedition('${id}')" style="background:#405010;border:2px solid #a0c040;border-radius:8px;color:#c0e060;font-size:11px;padding:6px 8px;cursor:pointer;animation:buyGlow 1s infinite">✅ Collect!</button>` : ''}
+          ${unlocked && !onExpedition && !readyToCollect ? `<button onclick="startExpedition('${id}')" style="background:#204010;border:2px solid ${area.color};border-radius:8px;color:${area.color};font-size:11px;padding:6px 8px;cursor:pointer">🚀 Explore!</button>` : ''}
+        </div>
+      </div>
+      ${unlocked ? `<div style="margin-top:8px;font-size:10px;color:#607050">
+        Possible rewards: ${area.rewards.map(r=>`${r.icon}${r.name}`).join(' · ')}
+      </div>` : ''}
+    </div>`;
+  });
+
+  html += `</div>`;
+  document.getElementById('exploreMapContent').innerHTML = html;
+  document.getElementById('exploreOverlay').classList.remove('hidden');
+}
+
+function closeExploreMap(){ document.getElementById('exploreOverlay').classList.add('hidden'); }
+
+function unlockArea(areaId){
+  const area = EXPLORE_AREAS[areaId];
+  if(gold < area.unlockCost){ showToast('Not enough gold!'); return; }
+  gold -= area.unlockCost;
+  updateGoldUI();
+  exploreState[areaId].unlocked = true;
+  saveState();
+  showToast(`${area.icon} ${area.name} unlocked! Go explore!`);
+  openExploreMap();
+}
+
+function startExpedition(areaId){
+  const area = EXPLORE_AREAS[areaId];
+  const st = exploreState[areaId];
+  st.expeditionEnd = Date.now() + area.expeditionMs;
+  saveState();
+  showToast(`${area.icon} Expedition started! Come back in ${area.expeditionMs/60000} min.`);
+  openExploreMap();
+  // Auto-refresh panel while on expedition
+  if(exploreTimers[areaId]) clearTimeout(exploreTimers[areaId]);
+  exploreTimers[areaId] = setTimeout(()=>{ showToast(`${area.icon} Expedition at ${area.name} is ready to collect!`); }, area.expeditionMs);
+}
+
+function collectExpedition(areaId){
+  const area = EXPLORE_AREAS[areaId];
+  const st = exploreState[areaId];
+  st.expeditionEnd = 0;
+  st.expeditions = (st.expeditions||0) + 1;
+
+  // Roll rewards
+  let totalGold = 0;
+  let items = [];
+  area.rewards.forEach(r => {
+    if(Math.random() < r.chance){
+      totalGold += r.gold;
+      items.push(r.icon + ' ' + r.name);
+      if(r.seedBonus){ Object.entries(r.seedBonus).forEach(([k,v])=>{ inventory[k]=(inventory[k]||0)+v; }); }
+    }
+  });
+  if(totalGold === 0){ totalGold = 20; items = ['🍂 Nothing special...']; }
+
+  // Bonus from season
+  if(currentSeason === 'autumn') totalGold = Math.floor(totalGold * 1.25);
+
+  gold += totalGold;
+  st.totalGoldEarned = (st.totalGoldEarned||0) + totalGold;
+  updateGoldUI();
+  updateInventoryUI();
+
+  // Random event flavor
+  const evt = area.events[Math.floor(Math.random()*area.events.length)];
+
+  saveState();
+  showRandomEvent(area.icon, `${area.name} Expedition Complete!`,
+    `${evt}\n\nFound: ${items.join(', ')}\n\n+${totalGold.toLocaleString()} 🪙 gold earned!`);
+  openExploreMap();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 🌙 DAY / NIGHT CYCLE
+// ══════════════════════════════════════════════════════════════════
+const DAY_DURATION_MS = 4 * 60 * 1000;  // 4 min = full day
+let dayStartTime = Date.now();
+let isDaytime = true;
+let dayNightTimer = null;
+let currentHour = 6; // game hour 0-23
+
+const DAY_PHASES = [
+  { hour:0,  name:'Midnight',  icon:'🌑', sky:'#050818', stars:true,  buff:null },
+  { hour:4,  name:'Dawn',      icon:'🌅', sky:'#1a1030', stars:true,  buff:'plant' },
+  { hour:6,  name:'Morning',   icon:'🌤️', sky:'#87ceeb', stars:false, buff:'water' },
+  { hour:10, name:'Midday',    icon:'☀️', sky:'#60b8ff', stars:false, buff:'sell' },
+  { hour:14, name:'Afternoon', icon:'🌞', sky:'#4aa8ef', stars:false, buff:null },
+  { hour:17, name:'Sunset',    icon:'🌇', sky:'#e07840', stars:false, buff:'harvest' },
+  { hour:20, name:'Evening',   icon:'🌆', sky:'#1a1840', stars:true,  buff:null },
+  { hour:22, name:'Night',     icon:'🌙', sky:'#080c20', stars:true,  buff:null },
+];
+
+const PHASE_BUFFS = {
+  plant:   { desc:'+20% faster growth if planted now', growBonus:0.2 },
+  water:   { desc:'Water refills +2 extra charges', waterBonus:2 },
+  sell:    { desc:'+10% sell price bonus', sellBonus:0.1 },
+  harvest:  { desc:'+1 bonus seed per harvest', seedBonus:1 },
+};
+
+function getCurrentPhase(){
+  let phase = DAY_PHASES[0];
+  for(let p of DAY_PHASES){ if(currentHour >= p.hour) phase = p; }
+  return phase;
+}
+
+function startDayNightCycle(){
+  if(dayNightTimer) clearInterval(dayNightTimer);
+  dayStartTime = Date.now();
+  const hourMs = DAY_DURATION_MS / 24;
+  dayNightTimer = setInterval(()=>{
+    const elapsed = Date.now() - dayStartTime;
+    currentHour = Math.floor((elapsed % DAY_DURATION_MS) / hourMs);
+    isDaytime = currentHour >= 6 && currentHour < 20;
+    updateDayNightUI();
+    // Apply sky tint based on phase
+    applyDayNightSky();
+    // Night: animals rest (slower cooldown)
+    // Dawn water bonus
+    if(currentHour === 6){
+      waterCharges = Math.min(WATER_MAX, waterCharges + 2);
+      updateWaterUI();
+      showToast('🌤️ Good morning! +2 water charges from morning dew!');
+    }
+    // Midnight: small gold bonus
+    if(currentHour === 0){
+      showToast('🌑 Midnight... the farm is quiet. Rest and recover.');
+    }
+  }, hourMs);
+  updateDayNightUI();
+}
+
+function updateDayNightUI(){
+  const phase = getCurrentPhase();
+  const badge = document.getElementById('dayNightBadge');
+  if(badge){
+    const buff = phase.buff ? PHASE_BUFFS[phase.buff] : null;
+    badge.innerHTML = `${phase.icon} ${phase.name} · ${currentHour}:00${buff ? ` <span style="color:#f7c948">⚡${buff.desc}</span>` : ''}`;
+  }
+  // Stars overlay
+  let stars = document.getElementById('starsOverlay');
+  if(phase.stars){
+    if(!stars){
+      stars = document.createElement('div');
+      stars.id = 'starsOverlay';
+      stars.style.cssText = 'position:fixed;top:0;left:0;right:0;height:200px;pointer-events:none;z-index:3;overflow:hidden;';
+      // Generate random stars
+      let starsHtml = '';
+      for(let i=0;i<60;i++){
+        const x=Math.random()*100, y=Math.random()*100;
+        const size=Math.random()*2+1;
+        const delay=Math.random()*3;
+        starsHtml += `<div style="position:absolute;left:${x}%;top:${y}%;width:${size}px;height:${size}px;background:#fff;border-radius:50%;opacity:${0.3+Math.random()*0.7};animation:starTwinkle ${1+delay}s infinite alternate"></div>`;
+      }
+      stars.innerHTML = starsHtml;
+      document.body.appendChild(stars);
+    }
+    stars.style.opacity = isDaytime ? '0' : '1';
+  } else if(stars){ stars.style.opacity = '0'; }
+}
+
+function applyDayNightSky(){
+  const phase = getCurrentPhase();
+  const sky = document.querySelector('.sky');
+  if(sky && phase.sky){
+    sky.style.background = `linear-gradient(180deg, ${phase.sky} 0%, ${shadeHex(phase.sky, 30)} 100%)`;
+  }
+}
+
+function shadeHex(hex, amt){
+  try {
+    const n = parseInt(hex.replace('#',''),16);
+    const r = Math.max(0,Math.min(255,(n>>16)+amt));
+    const g = Math.max(0,Math.min(255,((n>>8)&0xff)+amt));
+    const b = Math.max(0,Math.min(255,(n&0xff)+amt));
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  } catch(e){ return hex; }
+}
+
+// Add star twinkle CSS
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `@keyframes starTwinkle{from{opacity:0.2}to{opacity:1}}`;
+  document.head.appendChild(s);
+})();
+
+// ══════════════════════════════════════════════════════════════════
+// ⚡ RANDOM EVENTS SYSTEM
+// ══════════════════════════════════════════════════════════════════
+const RANDOM_EVENTS = [
+  {
+    id:'pest_attack', icon:'🐛', title:'Pest Attack!',
+    desc:'A swarm of pests has damaged your crops! All growing crops are slowed by 50% for 2 minutes.',
+    type:'negative', weight:8,
+    effect(){ showToast('🐛 Pest attack! Crops slowed for 2 minutes!'); }
+  },
+  {
+    id:'bumper_harvest', icon:'🌟', title:'Bumper Harvest!',
+    desc:'Perfect weather conditions! All crops are ready to harvest right now!',
+    type:'positive', weight:5,
+    effect(){
+      FIELD_DEFS.forEach(f=>{
+        const fd=fieldData[f.id]; if(!fd?.unlocked) return;
+        fd.plots.forEach((p,pi)=>{ if(p.state==='planted' && p.watered){ p.state='ready'; refreshPlot(f.id,pi); }});
+      });
+      showToast('🌟 Bumper harvest! All crops ready!');
+    }
+  },
+  {
+    id:'gold_rush', icon:'💰', title:'Gold Rush!',
+    desc:'A traveling merchant passed through and left behind a bag of gold coins!',
+    type:'positive', weight:6,
+    effect(){
+      const bonus = 100 + Math.floor(Math.random()*400);
+      gold += bonus;
+      updateGoldUI();
+      showGoldFloat('+'+bonus+' 🪙');
+      saveState();
+    }
+  },
+  {
+    id:'harvest_festival', icon:'🎪', title:'Harvest Festival!',
+    desc:'The village is celebrating! All crop sell prices are doubled for 3 minutes!',
+    type:'positive', weight:4,
+    effect(){
+      marketBoostUntil = Date.now() + 180000;
+      showToast('🎪 Harvest Festival! 2x sell prices for 3 minutes!');
+    }
+  },
+  {
+    id:'mysterious_seeds', icon:'🌱', title:'Mysterious Seeds!',
+    desc:'A wandering traveler gifted you a bundle of rare seeds!',
+    type:'positive', weight:5,
+    effect(){
+      const crops = Object.keys(CROPS);
+      const pick = crops[Math.floor(Math.random()*crops.length)];
+      inventory[pick] = (inventory[pick]||0) + 5;
+      updateInventoryUI();
+      saveState();
+    }
+  },
+  {
+    id:'drought_warning', icon:'☀️', title:'Heat Wave Warning!',
+    desc:'A sudden heat wave is coming! Water all your crops now or they may wilt!',
+    type:'warning', weight:7,
+    effect(){ applyWeather('drought'); }
+  },
+  {
+    id:'spring_bonus', icon:'🌸', title:'Early Spring Bloom!',
+    desc:'An unexpected bloom accelerates all your crops! Growth speed +50% for 2 minutes.',
+    type:'positive', weight:4,
+    effect(){ showToast('🌸 Spring Bloom! Crops growing faster!'); }
+  },
+  {
+    id:'animal_gift', icon:'🐄', title:'Animal Happiness!',
+    desc:'Your animals are extra happy today! All animal products collected instantly!',
+    type:'positive', weight:5,
+    effect(){
+      Object.entries(ownedAnimals).forEach(([type, list])=>{
+        list.forEach((a,i)=>{ if(a){ collectAnimalProduct(type,i); }});
+      });
+    }
+  },
+  {
+    id:'traveling_merchant', icon:'🛒', title:'Traveling Merchant!',
+    desc:'A merchant appeared! All NPC shop prices are halved for 5 minutes.',
+    type:'positive', weight:3,
+    effect(){ showToast('🛒 Traveling Merchant! NPC prices halved for 5 min!'); }
+  },
+  {
+    id:'thunderstorm', icon:'⛈️', title:'Thunderstorm!',
+    desc:'A massive storm waters all your crops automatically and refills your water tank!',
+    type:'mixed', weight:6,
+    effect(){
+      applyWeather('storm');
+      waterCharges = WATER_MAX;
+      updateWaterUI();
+    }
+  },
+];
+
+let randomEventTimer = null;
+let lastEventTime = Date.now();
+const EVENT_INTERVAL_MIN = 3 * 60 * 1000;
+const EVENT_INTERVAL_MAX = 6 * 60 * 1000;
+let marketBoostUntil = 0;
+
+function startRandomEvents(){
+  scheduleNextEvent();
+}
+
+function scheduleNextEvent(){
+  if(randomEventTimer) clearTimeout(randomEventTimer);
+  const delay = EVENT_INTERVAL_MIN + Math.random()*(EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN);
+  randomEventTimer = setTimeout(()=>{
+    triggerRandomEvent();
+    scheduleNextEvent();
+  }, delay);
+}
+
+function triggerRandomEvent(forceId){
+  // Weighted random pick
+  let pool = [];
+  RANDOM_EVENTS.forEach(e=>{ for(let i=0;i<e.weight;i++) pool.push(e); });
+  const evt = forceId ? RANDOM_EVENTS.find(e=>e.id===forceId) : pool[Math.floor(Math.random()*pool.length)];
+  if(!evt) return;
+  evt.effect();
+  showRandomEvent(evt.icon, evt.title, evt.desc);
+  trackNPCQuest('event', evt.id, 1);
+}
+
+function showRandomEvent(icon, title, desc){
+  const popup = document.getElementById('randomEventPopup');
+  document.getElementById('randomEventIcon').textContent = icon;
+  document.getElementById('randomEventTitle').textContent = title;
+  document.getElementById('randomEventDesc').textContent = desc;
+  popup.style.display = 'block';
+  // Auto-dismiss after 8 seconds
+  setTimeout(()=>{ if(popup.style.display!=='none') dismissRandomEvent(); }, 8000);
+}
+
+function dismissRandomEvent(){
+  document.getElementById('randomEventPopup').style.display = 'none';
+}
+
+// ══════════════════════════════════════════════════════════════════
 // SAVE / LOAD FROM FILE
-// ═══════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════════
 function exportSave() {
   try {
     const main = localStorage.getItem(SAVE_KEY) || '{}';
