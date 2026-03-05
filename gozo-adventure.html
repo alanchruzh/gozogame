@@ -73,28 +73,50 @@
   #viewport{position:absolute;inset:0;overflow:hidden;}
 
   /* WORLD — much larger than screen, camera follows player */
-  #world{width:2400px;height:1800px;position:absolute;background:#7a5c3a;overflow:visible;}
+  #world{width:2400px;height:1800px;position:absolute;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
+      repeating-linear-gradient(0deg,  rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
+      radial-gradient(ellipse at 25% 25%, #6a5228 0%, #5a3e18 50%, #442e0e 100%);
+    overflow:visible;}
   #world::before{display:none;}
 
-  /* PATHS — sandy dirt road over cobblestone ground */
-  .path-h{position:absolute;background:linear-gradient(180deg,#d4aa6a,#c89858,#b07c44);border-top:3px solid #7a4e28;border-bottom:3px solid #7a4e28;z-index:1;}
-  .path-v{position:absolute;background:linear-gradient(90deg,#d4aa6a,#c89858,#b07c44);border-left:3px solid #7a4e28;border-right:3px solid #7a4e28;z-index:1;}
-  .path-cross{position:absolute;background:#c89858;z-index:1;}
+  /* PATHS — dirt road with texture */
+  .path-h{position:absolute;
+    background:
+      repeating-linear-gradient(90deg, rgba(0,0,0,.07) 0px, rgba(0,0,0,.07) 1px, transparent 1px, transparent 10px),
+      linear-gradient(180deg,#d0a858 0%,#b88838 35%,#a07030 65%,#c8985a 100%);
+    border-top:3px solid #6a3e1a;border-bottom:3px solid #6a3e1a;
+    box-shadow:inset 0 2px 6px rgba(255,200,80,.15),inset 0 -2px 6px rgba(0,0,0,.25);z-index:1;}
+  .path-v{position:absolute;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0px, rgba(0,0,0,.07) 1px, transparent 1px, transparent 10px),
+      linear-gradient(90deg,#d0a858 0%,#b88838 35%,#a07030 65%,#c8985a 100%);
+    border-left:3px solid #6a3e1a;border-right:3px solid #6a3e1a;
+    box-shadow:inset 2px 0 6px rgba(255,200,80,.15),inset -2px 0 6px rgba(0,0,0,.25);z-index:1;}
+  .path-cross{position:absolute;background:#b88838;z-index:1;}
 
   /* TALL GRASS — pixel art, rendered via JS canvas */
-  .tg-back{position:absolute;z-index:2;overflow:hidden;image-rendering:pixelated;}
   .tg-back canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;}
-  .tg-back.active canvas{filter:brightness(1.25);}
+  .tg-back.active canvas{filter:brightness(1.15) saturate(1.2);}
 
   /* TALL GRASS FRONT (above player z=16) */
   .tg-front{position:absolute;z-index:16;pointer-events:none;overflow:hidden;image-rendering:pixelated;}
-  .tg-front canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:.82;}
+  .tg-front canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;opacity:.78;}
 
   /* GRASS PARTING EFFECT — canvas overlay drawn by JS */
   #grass-part-canvas{position:absolute;pointer-events:none;z-index:17;}
 
   /* Zone label */
-  .tg-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:6px;color:rgba(200,255,180,.7);white-space:nowrap;z-index:3;pointer-events:none;text-shadow:1px 1px 0 rgba(0,0,0,.9);}
+  .tg-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+    font-size:6px;color:rgba(220,255,180,.85);white-space:nowrap;z-index:3;pointer-events:none;
+    text-shadow:0 0 6px rgba(0,0,0,.9),1px 1px 0 rgba(0,0,0,.9);
+    font-family:'Press Start 2P',monospace;letter-spacing:1px;}
+  .tg-back{position:absolute;z-index:2;overflow:hidden;image-rendering:pixelated;
+    border:2px solid rgba(0,80,0,.35);box-shadow:0 0 0 1px rgba(0,0,0,.4),inset 0 0 20px rgba(0,0,0,.1);}
+  .tg-back[data-zone="boss"]{border-color:rgba(120,0,120,.5);box-shadow:0 0 12px rgba(100,0,100,.3),inset 0 0 20px rgba(50,0,50,.2);}
+  .tg-back[data-zone="dark"]{border-color:rgba(0,40,0,.6);box-shadow:0 0 8px rgba(0,40,0,.4);}
+  .tg-back[data-zone="misty"]{border-color:rgba(100,180,100,.4);box-shadow:0 0 10px rgba(80,180,80,.2);}
 
   /* PLAYER */
   #player{position:absolute;width:48px;height:64px;z-index:15;image-rendering:pixelated;}
@@ -4123,31 +4145,31 @@ function buildMap(){
   // Spread across the 2400×1800 world with various sizes
   const zones = [
     // Main 4 quadrant zones (large)
-    {x:80,    y:80,    w:860,  h:740,  label:'🌿 ZONE A — Beginner Fields',   isBoss:false},
-    {x:1460,  y:80,    w:860,  h:740,  label:'🌿 ZONE B — Misty Meadows',     isBoss:false},
-    {x:80,    y:1000,  w:860,  h:740,  label:'🌿 ZONE C — Dark Forest',       isBoss:false},
-    {x:1460,  y:1000,  w:860,  h:740,  label:'⚠️ ZONE D — Boss Territory',   isBoss:true},
+    {x:80,    y:80,    w:860,  h:740,  label:'🌿 ZONE A — Beginner Fields',   isBoss:false, type:'normal'},
+    {x:1460,  y:80,    w:860,  h:740,  label:'🌫️ ZONE B — Misty Meadows',    isBoss:false, type:'misty'},
+    {x:80,    y:1000,  w:860,  h:740,  label:'🌲 ZONE C — Dark Forest',       isBoss:false, type:'dark'},
+    {x:1460,  y:1000,  w:860,  h:740,  label:'⚠️ ZONE D — Boss Territory',   isBoss:true,  type:'boss'},
 
     // Mid zones between main paths
-    {x:1020,  y:80,    w:360,  h:320,  label:'🌿 ZONE E',                      isBoss:false},
-    {x:80,    y:840,   w:360,  h:280,  label:'🌿 ZONE F',                      isBoss:false},
-    {x:1460,  y:840,   w:360,  h:280,  label:'🌿 ZONE G',                      isBoss:false},
-    {x:1020,  y:1380,  w:360,  h:340,  label:'🌿 ZONE H',                      isBoss:false},
+    {x:1020,  y:80,    w:360,  h:320,  label:'🌿 ZONE E',                     isBoss:false, type:'misty'},
+    {x:80,    y:840,   w:360,  h:280,  label:'🌿 ZONE F',                     isBoss:false, type:'dark'},
+    {x:1460,  y:840,   w:360,  h:280,  label:'🌿 ZONE G',                     isBoss:false, type:'normal'},
+    {x:1020,  y:1380,  w:360,  h:340,  label:'🌿 ZONE H',                     isBoss:false, type:'dark'},
 
     // Corner secret patches
-    {x:80,    y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
-    {x:1460,  y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
-    {x:2120,  y:380,   w:200,  h:160,  label:'🌿',                             isBoss:false},
-    {x:80,    y:1380,  w:200,  h:160,  label:'🌿',                             isBoss:false},
-    {x:2120,  y:1380,  w:200,  h:160,  label:'🌿',                             isBoss:false},
+    {x:80,    y:380,   w:200,  h:160,  label:'🌿',  isBoss:false, type:'normal'},
+    {x:1460,  y:380,   w:200,  h:160,  label:'🌿',  isBoss:false, type:'misty'},
+    {x:2120,  y:380,   w:200,  h:160,  label:'🌿',  isBoss:false, type:'misty'},
+    {x:80,    y:1380,  w:200,  h:160,  label:'🌿',  isBoss:false, type:'dark'},
+    {x:2120,  y:1380,  w:200,  h:160,  label:'🌿',  isBoss:false, type:'boss'},
 
-    // Scattered small patches alongside paths
-    {x:1050,  y:660,   w:140,  h:200,  label:'🌿',                             isBoss:false},
-    {x:1230,  y:660,   w:140,  h:200,  label:'🌿',                             isBoss:false},
-    {x:660,   y:840,   w:200,  h:140,  label:'🌿',                             isBoss:false},
-    {x:660,   y:1020,  w:200,  h:140,  label:'🌿',                             isBoss:false},
-    {x:1540,  y:840,   w:160,  h:140,  label:'🌿',                             isBoss:false},
-    {x:1700,  y:840,   w:160,  h:140,  label:'🌿',                             isBoss:false},
+    // Scattered small patches
+    {x:1050,  y:660,   w:140,  h:200,  label:'🌿',  isBoss:false, type:'normal'},
+    {x:1230,  y:660,   w:140,  h:200,  label:'🌿',  isBoss:false, type:'normal'},
+    {x:660,   y:840,   w:200,  h:140,  label:'🌿',  isBoss:false, type:'dark'},
+    {x:660,   y:1020,  w:200,  h:140,  label:'🌿',  isBoss:false, type:'dark'},
+    {x:1540,  y:840,   w:160,  h:140,  label:'🌿',  isBoss:false, type:'misty'},
+    {x:1700,  y:840,   w:160,  h:140,  label:'🌿',  isBoss:false, type:'misty'},
   ];
 
   zones.forEach(g => {
@@ -4157,8 +4179,9 @@ function buildMap(){
     // Back layer — pixel art grass canvas
     const back = document.createElement('div');
     back.className = 'tg-back';
+    back.dataset.zone = g.type || 'normal';
     back.style.cssText = `left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;`;
-    back.appendChild(makeGrassCanvas(g.w, g.h, g.isBoss, false));
+    back.appendChild(makeGrassCanvas(g.w, g.h, g.isBoss, false, g.type||'normal'));
     const lbl = document.createElement('div');
     lbl.className = 'tg-label'; lbl.textContent = g.label;
     back.appendChild(lbl);
@@ -4169,7 +4192,7 @@ function buildMap(){
     const front = document.createElement('div');
     front.className = 'tg-front';
     front.style.cssText = `left:${g.x}px;top:${g.y+g.h-frontH}px;width:${g.w}px;height:${frontH}px;`;
-    front.appendChild(makeGrassCanvas(g.w, frontH, g.isBoss, true));
+    front.appendChild(makeGrassCanvas(g.w, frontH, g.isBoss, true, g.type||'normal'));
     world.appendChild(front);
 
     state.grassZones.push({ x:g.x, y:g.y, w:g.w, h:g.h, back, front, isBoss:g.isBoss });
@@ -4699,81 +4722,214 @@ function spawnCactus(world, x, y, sizePx){
 // Tile size in pixels (will be scaled up via CSS width/height:100%)
 const TILE = 16;
 
-// Pixel patterns for grass tile (16×16)
-// Colors from reference: bright green bg, white+ cross, dark green blades
-const G_BG   = '#5ab52a'; // main bright green
-const G_MID  = '#4da022'; // slightly darker green
-const G_DARK = '#2d7010'; // dark blade
-const G_LITE = '#78d43a'; // highlight
-const G_WHT  = '#e8f8c0'; // white-ish cross/flower
-const G_YLW  = '#d4e84a'; // yellow-green small cross
-
-// Each grass tile pattern — array of {dx,dy,w,h,color} pixel rects on 16×16 grid
-// Multiple tile variants for visual variety
-const GRASS_TILES = [
-  // Variant A — cross flower + two blades
-  [
-    // bg is filled separately
-    // cross flower (white +)
-    {x:6,y:3,w:4,h:1,c:G_WHT},{x:7,y:2,w:2,h:3,c:G_WHT},
-    // small yellow cross
-    {x:12,y:8,w:3,h:1,c:G_YLW},{x:13,y:7,w:1,h:3,c:G_YLW},
-    // dark blade left
-    {x:2,y:7,w:1,h:5,c:G_DARK},{x:1,y:6,w:1,h:2,c:G_DARK},{x:3,y:5,w:1,h:2,c:G_DARK},
-    // dark blade right
-    {x:10,y:10,w:1,h:4,c:G_DARK},{x:9,y:9,w:1,h:2,c:G_DARK},{x:11,y:9,w:1,h:2,c:G_DARK},
-    // highlight patch
-    {x:5,y:8,w:2,h:2,c:G_LITE},{x:14,y:13,w:2,h:2,c:G_LITE},
-    // mid-tone patch
-    {x:0,y:12,w:3,h:3,c:G_MID},{x:8,y:5,w:2,h:2,c:G_MID},
-  ],
-  // Variant B — two crosses + single blade
-  [
-    {x:2,y:4,w:4,h:1,c:G_WHT},{x:3,y:3,w:2,h:3,c:G_WHT},
-    {x:10,y:10,w:4,h:1,c:G_YLW},{x:11,y:9,w:2,h:3,c:G_YLW},
-    {x:7,y:5,w:1,h:6,c:G_DARK},{x:6,y:4,w:1,h:2,c:G_DARK},{x:8,y:4,w:1,h:2,c:G_DARK},
-    {x:13,y:1,w:1,h:4,c:G_DARK},{x:12,y:1,w:1,h:2,c:G_DARK},
-    {x:0,y:7,w:2,h:3,c:G_LITE},{x:9,y:13,w:3,h:2,c:G_LITE},
-    {x:5,y:11,w:2,h:2,c:G_MID},{x:14,y:6,w:2,h:3,c:G_MID},
-  ],
-  // Variant C — big cross + tiny blade cluster
-  [
-    {x:5,y:1,w:6,h:1,c:G_WHT},{x:7,y:0,w:2,h:4,c:G_WHT},
-    {x:1,y:11,w:3,h:1,c:G_YLW},{x:2,y:10,w:1,h:3,c:G_YLW},
-    {x:12,y:6,w:3,h:1,c:G_YLW},{x:13,y:5,w:1,h:3,c:G_YLW},
-    {x:3,y:7,w:1,h:5,c:G_DARK},{x:2,y:6,w:2,h:1,c:G_DARK},{x:4,y:6,w:1,h:2,c:G_DARK},
-    {x:10,y:11,w:1,h:4,c:G_DARK},{x:9,y:10,w:2,h:1,c:G_DARK},
-    {x:0,y:0,w:2,h:2,c:G_MID},{x:13,y:13,w:3,h:3,c:G_MID},
-    {x:6,y:9,w:3,h:2,c:G_LITE},
-  ],
-  // Variant D — small crosses scattered
-  [
-    {x:1,y:2,w:3,h:1,c:G_WHT},{x:2,y:1,w:1,h:3,c:G_WHT},
-    {x:8,y:6,w:3,h:1,c:G_WHT},{x:9,y:5,w:1,h:3,c:G_WHT},
-    {x:12,y:12,w:3,h:1,c:G_YLW},{x:13,y:11,w:1,h:3,c:G_YLW},
-    {x:5,y:9,w:1,h:5,c:G_DARK},{x:4,y:8,w:2,h:1,c:G_DARK},{x:6,y:8,w:1,h:2,c:G_DARK},
-    {x:0,y:4,w:2,h:3,c:G_LITE},{x:10,y:2,w:2,h:2,c:G_LITE},
-    {x:7,y:13,w:4,h:2,c:G_MID},{x:14,y:0,w:2,h:3,c:G_MID},
-  ],
-];
+// ── Zone-specific grass palettes ──
+const GRASS_PALETTES = {
+  normal: {
+    bg:   '#3a8c18',  // richer mid-green
+    mid:  '#2f7010',
+    dark: '#1a4d08',
+    lite: '#5dba28',
+    hi:   '#7dda40',
+    wht:  '#c8f090',
+    ylw:  '#b8d830',
+    shdw: '#1a3808',
+  },
+  boss: {
+    bg:   '#2a1a3a',
+    mid:  '#3a1a4a',
+    dark: '#150a25',
+    lite: '#4a2a5a',
+    hi:   '#6a3a7a',
+    wht:  '#cc88ee',
+    ylw:  '#aa44cc',
+    shdw: '#0a0514',
+  },
+  dark: {   // Zone C — dark forest
+    bg:   '#1e5c0a',
+    mid:  '#163f06',
+    dark: '#0a2403',
+    lite: '#2f8012',
+    hi:   '#44aa18',
+    wht:  '#88cc50',
+    ylw:  '#668822',
+    shdw: '#081402',
+  },
+  misty: {  // Zone B — misty meadow
+    bg:   '#4aaa30',
+    mid:  '#389020',
+    dark: '#1a5808',
+    lite: '#66cc44',
+    hi:   '#88ee60',
+    wht:  '#ddffc0',
+    ylw:  '#ccee44',
+    shdw: '#0e3004',
+  },
+};
 
 // Render a pixel grass tile onto a canvas context at given tile position
-function drawGrassTile(ctx, tx, ty, variant){
-  const v = GRASS_TILES[variant % GRASS_TILES.length];
-  const px = tx * TILE, py = ty * TILE;
-  // Background
-  ctx.fillStyle = G_BG;
-  ctx.fillRect(px, py, TILE, TILE);
-  // Pixel details
-  v.forEach(r => {
-    ctx.fillStyle = r.c;
-    ctx.fillRect(px + r.x, py + r.y, r.w, r.h);
-  });
+function drawGrassTile(ctx, tx, ty, variant, pal){
+  const T = TILE;
+  const px = tx * T, py = ty * T;
+  const {bg,mid,dark,lite,hi,wht,ylw,shdw} = pal;
+
+  // Base fill
+  ctx.fillStyle = bg;
+  ctx.fillRect(px, py, T, T);
+
+  // Variant determines which detail pattern
+  const v = variant % 8;
+
+  if(v === 0){
+    // Tall grass blades — left cluster
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+1,py+4,1,8); ctx.fillRect(px+2,py+3,1,2); ctx.fillRect(px,py+5,1,2);
+    ctx.fillStyle = mid;
+    ctx.fillRect(px+3,py+6,1,7); ctx.fillRect(px+2,py+7,1,5);
+    ctx.fillStyle = lite;
+    ctx.fillRect(px+1,py+3,1,2); ctx.fillRect(px+3,py+5,1,2);
+    // flower cross
+    ctx.fillStyle = wht;
+    ctx.fillRect(px+10,py+2,3,1); ctx.fillRect(px+11,py+1,1,3);
+    ctx.fillStyle = ylw;
+    ctx.fillRect(px+10,py+1,1,1); ctx.fillRect(px+12,py+1,1,1); ctx.fillRect(px+11,py+0,1,1); ctx.fillRect(px+11,py+3,1,1);
+    // shadow patch
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+13,5,3); ctx.fillRect(px+6,py+14,3,2);
+    // highlight blade right
+    ctx.fillStyle = hi;
+    ctx.fillRect(px+13,py+5,1,8); ctx.fillRect(px+14,py+4,1,2); ctx.fillRect(px+12,py+6,1,2);
+  } else if(v === 1){
+    // Dense blades — multiple
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+6,py+3,1,10); ctx.fillRect(px+5,py+2,1,2); ctx.fillRect(px+7,py+4,1,2);
+    ctx.fillRect(px+12,py+5,1,8); ctx.fillRect(px+11,py+4,1,2);
+    ctx.fillStyle = mid;
+    ctx.fillRect(px+2,py+7,1,6); ctx.fillRect(px+1,py+6,1,2); ctx.fillRect(px+3,py+6,1,2);
+    ctx.fillStyle = lite;
+    ctx.fillRect(px+6,py+2,1,2); ctx.fillRect(px+12,py+4,1,2); ctx.fillRect(px+2,py+6,1,2);
+    ctx.fillStyle = hi;
+    ctx.fillRect(px+9,py+1,1,11); ctx.fillRect(px+8,py+0,1,2); ctx.fillRect(px+10,py+2,1,2);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+14,16,2);
+  } else if(v === 2){
+    // Flower patch
+    ctx.fillStyle = mid;
+    ctx.fillRect(px+0,py+8,16,8);
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+0,py+11,16,5); ctx.fillRect(px+3,py+8,2,4); ctx.fillRect(px+9,py+7,2,5);
+    ctx.fillStyle = lite;
+    ctx.fillRect(px+1,py+7,2,4); ctx.fillRect(px+7,py+6,2,4); ctx.fillRect(px+13,py+8,2,4);
+    // yellow flower
+    ctx.fillStyle = ylw;
+    ctx.fillRect(px+5,py+2,3,1); ctx.fillRect(px+6,py+1,1,3); ctx.fillRect(px+5,py+1,1,1); ctx.fillRect(px+7,py+1,1,1); ctx.fillRect(px+5,py+3,1,1); ctx.fillRect(px+7,py+3,1,1);
+    ctx.fillStyle = '#ffee00'; ctx.fillRect(px+6,py+2,1,1); // center
+    // white flower
+    ctx.fillStyle = wht;
+    ctx.fillRect(px+12,py+4,3,1); ctx.fillRect(px+13,py+3,1,3); ctx.fillRect(px+12,py+3,1,1); ctx.fillRect(px+14,py+3,1,1); ctx.fillRect(px+12,py+5,1,1); ctx.fillRect(px+14,py+5,1,1);
+    ctx.fillStyle = '#ffffaa'; ctx.fillRect(px+13,py+4,1,1);
+    // shadow
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+13,8,3);
+  } else if(v === 3){
+    // Rocky patch with grass
+    ctx.fillStyle = '#6a5030';
+    ctx.fillRect(px+4,py+8,5,4); ctx.fillRect(px+10,py+10,4,4);
+    ctx.fillStyle = '#8a7050';
+    ctx.fillRect(px+5,py+9,3,2); ctx.fillRect(px+11,py+11,2,2);
+    ctx.fillStyle = '#4a3820';
+    ctx.fillRect(px+4,py+11,6,2); ctx.fillRect(px+10,py+13,5,2);
+    // grass blades around rock
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+1,py+5,1,8); ctx.fillRect(px+2,py+4,1,2); ctx.fillRect(px+13,py+4,1,9); ctx.fillRect(px+14,py+3,1,2);
+    ctx.fillStyle = lite;
+    ctx.fillRect(px+1,py+4,1,2); ctx.fillRect(px+13,py+3,1,2);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+4,py+11,7,5); ctx.fillRect(px+10,py+13,6,3);
+  } else if(v === 4){
+    // Mushroom + grass
+    // mushroom stem
+    ctx.fillStyle = '#ccbb99';
+    ctx.fillRect(px+6,py+10,4,5);
+    ctx.fillStyle = '#aaa080';
+    ctx.fillRect(px+7,py+11,2,4);
+    // mushroom cap
+    ctx.fillStyle = '#cc3300';
+    ctx.fillRect(px+4,py+5,8,6); ctx.fillRect(px+5,py+4,6,2); ctx.fillRect(px+6,py+3,4,2);
+    ctx.fillStyle = '#ee4422';
+    ctx.fillRect(px+5,py+6,6,4); ctx.fillRect(px+6,py+5,4,2);
+    // white spots on cap
+    ctx.fillStyle = wht;
+    ctx.fillRect(px+6,py+6,2,2); ctx.fillRect(px+9,py+7,2,2); ctx.fillRect(px+7,py+9,1,1);
+    // grass sides
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+1,py+6,1,9); ctx.fillRect(px+14,py+7,1,8);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+14,16,2);
+  } else if(v === 5){
+    // Clover patch
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+0,py+10,16,6);
+    ctx.fillStyle = mid;
+    ctx.fillRect(px+0,py+8,16,3);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+14,16,2);
+    // clover leaves
+    const drawClover = (cx,cy,c1,c2)=>{
+      ctx.fillStyle=c1;
+      ctx.fillRect(cx-1,cy-2,2,2); ctx.fillRect(cx+1,cy-2,2,2);
+      ctx.fillRect(cx-2,cy,2,2); ctx.fillRect(cx,cy,2,2); ctx.fillRect(cx+2,cy,2,2);
+      ctx.fillStyle=c2;
+      ctx.fillRect(cx,cy-1,1,1); ctx.fillRect(cx+2,cy-1,1,1);
+      ctx.fillRect(cx-1,cy+1,1,1); ctx.fillRect(cx+1,cy+1,1,1); ctx.fillRect(cx+3,cy+1,1,1);
+    };
+    drawClover(px+3,py+4,lite,hi); drawClover(px+10,py+2,mid,lite); drawClover(px+7,py+7,dark,mid);
+    // stem
+    ctx.fillStyle='#2a6010';
+    ctx.fillRect(px+4,py+6,1,5); ctx.fillRect(px+11,py+4,1,5); ctx.fillRect(px+8,py+9,1,4);
+  } else if(v === 6){
+    // Wet/muddy patch
+    ctx.fillStyle = '#2a5010';
+    ctx.fillRect(px+0,py+0,16,16);
+    ctx.fillStyle = '#224010';
+    ctx.fillRect(px+3,py+4,6,5); ctx.fillRect(px+10,py+7,5,6);
+    // mud puddle
+    ctx.fillStyle = '#3a2800';
+    ctx.fillRect(px+5,py+9,6,4); ctx.fillRect(px+6,py+8,4,1);
+    ctx.fillStyle = '#4a3810';
+    ctx.fillRect(px+6,py+10,4,2); ctx.fillRect(px+5,py+11,1,1); ctx.fillRect(px+10,py+10,1,2);
+    // reflection
+    ctx.fillStyle = 'rgba(100,160,200,0.4)';
+    ctx.fillRect(px+7,py+10,2,2);
+    // sparse grass
+    ctx.fillStyle = lite;
+    ctx.fillRect(px+1,py+3,1,6); ctx.fillRect(px+13,py+2,1,7);
+    ctx.fillStyle = dark;
+    ctx.fillRect(px+2,py+2,1,2); ctx.fillRect(px+0,py+4,1,2); ctx.fillRect(px+14,py+1,1,2);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+4,py+12,8,4);
+  } else {
+    // v === 7: Sparse dead/dry grass  
+    ctx.fillStyle = '#3a6a14';
+    ctx.fillRect(px+0,py+0,16,16);
+    // dry grass blades
+    ctx.fillStyle = '#8a9030';
+    ctx.fillRect(px+3,py+4,1,10); ctx.fillRect(px+2,py+3,2,1); ctx.fillRect(px+4,py+5,1,2);
+    ctx.fillRect(px+11,py+2,1,12); ctx.fillRect(px+10,py+1,2,1); ctx.fillRect(px+12,py+3,1,3);
+    ctx.fillStyle = '#aaaa40';
+    ctx.fillRect(px+3,py+3,1,2); ctx.fillRect(px+11,py+1,1,2);
+    ctx.fillStyle = '#707820';
+    ctx.fillRect(px+7,py+6,1,9); ctx.fillRect(px+6,py+5,2,1); ctx.fillRect(px+8,py+7,1,2);
+    // dry flower dot
+    ctx.fillStyle = '#cc8820';
+    ctx.fillRect(px+7,py+5,1,2);
+    ctx.fillStyle = shdw;
+    ctx.fillRect(px+0,py+14,7,2); ctx.fillRect(px+9,py+13,7,3);
+  }
 }
 
-// Create a pixel-art grass canvas for a zone (capped tile resolution for perf)
-function makeGrassCanvas(w, h, isBoss, isFront){
-  const MAX_TILES = 96; // max tiles per axis
+// Create a pixel-art grass canvas for a zone
+function makeGrassCanvas(w, h, isBoss, isFront, zoneType){
+  const MAX_TILES = 120;
   const tilesX = Math.min(MAX_TILES, Math.ceil(w / TILE));
   const tilesY = Math.min(MAX_TILES, Math.ceil(h / TILE));
   const cw = tilesX * TILE, ch = tilesY * TILE;
@@ -4783,28 +4939,38 @@ function makeGrassCanvas(w, h, isBoss, isFront){
   c.style.cssText = `position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;`;
   const ctx = c.getContext('2d');
 
-  // Seeded-random placement using position
-  let seed = w * 7 + h * 13 + (isBoss ? 99 : 0);
-  const rng = () => { seed = (seed * 1664525 + 1013904223) & 0xffffffff; return (seed >>> 0) / 0xffffffff; };
+  // Select palette
+  let pal = GRASS_PALETTES.normal;
+  if(isBoss) pal = GRASS_PALETTES.boss;
+  else if(zoneType === 'dark') pal = GRASS_PALETTES.dark;
+  else if(zoneType === 'misty') pal = GRASS_PALETTES.misty;
 
-  for(let ty = 0; ty < tilesY; ty++){
-    for(let tx = 0; tx < tilesX; tx++){
-      // Pick variant pseudo-randomly but consistently
-      const v = Math.floor(rng() * GRASS_TILES.length);
-      drawGrassTile(ctx, tx, ty, v);
+  let seed = w * 7 + h * 13 + (isBoss ? 99 : 0) + (zoneType==='dark'?77:0);
+  const rng = () => { seed=(seed*1664525+1013904223)&0xffffffff; return (seed>>>0)/0xffffffff; };
+
+  for(let ty=0; ty<tilesY; ty++){
+    for(let tx=0; tx<tilesX; tx++){
+      const v = Math.floor(rng() * 8);
+      drawGrassTile(ctx, tx, ty, v, pal);
     }
   }
 
-  // Boss zone: add purple tint overlay
+  // Zone-specific overlay
   if(isBoss){
-    ctx.fillStyle = 'rgba(100,0,100,.18)';
-    ctx.fillRect(0, 0, cw, ch);
+    ctx.fillStyle = 'rgba(80,0,80,.22)';
+    ctx.fillRect(0,0,cw,ch);
   }
-
-  // Front layer: darker overlay to give depth
   if(isFront){
-    ctx.fillStyle = 'rgba(0,30,0,.35)';
-    ctx.fillRect(0, 0, cw, ch);
+    // Darker at bottom for depth
+    const grad = ctx.createLinearGradient(0,0,0,ch);
+    grad.addColorStop(0,'rgba(0,20,0,.1)');
+    grad.addColorStop(1,'rgba(0,10,0,.5)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,cw,ch);
+  }
+  if(zoneType==='dark' && !isFront){
+    ctx.fillStyle = 'rgba(0,10,0,.25)';
+    ctx.fillRect(0,0,cw,ch);
   }
 
   return c;
