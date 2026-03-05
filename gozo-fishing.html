@@ -1348,16 +1348,17 @@ const FISH_SPRITE = {
 function drawPixelFish(ctx, cw, ch, fishId){
   const key = FISH_SPRITE[fishId];
   const grid = FISH_PIXELS[key];
-  if(!grid) return;
+  if(!grid || !grid.length || !grid[0]) return;
 
-  const rows = grid.length;       // 10
-  const cols = grid[0].length;    // 18
+  const rows = grid.length;
+  const cols = grid[0].length;
   const ps   = Math.min(Math.floor(cw / cols), Math.floor(ch / rows));
   const ox   = Math.floor((cw - cols * ps) / 2);
   const oy   = Math.floor((ch - rows * ps) / 2);
 
   for(let r = 0; r < rows; r++){
     const row = grid[r];
+    if(!row) continue;
     for(let c = 0; c < cols; c++){
       const ch2 = row[c];
       const col = PAL[ch2];
@@ -1371,8 +1372,9 @@ function drawPixelFish(ctx, cw, ch, fishId){
 // ── Render fish to a canvas element ────────────────────────
 function renderFishCanvas(canvas, fishId, rarityColor, bgColor){
   if(!canvas) return;
+  try {
   const ctx2 = canvas.getContext('2d');
-  const cw = canvas.width, ch = canvas.height;
+  const cw = canvas.width||72, ch = canvas.height||56;
   ctx2.clearRect(0, 0, cw, ch);
   if(bgColor && bgColor !== 'transparent'){
     ctx2.fillStyle = bgColor;
@@ -1384,6 +1386,7 @@ function renderFishCanvas(canvas, fishId, rarityColor, bgColor){
     ctx2.lineWidth = 2;
     ctx2.strokeRect(1, 1, cw-2, ch-2);
   }
+  } catch(e){ console.error('renderFishCanvas error:', e, 'fishId:', fishId); }
 }
 
 
@@ -1393,10 +1396,14 @@ function renderFishCanvas(canvas, fishId, rarityColor, bgColor){
 let G={
   gold:0, bait:[10,0,0,0,0], sel:0, rod:0, ownedRods:[0],
   caught:{}, total:0,
+  xp:0, level:1,
+  stats:{ totalGold:0, biggestFish:null, biggestWeight:0, castCount:0, missCount:0 },
+  leaderboard:[], fishRecords:{},
+  quests:[], questDay:'',
   casting:false, waiting:false, timer:null,
   // Gozo
-  gz:{x:200, y:0, vx:0, vy:0, facing:1, // 1=right,-1=left
-      dir:'down', // 'up','down','left','right' - last movement direction
+  gz:{x:200, y:0, vx:0, vy:0, facing:1,
+      dir:'down',
       walking:false, walkFrame:0, walkTimer:0,
       isFishing:false, atWater:false},
   // Camera / world
@@ -2095,8 +2102,8 @@ function recordFishCatch(fish, weight, length, goldEarned){
   if(!G.fishRecords[id]) G.fishRecords[id]={count:0,bestWeight:0,bestLength:0,totalGold:0};
   const r=G.fishRecords[id];
   r.count++;
-  if(weight>r.bestWeight){ r.bestWeight=parseFloat(weight.toFixed(1)); }
-  if(length>r.bestLength){ r.bestLength=Math.round(length); }
+  if(weight>r.bestWeight){ r.bestWeight=parseFloat((+weight).toFixed(1)); }
+  if(length>r.bestLength){ r.bestLength=Math.round(+length); }
   r.totalGold+=goldEarned;
 }
 
@@ -2107,9 +2114,10 @@ function openFishDetail(fishId){
   if(!caught){ return; } // only show caught fish
   const rarNames=['Common','Uncommon','Rare','Epic','Legendary'];
   const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
-  renderFishCanvas(document.getElementById('fdCanvas'),fishId,rarColors[f.r],'transparent');
+  const fdR = Math.min(Math.max(f.r||0,0),4);
+  renderFishCanvas(document.getElementById('fdCanvas'),fishId,rarColors[fdR],'transparent');
   document.getElementById('fdName').textContent=f.n;
-  document.getElementById('fdRar').innerHTML=`<span style="color:${rarColors[f.r]}">★ ${rarNames[f.r]}</span>`;
+  document.getElementById('fdRar').innerHTML=`<span style="color:${rarColors[fdR]}">★ ${rarNames[fdR]}</span>`;
   document.getElementById('fdInfo').innerHTML=
     `Caught: <b style="color:#FFD700">${caught}x</b><br>
      Weight range: ${f.w[0]}–${f.w[1]} kg<br>
@@ -3421,7 +3429,8 @@ function handleCast(){
 
   if(G.waiting){ reel(); return; }
   if(G.casting) return;
-  if(G.bait[G.sel]<=0){notify('❌ No bait! Buy more at shop.');return;}
+  G.sel = Math.min(Math.max(G.sel||0,0), BAITS.length-1);
+  if((G.bait[G.sel]||0)<=0){notify('❌ No bait! Buy more at shop.');return;}
 
   // Check if near water
   // Actually allow casting from anywhere but notify if not at water
@@ -3431,7 +3440,8 @@ function handleCast(){
     return;
   }
 
-  G.bait[G.sel]--;renderBaits();doCast();
+  const _si = Math.min(G.sel||0, BAITS.length-1);
+  G.bait[_si]--;G.sel=_si;renderBaits();doCast();
 }
 
 function doCast(){
@@ -3466,7 +3476,7 @@ function doCast(){
     G.casting=false;G.waiting=true;
     btn.textContent='🎣 REEL IN';btn.disabled=false;btn.className='castbtn';
     // Realistic wait: Earthworm 15-90s, Gold Lure 8-45s
-    const _baitPw = BAITS[G.sel]?.pw || 1;
+    const _baitPw = BAITS[Math.min(G.sel||0,BAITS.length-1)]?.pw || 1;
     const _minWait = 15000 - (_baitPw-1) * 1500;   // 15s (worm) → 9s (gold lure)
     const _maxExtra = 75000 - (_baitPw-1) * 7500;   // +75s (worm) → +45s (gold lure)
     G.timer=setTimeout(triggerBite, _minWait + Math.random()*_maxExtra);
@@ -3494,7 +3504,8 @@ function reel(){
     notify('🎣 Nothing on the hook!');
     return;
   }
-  const fish=rollFish(BAITS[G.sel].pw);
+  const _selBait = BAITS[Math.min(G.sel||0, BAITS.length-1)];
+  const fish=rollFish((_selBait?.pw)||1);
   if(!fish){setMsg('Nothing on the line...');notify('No catch.');return;}
   G.caught[fish.id]=(G.caught[fish.id]||0)+1;G.total++;
   // Gold added in showCatch with rod bonus applied
@@ -3524,8 +3535,52 @@ function resetRod(){
   btn.textContent='🎣 CAST';btn.disabled=false;btn.className='castbtn';
 }
 function showCatch(f){
+  if(!f || !f.w || !f.l){ return; }
+  const safeR = Math.min(Math.max(f.r||0, 0), 4);
+  const rnd=(a,b)=>((+a||0)+Math.random()*((+b||1)-(+a||0))).toFixed(1);
+  const catchWeight = parseFloat(rnd(f.w[0],f.w[1]));
+  const catchLength = Math.round(+rnd(f.l[0],f.l[1]));
+  const rod = RODS[Math.max(0,Math.min(G.rod||0,RODS.length-1))] || RODS[0];
+  const goldEarned = Math.round((f.g||10) * (rod.bonus||1));
+  const xpGain = XP_RARITY_BONUS[safeR] || 10;
+
+  // ── Update catch popup UI ──
+  const cpIcon = document.getElementById('cpIcon');
+  if(cpIcon) renderFishCanvas(cpIcon, f.id, RCOL[safeR], 'transparent');
+  const cpName = document.getElementById('cpName'); if(cpName) cpName.textContent = f.n||'Unknown Fish';
+  const cpRar  = document.getElementById('cpRar');
+  if(cpRar){ cpRar.textContent='★ '+(RARITY[safeR]||'Common'); cpRar.className='cprar '+(RCSS[safeR]||'r-common'); }
+  const cpInfo = document.getElementById('cpInfo');
+  if(cpInfo) cpInfo.textContent=`Weight: ${catchWeight} kg · Length: ${catchLength} cm`;
+  const cpGold = document.getElementById('cpGold');
+  if(cpGold) cpGold.textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ×'+rod.bonus:''}`;
+  const cpXp = document.getElementById('cpXp');
+  if(cpXp) cpXp.textContent=`+${xpGain} XP`;
+
+  // ── Apply rewards ──
+  G.gold += goldEarned;
+  if(G.stats) G.stats.totalGold = (G.stats.totalGold||0) + goldEarned;
+  gainXP(xpGain);
+  if(G.fishRecords) recordFishCatch(f, catchWeight, catchLength, goldEarned);
+  if(G.leaderboard) addToLeaderboard(f, catchWeight, goldEarned);
+  if(G.quests) {
+    progressQuest('catch_any', 1);
+    progressQuest('gold_earn', goldEarned);
+    if(f.r>=2) progressQuest('catch_rare', 1);
+    if(f.r>=3) progressQuest('catch_epic', 1);
+    _noMissStreak++;
+    if(_noMissStreak>=3) progressQuest('no_miss', _noMissStreak);
+  }
+  autoSave();
+  updateHUD();
+
+  // ── XP bar ──
+  const xpPct2=Math.min(100,(G.xp/Math.max(1,xpForLevel(G.level)))*100);
+  const lvTxt=document.getElementById('cpLvTxt'); if(lvTxt) lvTxt.textContent=`LV ${G.level||1}`;
+  setTimeout(()=>{const xf=document.getElementById('cpXpFill');if(xf)xf.style.width=xpPct2+'%';},100);
+
+  // ── Show popup & effects ──
   playSound('catch');
-  // Fish jump effect
   const jumpEl = document.createElement('div');
   jumpEl.className='fish-jump';
   jumpEl.textContent = f.i||'🐟';
@@ -3533,38 +3588,7 @@ function showCatch(f){
   jumpEl.style.top  = (GROUND_Y - 40)+'px';
   document.getElementById('gameScreen').appendChild(jumpEl);
   setTimeout(()=>jumpEl.remove(), 950);
-  const rnd=(a,b)=>(Math.random()*(b-a)+a).toFixed(1);
-  const catchWeight = parseFloat(rnd(f.w[0],f.w[1]));
-  const catchLength = Math.round(rnd(f.l[0],f.l[1]));
-  renderFishCanvas(document.getElementById('cpIcon'), f.id, RCOL[f.r], 'transparent');
-  document.getElementById('cpName').textContent=f.n;
-  document.getElementById('cpRar').textContent='★ '+RARITY[f.r];
-  document.getElementById('cpRar').className='cprar '+RCSS[f.r];
-  document.getElementById('cpInfo').textContent=`Weight: ${catchWeight} kg · Length: ${catchLength} cm`;
-  const rod = RODS[G.rod] || RODS[0];
-  const goldEarned = Math.round(f.g * rod.bonus);
-  G.gold += goldEarned;
-  if(G.stats) G.stats.totalGold = (G.stats.totalGold||0) + goldEarned;
-  const xpGain = XP_RARITY_BONUS[f.r] || 10;
-  gainXP(xpGain);
-  // Records, leaderboard, quests
-  recordFishCatch(f, catchWeight, catchLength, goldEarned);
-  addToLeaderboard(f, catchWeight, goldEarned);
-  progressQuest('catch_any', 1);
-  progressQuest('gold_earn', goldEarned);
-  if(f.r>=2) progressQuest('catch_rare', 1);
-  if(f.r>=3) progressQuest('catch_epic', 1);
-  _noMissStreak++;
-  if(_noMissStreak>=3) progressQuest('no_miss', _noMissStreak);
-  autoSave();
-  updateHUD();
-  document.getElementById('cpGold').textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ×'+rod.bonus:''}`;
-  document.getElementById('cpXp').textContent=`+${xpGain} XP`;
-  const xpPct2=Math.min(100,(G.xp/Math.max(1,xpForLevel(G.level)))*100);
-  const lvTxt=document.getElementById('cpLvTxt'); if(lvTxt) lvTxt.textContent=`LV ${G.level}`;
-  setTimeout(()=>{const xf=document.getElementById('cpXpFill');if(xf)xf.style.width=xpPct2+'%';},100);
   document.getElementById('catchPopup').classList.add('show');
-  // Catch jump animation
   const animX=G.bob.x, animY=RIVER_Y;
   setTimeout(()=>showCatchAnimation(f, animX, animY), 80);
 }
@@ -4334,8 +4358,8 @@ function applySaveData(data){
   G.total  = Number(data.total) || 0;
   G.caught = data.caught && typeof data.caught === 'object' ? data.caught : {};
   G.bait   = Array.isArray(data.bait) && data.bait.length===5 ? data.bait.map(Number) : [10,0,0,0,0];
-  G.sel       = Number(data.sel) || 0;
-  G.rod       = Number(data.rod) || 0;
+  G.sel       = Math.min(Math.max(Number(data.sel)||0, 0), 4);
+  G.rod       = Math.min(Math.max(Number(data.rod)||0, 0), 4);
   G.ownedRods = Array.isArray(data.ownedRods) ? data.ownedRods : [0];
   if(data.pos){
     G.gz.x = data.pos.x || 220;
