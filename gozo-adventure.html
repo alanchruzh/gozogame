@@ -232,7 +232,11 @@
   /* ═══════════════════════════════════════
      ALL OVERLAY SCREENS
   ═══════════════════════════════════════ */
-  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #quest-screen,#stats-screen,#skilltree-screen,#shop-screen,#ach-screen,#travel-screen,#event-screen,#story-screen{display:none;position:fixed;inset:0;background:rgba(5,5,15,.97);z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;}
+  #event-screen{justify-content:center;background:rgba(0,0,10,.95);}
+  #story-screen{justify-content:center;}
+  @keyframes achIn{0%{transform:translateX(120%);opacity:0}100%{transform:translateX(0);opacity:1}}
+  @keyframes achOut{0%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(120%)}}
 
   /* ═══════════════════════════════════════
      MOBILE / RESPONSIVE
@@ -1064,9 +1068,32 @@ const WILD = [
   {t:10,name:'CELESTIAL LION',emoji:'🦁', color:'#ffeebb', hp:270, atk:66, def:24, exp:179, coins:129, element:'light'},
   {t:10,name:'EARTH TITAN',   emoji:'🗻', color:'#443322', hp:300, atk:58, def:32, exp:182, coins:132, element:'earth'},
   {t:10,name:'CHAOS GOD',     emoji:'💀', color:'#330011', hp:320, atk:72, def:26, exp:200, coins:150, element:null},
+  // ── NEW: Extra Tiers ──
+  {t:1, name:'WOBBLE JELLY',  emoji:'🫠', color:'#ffaacc', hp:16,  atk:5,  def:2,  exp:9,   coins:4,  element:'water'},
+  {t:1, name:'STONE BEETLE',  emoji:'🪲', color:'#887755', hp:24,  atk:4,  def:5,  exp:11,  coins:5,  element:'earth'},
+  {t:1, name:'SPARK WISP',    emoji:'🔆', color:'#ffee44', hp:11,  atk:9,  def:0,  exp:9,   coins:4,  element:'electric'},
+  {t:3, name:'CAVE TROLL',    emoji:'🧌', color:'#778855', hp:62,  atk:20, def:10, exp:38,  coins:22, element:'earth'},
+  {t:3, name:'SEA WITCH',     emoji:'🧜', color:'#3388cc', hp:55,  atk:24, def:7,  exp:36,  coins:21, element:'water'},
+  {t:3, name:'PLAGUE RAT',    emoji:'🐀', color:'#886600', hp:48,  atk:22, def:6,  exp:34,  coins:19, element:'dark'},
+  {t:5, name:'STORM HAWK',    emoji:'🦅', color:'#aabbdd', hp:95,  atk:38, def:12, exp:68,  coins:44, element:'wind'},
+  {t:5, name:'LAVA GOLEM',    emoji:'🌋', color:'#ff5500', hp:115, atk:34, def:18, exp:70,  coins:46, element:'fire'},
+  {t:5, name:'SHADOW WOLF',   emoji:'🐺', color:'#334455', hp:88,  atk:41, def:10, exp:66,  coins:42, element:'dark'},
+  {t:7, name:'ARCANE GOLEM',  emoji:'🗿', color:'#aa88ff', hp:165, atk:52, def:22, exp:110, coins:74, element:'light'},
+  {t:7, name:'FROST WYRM',    emoji:'🐲', color:'#aaddff', hp:150, atk:56, def:18, exp:108, coins:72, element:'ice'},
+  {t:7, name:'BLOOD KNIGHT',  emoji:'🗡️', color:'#cc2222', hp:145, atk:58, def:20, exp:112, coins:76, element:null},
+  {t:9, name:'RIFT DEMON',    emoji:'👿', color:'#ff2244', hp:230, atk:64, def:20, exp:162, coins:118, element:'dark'},
+  {t:9, name:'ASTRAL TITAN',  emoji:'🌠', color:'#88aaff', hp:240, atk:60, def:24, exp:165, coins:120, element:'light'},
+  {t:9, name:'PLAGUE DRAGON', emoji:'🦎', color:'#448844', hp:220, atk:62, def:22, exp:160, coins:116, element:'grass'},
 ];
 
-const BOSS = { name:'BOSS WIZARD', emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null };
+const BOSS_LIST = [
+  { name:'BOSS WIZARD',     emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null,    lore:'An ancient mage corrupted by forbidden magic.' },
+  { name:'DARK GOLEM KING', emoji:'🗿', color:'#cc6600', hp:220, atk:44, def:22, exp:180, coins:160, element:'earth', lore:'A golem that achieved consciousness through dark arts.' },
+  { name:'VOID SOVEREIGN',  emoji:'🌌', color:'#330066', hp:300, atk:58, def:18, exp:250, coins:220, element:'dark',  lore:'A being born from the collapse of a dead star.' },
+  { name:'CHAOS LICH',      emoji:'💀', color:'#ff0044', hp:380, atk:70, def:24, exp:320, coins:280, element:null,    lore:'Death given will. The final guardian of the abyss.' },
+];
+let bossIndex = 0;
+const BOSS = BOSS_LIST[0];
 let bossDefeated = false;
 
 // Pick monsters by player level → tier
@@ -2170,11 +2197,65 @@ function applyPartnerStage(type, stage) {
   if (btnSp) btnSp.textContent = evo.specialName;
 }
 
+// Rich NPC dialog pools per NPC type
+const NPC_DIALOG_POOLS = {
+  general: [
+    "Business is slow today... or maybe the monsters ate my customers? 😅",
+    "Fresh stock just arrived! Best prices in the region!",
+    "Pro tip: sell items you don't need — coins buy upgrades!",
+    "I heard a legendary weapon was spotted in the deepest grass zone...",
+    "The weather's been strange lately. Something stirs in the east.",
+    "Three adventurers passed through last week. None returned. 😬",
+    "Buy low, sell high — that's the merchant's creed!",
+    "I've been here 20 years. Never seen so many monsters lately.",
+  ],
+  weapons: [
+    "A warrior is only as good as their blade!",
+    "Fire weapons melt Ice enemies like butter! 🔥",
+    "Speed matters — a fast weapon can outpace raw power.",
+    "My grandfather forged the legendary Gozo Blade... lost now.",
+    "Upgrade your weapon before you face the Boss. Trust me.",
+    "Dark element weapons deal bonus damage to ghost types!",
+    "The higher the tier, the rarer the materials needed to forge it.",
+    "I sharpen every blade myself. No shortcuts in craftsmanship!",
+  ],
+  armors: [
+    "A shield is a warrior's best friend!",
+    "DEF doesn't seem exciting — until you survive a one-hit kill.",
+    "Ice armor against fire attacks? That's asking to melt!",
+    "The rarest armor has stats you wouldn't believe.",
+    "Upgrade before you enter Zone C. The enemies there are brutal.",
+    "Heavy armor slows some fighters, but Gozo's different.",
+    "I once made armor for a king. He still visits when it needs mending.",
+    "HP bonuses from armor are permanent even when unequipped!",
+  ],
+  upgrade: [
+    "Magic flows through everything — even your gear!",
+    "A +3 upgrade to ATK is worth more than a new tier weapon.",
+    "Critical hit chance is underrated. Stack it, trust me. 🎯",
+    "The arcane arts are ancient. I merely channel what already exists.",
+    "Max potion slots saved my life. Literally.",
+    "Speed upgrades reduce encounter cooldown — explore faster!",
+    "I've seen players go full crit build. Absolute chaos. Beautiful.",
+    "Combine skill upgrades with good gear. That's the true path.",
+  ],
+};
+// Ranger NPC dialogs (lore & hints)
 const DIALOGS = [
   "Hey Gozo! Walk into the tall grass 🌿 to find wild monsters!",
   "Rare monsters appear more often deep inside the grass zones...",
-  "Rumor has it the Boss Wizard hides in the bottom-right grass zone! 🧙",
-  "Use your partner's skill for type advantages! ⚡"
+  "Rumor has it a new Boss spawns each time you defeat the last one...",
+  "Use your partner's skill for type advantages! ⚡",
+  "I mapped the whole world once. The bottom-right zone gave me nightmares.",
+  "Gozo, your partner evolves at LV 30 and again at LV 60!",
+  "Random events can happen anytime on the road. Stay alert!",
+  "I found a treasure chest once near the center crossing. Try your luck!",
+  "The Boss gets stronger each time you defeat it. Be ready.",
+  "Each grass zone has different enemy tiers. Explore carefully!",
+  "I've heard whispers of a hidden 5th boss... but surely that's just legend.",
+  "Type advantages deal 1.5x damage. Learn the elements!",
+  "Complete daily quests — the rewards stack up fast.",
+  "The skill tree has 18 nodes. Mastering all of them... 🤯",
 ];
 
 // ==============================================
@@ -2205,8 +2286,10 @@ function initSelectScreenSprites(){
 }
 function startGame(){
   document.getElementById('title-screen').style.display='none';
-  document.getElementById('select-screen').style.display='flex';
-  initSelectScreenSprites();
+  showStoryIntro(()=>{
+    document.getElementById('select-screen').style.display='flex';
+    initSelectScreenSprites();
+  });
 }
 function selectMonster(t){
   pType=t;
@@ -2821,6 +2904,9 @@ function initGame(fromLoad){
   const _toolbar = document.getElementById('toolbar'); if(_toolbar) _toolbar.style.display='flex';
   initQuests();
   initSkills();
+  initAchievements();
+  // Hook enemy pool reference for random events
+  window._ENEMY_POOL = WILD;
   setTimeout(()=>bgmFadeTo('explore'), 500);
   state.world.w = WORLD_W;
   state.world.h = WORLD_H;
@@ -3044,13 +3130,13 @@ function spawnDecorations(){
 
   const NPC_DATA=[
     {shirt:'#cc3322',hair:'#1a1010',skin:'#d4a574', label:'SHOP',    type:'general',
-     lines:['Welcome! Best deals in town!','Buy weapons, armor & potions!','Come back anytime, friend!']},
+     lines: NPC_DIALOG_POOLS['general'].slice(0,3)},
     {shirt:'#335577',hair:'#5c3a1e',skin:'#d4a574', label:'ARMORY',  type:'weapons',
-     lines:['Fine blades for fine warriors!','A sharp sword saves lives!','These weapons are legendary!']},
+     lines: NPC_DIALOG_POOLS['weapons'].slice(0,3)},
     {shirt:'#336644',hair:'#1a0a00',skin:'#c49060', label:'ARMORER', type:'armors',
-     lines:['Best armor in the land!','Defense wins battles!','Stay protected, adventurer!']},
+     lines: NPC_DIALOG_POOLS['armors'].slice(0,3)},
     {shirt:'#773388',hair:'#111122',skin:'#d4a574', label:'MAGE',    type:'upgrade',
-     lines:['I can enhance your gear!','Magic upgrades, cheap price!','The arcane arts serve you!']},
+     lines: NPC_DIALOG_POOLS['upgrade'].slice(0,3)},
   ];
   const NPC_XOFF = [-240, -100, 50, 200];
 
@@ -3906,6 +3992,12 @@ function gameLoop() {
     updateCamera();
     tickGrassSway();
     if(state.inGrass && moving) drawGrassPart();
+    tickWeather();
+    tickRandomEvents();
+    checkWaypointUnlock();
+    tickFootstep(moving);
+    // Check achievements periodically
+    if(Math.random()<0.01) checkAchievements();
   }
   requestAnimationFrame(gameLoop);
 }
@@ -4037,7 +4129,7 @@ function triggerEncounter(zone){
   // Pick monster using level-based tier system
   let enemy;
   if(zone.isBoss&&!bossDefeated&&state.player.level>=3){
-    enemy={...BOSS,hp:BOSS.hp,maxHp:BOSS.hp};
+    const curBoss=BOSS_LIST[bossIndex]; enemy={...curBoss,hp:curBoss.hp,maxHp:curBoss.hp};
   } else {
     enemy = pickWildMonster(zone);
   }
@@ -4151,7 +4243,10 @@ function battleAction(action){
   if(action==='attack'){
     let dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
     const isCrit = Math.random() < (p.critChance||0);
-    if(isCrit){ dmg = Math.floor(dmg*2); }
+    if(isCrit){
+      dmg = Math.floor(dmg*2);
+      if(questState) questState.stats.critHits = (questState.stats.critHits||0)+1;
+    }
     e.hp-=dmg;
     playSoundAttack();
     attackLungePlayer();
@@ -4288,8 +4383,21 @@ function enemyTurn(){
 
 function winBattle(){
   const e=state.currentEnemy,p=state.player;
-  if(e.name===BOSS.name)bossDefeated=true;
-  p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(5,p.potions+1);
+  if(e.name===BOSS_LIST[bossIndex].name){
+    bossDefeated=true;
+    // Cycle to next boss after a delay
+    setTimeout(()=>{
+      bossIndex = (bossIndex+1) % BOSS_LIST.length;
+      bossDefeated = false;
+      const bm = document.getElementById('boss-marker');
+      if(bm) bm.style.display='block';
+      const nextBoss = BOSS_LIST[bossIndex];
+      showDialog(`⚠️ A new threat rises: ${nextBoss.emoji} ${nextBoss.name}! "${nextBoss.lore}"`);
+    }, 3000);
+  }
+  p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||5,p.potions+1);
+  if(p.hp<=10 && questState) questState.stats.closeWins=(questState.stats.closeWins||0)+1;
+  checkAchievements();
   playSoundVictory();
   bgmStop();
   bgmPlayVictory();
@@ -5802,6 +5910,538 @@ function closeStatsScreen(){
 }
 
 // ==============================================
+// 🏆 ACHIEVEMENT SYSTEM
+// ==============================================
+const ACHIEVEMENTS = [
+  {id:'first_blood',  icon:'🩸', name:'First Blood',      desc:'Win your first battle',           check:s=>s.kills>=1},
+  {id:'explorer',     icon:'🌿', name:'Grass Walker',      desc:'Enter tall grass 10 times',        check:s=>s.grassEntries>=10},
+  {id:'collector',    icon:'🎒', name:'Collector',         desc:'Own 10 items',                     check:s=>(inventory.weapons.length+inventory.armors.length)>=10},
+  {id:'rich',         icon:'💰', name:'Coin Hoarder',      desc:'Accumulate 500 coins',             check:s=>state.player.coins>=500},
+  {id:'killer10',     icon:'💀', name:'Monster Slayer',    desc:'Defeat 10 enemies',                check:s=>s.kills>=10},
+  {id:'killer50',     icon:'⚔️', name:'Veteran Warrior',  desc:'Defeat 50 enemies',                check:s=>s.kills>=50},
+  {id:'levelup5',     icon:'⬆️', name:'Growing Strong',   desc:'Reach level 5',                    check:_=>state.player.level>=5},
+  {id:'levelup10',    icon:'🌟', name:'Elite Adventurer',  desc:'Reach level 10',                   check:_=>state.player.level>=10},
+  {id:'rare_drop',    icon:'💎', name:'Lucky Find',        desc:'Find a Rare or better item',       check:s=>['Rare','Epic','Legendary'].includes(s.bestRarity)},
+  {id:'legendary',    icon:'🏅', name:'Legend',            desc:'Find a Legendary item',            check:s=>s.bestRarity==='Legendary'},
+  {id:'boss_slayer',  icon:'🧙', name:'Boss Slayer',       desc:'Defeat the first boss',            check:_=>bossIndex>=1},
+  {id:'all_bosses',   icon:'👑', name:'True Champion',     desc:'Defeat all 4 bosses',              check:_=>bossIndex===0&&bossDefeated},
+  {id:'crit_master',  icon:'🎯', name:'Crit Master',       desc:'Land 20 critical hits',            check:s=>(s.critHits||0)>=20},
+  {id:'shopaholic',   icon:'🛒', name:'Shopaholic',        desc:'Buy 5 items from shops',           check:s=>(s.bought||0)>=5},
+  {id:'quest_done5',  icon:'📋', name:'Quest Seeker',      desc:'Complete 5 quests',                check:_=>Object.keys(questState?.completed||{}).length>=5},
+  {id:'skill_tree10', icon:'🌳', name:'Skill Seeker',      desc:'Learn 10 skills',                  check:_=>Object.keys(skillState||{}).length>=10},
+  {id:'traveler',     icon:'🗺️', name:'Fast Traveler',     desc:'Use fast travel 3 times',          check:s=>(s.fastTravels||0)>=3},
+  {id:'survivor',     icon:'🛡️', name:'Survivor',          desc:'Win a battle with HP below 10',   check:s=>(s.closeWins||0)>=1},
+  {id:'weatherwatcher',icon:'🌦️',name:'Weather Watcher',   desc:'Experience 3 weather events',     check:s=>(s.weatherSeen||0)>=3},
+  {id:'event_found',  icon:'🎲', name:'Fortune Seeker',    desc:'Find a treasure chest event',      check:s=>(s.chestsFound||0)>=1},
+];
+
+let achievementState = {}; // {[id]: timestamp}
+
+function initAchievements(){
+  try{ const s=sessionStorage.getItem('gozo_ach'); if(s) achievementState=JSON.parse(s); }catch(e){}
+}
+function saveAchievements(){ try{ sessionStorage.setItem('gozo_ach',JSON.stringify(achievementState)); }catch(e){} }
+
+function checkAchievements(){
+  if(!questState) return;
+  const s = questState.stats;
+  ACHIEVEMENTS.forEach(a=>{
+    if(achievementState[a.id]) return;
+    try{ if(a.check(s)){ unlockAchievement(a); } }catch(e){}
+  });
+}
+
+function unlockAchievement(a){
+  achievementState[a.id] = Date.now();
+  saveAchievements();
+  playSoundAchievement();
+  const achDot = document.getElementById('ach-dot-tb');
+  if(achDot) achDot.style.display='block';
+  // Toast popup
+  const toast = document.createElement('div');
+  toast.style.cssText=`position:fixed;top:70px;right:12px;background:#0a0a14;border:2px solid #FFD700;
+    padding:10px 14px;font-family:'Press Start 2P',monospace;font-size:7px;color:#FFD700;z-index:95;
+    animation:achIn .4s cubic-bezier(.175,.885,.32,1.275) both,achOut .4s 3.5s ease forwards;
+    clip-path:polygon(8px 0%,calc(100% - 8px) 0%,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0% calc(100% - 8px),0% 8px);
+    max-width:220px;box-shadow:0 0 16px #FFD70044;`;
+  toast.innerHTML=`<div style="color:#888;font-size:5px;margin-bottom:4px;letter-spacing:2px;">🏆 ACHIEVEMENT UNLOCKED</div>
+    <div>${a.icon} ${a.name}</div><div style="font-size:5px;color:#666;margin-top:3px;">${a.desc}</div>`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 4200);
+}
+
+function openAchievements(){
+  const achDot = document.getElementById('ach-dot-tb');
+  if(achDot) achDot.style.display='none';
+  const sc = document.getElementById('ach-screen');
+  if(!sc) return;
+  const unlocked = ACHIEVEMENTS.filter(a=>achievementState[a.id]).length;
+  sc.innerHTML = `<div style="width:100%;max-width:580px;padding:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+      <div><div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🏆 ACHIEVEMENTS</div>
+      <div style="font-size:6px;color:#555;margin-top:3px;">${unlocked}/${ACHIEVEMENTS.length} unlocked</div></div>
+      <button onclick="document.getElementById('ach-screen').style.display='none'"
+        style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+    ${ACHIEVEMENTS.map(a=>{
+      const done=!!achievementState[a.id];
+      return `<div style="background:${done?'#0a100a':'#080810'};border:2px solid ${done?'#44ff8866':'#1a1a2a'};padding:8px 10px;opacity:${done?1:0.5};">
+        <div style="font-size:16px;margin-bottom:4px;">${a.icon}</div>
+        <div style="font-size:7px;color:${done?'#44ff88':'#666'};">${a.name}</div>
+        <div style="font-size:5px;color:#444;margin-top:2px;">${a.desc}</div>
+        ${done?'<div style="font-size:5px;color:#44ff8877;margin-top:3px;">✅ UNLOCKED</div>':''}
+      </div>`;
+    }).join('')}
+    </div>
+  </div>`;
+  sc.style.display='flex';
+}
+
+// ==============================================
+// 🌦️ WEATHER SYSTEM
+// ==============================================
+const WEATHER_TYPES = [
+  {id:'clear',   label:'☀️ Clear',     overlay:null,       filter:'none',                          ambientColor:null},
+  {id:'rain',    label:'🌧️ Rain',      overlay:'rain',     filter:'brightness(0.85) saturate(0.8)',ambientColor:'rgba(80,100,180,0.15)'},
+  {id:'fog',     label:'🌫️ Fog',       overlay:'fog',      filter:'brightness(0.9) contrast(0.9)', ambientColor:'rgba(200,200,220,0.25)'},
+  {id:'storm',   label:'⛈️ Storm',     overlay:'storm',    filter:'brightness(0.75) saturate(0.7)',ambientColor:'rgba(50,50,100,0.3)'},
+  {id:'sunny',   label:'🌤️ Sunny',     overlay:null,       filter:'brightness(1.1) saturate(1.15)',ambientColor:'rgba(255,220,100,0.08)'},
+];
+let currentWeather = 'clear';
+let weatherTimer = 0;
+const WEATHER_CHANGE_INTERVAL = 1800; // ~30 seconds at 60fps
+
+function tickWeather(){
+  weatherTimer++;
+  if(weatherTimer >= WEATHER_CHANGE_INTERVAL){
+    weatherTimer = 0;
+    // 40% chance weather changes
+    if(Math.random() < 0.4){
+      const newW = WEATHER_TYPES[Math.floor(Math.random()*WEATHER_TYPES.length)];
+      if(newW.id !== currentWeather){
+        setWeather(newW.id);
+      }
+    }
+  }
+}
+
+function setWeather(weatherId){
+  currentWeather = weatherId;
+  const w = WEATHER_TYPES.find(x=>x.id===weatherId);
+  if(!w) return;
+
+  // Apply filter to game world
+  const world = document.getElementById('world');
+  if(world) world.style.filter = w.filter;
+
+  // Overlay effect
+  let overlay = document.getElementById('weather-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'weather-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:14;transition:all 1s;';
+    document.body.appendChild(overlay);
+  }
+
+  // Clear previous particles
+  overlay.innerHTML = '';
+  overlay.style.background = w.ambientColor || 'none';
+
+  if(w.overlay === 'rain' || w.overlay === 'storm'){
+    overlay.innerHTML = '<canvas id="rain-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></canvas>';
+    startRainCanvas(w.overlay === 'storm');
+  } else if(w.overlay === 'fog'){
+    overlay.style.backdropFilter = 'blur(1px)';
+    overlay.style.background = 'rgba(200,210,230,0.18)';
+  } else {
+    overlay.style.backdropFilter = '';
+  }
+
+  // Track for achievement
+  if(questState && weatherId !== 'clear' && weatherId !== 'sunny'){
+    questState.stats.weatherSeen = (questState.stats.weatherSeen||0)+1;
+    checkAchievements();
+  }
+
+  // Notify
+  if(weatherId !== 'clear'){
+    showSellToast(`${w.label}`, weatherId==='storm'?'#8888ff':'#aaccff');
+  }
+}
+
+function startRainCanvas(isStorm){
+  const canvas = document.getElementById('rain-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const drops = Array.from({length:isStorm?200:100},()=>({
+    x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+    speed:isStorm?18+Math.random()*10:8+Math.random()*6,
+    len:isStorm?25+Math.random()*15:12+Math.random()*8,
+    alpha:0.3+Math.random()*0.4
+  }));
+  let rafId;
+  function drawRain(){
+    if(currentWeather!=='rain'&&currentWeather!=='storm'){cancelAnimationFrame(rafId);return;}
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='rgba(150,180,255,0.5)';
+    ctx.lineWidth=1;
+    drops.forEach(d=>{
+      ctx.globalAlpha=d.alpha;
+      ctx.beginPath(); ctx.moveTo(d.x,d.y); ctx.lineTo(d.x+d.len*0.2,d.y+d.len); ctx.stroke();
+      d.y+=d.speed; if(d.y>canvas.height){d.y=-d.len;d.x=Math.random()*canvas.width;}
+    });
+    ctx.globalAlpha=1;
+    // Lightning occasionally during storm
+    if(isStorm && Math.random()<0.003){
+      ctx.fillStyle='rgba(200,200,255,0.15)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    rafId=requestAnimationFrame(drawRain);
+  }
+  drawRain();
+}
+
+// ==============================================
+// 🎲 RANDOM EVENTS
+// ==============================================
+const RANDOM_EVENTS = [
+  {
+    id:'treasure', weight:15, icon:'💰', title:'Treasure Chest!',
+    desc:'You found an old chest on the road!',
+    choices:[
+      {label:'🔓 Open it', action:(p)=>{
+        const coins = 20 + Math.floor(Math.random()*80);
+        p.coins += coins;
+        if(questState) questState.stats.chestsFound=(questState.stats.chestsFound||0)+1;
+        checkAchievements();
+        return `Found ${coins} coins inside! 💰`;
+      }},
+      {label:'🚶 Leave it', action:()=>'You walk away cautiously.'},
+    ]
+  },
+  {
+    id:'merchant', weight:12, icon:'🧳', title:'Wandering Merchant',
+    desc:'A travelling merchant offers you a deal: a random item for 30 coins!',
+    choices:[
+      {label:'💰 Buy (30g)', action:(p)=>{
+        if(p.coins<30) return "Not enough coins! The merchant leaves.";
+        p.coins-=30;
+        const pool=[...WEAPONS,...ARMORS].filter(x=>x.t<=Math.max(1,p.level-1));
+        const item=pool[Math.floor(Math.random()*pool.length)];
+        if(item){ addToInventory({...item,type:item.atk!=null?'weapon':'armor'}); return `Bought ${item.emoji} ${item.name}!`; }
+        return 'Nothing good available.';
+      }},
+      {label:'🚶 Pass', action:()=>'The merchant tips his hat and moves on.'},
+    ]
+  },
+  {
+    id:'ambush', weight:18, icon:'⚔️', title:'Ambush!',
+    desc:'Enemies spring from the bushes!',
+    choices:[
+      {label:'⚔️ Fight!', action:(p)=>{
+        // Trigger a random battle
+        const tier = Math.max(1,Math.min(10,p.level));
+        const pool = window._ENEMY_POOL ? window._ENEMY_POOL.filter(e=>e.t===tier) : [];
+        if(pool.length){ setTimeout(()=>startBattle({...pool[Math.floor(Math.random()*pool.length)]}),400); }
+        return 'Get ready to fight!';
+      }},
+      {label:'🏃 Run!', action:(p)=>{
+        p.hp = Math.max(1, p.hp - 8);
+        return 'You escaped! But lost 8 HP in the panic.';
+      }},
+    ]
+  },
+  {
+    id:'fountain', weight:10, icon:'⛲', title:'Healing Fountain',
+    desc:'You discover a magical fountain glowing with warm light.',
+    choices:[
+      {label:'💧 Drink', action:(p)=>{
+        const heal = Math.floor(p.maxHp * 0.3);
+        p.hp = Math.min(p.maxHp, p.hp + heal);
+        updateHUD();
+        return `Restored ${heal} HP! ✨`;
+      }},
+      {label:'🚶 Ignore', action:()=>'You hurry past.'},
+    ]
+  },
+  {
+    id:'potion', weight:14, icon:'💊', title:'Abandoned Pack',
+    desc:'An adventurer left behind their pack. You find a potion inside!',
+    choices:[
+      {label:'🎒 Take it', action:(p)=>{
+        if(p.potions>=(p.maxPotions||5)) return "Your potion bag is full!";
+        p.potions++;
+        updateHUD();
+        return `Got a potion! (${p.potions}/${p.maxPotions||5}) 💊`;
+      }},
+      {label:'🚶 Leave it', action:()=>'You leave it for the next adventurer.'},
+    ]
+  },
+  {
+    id:'scroll', weight:8, icon:'📜', title:'Ancient Scroll',
+    desc:'A mysterious scroll glows on the ground. It grants temporary power!',
+    choices:[
+      {label:'📖 Read it', action:(p)=>{
+        p.attack += 3;
+        setTimeout(()=>{ p.attack -= 3; showSellToast('📜 Scroll effect faded','#888'); },30000);
+        return 'ATK +3 for 30 seconds! ⚡';
+      }},
+      {label:'🚶 Ignore', action:()=>'You leave the strange scroll alone.'},
+    ]
+  },
+];
+
+let _randomEventCooldown = 0;
+const RANDOM_EVENT_CHANCE_INTERVAL = 600; // ~10s at 60fps
+
+function tickRandomEvents(){
+  if(_randomEventCooldown > 0){ _randomEventCooldown--; return; }
+  if(!state.player || state.inBattle || state.inGrass) return;
+  if(Math.random() < 0.002){ // ~0.2% per frame when off cooldown
+    triggerRandomEvent();
+    _randomEventCooldown = RANDOM_EVENT_CHANCE_INTERVAL;
+  }
+}
+
+function triggerRandomEvent(){
+  // Weighted random selection
+  const total = RANDOM_EVENTS.reduce((s,e)=>s+e.weight,0);
+  let r = Math.random()*total;
+  let evt = RANDOM_EVENTS[0];
+  for(const e of RANDOM_EVENTS){ r-=e.weight; if(r<=0){evt=e;break;} }
+
+  const sc = document.getElementById('event-screen');
+  if(!sc) return;
+  sc.innerHTML = `
+    <div style="width:100%;max-width:420px;padding:20px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:12px;animation:resultPop .4s both;">${evt.icon}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#FFD700;margin-bottom:8px;">${evt.title}</div>
+      <div style="font-size:8px;color:#888;margin-bottom:20px;line-height:1.8;">${evt.desc}</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${evt.choices.map((ch,i)=>`
+          <button onclick="resolveEvent(${i})"
+            style="background:#0a0a14;border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;
+            font-size:8px;padding:12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);">
+            ${ch.label}</button>`).join('')}
+      </div>
+      <div id="event-result" style="font-size:8px;color:#44ffaa;margin-top:16px;min-height:20px;"></div>
+    </div>`;
+  sc._evt = evt;
+  sc.style.display = 'flex';
+}
+
+function resolveEvent(choiceIdx){
+  const sc = document.getElementById('event-screen');
+  if(!sc||!sc._evt) return;
+  const evt = sc._evt;
+  const result = evt.choices[choiceIdx].action(state.player);
+  const resEl = document.getElementById('event-result');
+  if(resEl) resEl.textContent = result;
+  updateHUD();
+  // Auto-close after 2s
+  setTimeout(()=>{ sc.style.display='none'; sc._evt=null; }, 2200);
+}
+
+// ==============================================
+// 📖 LORE / STORY INTRO
+// ==============================================
+const STORY_SLIDES = [
+  {bg:'#050510', text:'In the world of GOZO...', sub:'...darkness spreads from the corrupted lands.', icon:'🌑'},
+  {bg:'#0a0520', text:'A lone adventurer awakens.', sub:'Chosen by fate — or perhaps by misfortune.', icon:'⚡'},
+  {bg:'#05100a', text:'Ancient monsters roam the wild grass.', sub:'Tall grass hides dangers beyond imagination.', icon:'🌿'},
+  {bg:'#100505', text:'The Boss Wizard commands them all.', sub:'"Defeat me if you dare, young Gozo..."', icon:'🧙'},
+  {bg:'#0a0a00', text:'But first — choose your partner.', sub:'Together, you will face whatever comes.', icon:'🤝'},
+];
+let storySlideIdx = 0;
+
+function showStoryIntro(onDone){
+  storySlideIdx = 0;
+  const sc = document.getElementById('story-screen');
+  if(!sc){ onDone&&onDone(); return; }
+  sc._onDone = onDone;
+  showStorySlide();
+  sc.style.display = 'flex';
+}
+
+function showStorySlide(){
+  const sc = document.getElementById('story-screen');
+  if(!sc) return;
+  const slide = STORY_SLIDES[storySlideIdx];
+  sc.style.background = slide.bg;
+  sc.innerHTML = `
+    <div style="text-align:center;padding:30px;max-width:480px;animation:fadeIn .6s ease both;">
+      <div style="font-size:52px;margin-bottom:20px;animation:float 2s ease-in-out infinite;">${slide.icon}</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(14px,4vw,22px);color:#FFD700;margin-bottom:12px;line-height:1.4;">"${slide.text}"</div>
+      <div style="font-size:9px;color:#666;margin-bottom:30px;font-style:italic;">${slide.sub}</div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="nextStorySlide()"
+          style="background:#0a0a14;border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:8px;padding:10px 20px;cursor:pointer;">
+          ${storySlideIdx<STORY_SLIDES.length-1?'NEXT ▶':'BEGIN! ▶'}</button>
+        <button onclick="skipStory()"
+          style="background:none;border:1px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:6px;padding:10px 14px;cursor:pointer;">SKIP</button>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:6px;justify-content:center;">
+        ${STORY_SLIDES.map((_,i)=>`<div style="width:8px;height:8px;background:${i===storySlideIdx?'#FFD700':'#333'};clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);"></div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function nextStorySlide(){
+  storySlideIdx++;
+  if(storySlideIdx >= STORY_SLIDES.length){ skipStory(); return; }
+  showStorySlide();
+}
+
+function skipStory(){
+  const sc = document.getElementById('story-screen');
+  if(!sc) return;
+  sc.style.display='none';
+  if(sc._onDone) sc._onDone();
+}
+
+// ==============================================
+// 🗺️ FAST TRAVEL SYSTEM
+// ==============================================
+const WAYPOINTS = [
+  {id:'center',  label:'🏪 Town Center',   x:0.5,  y:0.5,  desc:'Main crossroads & shops'},
+  {id:'nw',      label:'🌲 North West',    x:0.15, y:0.15, desc:'Low-level hunting grounds'},
+  {id:'ne',      label:'⚡ North East',   x:0.85, y:0.15, desc:'Electric & water zone'},
+  {id:'sw',      label:'🔥 South West',   x:0.15, y:0.85, desc:'Fire & earth territory'},
+  {id:'boss',    label:'💀 Boss Zone',     x:0.88, y:0.88, desc:'⚠️ Danger — Boss lurks here'},
+];
+let unlockedWaypoints = new Set(['center']);
+
+function openFastTravel(){
+  const sc = document.getElementById('travel-screen');
+  if(!sc) return;
+  const p = state.player;
+  sc.innerHTML = `
+    <div style="width:100%;max-width:480px;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:2px solid #222;padding-bottom:10px;">
+        <div style="font-family:'Orbitron',sans-serif;font-size:16px;color:#FFD700;">🗺️ FAST TRAVEL</div>
+        <button onclick="document.getElementById('travel-screen').style.display='none'"
+          style="background:none;border:2px solid #cc4444;color:#cc4444;font-family:'Press Start 2P',monospace;font-size:8px;padding:5px 10px;cursor:pointer;">✖</button>
+      </div>
+      <div style="font-size:7px;color:#555;margin-bottom:12px;">Travel instantly to discovered locations. New waypoints unlock as you explore.</div>
+      ${WAYPOINTS.map(wp=>{
+        const unlocked = unlockedWaypoints.has(wp.id);
+        return `<div style="display:flex;align-items:center;gap:12px;background:#080810;border:2px solid ${unlocked?'#FFD70033':'#1a1a2a'};padding:10px 14px;margin-bottom:6px;opacity:${unlocked?1:0.4};">
+          <span style="font-size:22px;">${wp.label.split(' ')[0]}</span>
+          <div style="flex:1;">
+            <div style="font-size:8px;color:${unlocked?'#FFD700':'#555'};">${wp.label.slice(2)}</div>
+            <div style="font-size:6px;color:#444;margin-top:2px;">${wp.desc}</div>
+          </div>
+          ${unlocked
+            ? `<button onclick="fastTravelTo('${wp.id}')"
+                style="background:#0a0a14;border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 10px;cursor:pointer;">GO ▶</button>`
+            : `<span style="font-size:6px;color:#444;">🔒 LOCKED</span>`
+          }
+        </div>`;
+      }).join('')}
+      <div style="font-size:6px;color:#333;margin-top:10px;text-align:center;">Reach a zone to unlock its waypoint</div>
+    </div>`;
+  sc.style.display='flex';
+}
+
+function fastTravelTo(wpId){
+  const wp = WAYPOINTS.find(w=>w.id===wpId);
+  if(!wp || !unlockedWaypoints.has(wpId)) return;
+  const p = state.player;
+  p.x = WORLD_W * wp.x;
+  p.y = WORLD_H * wp.y;
+  updatePlayerPos();
+  if(questState) questState.stats.fastTravels = (questState.stats.fastTravels||0)+1;
+  checkAchievements();
+  document.getElementById('travel-screen').style.display='none';
+  showSellToast(`🗺️ Travelled to ${wp.label}!`,'#44aaff');
+  bgmFadeTo('explore');
+}
+
+function checkWaypointUnlock(){
+  const p = state.player;
+  const rx = p.x / WORLD_W, ry = p.y / WORLD_H;
+  WAYPOINTS.forEach(wp=>{
+    if(!unlockedWaypoints.has(wp.id)){
+      const dist = Math.hypot(rx-wp.x, ry-wp.y);
+      if(dist < 0.12){ unlockedWaypoints.add(wp.id); showSellToast(`🗺️ Waypoint unlocked: ${wp.label}!`,'#44aaff'); }
+    }
+  });
+}
+
+// ==============================================
+// 🔊 EXTRA SOUND EFFECTS
+// ==============================================
+function playSoundFootstep(){
+  try{
+    const ac = getAudio(); const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.frequency.setValueAtTime(180+Math.random()*40,ac.currentTime);
+    o.type='sine';
+    g.gain.setValueAtTime(0.04,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.07);
+    o.start(ac.currentTime); o.stop(ac.currentTime+0.08);
+  }catch(e){}
+}
+
+function playSoundUIClick(){
+  try{
+    const ac=getAudio(); const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type='square'; o.frequency.setValueAtTime(440,ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(660,ac.currentTime+0.05);
+    g.gain.setValueAtTime(0.06,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.1);
+    o.start(ac.currentTime); o.stop(ac.currentTime+0.12);
+  }catch(e){}
+}
+
+function playSoundBuy(){
+  try{
+    const ac=getAudio(); const notes=[523,659,784];
+    notes.forEach((freq,i)=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type='triangle'; o.frequency.setValueAtTime(freq,ac.currentTime+i*0.08);
+      g.gain.setValueAtTime(0.08,ac.currentTime+i*0.08);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.08+0.15);
+      o.start(ac.currentTime+i*0.08); o.stop(ac.currentTime+i*0.08+0.18);
+    });
+  }catch(e){}
+}
+
+function playSoundAchievement(){
+  try{
+    const ac=getAudio(); const notes=[523,659,784,1047];
+    notes.forEach((freq,i)=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type='sine'; o.frequency.setValueAtTime(freq,ac.currentTime+i*0.1);
+      g.gain.setValueAtTime(0.1,ac.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+i*0.1+0.2);
+      o.start(ac.currentTime+i*0.1); o.stop(ac.currentTime+i*0.1+0.22);
+    });
+  }catch(e){}
+}
+
+function playSoundWeather(){
+  try{
+    const ac=getAudio(); const o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type='sawtooth'; o.frequency.setValueAtTime(80,ac.currentTime);
+    g.gain.setValueAtTime(0.05,ac.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.5);
+    o.start(ac.currentTime); o.stop(ac.currentTime+0.55);
+  }catch(e){}
+}
+
+// Hook footstep to movement (call from game loop every N frames)
+let _footstepTimer = 0;
+function tickFootstep(moving){
+  if(!moving){ _footstepTimer=0; return; }
+  _footstepTimer++;
+  if(_footstepTimer % 18 === 0) playSoundFootstep();
+}
+
+// ==============================================
 // SHOP SYSTEM
 // ==============================================
 // Buy price: based on rarity + tier
@@ -5968,8 +6608,10 @@ function shopBuy(type, itemId){
   const price = getBuyPrice(item);
   if(state.player.coins < price){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
   state.player.coins -= price;
+  if(questState) questState.stats.bought = (questState.stats.bought||0)+1;
   addToInventory(item);
   updateHUD();
+  playSoundBuy();
   showSellToast(`✅ Bought ${item.emoji} ${item.name}!`, RARITY_COLOR[item.rarity]);
   renderShop();
 }
@@ -6077,26 +6719,33 @@ function renderQuestScreen(){
 }
 
 </script>
-<!-- UNIFIED TOOLBAR — replaces all individual floating buttons -->
+<!-- UNIFIED TOOLBAR -->
 <div id="toolbar">
-  <button class="tb-btn" id="tb-bag" onclick="openInventory()">
+  <button class="tb-btn" id="tb-bag" onclick="openInventory();playSoundUIClick()">
     <span class="tb-icon">🎒</span>BAG
     <span class="tb-dot" id="bag-dot-tb"></span>
   </button>
-  <button class="tb-btn" id="tb-quest" onclick="openQuestScreen()">
+  <button class="tb-btn" id="tb-quest" onclick="openQuestScreen();playSoundUIClick()">
     <span class="tb-icon">📋</span>QUEST
     <span class="tb-dot" id="quest-dot-tb"></span>
   </button>
-  <button class="tb-btn" id="tb-skills" onclick="openSkillTree()">
+  <button class="tb-btn" id="tb-skills" onclick="openSkillTree();playSoundUIClick()">
     <span class="tb-icon">🌟</span>SKILLS
   </button>
-  <button class="tb-btn" id="tb-stats" onclick="openStatsScreen()">
+  <button class="tb-btn" id="tb-travel" onclick="openFastTravel();playSoundUIClick()">
+    <span class="tb-icon">🗺️</span>TRAVEL
+  </button>
+  <button class="tb-btn" id="tb-ach" onclick="openAchievements();playSoundUIClick()">
+    <span class="tb-icon">🏆</span>ACH
+    <span class="tb-dot" id="ach-dot-tb"></span>
+  </button>
+  <button class="tb-btn" id="tb-stats" onclick="openStatsScreen();playSoundUIClick()">
     <span class="tb-icon">📊</span>STATS
   </button>
-  <button class="tb-btn" id="tb-music" onclick="bgmToggleMute()">
+  <button class="tb-btn" id="tb-music" onclick="bgmToggleMute();playSoundUIClick()">
     <span class="tb-icon">🎵</span><span id="tb-music-label">MUSIC</span>
   </button>
-  <button class="tb-btn" id="tb-save" onclick="openSaveScreen()">
+  <button class="tb-btn" id="tb-save" onclick="openSaveScreen();playSoundUIClick()">
     <span class="tb-icon">💾</span>SAVE
   </button>
 </div>
@@ -6104,5 +6753,9 @@ function renderQuestScreen(){
 <div id="stats-screen"></div>
 <div id="skilltree-screen"></div>
 <div id="shop-screen"></div>
+<div id="ach-screen"></div>
+<div id="travel-screen"></div>
+<div id="event-screen"></div>
+<div id="story-screen"></div>
 </body>
 </html>
