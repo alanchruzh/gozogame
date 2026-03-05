@@ -6016,17 +6016,21 @@ function makeTrainCanvas() {
 }
 
 function runTrainAnimation() {
-  const layer = document.getElementById('animalLayer');
+  const layer = document.getElementById('gameWrap') || document.getElementById('animalLayer');
   if (!layer) return;
 
   const trainCanvas = makeTrainCanvas();
-  const screenW = layer.offsetWidth || window.innerWidth;
+  const screenW = window.innerWidth;
   const trainW = trainCanvas.width;
+  const trainH = trainCanvas.height;
+
+  // Position vertically at the ground level (above featureBar ~60px from bottom)
+  const bottomOffset = 65;
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;image-rendering:pixelated;`;
+  wrapper.style.cssText = `position:fixed;bottom:${bottomOffset}px;left:${screenW}px;z-index:500;image-rendering:pixelated;pointer-events:none;`;
   wrapper.appendChild(trainCanvas);
-  layer.appendChild(wrapper);
+  document.body.appendChild(wrapper);
 
   // === TRAIN SOUNDS ===
   try {
@@ -6083,7 +6087,8 @@ function runTrainAnimation() {
     if(x > -(trainW+20)) requestAnimationFrame(animateTrain);
     else wrapper.remove();
   }
-  requestAnimationFrame(animateTrain);
+  // Small delay to ensure canvas is fully painted before animating
+  setTimeout(() => requestAnimationFrame(animateTrain), 100);
 }
 
 // ═══════════════════════════════════════════════════
