@@ -5362,46 +5362,57 @@ function makeRabbitCanvas(flipX, frame) {
 
 function makeCowCanvas(flipX, frame) {
   const S = 3;
-  const W = 22, H = 14;
+  const frames = [
+    [
+      '......................',
+      '.........BB..........',
+      '........BWWB.........',
+      '...BB..BWWWWBB.......',
+      '..BWWBBBWWWWWWB......',
+      '.BWWWWWWWBBWWWWB.....',
+      '.BWWWWWWWWWWWWWB.....',
+      '.BWWBBWWWWWWWWWB.....',
+      '..BWWWWWWWWWPPWB.....',
+      '...BBBBBBBBBBBBB.....',
+      '...BB..BB...BB.......',
+      '...BB..BB...BB.......',
+      '...BB..BB...BB.......',
+      '..BBB..BB..BBB.......',
+    ],
+    [
+      '......................',
+      '.........BB..........',
+      '........BWWB.........',
+      '...BB..BWWWWBB.......',
+      '..BWWBBBWWWWWWB......',
+      '.BWWWWWWWBBWWWWB.....',
+      '.BWWWWWWWWWWWWWB.....',
+      '.BWWBBWWWWWWWWWB.....',
+      '..BWWWWWWWWWPPWB.....',
+      '...BBBBBBBBBBBBB.....',
+      '...BBB.BB...BB.......',
+      '....BB.BB...BBB......',
+      '....B..BB....BB......',
+      '.......BB............',
+    ],
+  ];
+  const pal = { W:'#f2f2ee', B:'#1a1a1a', P:'#f0b0b8', '.':'transparent' };
+  const rows = frames[frame];
+  const FW = rows[0].length, FH = rows.length;
   const canvas = document.createElement('canvas');
-  canvas.width = W * S; canvas.height = H * S;
+  canvas.width = FW*S; canvas.height = FH*S;
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   const doFlip = flipX;
   if (doFlip) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
-
-  // --- BODY ---
-  for(let x=6;x<=18;x++) for(let y=2;y<=8;y++) p(x,y,WH);
-  // black patches
-  for(let x=8;x<=10;x++) for(let y=2;y<=4;y++) p(x,y,BK);
-  for(let x=14;x<=16;x++) for(let y=4;y<=6;y++) p(x,y,BK);
-  // body border
-  for(let x=6;x<=18;x++){ p(x,2,BK); p(x,8,BK); }
-  for(let y=2;y<=8;y++){ p(6,y,BK); p(18,y,BK); }
-
-  // --- HEAD ---
-  for(let x=0;x<=6;x++) for(let y=2;y<=7;y++) p(x,y,WH);
-  for(let x=0;x<=3;x++) for(let y=5;y<=6;y++) p(x,y,PK); // muzzle
-  p(4,3,BK); p(5,3,BK); // eye
-  for(let x=0;x<=6;x++){ p(x,2,BK); p(x,7,BK); }
-  for(let y=2;y<=7;y++){ p(0,y,BK); p(6,y,BK); }
-  p(3,1,GY); p(4,1,GY); // horn
-
-  // --- LEGS ---
-  const legs = frame===0
-    ? [[8,9],[9,9],[13,9],[14,9]]
-    : [[7,9],[8,9],[14,9],[15,9]];
-  legs.forEach(([lx,ly])=>{
-    for(let dy=0;dy<5;dy++){ p(lx,ly+dy,BK); p(lx+1,ly+dy,BK); }
-  });
-
-  // --- TAIL ---
-  p(19,3,BK); p(20,4,BK); p(21,5,BK); p(21,6,BK);
-
-  // --- UDDER ---
-  for(let x=10;x<=13;x++){ p(x,8,PK); p(x,9,PK); }
-
+  for (let r=0;r<rows.length;r++) {
+    for (let c=0;c<rows[r].length;c++) {
+      const col = pal[rows[r][c]];
+      if (!col||col==='transparent') continue;
+      ctx.fillStyle=col; ctx.fillRect(c*S,r*S,S,S);
+    }
+  }
   if (doFlip) ctx.restore();
   return canvas;
 }
