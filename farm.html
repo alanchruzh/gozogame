@@ -2673,10 +2673,7 @@ function renderAllFields(){
       if(isPrevUnlocked){
         lockDiv.innerHTML = `
           <div class="lock-icon">🔒</div>
-          <div class="lock-name">${cfg.name}</div>
-          <div class="lock-plots">4 plots (2×2)</div>
-          <div class="lock-price" style="font-size:15px;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">${cfg.price.toLocaleString()} GOZO 🔥</div>
-          <div style="font-size:14px;color:#a09070;text-shadow:1px 1px 0 #000;margin-top:1px">Burns on purchase</div>
+          <div class="lock-price" style="font-size:15px;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">🔥 Burn ${cfg.price.toLocaleString()} GOZO</div>
           <button class="buy-field-btn can-afford" onclick="buyField(${cfg.id})">🔥 BUY WITH GOZO</button>`;
       } else {
         lockDiv.innerHTML = `
@@ -3084,7 +3081,6 @@ function renderHarvestList(){
     row.style.cssText = 'display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap';
     row.innerHTML = `
       <span class="h-emoji">${c.emoji}</span>
-      <span class="h-name" style="flex:1">${c.name}</span>
       <span class="h-count" id="h-${key}">${qty}</span>
       <button onclick="sellCrop('${key}',1)" style="background:#c8962a;border:none;border-radius:5px;color:#fff;font-size:14px;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell 1 for ${c.price} 🪙">Sell 1</button>
       <button onclick="sellCrop('${key}', harvestBasket['${key}'])" style="background:#a05a10;border:none;border-radius:5px;color:#ffe;font-size:14px;padding:2px 6px;cursor:pointer;text-shadow:1px 1px 0 #000;white-space:nowrap" title="Sell all">All</button>`;
