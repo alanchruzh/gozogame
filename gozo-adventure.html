@@ -1158,14 +1158,14 @@ const WILD = [
 ];
 
 const BOSS_LIST = [
-  { name:'BOSS WIZARD',     emoji:'🧙', color:'#aa44ff', hp:150, atk:32, def:14, exp:120, coins:100, element:null,      lore:'An ancient mage corrupted by forbidden magic.',        mechanic:'heal',    mechanicDesc:'Heals 20 HP every 3 turns!' },
-  { name:'DARK GOLEM KING', emoji:'🗿', color:'#cc6600', hp:220, atk:44, def:22, exp:180, coins:160, element:'earth',   lore:'A golem that achieved consciousness through dark arts.', mechanic:'shield',  mechanicDesc:'Blocks all damage every 4th turn!' },
-  { name:'VOID SOVEREIGN',  emoji:'🌌', color:'#330066', hp:300, atk:58, def:18, exp:250, coins:220, element:'dark',    lore:'A being born from the collapse of a dead star.',        mechanic:'drain',   mechanicDesc:'Drains 10 HP from you each attack!' },
-  { name:'CHAOS LICH',      emoji:'💀', color:'#ff0044', hp:380, atk:70, def:24, exp:320, coins:280, element:null,      lore:'Death given will. The final guardian of the abyss.',   mechanic:'revive',  mechanicDesc:'Revives once with 80 HP!' },
-  { name:'STORM DRAGON',    emoji:'🐉', color:'#44aaff', hp:450, atk:76, def:20, exp:400, coins:350, element:'wind',    lore:'A dragon born from a thousand-year tempest.',          mechanic:'multi',   mechanicDesc:'Attacks twice per turn!' },
-  { name:'INFERNO GOD',     emoji:'🔥', color:'#ff6600', hp:520, atk:82, def:16, exp:480, coins:420, element:'fire',    lore:'The deity of destruction incarnate.',                  mechanic:'burn',    mechanicDesc:'Burns you for 15 dmg/turn for 3 turns!' },
-  { name:'ABYSSAL TITAN',   emoji:'🌊', color:'#0044aa', hp:600, atk:88, def:28, exp:560, coins:500, element:'water',   lore:'Ancient leviathan of the sunken realm.',               mechanic:'flood',   mechanicDesc:'Raises its own DEF by 5 each turn!' },
-  { name:'OMEGA OVERLORD',  emoji:'⚡', color:'#ffffff', hp:700, atk:95, def:32, exp:700, coins:650, element:'electric',lore:'The final sovereign. Existence itself trembles.',        mechanic:'overload',mechanicDesc:'Every 5th turn deals 3x damage!' },
+  { name:'BOSS WIZARD',     emoji:'🧙', color:'#aa44ff', hp:200,  atk:22, def:8,  exp:120, coins:100, element:null,      minLevel:5,  lore:'An ancient mage corrupted by forbidden magic.',        mechanic:'heal',    mechanicDesc:'Heals 20 HP every 3 turns!' },
+  { name:'DARK GOLEM KING', emoji:'🗿', color:'#cc6600', hp:340,  atk:34, def:18, exp:180, coins:160, element:'earth',   minLevel:8,  lore:'A golem that achieved consciousness through dark arts.', mechanic:'shield',  mechanicDesc:'Blocks all damage every 4th turn!' },
+  { name:'VOID SOVEREIGN',  emoji:'🌌', color:'#330066', hp:480,  atk:44, def:14, exp:250, coins:220, element:'dark',    minLevel:12, lore:'A being born from the collapse of a dead star.',        mechanic:'drain',   mechanicDesc:'Drains 10 HP from you each attack!' },
+  { name:'CHAOS LICH',      emoji:'💀', color:'#ff0044', hp:620,  atk:54, def:18, exp:320, coins:280, element:null,      minLevel:16, lore:'Death given will. The final guardian of the abyss.',   mechanic:'revive',  mechanicDesc:'Revives once with 80 HP!' },
+  { name:'STORM DRAGON',    emoji:'🐉', color:'#44aaff', hp:780,  atk:62, def:15, exp:400, coins:350, element:'wind',    minLevel:20, lore:'A dragon born from a thousand-year tempest.',          mechanic:'multi',   mechanicDesc:'Attacks twice per turn!' },
+  { name:'INFERNO GOD',     emoji:'🔥', color:'#ff6600', hp:940,  atk:70, def:12, exp:480, coins:420, element:'fire',    minLevel:25, lore:'The deity of destruction incarnate.',                  mechanic:'burn',    mechanicDesc:'Burns you for 15 dmg/turn for 3 turns!' },
+  { name:'ABYSSAL TITAN',   emoji:'🌊', color:'#0044aa', hp:1100, atk:78, def:22, exp:560, coins:500, element:'water',   minLevel:30, lore:'Ancient leviathan of the sunken realm.',               mechanic:'flood',   mechanicDesc:'Raises its own DEF by 5 each turn!' },
+  { name:'OMEGA OVERLORD',  emoji:'⚡', color:'#ffffff', hp:1400, atk:88, def:28, exp:700, coins:650, element:'electric',minLevel:35, lore:'The final sovereign. Existence itself trembles.',        mechanic:'overload',mechanicDesc:'Every 5th turn deals 3x damage!' },
 ];
 let bossIndex = 0;
 // Per-boss mechanic state
@@ -4588,15 +4588,47 @@ function initGame(fromLoad){
   try{
     const saved = lsLoad();
     if(saved){
-      // skills/ach/quests/etc already loaded by lsLoad
-      // Apply prestige bonuses to player
-      if(prestigeState.level>0){
-        const p=state.player;
-        p.attack += prestigeState.bonusAtk;
-        p.defense += prestigeState.bonusDef;
-        p.maxHp += prestigeState.bonusHp;
-        p.hp = p.maxHp;
-        p.critChance = (p.critChance||0) + prestigeState.bonusCrit;
+      // Restore player stats from save
+      const p = state.player;
+      if(saved.lv  != null) p.level       = saved.lv;
+      if(saved.hp  != null) p.hp          = saved.hp;
+      if(saved.mhp != null) p.maxHp       = saved.mhp;
+      if(saved.atk != null) p.attack      = saved.atk;
+      if(saved.def != null) p.defense     = saved.def;
+      if(saved.exp != null) p.exp         = saved.exp;
+      if(saved.exl != null) p.expToLevel  = saved.exl;
+      if(saved.coins!=null) p.coins       = saved.coins;
+      if(saved.pot != null) p.potions     = saved.pot;
+      if(saved.maxPot!=null)p.maxPotions  = saved.maxPot;
+      if(saved.crit!=null)  p.critChance  = saved.crit;
+      if(saved.spd != null) p.speedBonus  = saved.spd;
+      if(saved.px  != null) p.x           = saved.px;
+      if(saved.py  != null) p.y           = saved.py;
+      if(saved.pt)          { pType = saved.pt; partnerType = saved.pt; }
+      if(saved.ps  != null) partnerStage  = saved.ps;
+      if(saved.bd)          bossDefeated  = !!saved.bd;
+      // Restore inventory & equipped items
+      if(saved.winv && saved.winv.length){
+        inventory.weapons = saved.winv.map(id=>WEAPONS.find(w=>w.id===id)).filter(Boolean);
+      }
+      if(saved.ainv && saved.ainv.length){
+        inventory.armors = saved.ainv.map(id=>ARMORS.find(a=>a.id===id)).filter(Boolean);
+      }
+      if(saved.weq){
+        const w = WEAPONS.find(x=>x.id===saved.weq);
+        if(w){ equipped.weapon = w; p.attack += w.atk; }
+      }
+      if(saved.aeq){
+        const a = ARMORS.find(x=>x.id===saved.aeq);
+        if(a){ equipped.armor = a; p.defense += a.def; p.maxHp += a.hp; p.hp = Math.min(p.hp, p.maxHp); }
+      }
+      // Apply prestige bonuses on top
+      if(prestigeState.level > 0){
+        p.attack     += prestigeState.bonusAtk;
+        p.defense    += prestigeState.bonusDef;
+        p.maxHp      += prestigeState.bonusHp;
+        p.hp          = Math.min(p.hp, p.maxHp);
+        p.critChance  = (p.critChance||0) + prestigeState.bonusCrit;
       }
       updateHUD();
     }
@@ -4732,6 +4764,82 @@ function buildMap(){
 // ==============================================
 // DECORATIONS — spread across large world
 // ==============================================
+function makeNpcSvg(s,h,sk,pose=0){
+  // pose 0=idle, 1=step-left-fwd, 2=step-right-fwd
+  const legs = [
+    // idle
+    `<rect x="12" y="38" width="12" height="20" fill="#3a5080"/>
+     <rect x="26" y="38" width="12" height="20" fill="#3a5080"/>
+     <rect x="23" y="38" width="4"  height="20" fill="#334470"/>
+     <rect x="9"  y="56" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="27" y="56" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="9"  y="60" width="14" height="4"  fill="#252540"/>
+     <rect x="27" y="60" width="14" height="4"  fill="#252540"/>`,
+    // step 1: kaki kiri maju, kanan mundur
+    `<rect x="9"  y="38" width="12" height="16" fill="#3a5080"/>
+     <rect x="28" y="38" width="12" height="22" fill="#3a5080"/>
+     <rect x="22" y="38" width="4"  height="19" fill="#334470"/>
+     <rect x="5"  y="52" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="28" y="58" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="5"  y="56" width="14" height="4"  fill="#252540"/>
+     <rect x="28" y="62" width="14" height="4"  fill="#252540"/>`,
+    // step 2: kaki kanan maju, kiri mundur
+    `<rect x="9"  y="38" width="12" height="22" fill="#3a5080"/>
+     <rect x="28" y="38" width="12" height="16" fill="#3a5080"/>
+     <rect x="22" y="38" width="4"  height="19" fill="#334470"/>
+     <rect x="9"  y="58" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="31" y="52" width="14" height="8"  fill="#1a1a2e"/>
+     <rect x="9"  y="62" width="14" height="4"  fill="#252540"/>
+     <rect x="31" y="56" width="14" height="4"  fill="#252540"/>`,
+  ];
+  const arms = [
+    // idle
+    `<rect x="1"  y="18" width="9" height="18" fill="${s}"/>
+     <rect x="40" y="18" width="9" height="18" fill="${s}"/>
+     <rect x="2"  y="34" width="7" height="6"  fill="${sk}"/>
+     <rect x="41" y="34" width="7" height="6"  fill="${sk}"/>`,
+    // step 1: lengan kanan maju (berlawanan kaki)
+    `<rect x="1"  y="20" width="9" height="18" fill="${s}"/>
+     <rect x="40" y="15" width="9" height="18" fill="${s}"/>
+     <rect x="2"  y="36" width="7" height="6"  fill="${sk}"/>
+     <rect x="41" y="31" width="7" height="6"  fill="${sk}"/>`,
+    // step 2: lengan kiri maju
+    `<rect x="1"  y="15" width="9" height="18" fill="${s}"/>
+     <rect x="40" y="20" width="9" height="18" fill="${s}"/>
+     <rect x="2"  y="31" width="7" height="6"  fill="${sk}"/>
+     <rect x="41" y="36" width="7" height="6"  fill="${sk}"/>`,
+  ];
+  const p = pose % 3;
+  return `<svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="48" height="64" shape-rendering="crispEdges">
+    ${legs[p]}
+    <rect x="10" y="35" width="30" height="4"  fill="#2a2a2a"/>
+    <rect x="22" y="34" width="6"  height="6"  fill="#aaa"/>
+    <rect x="9"  y="17" width="32" height="20" fill="${s}"/>
+    <rect x="21" y="17" width="8"  height="20" fill="${s}dd"/>
+    ${arms[p]}
+    <rect x="22" y="10" width="6"  height="7"  fill="${sk}"/>
+    <rect x="13" y="3"  width="24" height="18" fill="${sk}"/>
+    <rect x="9"  y="8"  width="5"  height="8"  fill="${sk}cc"/>
+    <rect x="36" y="8"  width="5"  height="8"  fill="${sk}cc"/>
+    <rect x="11" y="0"  width="28" height="8"  fill="${h}"/>
+    <rect x="9"  y="1"  width="32" height="6"  fill="${h}"/>
+    <rect x="9"  y="6"  width="5"  height="10" fill="${h}"/>
+    <rect x="36" y="6"  width="5"  height="10" fill="${h}"/>
+    <rect x="16" y="9"  width="8"  height="7"  fill="#fff"/>
+    <rect x="26" y="9"  width="8"  height="7"  fill="#fff"/>
+    <rect x="18" y="10" width="5"  height="5"  fill="#3a2a1a"/>
+    <rect x="28" y="10" width="5"  height="5"  fill="#3a2a1a"/>
+    <rect x="19" y="11" width="3"  height="3"  fill="#0d0500"/>
+    <rect x="29" y="11" width="3"  height="3"  fill="#0d0500"/>
+    <rect x="21" y="11" width="2"  height="2"  fill="#fff"/>
+    <rect x="31" y="11" width="2"  height="2"  fill="#fff"/>
+    <rect x="16" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
+    <rect x="26" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
+    <rect x="23" y="15" width="4"  height="4"  fill="${sk}cc"/>
+    <rect x="17" y="19" width="16" height="2"  fill="#9a5535"/>
+  </svg>`;
+}
+
 function spawnDecorations(){
   const world = document.getElementById('world');
   const W = WORLD_W, H = WORLD_H;
@@ -4801,31 +4909,7 @@ function spawnDecorations(){
   });
 
   // Shop NPCs — full-size Gozo-sized pixel art, collision, idle anim, speech bubble
-  function makeNpcSvg(s,h,sk){
-    return `<svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="48" height="64" shape-rendering="crispEdges">
-      <rect x="11" y="56" width="11" height="14" fill="#1a1a2e"/><rect x="28" y="56" width="11" height="14" fill="#1a1a2e"/>
-      <rect x="9" y="62" width="14" height="8" fill="#252540"/><rect x="27" y="62" width="14" height="8" fill="#252540"/>
-      <rect x="12" y="38" width="12" height="20" fill="#3a5080"/><rect x="26" y="38" width="12" height="20" fill="#3a5080"/>
-      <rect x="23" y="38" width="4" height="20" fill="#334470"/>
-      <rect x="10" y="35" width="30" height="4" fill="#2a2a2a"/><rect x="22" y="34" width="6" height="6" fill="#aaa"/>
-      <rect x="9" y="17" width="32" height="20" fill="${s}"/>
-      <rect x="21" y="17" width="8" height="20" fill="${s}dd"/>
-      <rect x="1" y="18" width="9" height="18" fill="${s}"/><rect x="40" y="18" width="9" height="18" fill="${s}"/>
-      <rect x="2" y="36" width="7" height="6" fill="${sk}"/><rect x="41" y="36" width="7" height="6" fill="${sk}"/>
-      <rect x="22" y="10" width="6" height="7" fill="${sk}"/>
-      <rect x="13" y="3" width="24" height="18" fill="${sk}"/>
-      <rect x="9" y="8" width="5" height="8" fill="${sk}cc"/><rect x="36" y="8" width="5" height="8" fill="${sk}cc"/>
-      <rect x="11" y="0" width="28" height="8" fill="${h}"/><rect x="9" y="1" width="32" height="6" fill="${h}"/>
-      <rect x="9" y="6" width="5" height="10" fill="${h}"/><rect x="36" y="6" width="5" height="10" fill="${h}"/>
-      <rect x="16" y="9" width="8" height="7" fill="#fff"/><rect x="26" y="9" width="8" height="7" fill="#fff"/>
-      <rect x="18" y="10" width="5" height="5" fill="#3a2a1a"/><rect x="28" y="10" width="5" height="5" fill="#3a2a1a"/>
-      <rect x="19" y="11" width="3" height="3" fill="#0d0500"/><rect x="29" y="11" width="3" height="3" fill="#0d0500"/>
-      <rect x="21" y="11" width="2" height="2" fill="#fff"/><rect x="31" y="11" width="2" height="2" fill="#fff"/>
-      <rect x="16" y="9" width="8" height="2" fill="#1a1a1a"/><rect x="26" y="9" width="8" height="2" fill="#1a1a1a"/>
-      <rect x="23" y="15" width="4" height="4" fill="${sk}cc"/>
-      <rect x="17" y="19" width="16" height="2" fill="#9a5535"/>
-    </svg>`;
-  }
+
 
   const NPC_DATA=[
     {shirt:'#cc3322',hair:'#1a1010',skin:'#d4a574', label:'SHOP',    type:'general',
@@ -4860,7 +4944,11 @@ function spawnDecorations(){
     // Sprite with idle breathing animation
     const spriteWrap = document.createElement('div');
     spriteWrap.style.cssText = 'animation:npcBreathe 2.5s ease-in-out infinite;display:inline-block;';
-    spriteWrap.innerHTML = makeNpcSvg(n.shirt, n.hair, n.skin);
+    spriteWrap.innerHTML = makeNpcSvg(n.shirt, n.hair, n.skin, 0);
+    // Store appearance for walk cycle
+    spriteWrap.dataset.shirt = n.shirt;
+    spriteWrap.dataset.hair  = n.hair;
+    spriteWrap.dataset.skin  = n.skin;
 
     // Label
     const lbl = document.createElement('div');
@@ -5987,8 +6075,21 @@ function triggerEncounter(zone){
   // Pick monster using level-based tier system
   let enemy;
   if(zone.isBoss&&!bossDefeated&&state.player.level>=3){
-    const curBoss=BOSS_LIST[bossIndex]; enemy={...curBoss,hp:curBoss.hp,maxHp:curBoss.hp};
-  bossMechanicTurn=0; bossRevived=false; bossBurnActive=false; bossBurnTurns=0;
+    const curBoss=BOSS_LIST[bossIndex];
+    const minLv = curBoss.minLevel || 3;
+    if(state.player.level < minLv){
+      // Player too weak — show warning, no battle
+      showSellToast(`⚠️ You need LV ${minLv} to challenge ${curBoss.name}!`, '#ff8844');
+      state.encounterCooldown = 120;
+      return;
+    }
+    // Scale boss HP & DEF based on how far above minLevel player is
+    const lvBonus = Math.max(0, state.player.level - minLv);
+    const scaledHp  = Math.floor(curBoss.hp  * (1 + lvBonus * 0.08));
+    const scaledDef = Math.floor(curBoss.def * (1 + lvBonus * 0.05));
+    const scaledAtk = Math.floor(curBoss.atk * (1 + lvBonus * 0.04));
+    enemy = {...curBoss, hp:scaledHp, maxHp:scaledHp, def:scaledDef, atk:scaledAtk};
+    bossMechanicTurn=0; bossRevived=false; bossBurnActive=false; bossBurnTurns=0;
   } else {
     enemy = pickWildMonster(zone);
   }
@@ -6126,6 +6227,17 @@ function battleAction(action){
       return;
     }
     let dmg=Math.max(1,p.attack+Math.floor(Math.random()*8)-e.def);
+    // Boss damage resistance — hard cap per hit, scales with boss HP tier
+    const isBossEnemy = e.maxHp >= 150 || e.isBoss || e.isMiniBoss;
+    if(isBossEnemy){
+      // Armor: 35-65% of def depending on boss HP (tougher = more armor)
+      const bossArmorPct = Math.min(0.65, 0.35 + (e.maxHp / 2500));
+      const bossArmor = Math.floor(e.def * bossArmorPct);
+      // Damage cap: 7% max HP per hit, floor at guaranteed 8% HP minimum progress
+      const bossDmgCap = Math.max(10, Math.floor(e.maxHp * 0.07));
+      const bossFloor  = Math.max(5,  Math.floor(e.maxHp * 0.04)); // always deal at least 4% HP
+      dmg = Math.min(bossDmgCap, Math.max(bossFloor, dmg - bossArmor));
+    }
     const isCrit = Math.random() < (p.critChance||0);
     if(isCrit){
       dmg = Math.floor(dmg*2);
@@ -6185,6 +6297,12 @@ function battleAction(action){
       const ignoreDef = partner.ignoreDefPct || 0;
       const effectiveDef = Math.floor(e.def * (1 - ignoreDef));
       let dmg=Math.max(1,Math.floor(p.attack*(partner?partner.specialMult:2))+Math.floor(Math.random()*12)-effectiveDef);
+      // Boss damage cap on specials too (max 12% HP per special)
+      const isSpecialBoss = e.maxHp >= 150 || e.isBoss || e.isMiniBoss;
+      if(isSpecialBoss){
+        const specialCap = Math.max(18, Math.floor(e.maxHp * 0.12));
+        dmg = Math.min(specialCap, dmg);
+      }
       let pre='';
       if(partner&&e.element){
         if(partner.strong.includes(e.element)){dmg=Math.floor(dmg*1.5);pre='✅ SUPER EFFECTIVE! ';}
@@ -6301,7 +6419,14 @@ function enemyTurn(){
     }
 
     for(let ai=0;ai<atkCount;ai++){
-      const dmg=Math.max(1,Math.floor((e.atk+Math.floor(Math.random()*6)-p.defense)*dmgMult));
+      let dmg=Math.max(1,Math.floor((e.atk+Math.floor(Math.random()*6)-p.defense)*dmgMult));
+      // Boss minimum damage — ignores 60% of player defense, always painful
+      if(isBossFight){
+        const reducedDef = Math.floor(p.defense * 0.4); // boss pierces 60% of defense
+        const bossMinDmg = Math.max(10, Math.floor(e.atk * 0.45));
+        const fairDmg = Math.max(1, Math.floor((e.atk + Math.floor(Math.random()*6) - reducedDef) * dmgMult));
+        dmg = Math.max(bossMinDmg, fairDmg);
+      }
       p.hp-=dmg;
       if(questState) questState.stats.damageTaken += dmg;
       playSoundPlayerHurt();
@@ -6439,7 +6564,7 @@ function endBattle(won){
 function levelUp(){
   const p=state.player;
   p.level++; p.exp-=p.expToLevel; p.expToLevel=Math.floor(p.expToLevel*1.6);
-  p.maxHp+=20; p.hp=p.maxHp; p.attack+=5; p.defense+=2;
+  p.maxHp += 25; p.hp = p.maxHp; p.attack += 4; p.defense += 3;
   playLevelUpSound();
   updateHUD();
 
@@ -6456,9 +6581,9 @@ function levelUp(){
       <div style="font-size:11px;color:#FFD70088;letter-spacing:4px;animation:luStatIn .3s .1s both;">LEVEL UP!</div>
       <div class="levelup-title">LV ${p.level}</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-        <div class="lu-stat" style="animation-delay:.3s">❤️ MAX HP +20 → ${p.maxHp}</div>
-        <div class="lu-stat" style="animation-delay:.45s">⚔️ ATTACK +5 → ${p.attack}</div>
-        <div class="lu-stat" style="animation-delay:.6s">🛡️ DEFENSE +2 → ${p.defense}</div>
+        <div class="lu-stat" style="animation-delay:.3s">❤️ MAX HP +25 → ${p.maxHp}</div>
+        <div class="lu-stat" style="animation-delay:.45s">⚔️ ATTACK +4 → ${p.attack}</div>
+        <div class="lu-stat" style="animation-delay:.6s">🛡️ DEFENSE +3 → ${p.defense}</div>
       </div>
       <button class="press-start" style="animation:none;margin-top:20px;font-size:9px;padding:10px 24px;" onclick="closeLevelUp()">CONTINUE ▶</button>`;
     // Spawn particles
@@ -8577,6 +8702,7 @@ function initNpcPatrol(){
         tx:x, ty:y, speed:0.4+i*0.1,
         dir:1, timer:0, facing:'right',
         range: 60 + i*20,
+        lastPose: 0,
       });
     });
   }, 500);
@@ -8585,31 +8711,58 @@ function initNpcPatrol(){
 let _npcFrame = 0;
 function tickNpcPatrol(){
   _npcFrame++;
-  if(_npcFrame % 3 !== 0) return; // run at 20fps max
+  if(_npcFrame % 3 !== 0) return; // ~20fps
+
   for(const npc of npcPatrollers){
     npc.timer++;
+
+    // Pick new target periodically
     if(npc.timer > 80 + (npc.homeX % 60)){
       npc.timer = 0;
       npc.tx = npc.homeX + (Math.random()*2-1)*npc.range;
-      npc.ty = npc.homeY + (Math.random()*0.4-0.2)*20;
-      const newFacing = npc.tx > npc.x ? 'right' : 'left';
+      npc.ty = npc.homeY + (Math.random()*0.3-0.15)*16;
+    }
+
+    const dx = npc.tx - npc.x, dy = npc.ty - npc.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const moving = dist > 2;
+
+    // Update facing + flip SVG wrapper
+    if(moving){
+      const newFacing = dx > 0 ? 'right' : 'left';
       if(newFacing !== npc.facing){
         npc.facing = newFacing;
-        if(!npc.svg) npc.svg = npc.el.querySelector('svg');
-        if(npc.svg) npc.svg.style.transform = npc.facing==='left' ? 'scaleX(-1)' : '';
+        // Flip the whole npc element horizontally
+        npc.el.style.transform = npc.facing === 'left' ? 'scaleX(-1)' : '';
       }
     }
-    const dx = npc.tx - npc.x, dy = npc.ty - npc.y;
-    const dist = Math.sqrt(dx*dx+dy*dy);
-    if(dist > 2){
-      npc.x += (dx/dist)*npc.speed*3; // compensate for 3-frame skip
-      npc.y += (dy/dist)*npc.speed*3;
-      npc.el.style.left = (npc.x|0)+'px';
-      npc.el.style.top  = (npc.y|0)+'px';
-      const bob = (npc.timer%10 < 5) ? '-2px' : '0';
-      npc.el.style.transform = `translateY(${bob})`;
+
+    if(moving){
+      npc.x += (dx/dist) * npc.speed * 3;
+      npc.y += (dy/dist) * npc.speed * 3;
+      npc.el.style.left = (npc.x|0) + 'px';
+      npc.el.style.top  = (npc.y|0) + 'px';
+
+      // Walk cycle: swap pose every 8 ticks (at 20fps = ~2.5 steps/sec)
+      const walkStep = Math.floor(npc.timer / 8) % 2 + 1; // 1 or 2
+      if(walkStep !== npc.lastPose){
+        npc.lastPose = walkStep;
+        const sw = npc.el.querySelector('div[data-shirt]');
+        if(sw){
+          sw.style.animation = 'none'; // stop breathe during walk
+          sw.innerHTML = makeNpcSvg(sw.dataset.shirt, sw.dataset.hair, sw.dataset.skin, walkStep);
+        }
+      }
     } else {
-      if(npc.el.style.transform) npc.el.style.transform = '';
+      // Idle: return to pose 0 + resume breathing
+      if(npc.lastPose !== 0){
+        npc.lastPose = 0;
+        const sw = npc.el.querySelector('div[data-shirt]');
+        if(sw){
+          sw.style.animation = 'npcBreathe 2.5s ease-in-out infinite';
+          sw.innerHTML = makeNpcSvg(sw.dataset.shirt, sw.dataset.hair, sw.dataset.skin, 0);
+        }
+      }
     }
   }
 }
@@ -9541,7 +9694,10 @@ function showBattleIntro(enemy, onDone){
       ${enemy.element?`[${enemy.element.toUpperCase()}]`:''} ${enemy.t?`TIER ${enemy.t}`:''}
     </div>
     ${BOSS_LIST.some(b=>b.name===enemy.name)?`
-      <div style="font-size:7px;color:#ff4444;margin-top:8px;animation:introLineIn .3s .8s both;">
+      <div style="font-size:7px;color:#ffaa44;margin-top:6px;animation:introLineIn .3s .7s both;">
+        ❤️ ${enemy.maxHp} HP &nbsp;⚔️ ${enemy.atk} ATK &nbsp;🛡️ ${enemy.def} DEF
+      </div>
+      <div style="font-size:7px;color:#ff4444;margin-top:4px;animation:introLineIn .3s .8s both;">
         ⚠️ ${BOSS_LIST.find(b=>b.name===enemy.name).mechanicDesc||''}
       </div>
       <div style="font-size:6px;color:#555;font-style:italic;margin-top:4px;max-width:280px;text-align:center;animation:introLineIn .3s 1s both;">
