@@ -211,6 +211,114 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 .pbar{width:80px;height:5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,215,0,.15);margin-top:3px;}
 .pfill{height:100%;background:#FFD700;transition:width .5s;}
 
+/* ── WEATHER ── */
+#weatherOverlay{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:hidden;}
+#weatherLabel{position:absolute;top:54px;left:50%;transform:translateX(-50%);
+  font-size:5px;color:rgba(150,200,255,0.7);pointer-events:none;z-index:6;white-space:nowrap;}
+
+/* ── QUEST PANEL ── */
+#questPanel{position:absolute;bottom:90px;right:8px;background:rgba(3,10,4,0.88);
+  border:2px solid #FFD700;padding:8px 10px;min-width:160px;z-index:10;font-size:5px;}
+#questPanel .qtitle{color:#FFD700;font-size:5px;margin-bottom:6px;border-bottom:1px solid rgba(255,215,0,0.2);padding-bottom:3px;}
+.qitem{color:#5a8a5a;line-height:2.2;display:flex;justify-content:space-between;gap:8px;}
+.qitem.done{color:#4caf50;text-decoration:line-through;}
+.qitem .qprog{color:#FFD700;white-space:nowrap;}
+.qbar{height:3px;background:rgba(255,215,0,0.1);margin-top:2px;margin-bottom:4px;}
+.qbar-fill{height:100%;background:#FFD700;transition:width 0.5s;}
+.qreward{color:#FF8C00;font-size:4px;margin-top:4px;text-align:right;}
+
+/* ── LEADERBOARD ── */
+#lbModal{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;
+  align-items:center;justify-content:center;z-index:200;}
+#lbModal.show{display:flex;}
+.lb-row{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-bottom:1px solid rgba(255,215,0,0.08);font-size:5px;}
+.lb-row:first-child{background:rgba(255,215,0,0.06);}
+.lb-rank{color:#FFD700;width:16px;text-align:center;flex-shrink:0;}
+.lb-name{flex:1;color:#aaa;}
+.lb-val{color:#FFD700;white-space:nowrap;}
+
+/* ── FISH DETAIL MODAL ── */
+#fishDetailModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;
+  align-items:center;justify-content:center;z-index:250;}
+#fishDetailModal.show{display:flex;}
+.fdbox{background:#0a2014;border:4px solid #FFD700;box-shadow:6px 6px 0 #FF8C00;
+  padding:24px 28px;text-align:center;min-width:260px;max-width:320px;}
+
+/* ── VOLUME CONTROL ── */
+#volBtn{position:absolute;bottom:90px;left:8px;background:rgba(3,10,4,0.88);
+  border:2px solid rgba(255,215,0,0.4);padding:5px 8px;cursor:pointer;
+  font-family:'Press Start 2P';font-size:5px;color:#FFD700;z-index:10;}
+#volBtn:hover{border-color:#FFD700;}
+#volSlider{display:none;position:absolute;bottom:116px;left:8px;
+  background:rgba(3,10,4,0.92);border:2px solid #FFD700;padding:8px 10px;z-index:11;min-width:120px;}
+#volSlider.show{display:block;}
+#volSlider label{font-size:4px;color:#FFD700;display:block;margin-bottom:3px;}
+#volSlider input{width:100%;cursor:pointer;}
+
+/* ── CATCH ANIMATION ── */
+#catchFishAnim{position:fixed;pointer-events:none;z-index:180;display:none;}
+#catchFishAnim.show{display:block;}
+
+/* ── WEATHER HUD ── */
+#weatherHud{position:absolute;top:52px;right:10px;font-size:6px;color:#aaddff;
+  background:rgba(0,0,30,0.55);border:1px solid rgba(100,180,255,0.2);
+  padding:3px 8px;z-index:100;pointer-events:none;}
+
+/* ── DAILY QUEST ── */
+#questHud{position:absolute;top:52px;left:10px;font-size:5px;color:#FFD700;
+  background:rgba(0,10,0,0.7);border:1px solid rgba(255,215,0,0.3);
+  padding:5px 10px;z-index:100;cursor:pointer;max-width:200px;line-height:2;}
+#questHud .qtitle{color:#FF8C00;font-size:6px;margin-bottom:2px;}
+#questHud .qbar{width:100%;height:4px;background:rgba(255,215,0,0.1);
+  border:1px solid rgba(255,215,0,0.2);margin-top:3px;}
+#questHud .qfill{height:100%;background:#FFD700;transition:width 0.4s;}
+
+/* ── FISH DETAIL POPUP ── */
+#fishDetail{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;
+  display:none;align-items:center;justify-content:center;}
+#fishDetail.show{display:flex;}
+.fdbox{background:#071a0e;border:3px solid #FFD700;padding:20px 28px;
+  max-width:320px;text-align:center;box-shadow:6px 6px 0 #8B1A1A;}
+.fdname{font-size:10px;color:#FFD700;margin:10px 0 4px;}
+.fdrar{font-size:6px;margin-bottom:10px;}
+.fdstats{font-size:5px;color:#4aaa55;line-height:3;text-align:left;}
+.fdclose{margin-top:14px;background:#FFD700;color:#0d3320;border:2px solid #FF8C00;
+  font-family:'Press Start 2P';font-size:7px;padding:7px 18px;cursor:pointer;}
+
+/* ── VOLUME CONTROL ── */
+#volControl{display:flex;align-items:center;gap:6px;padding:6px 10px;
+  border-bottom:1px solid rgba(255,215,0,0.1);}
+#volControl label{font-size:5px;color:#FFD700;white-space:nowrap;}
+#volSlider{width:80px;accent-color:#FFD700;cursor:pointer;}
+
+/* ── LEADERBOARD ── */
+.lbrow{display:flex;gap:8px;align-items:center;font-size:5px;
+  padding:5px 0;border-bottom:1px solid rgba(255,215,0,0.08);color:#4aaa55;}
+.lbrow .lbrank{color:#FF8C00;width:14px;text-align:right;flex-shrink:0;}
+.lbrow .lbname{flex:1;color:#FFD700;}
+.lbrow .lbwt{color:#00ccff;white-space:nowrap;}
+
+/* ── CATCH JUMP ANIMATION ── */
+@keyframes fishJump{
+  0%  {transform:translateY(0) rotate(0deg);opacity:1;}
+  40% {transform:translateY(-60px) rotate(-20deg);opacity:1;}
+  70% {transform:translateY(-30px) rotate(10deg);opacity:1;}
+  100%{transform:translateY(0) rotate(0deg);opacity:0;}
+}
+.fish-jump{position:fixed;font-size:28px;pointer-events:none;z-index:9999;
+  animation:fishJump 0.9s ease-out forwards;}
+
+/* ── ROD UNLOCK EFFECT ── */
+#rodUnlockFx{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  z-index:99998;background:rgba(0,0,0,0.6);pointer-events:none;}
+#rodUnlockFx.show{display:flex;animation:fadeInOut 2.5s ease-out forwards;}
+@keyframes fadeInOut{0%{opacity:0}15%{opacity:1}75%{opacity:1}100%{opacity:0}}
+.ru-inner{text-align:center;}
+.ru-title{font-size:14px;color:#FFD700;text-shadow:3px 3px 0 #FF8C00;
+  animation:logoBounce 0.5s ease-in-out infinite;}
+.ru-name{font-size:9px;color:#fff;margin-top:8px;}
+
 
 
 .gburn-notify{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
@@ -248,6 +356,15 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 
 <!-- GAME SCREEN -->
 <div id="gameScreen" class="screen">
+  <!-- Weather HUD -->
+  <div id="weatherHud">☀️ Clear</div>
+  <!-- Daily Quest HUD -->
+  <div id="questHud" onclick="openInv()">
+    <div class="qtitle">📋 DAILY QUEST</div>
+    <div id="questDesc">Loading...</div>
+    <div class="qbar"><div class="qfill" id="questFill" style="width:0%"></div></div>
+    <div id="questReward" style="font-size:4px;color:#aaa;margin-top:2px"></div>
+  </div>
   <div class="topbar">
     <div class="tbrand">🎣 GOZO FISHING</div>
     <div class="tstats">
@@ -264,8 +381,10 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
       <button class="hbtn" onclick="openInv()">🎒 COLLECTION</button>
       <button class="hbtn" onclick="toggleMoreMenu()" id="moreBtn">▼ MORE</button>
       <div class="more-menu" id="moreMenu">
+
         <button class="hbtn" onclick="saveGame();closeMoreMenu()">💾 SAVE</button>
         <button class="hbtn" onclick="triggerLoad();closeMoreMenu()">📂 LOAD</button>
+        <button class="hbtn" onclick="openLb();closeMoreMenu()">🏆 TOP CATCH</button>
         <button class="hbtn" onclick="goTitle();closeMoreMenu()">🏠 MENU</button>
       </div>
       <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadFromFile(event)">
@@ -344,7 +463,76 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 </div>
 
 <div class="notif" id="notif"></div>
+<div id="weatherLabel"></div>
 
+<!-- VOLUME CONTROL -->
+<div id="volBtn" onclick="toggleVolSlider()">🔊 VOL</div>
+<div id="volSlider">
+  <label>🎵 MUSIC</label>
+  <input type="range" min="0" max="100" value="70" id="volMusic" oninput="setMusicVol(this.value)">
+  <label style="margin-top:6px">🔔 SFX</label>
+  <input type="range" min="0" max="100" value="80" id="volSfx" oninput="setSfxVol(this.value)">
+  <button onclick="toggleMute()" id="muteBtn" style="margin-top:6px;width:100%;font-family:'Press Start 2P';font-size:4px;background:#1a5c35;border:1px solid #FFD700;color:#FFD700;padding:3px;cursor:pointer">MUTE ALL</button>
+</div>
+
+<!-- QUEST PANEL -->
+<div id="questPanel">
+  <div class="qtitle">📋 DAILY QUEST</div>
+  <div id="questList"></div>
+  <div class="qreward" id="questReward"></div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
+<div id="lbModal">
+  <div class="mbox" style="max-width:400px">
+    <div class="mtitle">🏆 TOP CATCHES</div>
+    <div class="shop-tabs" style="margin-bottom:10px">
+      <button class="stab active" id="lbTabWeight" onclick="lbTab('weight')">⚖️ HEAVIEST</button>
+      <button class="stab" id="lbTabGold" onclick="lbTab('gold')">🪙 MOST GOLD</button>
+      <button class="stab" id="lbTabRare" onclick="lbTab('rare')">✨ RAREST</button>
+    </div>
+    <div id="lbContent"></div>
+    <button class="mclose" onclick="closeLb()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- FISH DETAIL MODAL -->
+<div id="fishDetailModal">
+  <div class="fdbox">
+    <canvas id="fdCanvas" width="108" height="84" style="image-rendering:pixelated;width:108px;height:84px"></canvas>
+    <div id="fdName" style="font-size:10px;color:#FFD700;text-shadow:2px 2px 0 #8B1A1A;margin:8px 0"></div>
+    <div id="fdRar" style="font-size:6px;margin:3px 0"></div>
+    <div id="fdInfo" style="font-size:5px;color:#666;margin:6px 0;line-height:2.5"></div>
+    <div id="fdRecord" style="font-size:5px;color:#FF8C00;margin:6px 0;line-height:2.5"></div>
+    <button class="mclose" onclick="closeFishDetail()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- CATCH FISH ANIMATION CANVAS -->
+<canvas id="catchFishAnim" width="120" height="120" style="image-rendering:pixelated"></canvas>
+
+<!-- FISH DETAIL POPUP -->
+<div id="fishDetail">
+  <div class="fdbox">
+    <canvas id="fdIcon" width="96" height="72" style="image-rendering:pixelated;"></canvas>
+    <div class="fdname" id="fdName">-</div>
+    <div class="fdrar" id="fdRar">-</div>
+    <div class="fdstats" id="fdStats">-</div>
+    <button class="fdclose" onclick="closeFishDetail()">✕ CLOSE</button>
+  </div>
+</div>
+
+<!-- ROD UNLOCK EFFECT -->
+<div id="rodUnlockFx">
+  <div class="ru-inner">
+    <div class="ru-title">🎉 NEW ROD UNLOCKED!</div>
+    <div class="ru-name" id="rodUnlockName"></div>
+    <canvas id="rodUnlockCanvas" width="64" height="96"
+      style="image-rendering:pixelated;width:48px;height:72px;margin-top:10px"></canvas>
+  </div>
+</div>
+
+<!-- LEADERBOARD MODAL -->
 <!-- TUTORIAL OVERLAY -->
 <div id="tutOverlay">
   <div class="tutbox">
@@ -1221,6 +1409,12 @@ let G={
   splashP:[],
   // Time
   t:0,
+  // Weather
+  weather:'clear', weatherTimer:0,
+  // Rain particles
+  rainP:[],
+  // Catch jump FX
+  jumpFx:[],
 };
 
 // ── XP / LEVEL ──
@@ -1399,6 +1593,7 @@ function getMusicCtx(){
   return _musicCtx;
 }
 
+let _masterVolume = 0.6;
 function stopMusic(){
   _musicNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
   _musicNodes = [];
@@ -1416,7 +1611,7 @@ function startFishingMusic(){
   if(ctx.state==='suspended') ctx.resume();
 
   const master = ctx.createGain();
-  master.gain.value = 0.18;
+  master.gain.value = (_musicVol||0.7) * 0.18;
   master.connect(ctx.destination);
   _musicNodes.push(master);
 
@@ -1518,7 +1713,7 @@ function startWalkingMusic(){
   if(ctx.state==='suspended') ctx.resume();
 
   const master = ctx.createGain();
-  master.gain.value = 0.15;
+  master.gain.value = (_musicVol||0.7) * 0.15;
   master.connect(ctx.destination);
   _musicNodes.push(master);
 
@@ -1603,6 +1798,68 @@ function startWalkingMusic(){
   _musicScheduler=setInterval(scheduleBar, BAR*1000);
 }
 
+// ═══════════════════════════════════════════
+// WEATHER SYSTEM
+// ═══════════════════════════════════════════
+const WEATHERS = [
+  { id:'clear',  label:'☀️ Clear',   rainRate:0,   fishBonus:0   },
+  { id:'cloudy', label:'☁️ Cloudy',  rainRate:0,   fishBonus:0.1 },
+  { id:'drizzle',label:'🌦 Drizzle', rainRate:0.3, fishBonus:0.2 },
+  { id:'rain',   label:'🌧 Rainy',   rainRate:0.7, fishBonus:0.4 },
+  { id:'storm',  label:'⛈ Storm',   rainRate:1.2, fishBonus:0.6 },
+];
+
+function updateWeather(dt){
+  G.weatherTimer -= dt;
+  if(G.weatherTimer <= 0){
+    // Pick next weather — weighted toward calm
+    const pool = ['clear','clear','clear','cloudy','cloudy','drizzle','drizzle','rain','storm'];
+    G.weather = pool[Math.floor(Math.random()*pool.length)];
+    G.weatherTimer = 60 + Math.random()*120; // 1-3 min
+    const w = WEATHERS.find(x=>x.id===G.weather);
+    const el = document.getElementById('weatherHud');
+    if(el) el.textContent = w.label;
+    if(G.weather==='storm') notify('⛈ Storm approaching! Rare fish more likely!');
+    else if(G.weather==='rain') notify('🌧 Rain! Better fishing conditions!');
+  }
+
+  // Spawn rain particles
+  const w = WEATHERS.find(x=>x.id===G.weather)||WEATHERS[0];
+  if(w.rainRate > 0 && Math.random() < w.rainRate){
+    for(let i=0;i<3;i++){
+      G.rainP.push({ x:Math.random()*W, y:-10,
+        vx:-0.5 + Math.random()*0.3, vy:6+Math.random()*4,
+        len:4+Math.random()*8, alpha:0.3+Math.random()*0.4 });
+    }
+  }
+  // Update rain particles
+  G.rainP = G.rainP.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    return p.y < H+20;
+  });
+  if(G.rainP.length > 400) G.rainP.splice(0, G.rainP.length-400);
+}
+
+function getWeatherFishBonus(){
+  const w = WEATHERS.find(x=>x.id===G.weather);
+  return w ? w.fishBonus : 0;
+}
+
+function drawRain(ctx){
+  if(!G.rainP.length) return;
+  ctx.save();
+  ctx.strokeStyle='rgba(180,220,255,0.5)';
+  ctx.lineWidth=1;
+  G.rainP.forEach(p=>{
+    ctx.globalAlpha=p.alpha;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x+p.vx*p.len*0.3, p.y+p.len);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
 // ── Music state manager — called from update loop ──
 let _lastMusicState='';
 function updateMusic(){
@@ -1613,6 +1870,312 @@ function updateMusic(){
   _lastMusicState = target;
   if(target==='fishing') startFishingMusic();
   else if(target==='walking') startWalkingMusic();
+}
+
+
+// ═══════════════════════════════════════════
+// WEATHER SYSTEM
+// ═══════════════════════════════════════════
+const WEATHER_TYPES = ['clear','clear','clear','rain','rain','storm'];
+let rainDrops = [];
+
+function initRain(count){
+  rainDrops = [];
+  for(let i=0;i<count;i++){
+    rainDrops.push({
+      x: Math.random()*1400,
+      y: Math.random()*700,
+      spd: 6+Math.random()*6,
+      len: 8+Math.random()*10,
+      alpha: 0.3+Math.random()*0.4
+    });
+  }
+}
+
+function updateWeather(dt){
+  G.weatherTimer -= dt;
+  if(G.weatherTimer <= 0){
+    // Pick next weather
+    G.weather = WEATHER_TYPES[Math.floor(Math.random()*WEATHER_TYPES.length)];
+    G.weatherTimer = 60 + Math.random()*120; // 1-3 min
+    const lbl = document.getElementById('weatherLabel');
+    if(lbl){
+      const icons={'clear':'☀️ Clear','rain':'🌧️ Rainy — rare fish more likely!','storm':'⛈️ Storm — legendary fish active!'};
+      lbl.textContent = icons[G.weather]||'';
+      lbl.style.opacity='1';
+      setTimeout(()=>{if(lbl)lbl.style.transition='opacity 2s';lbl.style.opacity='0';},4000);
+    }
+    if(G.weather==='rain') initRain(120);
+    else if(G.weather==='storm') initRain(220);
+    else rainDrops=[];
+  }
+
+  // Update rain drops
+  rainDrops.forEach(d=>{
+    d.y += d.spd;
+    d.x += d.spd * 0.2;
+    if(d.y > 700){ d.y=-10; d.x=Math.random()*1400; }
+  });
+}
+
+function drawWeather(ctx){
+  if(rainDrops.length===0) return;
+  ctx.save();
+  rainDrops.forEach(d=>{
+    const sx = d.x - (G.camX||0)*0.1; // slight parallax
+    if(sx < -20 || sx > ctx.canvas.width+20) return;
+    ctx.beginPath();
+    ctx.globalAlpha = d.alpha;
+    ctx.strokeStyle = G.weather==='storm'?'rgba(180,200,255,0.8)':'rgba(150,180,255,0.6)';
+    ctx.lineWidth = G.weather==='storm'?1.5:0.8;
+    ctx.moveTo(sx, d.y);
+    ctx.lineTo(sx + d.len*0.2, d.y + d.len);
+    ctx.stroke();
+  });
+  ctx.restore();
+  // Dark storm overlay
+  if(G.weather==='storm'){
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,30,0.18)';
+    ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    ctx.restore();
+  }
+}
+
+// Weather bonus on rollFish
+function getWeatherRarityBonus(){
+  if(G.weather==='storm') return 2;   // +2 rarity weight bonus
+  if(G.weather==='rain')  return 1;
+  return 0;
+}
+
+// ═══════════════════════════════════════════
+// DAILY QUEST SYSTEM
+// ═══════════════════════════════════════════
+const QUEST_TEMPLATES = [
+  { id:'catch_any',  desc:'Catch {n} fish',          type:'catch_any',  target:5,  reward:{gold:50,xp:30}},
+  { id:'catch_rare', desc:'Catch {n} Rare+ fish',    type:'catch_rare', target:2,  reward:{gold:120,xp:80}},
+  { id:'catch_epic', desc:'Catch {n} Epic+ fish',    type:'catch_epic', target:1,  reward:{gold:250,xp:150}},
+  { id:'no_miss',    desc:'Reel {n} bites in a row', type:'no_miss',    target:3,  reward:{gold:80,xp:50}},
+  { id:'cast_n',     desc:'Cast {n} times',          type:'cast_n',     target:10, reward:{gold:40,xp:25}},
+  { id:'gold_earn',  desc:'Earn {n} gold',           type:'gold_earn',  target:200,reward:{gold:100,xp:60}},
+];
+
+function getTodayKey(){
+  const d=new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function initQuests(){
+  const today = getTodayKey();
+  // Validate existing quests have correct format
+  const validQuests = Array.isArray(G.quests) && G.quests.length > 0 &&
+    G.quests.every(q => q && typeof q.target === 'number');
+  if(G.questDay === today && validQuests){
+    renderQuests(); return;
+  }
+  // Reset stale/invalid quests
+  G.quests = [];
+  // New day — generate 3 random quests
+  G.questDay = today;
+  const pool = [...QUEST_TEMPLATES].sort(()=>Math.random()-0.5).slice(0,3);
+  G.quests = pool.map(q=>({
+    ...q,
+    desc: q.desc.replace('{n}', q.target),
+    progress: 0,
+    done: false,
+    rewarded: false,
+  }));
+  renderQuests();
+  autoSave();
+}
+
+function progressQuest(type, amount=1){
+  let updated=false;
+  G.quests.forEach(q=>{
+    if(q.done) return;
+    if(q.type===type || (type==='catch_any' && (q.type==='catch_any'))){
+      q.progress = Math.min(q.target, (q.progress||0)+amount);
+      if(q.progress>=q.target && !q.done){
+        q.done=true;
+        if(!q.rewarded){
+          q.rewarded=true;
+          const rGold = typeof q.reward==='object' ? q.reward.gold : (q.reward||50);
+          const rXP   = typeof q.reward==='object' ? q.reward.xp   : (q.reward||50);
+          G.gold += rGold;
+          gainXP(rXP);
+          updateHUD();
+          notify(`✅ Quest done! +${rGold}🪙 +${rXP}XP`);
+          playSound('catch');
+        }
+      }
+      updated=true;
+    }
+  });
+  if(updated) renderQuests();
+}
+
+function renderQuests(){
+  const el=document.getElementById('questList'); if(!el) return;
+  const rEl=document.getElementById('questReward');
+  el.innerHTML='';
+  G.quests.forEach(q=>{
+    const pct=Math.min(100,((q.progress||0)/q.target)*100);
+    const row=document.createElement('div');
+    row.className='qitem'+(q.done?' done':'');
+    row.innerHTML=`<span>${q.done?'✓ ':''} ${q.desc}</span><span class="qprog">${q.progress||0}/${q.target}</span>`;
+    el.appendChild(row);
+    const barWrap=document.createElement('div'); barWrap.className='qbar';
+    const barFill=document.createElement('div'); barFill.className='qbar-fill';
+    barFill.style.width=pct+'%';
+    if(q.done) barFill.style.background='#4caf50';
+    barWrap.appendChild(barFill); el.appendChild(barWrap);
+  });
+  const allDone=G.quests.every(q=>q.done);
+  if(rEl) rEl.textContent=allDone?'🎉 ALL QUESTS DONE!':'Rewards on completion';
+}
+
+let _noMissStreak=0;
+
+// ═══════════════════════════════════════════
+// LEADERBOARD SYSTEM
+// ═══════════════════════════════════════════
+function addToLeaderboard(fish, weight, goldEarned){
+  const entry={
+    fishId:fish.id, fishName:fish.n, rarity:fish.r,
+    weight:parseFloat(weight), gold:goldEarned,
+    date:new Date().toLocaleDateString()
+  };
+  G.leaderboard.push(entry);
+  // Keep top 20 entries
+  G.leaderboard.sort((a,b)=>b.weight-a.weight);
+  if(G.leaderboard.length>20) G.leaderboard.length=20;
+}
+
+let _lbCurrentTab='weight';
+function openLb(){
+  document.getElementById('lbModal').classList.add('show');
+  _lbCurrentTab='weight';
+  document.getElementById('lbTabWeight').classList.add('active');
+  document.getElementById('lbTabGold').classList.remove('active');
+  document.getElementById('lbTabRare').classList.remove('active');
+  renderLb();
+}
+function closeLb(){ document.getElementById('lbModal').classList.remove('show'); }
+function lbTab(tab){
+  _lbCurrentTab=tab;
+  ['weight','gold','rare'].forEach(t=>{
+    document.getElementById('lbTab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',t===tab);
+  });
+  renderLb();
+}
+function renderLb(){
+  const el=document.getElementById('lbContent'); if(!el) return;
+  const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+  let sorted=[...G.leaderboard];
+  if(_lbCurrentTab==='gold')  sorted.sort((a,b)=>b.gold-a.gold);
+  if(_lbCurrentTab==='rare')  sorted.sort((a,b)=>b.rarity-a.rarity||b.weight-a.weight);
+  if(sorted.length===0){
+    el.innerHTML='<div style="font-size:6px;color:#3a5a3a;text-align:center;padding:20px">No catches yet! Start fishing.</div>';
+    return;
+  }
+  el.innerHTML=sorted.slice(0,10).map((e,i)=>`
+    <div class="lb-row">
+      <span class="lb-rank">#${i+1}</span>
+      <span class="lb-name" style="color:${rarColors[e.rarity]}">${e.fishName}</span>
+      <span class="lb-val">${e.weight}kg · ${e.gold}🪙 · ${e.date}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// FISH RECORDS + DETAIL MODAL
+// ═══════════════════════════════════════════
+function recordFishCatch(fish, weight, length, goldEarned){
+  const id=fish.id;
+  if(!G.fishRecords[id]) G.fishRecords[id]={count:0,bestWeight:0,bestLength:0,totalGold:0};
+  const r=G.fishRecords[id];
+  r.count++;
+  if(weight>r.bestWeight){ r.bestWeight=parseFloat(weight.toFixed(1)); }
+  if(length>r.bestLength){ r.bestLength=Math.round(length); }
+  r.totalGold+=goldEarned;
+}
+
+function openFishDetail(fishId){
+  const f=FISH.find(x=>x.id===fishId); if(!f) return;
+  const rec=G.fishRecords[fishId]||{count:0,bestWeight:0,bestLength:0,totalGold:0};
+  const caught=G.caught[fishId]||0;
+  if(!caught){ return; } // only show caught fish
+  const rarNames=['Common','Uncommon','Rare','Epic','Legendary'];
+  const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+  renderFishCanvas(document.getElementById('fdCanvas'),fishId,rarColors[f.r],'transparent');
+  document.getElementById('fdName').textContent=f.n;
+  document.getElementById('fdRar').innerHTML=`<span style="color:${rarColors[f.r]}">★ ${rarNames[f.r]}</span>`;
+  document.getElementById('fdInfo').innerHTML=
+    `Caught: <b style="color:#FFD700">${caught}x</b><br>
+     Weight range: ${f.w[0]}–${f.w[1]} kg<br>
+     Length range: ${f.l[0]}–${f.l[1]} cm`;
+  document.getElementById('fdRecord').innerHTML=
+    rec.count>0?
+    `🏆 Best weight: <b style="color:#FFD700">${rec.bestWeight}kg</b><br>
+     📏 Best length: <b style="color:#FFD700">${rec.bestLength}cm</b><br>
+     🪙 Total gold: <b style="color:#FFD700">${rec.totalGold}</b>`
+    :'No record yet.';
+  document.getElementById('fishDetailModal').classList.add('show');
+}
+function closeFishDetail(){ document.getElementById('fishDetailModal').classList.remove('show'); }
+
+// ═══════════════════════════════════════════
+// VOLUME CONTROL
+// ═══════════════════════════════════════════
+let _musicVol=0.70, _sfxVol=0.80, _muted=false;
+function toggleVolSlider(){
+  document.getElementById('volSlider').classList.toggle('show');
+}
+function setMusicVol(v){
+  _musicVol=v/100;
+  // Update master gain of music
+  if(_musicCtx){
+    _musicNodes.forEach(n=>{ if(n.gain && n===_musicNodes[0]) n.gain.value=_muted?0:_musicVol*0.18; });
+  }
+}
+function setSfxVol(v){ _sfxVol=v/100; }
+function toggleMute(){
+  _muted=!_muted;
+  document.getElementById('muteBtn').textContent=_muted?'UNMUTE':'MUTE ALL';
+  document.getElementById('volBtn').textContent=_muted?'🔇 MUTE':'🔊 VOL';
+  if(_muted) stopMusic();
+  else { _lastMusicState=''; updateMusic(); }
+}
+
+// Override playSound to respect volume
+const _origPlaySound = playSound;
+window.playSound = function(type){
+  if(_muted) return;
+  _origPlaySound(type);
+};
+
+// ═══════════════════════════════════════════
+// CATCH FISH JUMP ANIMATION
+// ═══════════════════════════════════════════
+
+function showCatchAnimation(fish, screenX, screenY){
+  // Spawn multiple emoji fish jumping from water
+  const rarColors=['#aaa','#4caf50','#42a5f5','#ab47bc','#ffa726'];
+  const container = document.getElementById('gameScreen');
+  const emojis = [fish.i||'🐟', '✨', '💦'];
+  emojis.forEach((em, idx) => {
+    const el = document.createElement('div');
+    el.className = 'fish-jump';
+    el.textContent = em;
+    el.style.left = (screenX + (idx-1)*25 - 10) + 'px';
+    el.style.top  = (screenY - 20) + 'px';
+    el.style.fontSize = idx===0 ? '28px' : '16px';
+    el.style.animationDelay = (idx * 80) + 'ms';
+    // Rarity color glow for main fish
+    if(idx===0) el.style.filter = `drop-shadow(0 0 8px ${rarColors[fish.r]})`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+  });
 }
 
 // Keys
@@ -2814,10 +3377,23 @@ function render(){
     ctx.font='5px "Press Start 2P"';
     ctx.fillStyle='rgba(255,200,0,0.6)';
     ctx.fillText('PRESS SPACE',gzsx,GROUND_Y-4+arrowBob);
+    // Bridge spot bonus hint
+    const bridgeX2 = WORLD_W*0.55;
+    if(Math.abs(G.gz.x-bridgeX2)<200){
+      ctx.fillStyle='rgba(255,180,0,0.7)';
+      ctx.font='4px "Press Start 2P"';
+      ctx.fillText('⭐ HOT SPOT!',gzsx,GROUND_Y+6+arrowBob);
+    }
     ctx.restore();
   }
 
   // (foreground grass removed)
+
+  // ── RAIN ──
+  drawRain(ctx);
+
+  // ── WEATHER OVERLAY ──
+  drawWeather(ctx);
 
   // ── MINI MAP ──
   const mmW=100,mmH=18;
@@ -2924,9 +3500,17 @@ function reel(){
   // Gold added in showCatch with rod bonus applied
   updateHUD();showCatch(fish);
 }
+function getSpotBonus(){
+  // Near bridge (WORLD_W*0.55) = +30% rare bonus
+  const bridgeX = typeof WORLD_W!=='undefined' ? WORLD_W*0.55 : 2000;
+  const dist = Math.abs(G.gz.x - bridgeX);
+  return dist < 200 ? 0.3 : 0;
+}
 function rollFish(pw){
   const el=FISH.filter(f=>f.mp<=pw);
-  const w=[Math.max(15,50-(pw-1)*9),25,15+(pw-1)*3,8+(pw-1)*2,2+(pw-1)*1.5];
+  const wBonus = getWeatherFishBonus() + getSpotBonus();
+  const w=[Math.max(10,50-(pw-1)*9-(wBonus*20)),25,
+    15+(pw-1)*3+(wBonus*8),8+(pw-1)*2+(wBonus*6),2+(pw-1)*1.5+(wBonus*4)];
   const tot=w.reduce((a,b)=>a+b,0);
   let roll=Math.random()*tot,cum=0,rar=0;
   for(let i=0;i<w.length;i++){cum+=w[i];if(roll<=cum){rar=i;break;}}
@@ -2941,18 +3525,48 @@ function resetRod(){
 }
 function showCatch(f){
   playSound('catch');
+  // Fish jump effect
+  const jumpEl = document.createElement('div');
+  jumpEl.className='fish-jump';
+  jumpEl.textContent = f.i||'🐟';
+  jumpEl.style.left = (G.gz.x - G.camX - 20)+'px';
+  jumpEl.style.top  = (GROUND_Y - 40)+'px';
+  document.getElementById('gameScreen').appendChild(jumpEl);
+  setTimeout(()=>jumpEl.remove(), 950);
   const rnd=(a,b)=>(Math.random()*(b-a)+a).toFixed(1);
+  const catchWeight = parseFloat(rnd(f.w[0],f.w[1]));
+  const catchLength = Math.round(rnd(f.l[0],f.l[1]));
   renderFishCanvas(document.getElementById('cpIcon'), f.id, RCOL[f.r], 'transparent');
   document.getElementById('cpName').textContent=f.n;
   document.getElementById('cpRar').textContent='★ '+RARITY[f.r];
   document.getElementById('cpRar').className='cprar '+RCSS[f.r];
-  document.getElementById('cpInfo').textContent=`Weight: ${rnd(f.w[0],f.w[1])} kg · Length: ${Math.round(rnd(f.l[0],f.l[1]))} cm`;
+  document.getElementById('cpInfo').textContent=`Weight: ${catchWeight} kg · Length: ${catchLength} cm`;
   const rod = RODS[G.rod] || RODS[0];
   const goldEarned = Math.round(f.g * rod.bonus);
-  G.gold += goldEarned; // add full gold with rod bonus here (not in reel)
+  G.gold += goldEarned;
+  if(G.stats) G.stats.totalGold = (G.stats.totalGold||0) + goldEarned;
+  const xpGain = XP_RARITY_BONUS[f.r] || 10;
+  gainXP(xpGain);
+  // Records, leaderboard, quests
+  recordFishCatch(f, catchWeight, catchLength, goldEarned);
+  addToLeaderboard(f, catchWeight, goldEarned);
+  progressQuest('catch_any', 1);
+  progressQuest('gold_earn', goldEarned);
+  if(f.r>=2) progressQuest('catch_rare', 1);
+  if(f.r>=3) progressQuest('catch_epic', 1);
+  _noMissStreak++;
+  if(_noMissStreak>=3) progressQuest('no_miss', _noMissStreak);
+  autoSave();
   updateHUD();
   document.getElementById('cpGold').textContent=`+${goldEarned} 🪙 GOLD${rod.bonus>1?' ×'+rod.bonus:''}`;
+  document.getElementById('cpXp').textContent=`+${xpGain} XP`;
+  const xpPct2=Math.min(100,(G.xp/Math.max(1,xpForLevel(G.level)))*100);
+  const lvTxt=document.getElementById('cpLvTxt'); if(lvTxt) lvTxt.textContent=`LV ${G.level}`;
+  setTimeout(()=>{const xf=document.getElementById('cpXpFill');if(xf)xf.style.width=xpPct2+'%';},100);
   document.getElementById('catchPopup').classList.add('show');
+  // Catch jump animation
+  const animX=G.bob.x, animY=RIVER_Y;
+  setTimeout(()=>showCatchAnimation(f, animX, animY), 80);
 }
 function closeCatch(){
   document.getElementById('catchPopup').classList.remove('show');
@@ -3153,6 +3767,7 @@ async function buyRod(id){
     await gWaitTx(txHash);
     G.ownedRods.push(id);
     G.rod = id;
+    showRodUnlock(id);
     shopBalGozo -= rod.gozo;
     document.getElementById('shopWalletTxt').textContent =
       gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' $GOZO';
@@ -3228,6 +3843,19 @@ async function buyBait(i){
   document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
   shopBuying=false;
 }
+function showRodUnlock(rodId){
+  const rod = RODS[rodId]||RODS[0];
+  const fx = document.getElementById('rodUnlockFx');
+  const nm = document.getElementById('rodUnlockName');
+  const cv = document.getElementById('rodUnlockCanvas');
+  if(!fx) return;
+  nm.textContent = rod.icon+' '+rod.name;
+  if(cv) drawRodPixelArt(cv, rodId);
+  fx.classList.add('show');
+  setTimeout(()=>fx.classList.remove('show'), 2600);
+  playSound('levelup');
+}
+
 function openInv(){
   document.getElementById('invModal').classList.add('show');
   document.getElementById('invTabFish').classList.add('active');
@@ -3257,6 +3885,7 @@ function renderInvFish(){
     const cnt=G.caught[f.id]||0;
     const d=document.createElement('div');d.className='iitem';
     d.style.borderColor=cnt>0?RCOL[f.r]:'rgba(255,255,255,0.05)';
+    if(cnt>0){ d.style.cursor='pointer'; d.onclick=()=>openFishDetail(f.id); d.title='Click for details'; }
     const cvs=document.createElement('canvas');
     cvs.width=52;cvs.height=38;
     cvs.style.cssText='image-rendering:pixelated;';
@@ -3272,6 +3901,7 @@ function renderInvFish(){
     nd.textContent=cnt>0?f.n:'???';
     d.appendChild(nd);
     if(cnt>0){const cd=document.createElement('div');cd.className='icount';cd.textContent='×'+cnt;d.appendChild(cd);}
+    if(cnt>0) d.onclick=()=>openFishDetail(f.id);
     g.appendChild(d);
   });
 }
@@ -3310,6 +3940,7 @@ function renderInvRods(){
   });
 }
 function closeInv(){document.getElementById('invModal').classList.remove('show');}
+// (openFishDetail defined above)
 function setMsg(t){document.getElementById('msg').textContent=t;}
 let nt;
 function notify(t){
@@ -3346,8 +3977,13 @@ function startGame(){
   G.gz.y=GROUND_Y+20;
   setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
   notify('🎁 Starter bonus: 10 Free Earthworms!');
+  initQuests();
+  G.weather='clear'; G.weatherTimer=90;
+  document.getElementById('weatherHud').textContent='☀️ Clear';
   setTimeout(()=>startFishingMusic(), 500);
   if(!localStorage.getItem('gozoTutDone')) setTimeout(openTut, 600);
+  G.weather='clear'; G.weatherTimer=30+Math.random()*60;
+  initQuests();
   // Try to restore autosave
   // Only restore if save has level field (not stale)
   try {
@@ -3378,7 +4014,7 @@ window.addEventListener('resize',()=>{
     resizeCanvas();buildTrees();initParticles();
   }
 });
-['shopModal','invModal','catchPopup'].forEach(id=>{
+['shopModal','invModal','catchPopup','lbModal','fishDetailModal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
 });
 
@@ -3710,6 +4346,11 @@ function applySaveData(data){
 }
 
 // ── Save: create JSON → download as file ──────────────────
+// ── Leaderboard ──
+function getLB(){ try{ return JSON.parse(localStorage.getItem('gozoLB')||'[]'); }catch(e){return [];} }
+function saveLB(lb){ try{ localStorage.setItem('gozoLB',JSON.stringify(lb)); }catch(e){} }
+// (leaderboard functions defined above)
+
 function autoSave(){
   try {
     const data = getSaveData();
