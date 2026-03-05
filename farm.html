@@ -5303,7 +5303,7 @@ function makeRabbitCanvas(flipX, frame) {
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const doFlip = !flipX;
+  const doFlip = flipX;
   if (doFlip) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
 
   function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
@@ -5360,11 +5360,8 @@ function makeCowCanvas(flipX, frame) {
   canvas.style.imageRendering = 'pixelated';
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const doFlip = !flipX;
+  const doFlip = flipX;
   if (doFlip) { ctx.save(); ctx.translate(canvas.width,0); ctx.scale(-1,1); }
-
-  function p(x,y,c){ ctx.fillStyle=c; ctx.fillRect(x*S,y*S,S,S); }
-  const WH='#f2f2ee', BK='#1a1a1a', PK='#f0b0b8', GY='#aaaaaa';
 
   // --- BODY ---
   for(let x=6;x<=18;x++) for(let y=2;y<=8;y++) p(x,y,WH);
