@@ -3059,7 +3059,7 @@ function renderSeedShop(){
       <div class="si-emoji">${c.emoji}</div>
       <div class="si-info">
         <div class="si-time">⏱ ${fmtTime(c.grow)}</div>
-        ${inv > 0 ? `<div class="si-inv">x${inv} in bag ✓</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
+        ${inv > 0 ? `<div class="si-inv">x${inv}</div>` : '<div class="si-inv" style="color:#f05050">none</div>'}
       </div>
       <div class="si-count">${inv}</div>`;
     div.onclick = () => { selectedSeed = key; selectTool('hoe'); renderSeedShop(); say('buy'); };
@@ -4595,6 +4595,7 @@ function loadExtraState(){
 // Override startFarm to init new systems
 const _origStartFarm = startFarm;
 window.startFarm = function(){
+  setTimeout(function(){ if(!window._musicStarted){ window._musicStarted=true; if(typeof window.toggleMusic==="function") window.toggleMusic(); } }, 300);
   _origStartFarm();
   loadExtraState();
   generateDailyQuests();
@@ -4665,21 +4666,25 @@ window.handleClick = function(fid, pid){
 <!-- ══ NEW FEATURE BUTTON BAR ══ -->
 <style>
 #featureBar{
-  position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-  display:flex;gap:6px;z-index:9990;
-  background:rgba(10,20,10,0.82);border:2px solid rgba(100,160,60,0.4);
-  border-radius:16px;padding:7px 12px;backdrop-filter:blur(10px);
-  box-shadow:0 4px 20px rgba(0,0,0,0.5);
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;z-index:9990;
+  background:linear-gradient(180deg,#0d1f0d,#0a160a);
+  border-top:2px solid rgba(100,160,60,0.5);
+  padding:6px 8px;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.6);
+  justify-content:center;
 }
 .feat-btn{
-  background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.15);
-  border-radius:10px;color:#e0d080;font-size:13px;padding:4px 8px;
-  cursor:pointer;transition:all 0.2s;white-space:nowrap;
-  text-shadow:1px 1px 0 #000;display:flex;flex-direction:column;align-items:center;gap:1px;
+  background:transparent;border:none;
+  color:#e0d080;font-size:13px;padding:5px 0;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+  text-shadow:1px 1px 0 #000;display:flex;flex-direction:column;align-items:center;gap:2px;
+  flex:1;max-width:90px;border-radius:10px;
 }
-.feat-btn:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px);border-color:rgba(180,220,80,0.5);}
-.feat-btn .fb-icon{font-size:14px;}
-.feat-btn .fb-label{font-size:11px;color:#90c060;}
+.feat-btn:hover{background:rgba(255,255,255,0.08);transform:translateY(-2px);}
+.feat-btn:active{transform:translateY(0);}
+.feat-btn .fb-icon{font-size:18px;}
+.feat-btn .fb-label{font-size:10px;color:#90c060;}
 #weatherDisplay{
   position:fixed;top:10px;left:50%;transform:translateX(-50%);
   background:rgba(0,0,0,0.5);border-radius:12px;padding:4px 14px;
@@ -4846,7 +4851,7 @@ window.handleClick = function(fid, pid){
 @keyframes eqBar { from{transform:scaleY(0.4)} to{transform:scaleY(1)} }
 </style>
 
-<div id="music-player">
+<div id="music-player" style="display:none">
   <div class="mp-icon">🚜</div>
   <div class="mp-info">
     <div class="mp-title">Farming Tune</div>
@@ -5079,5 +5084,17 @@ window.handleClick = function(fid, pid){
 })();
 </script>
 
+<script>
+(function(){
+  function tryAutoplay(){
+    if(!window._musicStarted){
+      window._musicStarted = true;
+      if(typeof window.toggleMusic === "function") window.toggleMusic();
+    }
+    document.removeEventListener("click", tryAutoplay);
+  }
+  document.addEventListener("click", tryAutoplay);
+})();
+</script>
 </body>
 </html>
