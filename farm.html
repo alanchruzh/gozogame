@@ -5430,20 +5430,22 @@ function makeRabbitCanvas(flipX, frame) {
 function spawnFieldAnimal(type, uid) {
   const layer = document.getElementById('animalLayer');
   if (!layer) return;
+  const canvasAnimals = ['cow','chicken','rabbit','bee'];
   const def = ANIMAL_PIXELS[type];
-  if (!def) return;
+  if (!def && !canvasAnimals.includes(type)) return;
 
   const wrapper = document.createElement('div');
   wrapper.style.cssText = 'position:absolute;bottom:4px;transition:none;';
   wrapper.dataset.animalUid = uid;
 
   const canvas = makeAnimalCanvas(type, false, 0);
+  if (!canvas) return;
   wrapper.appendChild(canvas);
   layer.appendChild(wrapper);
 
   const lw = layer.offsetWidth || 300;
   const animalW = type==='cow' ? 22*3 : type==='chicken' ? 14*3 : type==='rabbit' ? 12*3 : type==='bee' ? 16*3 : (def ? def.w*PIXEL_SIZE : 48);
-  const startX = Math.random() * (lw - animalW);
+  const startX = Math.random() * Math.max(0, lw - animalW);
   const speed = (type === 'bee') ? (0.4 + Math.random() * 0.4) : (0.2 + Math.random() * 0.3);
   const dir = Math.random() > 0.5 ? 1 : -1;
 
