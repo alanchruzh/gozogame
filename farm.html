@@ -382,7 +382,7 @@ header{
     </div>
     <div class="fence-strip" id="fence" style="position:relative;overflow:visible;">
       <canvas id="fenceCanvas"></canvas>
-      <div id="animalLayer" style="position:absolute;left:0;right:0;bottom:0;height:80px;pointer-events:none;z-index:20;overflow:hidden;"></div>
+      <div id="animalLayer" style="position:absolute;left:0;right:0;bottom:0;height:80px;pointer-events:none;z-index:20;"></div>
     </div>
 
     <div class="ground-area">
@@ -6016,21 +6016,17 @@ function makeTrainCanvas() {
 }
 
 function runTrainAnimation() {
-  const layer = document.getElementById('gameWrap') || document.getElementById('animalLayer');
+  const layer = document.getElementById('animalLayer');
   if (!layer) return;
 
   const trainCanvas = makeTrainCanvas();
-  const screenW = window.innerWidth;
+  const screenW = layer.offsetWidth || window.innerWidth;
   const trainW = trainCanvas.width;
-  const trainH = trainCanvas.height;
-
-  // Position vertically at the ground level (above featureBar ~60px from bottom)
-  const bottomOffset = 65;
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = `position:fixed;bottom:${bottomOffset}px;left:${screenW}px;z-index:500;image-rendering:pixelated;pointer-events:none;`;
+  wrapper.style.cssText = `position:absolute;bottom:2px;left:${screenW}px;z-index:50;image-rendering:pixelated;pointer-events:none;`;
   wrapper.appendChild(trainCanvas);
-  document.body.appendChild(wrapper);
+  layer.appendChild(wrapper);
 
   // === TRAIN SOUNDS ===
   try {
