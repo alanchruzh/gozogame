@@ -2659,7 +2659,7 @@ function renderAllFields(){
     const fd = fieldData[cfg.id];
     const block = document.createElement('div');
     block.className = 'field-block';
-    block.innerHTML = `<div class="field-title">${cfg.name}</div>`;
+    block.innerHTML = ``;
 
     if(fd?.unlocked){
       const grid = document.createElement('div');
@@ -2705,8 +2705,8 @@ function makePlotEl(fid, pid, p){
 
 function buildTile(fid, pid, p){
   let sp='', lb='', pg='', tmr='';
-  if(p.state === 'empty'){ lb = 'EMPTY'; }
-  else if(p.state === 'tilled'){ lb = 'TILLED'; }
+  if(p.state === 'empty'){ lb = ''; }
+  else if(p.state === 'tilled'){ lb = ''; }
   else if(p.state === 'planted'){
     const c = CROPS[p.plant];
     if(p.watered){
@@ -3895,7 +3895,7 @@ function applyWeather(type){
   }
   // Drought: slow down crops warning
   updateWeatherUI();
-  showToast(`${wt.icon} Cuaca berubah: ${wt.name}` + (wt.autoWater ? ' — Semua tanaman disiram otomatis! 💧' : '') + (wt.drought ? ' — Tanaman tumbuh lebih lambat! ☠️' : ''));
+  showToast(`${wt.icon} Weather changed: ${wt.name}` + (wt.autoWater ? ' — All crops watered automatically! 💧' : '') + (wt.drought ? ' — Crops grow slower! ☠️' : ''));
   saveState();
 }
 
@@ -3939,9 +3939,9 @@ function startGrowTimerWithWeather(fid, pid, remainMs){
 // ⚡ FERTILIZER / BOOSTER SYSTEM
 // ══════════════════════════════════════════════════════════════════
 const FERTILIZERS = {
-  basic:  { name:'Pupuk Biasa',   icon:'🌿', desc:'Percepat 25%',  mult:0.75, price:50,  color:'#80c860' },
-  super:  { name:'Pupuk Super',   icon:'⚡', desc:'Percepat 50%',  mult:0.50, price:120, color:'#f0d020' },
-  golden: { name:'Pupuk Emas',    icon:'✨', desc:'Percepat 75%',  mult:0.25, price:280, color:'#f0a020' },
+  basic:  { name:'Basic Fertilizer',   icon:'🌿', desc:'Speed up 25%',  mult:0.75, price:50,  color:'#80c860' },
+  super:  { name:'Super Fertilizer',   icon:'⚡', desc:'Speed up 50%',  mult:0.50, price:120, color:'#f0d020' },
+  golden: { name:'Golden Fertilizer',    icon:'✨', desc:'Speed up 75%',  mult:0.25, price:280, color:'#f0a020' },
 };
 let fertilizerInventory = { basic:0, super:0, golden:0 };
 let selectedFertilizer = null;
@@ -3949,7 +3949,7 @@ let fertilizedPlots = {}; // key: `${fid}_${pid}`, val: fertilizer type
 
 function buyFertilizer(type){
   const f = FERTILIZERS[type];
-  if(gold < f.price){ showToast('💸 Gold tidak cukup! Butuh ' + f.price + ' 🪙'); return; }
+  if(gold < f.price){ showToast('💸 Not enough gold! Need ' + f.price + ' 🪙'); return; }
   gold -= f.price;
   fertilizerInventory[type]++;
   updateGoldUI();
@@ -3960,21 +3960,21 @@ function buyFertilizer(type){
 }
 
 function selectFertilizer(type){
-  if(fertilizerInventory[type] <= 0){ showToast('❌ Pupuk habis!'); return; }
+  if(fertilizerInventory[type] <= 0){ showToast('❌ Fertilizer depleted!'); return; }
   selectedFertilizer = selectedFertilizer === type ? null : type;
   renderUpgradePanel();
   if(selectedFertilizer){
     const f = FERTILIZERS[type];
-    showToast(`${f.icon} ${f.name} dipilih! Klik tanaman yang sedang tumbuh.`);
+    showToast(`${f.icon} ${f.name} selected! Click a growing crop.`);
   }
 }
 
 function applyFertilizer(fid, pid){
   if(!selectedFertilizer) return false;
   const p = fieldData[fid]?.plots[pid];
-  if(!p || p.state !== 'planted' || !p.watered){ showToast('🌱 Hanya bisa dipakai pada tanaman yang sudah disiram!'); return false; }
+  if(!p || p.state !== 'planted' || !p.watered){ showToast('🌱 Only works on watered plants!'); return false; }
   const key = `${fid}_${pid}`;
-  if(fertilizedPlots[key]){ showToast('✅ Plot ini sudah dipupuk!'); return false; }
+  if(fertilizedPlots[key]){ showToast('✅ This plot is already fertilized!'); return false; }
 
   const f = FERTILIZERS[selectedFertilizer];
   fertilizerInventory[selectedFertilizer]--;
@@ -4004,11 +4004,11 @@ function applyFertilizer(fid, pid){
 // 💰 UPGRADES SYSTEM
 // ══════════════════════════════════════════════════════════════════
 const UPGRADES = {
-  autoWater:   { name:'🚿 Auto Siram',     desc:'Otomatis siram semua tanaman tiap 2 mnt',  price:500,  maxLevel:1, color:'#5090d0' },
-  bigBucket:   { name:'🪣 Ember Besar',    desc:'Kapasitas air +5 (maks 20)',                price:300,  maxLevel:3, color:'#60b0c0' },
-  fastGrow:    { name:'🧬 Pupuk Tanah',    desc:'Semua tanaman tumbuh 10% lebih cepat/lvl', price:400,  maxLevel:5, color:'#60a040' },
-  sellBonus:   { name:'💎 Pedagang Ahli',  desc:'Harga jual +15% per level',                price:600,  maxLevel:5, color:'#d0a020' },
-  multiHarvest:{ name:'🎁 Panen Bonus',   desc:'Setiap panen +1 item bonus/lvl',            price:800,  maxLevel:3, color:'#d06030' },
+  autoWater:   { name:'🚿 Auto Water',     desc:'Auto-waters all crops every 2 min',  price:500,  maxLevel:1, color:'#5090d0' },
+  bigBucket:   { name:'🪣 Big Bucket',    desc:'Water capacity +5 (max 20)',                price:300,  maxLevel:3, color:'#60b0c0' },
+  fastGrow:    { name:'🧬 Soil Boost',    desc:'All crops grow 10% faster/lvl', price:400,  maxLevel:5, color:'#60a040' },
+  sellBonus:   { name:'💎 Expert Trader',  desc:'Sell price +15% per level',                price:600,  maxLevel:5, color:'#d0a020' },
+  multiHarvest:{ name:'🎁 Harvest Bonus',   desc:'Each harvest +1 bonus item/lvl',            price:800,  maxLevel:3, color:'#d06030' },
 };
 let upgradeLevels = { autoWater:0, bigBucket:0, fastGrow:0, sellBonus:0, multiHarvest:0 };
 let autoWaterInterval = null;
@@ -4021,9 +4021,9 @@ function getUpgradePrice(key){
 function buyUpgrade(key){
   const u = UPGRADES[key];
   const lvl = upgradeLevels[key];
-  if(lvl >= u.maxLevel){ showToast('✅ Sudah level maksimum!'); return; }
+  if(lvl >= u.maxLevel){ showToast('✅ Already max level!'); return; }
   const price = getUpgradePrice(key);
-  if(gold < price){ showToast('💸 Gold tidak cukup! Butuh ' + price.toLocaleString() + ' 🪙'); return; }
+  if(gold < price){ showToast('💸 Not enough gold! Need ' + price.toLocaleString() + ' 🪙'); return; }
   gold -= price;
   upgradeLevels[key]++;
   updateGoldUI();
@@ -4035,7 +4035,7 @@ function buyUpgrade(key){
     startAutoWater();
   }
   sfx('coin');
-  showToast(`${u.name} di-upgrade ke Level ${upgradeLevels[key]}!`);
+  showToast(`${u.name} upgraded to Level ${upgradeLevels[key]}!`);
   renderUpgradePanel();
   saveState();
 }
@@ -4056,7 +4056,7 @@ function startAutoWater(){
         }
       });
     });
-    if(count > 0){ showToast(`🚿 Auto Siram: ${count} tanaman disiram!`); saveState(); }
+    if(count > 0){ showToast(`🚿 Auto Water: ${count} crops watered!`); saveState(); }
   }, 2 * 60 * 1000);
 }
 
@@ -4085,10 +4085,10 @@ window.sellCrop = function(key, qty){
 // 🐔 ANIMALS SYSTEM
 // ══════════════════════════════════════════════════════════════════
 const ANIMALS = {
-  chicken: { name:'Ayam',   icon:'🐔', emoji:'🐔', product:'Telur',    productIcon:'🥚', productGold:25,  price:200,  cooldownMs:90000,  feedCost:2,   feedCrop:'tomat',  unlockAt:10,  desc:'Hasilkan telur tiap 90 detik' },
-  cow:     { name:'Sapi',   icon:'🐄', emoji:'🐄', product:'Susu',     productIcon:'🥛', productGold:60,  price:600,  cooldownMs:180000, feedCost:3,   feedCrop:'jagung', unlockAt:30,  desc:'Hasilkan susu tiap 3 menit' },
-  rabbit:  { name:'Kelinci',icon:'🐇', emoji:'🐇', product:'Wol',      productIcon:'🧶', productGold:40,  price:350,  cooldownMs:120000, feedCost:2,   feedCrop:'wortel', unlockAt:20,  desc:'Hasilkan wol tiap 2 menit' },
-  bee:     { name:'Lebah',  icon:'🐝', emoji:'🐝', product:'Madu',     productIcon:'🍯', productGold:80,  price:800,  cooldownMs:240000, feedCost:0,   feedCrop:'',       unlockAt:50,  desc:'Hasilkan madu otomatis tiap 4 menit' },
+  chicken: { name:'Chicken',   icon:'🐔', emoji:'🐔', product:'Egg',    productIcon:'🥚', productGold:25,  price:200,  cooldownMs:90000,  feedCost:2,   feedCrop:'tomat',  unlockAt:10,  desc:'Produces eggs every 90 seconds' },
+  cow:     { name:'Cow',   icon:'🐄', emoji:'🐄', product:'Milk',     productIcon:'🥛', productGold:60,  price:600,  cooldownMs:180000, feedCost:3,   feedCrop:'jagung', unlockAt:30,  desc:'Produces milk every 3 minutes' },
+  rabbit:  { name:'Rabbit',icon:'🐇', emoji:'🐇', product:'Wool',      productIcon:'🧶', productGold:40,  price:350,  cooldownMs:120000, feedCost:2,   feedCrop:'wortel', unlockAt:20,  desc:'Produces wool every 2 minutes' },
+  bee:     { name:'Bee',  icon:'🐝', emoji:'🐝', product:'Honey',     productIcon:'🍯', productGold:80,  price:800,  cooldownMs:240000, feedCost:0,   feedCrop:'',       unlockAt:50,  desc:'Produces honey automatically every 4 min' },
 };
 let ownedAnimals = {};   // { chicken: [{id, lastFed, readyAt, hunger}], ... }
 let animalBasket = {};   // { telur: 0, susu: 0, ... }
@@ -4096,8 +4096,8 @@ Object.keys(ANIMALS).forEach(k => { ownedAnimals[k] = []; animalBasket[k] = 0; }
 
 function buyAnimal(type){
   const a = ANIMALS[type];
-  if(totalHarvested < a.unlockAt){ showToast(`🔒 Butuh ${a.unlockAt} total panen untuk unlock!`); return; }
-  if(gold < a.price){ showToast('💸 Gold tidak cukup! Butuh ' + a.price + ' 🪙'); return; }
+  if(totalHarvested < a.unlockAt){ showToast(`🔒 Need ${a.unlockAt} total panen untuk unlock!`); return; }
+  if(gold < a.price){ showToast('💸 Not enough gold! Need ' + a.price + ' 🪙'); return; }
   gold -= a.price;
   const id = Date.now();
   ownedAnimals[type].push({ id, lastFed: Date.now(), readyAt: Date.now() + a.cooldownMs, hunger: 100 });
@@ -4112,9 +4112,9 @@ function buyAnimal(type){
 function feedAnimal(type, idx){
   const a = ANIMALS[type];
   const animal = ownedAnimals[type]?.[idx];
-  if(!animal){ showToast('❌ Hewan tidak ditemukan!'); return; }
+  if(!animal){ showToast('❌ Animal not found!'); return; }
   if(a.feedCrop && (!inventory[a.feedCrop] || inventory[a.feedCrop] < a.feedCost)){
-    showToast(`🌾 Butuh ${a.feedCost}x ${CROPS[a.feedCrop]?.name || a.feedCrop} untuk memberi makan!`); return;
+    showToast(`🌾 Need ${a.feedCost}x ${CROPS[a.feedCrop]?.name || a.feedCrop} to feed!`); return;
   }
   if(a.feedCrop){ inventory[a.feedCrop] -= a.feedCost; renderSeedShop(); }
   animal.hunger = Math.min(100, (animal.hunger||0) + 50);
@@ -4124,7 +4124,7 @@ function feedAnimal(type, idx){
     animal.readyAt = Math.max(Date.now(), animal.readyAt - a.cooldownMs * 0.25);
   }
   sfx('plant');
-  showToast(`🍽️ ${a.name} diberi makan! Lapar berkurang.`);
+  showToast(`🍽️ ${a.name} diberi makan! Hunger reduced.`);
   renderAnimalPanel();
   saveState();
 }
@@ -4132,7 +4132,7 @@ function feedAnimal(type, idx){
 function collectAnimal(type, idx){
   const a = ANIMALS[type];
   const animal = ownedAnimals[type]?.[idx];
-  if(!animal || Date.now() < animal.readyAt){ showToast('⏳ Belum siap dipanen!'); return; }
+  if(!animal || Date.now() < animal.readyAt){ showToast('⏳ Belum is ready to collect!'); return; }
   const qty = 1 + getBonusHarvest();
   animalBasket[type] = (animalBasket[type]||0) + qty;
   animal.readyAt = Date.now() + a.cooldownMs;
@@ -4146,7 +4146,7 @@ function collectAnimal(type, idx){
 function sellAnimalProduct(type){
   const a = ANIMALS[type];
   const qty = animalBasket[type] || 0;
-  if(qty <= 0){ showToast('📦 Keranjang kosong!'); return; }
+  if(qty <= 0){ showToast('📦 Basket is empty!'); return; }
   const earned = Math.floor(qty * a.productGold * getSellMult());
   animalBasket[type] = 0;
   gold += earned;
@@ -4172,7 +4172,7 @@ function startAnimalTimers(){
         // Auto notify when ready
         if(Date.now() >= animal.readyAt && !animal._notified){
           animal._notified = true;
-          showToast(`${a.productIcon} ${a.name} siap dipanen!`);
+          showToast(`${a.productIcon} ${a.name} is ready to collect!`);
           needsRender = true;
         }
         if(Date.now() < animal.readyAt) animal._notified = false;
@@ -4198,7 +4198,7 @@ function renderAnimalPanel(){
     if(!unlocked){
       html += `<div style="color:#f05050;font-size:14px;text-align:center">🔒 ${a.unlockAt} panen</div>`;
     } else {
-      html += `<button onclick="buyAnimal('${type}')" style="background:#4a8a20;border:none;border-radius:6px;color:#fff;font-size:14px;padding:4px 8px;cursor:pointer;white-space:nowrap">Beli ${a.price}🪙</button>`;
+      html += `<button onclick="buyAnimal('${type}')" style="background:#4a8a20;border:none;border-radius:6px;color:#fff;font-size:14px;padding:4px 8px;cursor:pointer;white-space:nowrap">Buy ${a.price}🪙</button>`;
     }
     html += `</div>`;
     // Owned animals
@@ -4209,11 +4209,11 @@ function renderAnimalPanel(){
       html += `<div style="background:rgba(255,255,255,0.05);border-radius:6px;padding:4px 6px;margin-top:4px;display:flex;align-items:center;gap:6px">`;
       html += `<span>${a.icon}</span>`;
       html += `<div style="flex:1;font-size:14px">`;
-      html += `<div style="color:#c0e090">Lapar: ${hunger}% ${'🟩'.repeat(Math.ceil(hunger/20))}${'⬛'.repeat(5-Math.ceil(hunger/20))}</div>`;
-      html += `<div style="color:${ready?'#80ff80':'#f0c060'}">${ready ? `✅ Siap! (${animalBasket[type]||0} ${a.productIcon})` : `⏳ ${fmtTime(timeLeft)}`}</div>`;
+      html += `<div style="color:#c0e090">Hunger: ${hunger}% ${'🟩'.repeat(Math.ceil(hunger/20))}${'⬛'.repeat(5-Math.ceil(hunger/20))}</div>`;
+      html += `<div style="color:${ready?'#80ff80':'#f0c060'}">${ready ? `✅ Ready! (${animalBasket[type]||0} ${a.productIcon})` : `⏳ ${fmtTime(timeLeft)}`}</div>`;
       html += `</div>`;
       if(a.feedCrop) html += `<button onclick="feedAnimal('${type}',${idx})" style="background:#5a8020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">🍽️</button>`;
-      if(ready) html += `<button onclick="collectAnimal('${type}',${idx})" style="background:#c08020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">Ambil</button>`;
+      if(ready) html += `<button onclick="collectAnimal('${type}',${idx})" style="background:#c08020;border:none;border-radius:5px;color:#fff;font-size:13px;padding:3px 5px;cursor:pointer">Collect</button>`;
       html += `</div>`;
     });
     // Basket
@@ -4232,14 +4232,14 @@ function renderAnimalPanel(){
 // 🎯 DAILY QUEST SYSTEM
 // ══════════════════════════════════════════════════════════════════
 const QUEST_TEMPLATES = [
-  { id:'harvest10',  desc:'Panen 10 tanaman hari ini',    type:'harvest', target:10,  reward:150, icon:'🌾' },
-  { id:'harvest25',  desc:'Panen 25 tanaman hari ini',    type:'harvest', target:25,  reward:350, icon:'🌾' },
-  { id:'water15',    desc:'Siram 15 tanaman hari ini',    type:'water',   target:15,  reward:100, icon:'💧' },
-  { id:'sell5tomat', desc:'Jual 5x Tomat',                type:'sell',    target:5,   cropKey:'tomat',  reward:80,  icon:'🍅' },
-  { id:'sell3jagung',desc:'Jual 3x Jagung',               type:'sell',    target:3,   cropKey:'jagung', reward:120, icon:'🌽' },
-  { id:'earn500',    desc:'Hasilkan 500 gold hari ini',   type:'earn',    target:500, reward:200, icon:'💰' },
-  { id:'plant5',     desc:'Tanam 5 tanaman hari ini',     type:'plant',   target:5,   reward:80,  icon:'🌱' },
-  { id:'animal2',    desc:'Kumpulkan produk hewan 2x',    type:'animal',  target:2,   reward:180, icon:'🐔' },
+  { id:'harvest10',  desc:'Harvest 10 crops today',    type:'harvest', target:10,  reward:150, icon:'🌾' },
+  { id:'harvest25',  desc:'Harvest 25 crops today',    type:'harvest', target:25,  reward:350, icon:'🌾' },
+  { id:'water15',    desc:'Water 15 crops today',    type:'water',   target:15,  reward:100, icon:'💧' },
+  { id:'sell5tomat', desc:'Sell 5x Tomato',                type:'sell',    target:5,   cropKey:'tomat',  reward:80,  icon:'🍅' },
+  { id:'sell3jagung',desc:'Sell 3x Corn',               type:'sell',    target:3,   cropKey:'jagung', reward:120, icon:'🌽' },
+  { id:'earn500',    desc:'Earn 500 gold today',   type:'earn',    target:500, reward:200, icon:'💰' },
+  { id:'plant5',     desc:'Plant 5 crops today',     type:'plant',   target:5,   reward:80,  icon:'🌱' },
+  { id:'animal2',    desc:'Collect animal products 2x',    type:'animal',  target:2,   reward:180, icon:'🐔' },
 ];
 let dailyQuests = [];
 let questProgress = {};
@@ -4286,7 +4286,7 @@ function renderQuestPanel(){
   const el = document.getElementById('questPanelBody');
   if(!el) return;
   generateDailyQuests();
-  let html = `<div style="color:#f5c842;font-size:13px;margin-bottom:8px;text-align:center">📅 Quest Harian — ${getTodayStr()}</div>`;
+  let html = `<div style="color:#f5c842;font-size:13px;margin-bottom:8px;text-align:center">📅 Daily Quest — ${getTodayStr()}</div>`;
   dailyQuests.forEach(q => {
     const prog = Math.min(q.target, questProgress[q.id]||0);
     const pct = Math.round(prog/q.target*100);
@@ -4375,14 +4375,14 @@ function renderStatsPanel(){
 
   let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">`;
   const statCards = [
-    { icon:'🌾', label:'Total Panen',    val: totalHarvested.toLocaleString() },
+    { icon:'🌾', label:'Total Harvests',    val: totalHarvested.toLocaleString() },
     { icon:'💰', label:'Total Gold',      val: stats.totalGoldEarned.toLocaleString() + ' 🪙' },
-    { icon:'📅', label:'Hari Bermain',    val: daysPlayed + ' hari' },
-    { icon:'⏱️', label:'Sesi Ini',        val: sessionMins + ' menit' },
-    { icon:'🌱', label:'Ditanam',         val: stats.plantsGrown.toLocaleString() },
+    { icon:'📅', label:'Days Played',    val: daysPlayed + ' days' },
+    { icon:'⏱️', label:'This Session',        val: sessionMins + ' min' },
+    { icon:'🌱', label:'Planted',         val: stats.plantsGrown.toLocaleString() },
     { icon:'💧', label:'Siram',           val: stats.waterUsed.toLocaleString() + 'x' },
-    { icon:'🎯', label:'Quest Selesai',   val: stats.questsCompleted.toLocaleString() },
-    { icon:'💎', label:'Jual Terbesar',   val: stats.biggestSingleSell.toLocaleString() + ' 🪙' },
+    { icon:'🎯', label:'Quests Done',   val: stats.questsCompleted.toLocaleString() },
+    { icon:'💎', label:'Biggest Sale',   val: stats.biggestSingleSell.toLocaleString() + ' 🪙' },
   ];
   statCards.forEach(s => {
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:6px;padding:6px;text-align:center">`;
@@ -4395,7 +4395,7 @@ function renderStatsPanel(){
 
   // Top crop
   html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px;margin-bottom:6px">`;
-  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">🏆 Panen Terbanyak</div>`;
+  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">🏆 Top Harvests</div>`;
   let cropRows = CROP_KEYS.filter(k => (stats.harvestByType[k]||0) > 0).sort((a,b) => (stats.harvestByType[b]||0)-(stats.harvestByType[a]||0)).slice(0,5);
   cropRows.forEach(k => {
     const c = CROPS[k];
@@ -4405,12 +4405,12 @@ function renderStatsPanel(){
     html += `<div style="background:#1a2a1a;border-radius:3px;width:60px;height:5px;overflow:hidden"><div style="background:#60c040;width:${pct}%;height:100%"></div></div>`;
     html += `<span style="color:#f5c842;min-width:20px;text-align:right">${stats.harvestByType[k]||0}</span></div>`;
   });
-  if(cropRows.length === 0) html += `<div style="color:#607060;font-size:14px">Belum ada panen</div>`;
+  if(cropRows.length === 0) html += `<div style="color:#607060;font-size:14px">No harvests yet</div>`;
   html += `</div>`;
 
   // Upgrade levels
   html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px">`;
-  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">⚙️ Level Upgrade</div>`;
+  html += `<div style="color:#f5c842;font-size:14px;margin-bottom:4px">⚙️ Upgrade Levels</div>`;
   Object.keys(UPGRADES).forEach(k => {
     const u = UPGRADES[k]; const lv = upgradeLevels[k]||0;
     html += `<div style="display:flex;align-items:center;gap:6px;font-size:14px;margin-bottom:2px">`;
@@ -4473,7 +4473,7 @@ function renderMarketUI(){
   const el = document.getElementById('marketBody');
   if(!el) return;
   const nextUpdate = Math.max(0, MARKET_UPDATE_MS - (Date.now() - marketLastUpdate));
-  let html = `<div style="color:#a0c080;font-size:14px;margin-bottom:6px;text-align:center">⏱ Harga berubah dalam: <span style="color:#f5c842" id="marketCountdown">${fmtTime(nextUpdate)}</span></div>`;
+  let html = `<div style="color:#a0c080;font-size:12px;margin-bottom:6px;text-align:center">⏱ Prices change in: <span style="color:#f5c842" id="marketCountdown">${fmtTime(nextUpdate)}</span></div>`;
   html += `<div style="display:grid;gap:4px">`;
   CROP_KEYS.forEach(k => {
     const c = CROPS[k];
@@ -4486,10 +4486,10 @@ function renderMarketUI(){
     html += `<div style="background:rgba(0,0,0,0.25);border-radius:6px;padding:5px 8px;display:flex;align-items:center;gap:6px;border:1px solid ${ratio>1.2?'rgba(80,200,80,0.3)':ratio<0.8?'rgba(200,80,80,0.3)':'rgba(255,255,255,0.06)'}">`;
     html += `<span style="font-size:15px">${c.emoji}</span>`;
     html += `<div style="flex:1"><div style="color:#e0d0a0;font-size:13px">${c.name}</div>`;
-    html += `<div style="font-size:13px;color:#809070">Dasar: ${baseP}🪙 | Stok: ${qty}</div></div>`;
+    html += `<div style="font-size:13px;color:#809070">Base: ${baseP}🪙 | Stock: ${qty}</div></div>`;
     html += `<div style="text-align:right"><div style="color:${col};font-weight:bold;font-size:13px">${trend} ${mktP}🪙</div>`;
     if(qty > 0){
-      html += `<button onclick="sellAtMarket('${k}',${qty})" style="background:#a05818;border:none;border-radius:5px;color:#fff;font-size:13px;padding:2px 6px;cursor:pointer;margin-top:2px">Jual Semua</button>`;
+      html += `<button onclick="sellAtMarket('${k}',${qty})" style="background:#a05818;border:none;border-radius:5px;color:#fff;font-size:13px;padding:2px 6px;cursor:pointer;margin-top:2px">Sell All</button>`;
     }
     html += `</div></div>`;
   });
@@ -4525,7 +4525,7 @@ function closeMarketPanel(){ document.getElementById('marketOverlay').classList.
 function renderUpgradePanel(){
   const el = document.getElementById('upgradePanelBody');
   if(!el) return;
-  let html = `<div style="color:#f5c842;font-size:13px;margin-bottom:8px;text-align:center">⚙️ Upgrade Farm Kamu</div>`;
+  let html = `<div style="color:#f5c842;font-size:13px;margin-bottom:8px;text-align:center">⚙️ Upgrade Your Farm</div>`;
   // Upgrades
   Object.keys(UPGRADES).forEach(k => {
     const u = UPGRADES[k]; const lv = upgradeLevels[k]||0;
@@ -4541,7 +4541,7 @@ function renderUpgradePanel(){
     html += `</div></div>`;
   });
   // Fertilizer shop
-  html += `<div style="color:#f5c842;font-size:13px;margin:10px 0 6px;text-align:center">⚡ Pupuk & Booster</div>`;
+  html += `<div style="color:#f5c842;font-size:13px;margin:10px 0 6px;text-align:center">⚡ Fertilizer & Boosters</div>`;
   Object.keys(FERTILIZERS).forEach(k => {
     const f = FERTILIZERS[k]; const inv = fertilizerInventory[k]||0;
     const canAfford = gold >= f.price;
@@ -4549,7 +4549,7 @@ function renderUpgradePanel(){
     html += `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:6px 8px;margin-bottom:5px;border:1px solid ${isSelected?f.color:'rgba(255,255,255,0.08)'}">`;
     html += `<div style="display:flex;align-items:center;gap:8px">`;
     html += `<span style="font-size:15px">${f.icon}</span>`;
-    html += `<div style="flex:1"><div style="color:#e0d080;font-size:13px">${f.name}</div><div style="color:#80a070;font-size:14px">${f.desc} · Stok: ${inv}</div></div>`;
+    html += `<div style="flex:1"><div style="color:#e0d080;font-size:13px">${f.name}</div><div style="color:#80a070;font-size:14px">${f.desc} · Stock: ${inv}</div></div>`;
     html += `<button onclick="buyFertilizer('${k}')" ${canAfford?'':'disabled'} style="background:${canAfford?'#604818':'#2a2010'};border:none;border-radius:5px;color:${canAfford?'#fff':'#555'};font-size:13px;padding:4px 6px;cursor:${canAfford?'pointer':'default'};margin-right:4px">Beli<br>${f.price}🪙</button>`;
     if(inv > 0) html += `<button onclick="selectFertilizer('${k}')" style="background:${isSelected?f.color:'#304020'};border:none;border-radius:5px;color:#fff;font-size:13px;padding:4px 6px;cursor:pointer">${isSelected?'✅ Aktif':'Pakai'}</button>`;
     html += `</div></div>`;
@@ -4705,19 +4705,19 @@ window.handleClick = function(fid, pid){
 .modal-box{
   background:linear-gradient(160deg,#0d1f0d,#162816,#1a1a2e);
   border:2px solid rgba(120,180,60,0.4);border-radius:16px;
-  padding:20px;width:min(90vw,400px);max-height:85vh;overflow-y:auto;
+  padding:20px;width:min(88vw,380px);max-height:85vh;overflow-y:auto;
   box-shadow:0 8px 40px rgba(0,0,0,0.7);
   scrollbar-width:thin;scrollbar-color:#3a5a20 transparent;
   font-size:13px;
 }
-.modal-box * { font-size:13px; }
+.modal-box * { font-size:12px; }
 .modal-box .big-text { font-size:13px; font-weight:bold; }
 .modal-box .emoji-big { font-size:15px !important; }
 .modal-title{
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:14px;
 }
-.modal-title h2{color:#f5c842;font-size:16px;text-shadow:1px 1px 0 #000;margin:0;}
+.modal-title h2{color:#f5c842;font-size:15px;text-shadow:1px 1px 0 #000;margin:0;}
 .modal-close{background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.4);border-radius:6px;
   color:#ff8080;font-size:13px;padding:5px 13px;cursor:pointer;}
 .modal-close:hover{background:rgba(255,80,80,0.4);}
@@ -4733,13 +4733,13 @@ window.handleClick = function(fid, pid){
     <span class="fb-icon">⚙️</span><span class="fb-label">Upgrade</span>
   </button>
   <button class="feat-btn" onclick="openAnimalPanel()">
-    <span class="fb-icon">🐔</span><span class="fb-label">Hewan</span>
+    <span class="fb-icon">🐔</span><span class="fb-label">Animals</span>
   </button>
   <button class="feat-btn" onclick="openMarketPanel()">
     <span class="fb-icon">📈</span><span class="fb-label">Market</span>
   </button>
   <button class="feat-btn" onclick="openStatsPanel()">
-    <span class="fb-icon">📊</span><span class="fb-label">Statistik</span>
+    <span class="fb-icon">📊</span><span class="fb-label">Stats</span>
   </button>
 </div>
 
@@ -4747,7 +4747,7 @@ window.handleClick = function(fid, pid){
 <div id="questOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-title">
-      <h2>🎯 Quest Harian</h2>
+      <h2>🎯 Daily Quests</h2>
       <button class="modal-close" onclick="closeQuestPanel()">✕</button>
     </div>
     <div id="questPanelBody"></div>
@@ -4758,7 +4758,7 @@ window.handleClick = function(fid, pid){
 <div id="upgradeOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-title">
-      <h2>⚙️ Upgrade & Pupuk</h2>
+      <h2>⚙️ Upgrade & Fertilizer</h2>
       <button class="modal-close" onclick="closeUpgradePanel()">✕</button>
     </div>
     <div id="upgradePanelBody"></div>
@@ -4769,7 +4769,7 @@ window.handleClick = function(fid, pid){
 <div id="animalOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-title">
-      <h2>🐔 Hewan Ternak</h2>
+      <h2>🐔 Livestock</h2>
       <button class="modal-close" onclick="closeAnimalPanel()">✕</button>
     </div>
     <div id="animalPanelBody"></div>
@@ -4780,7 +4780,7 @@ window.handleClick = function(fid, pid){
 <div id="marketOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-title">
-      <h2>📈 Pasar Dinamis</h2>
+      <h2>📈 Dynamic Market</h2>
       <button class="modal-close" onclick="closeMarketPanel()">✕</button>
     </div>
     <div id="marketBody"></div>
@@ -4791,7 +4791,7 @@ window.handleClick = function(fid, pid){
 <div id="statsOverlay" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-title">
-      <h2>📊 Statistik Farm</h2>
+      <h2>📊 Farm Statistics</h2>
       <button class="modal-close" onclick="closeStatsPanel()">✕</button>
     </div>
     <div id="statsPanelBody"></div>
