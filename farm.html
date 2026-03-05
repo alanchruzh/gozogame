@@ -133,7 +133,7 @@ header{
 /* EMPTY — dry cracked earth like Stardew untilled soil */
 .plot[data-s=empty] .pt{
   background:#c8874a;
-  box-shadow:inset -2px -2px 0 #8a5020, inset 1px 1px 0 #e0a870;
+  box-shadow: none;
 }
 .plot[data-s=empty] .pt::before{
   content:'';position:absolute;inset:0;
@@ -146,7 +146,7 @@ header{
 /* TILLED — dark brown rows like Stardew freshly hoed dirt */
 .plot[data-s=tilled] .pt{
   background:#6b3c14;
-  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.45), inset 1px 1px 0 rgba(255,255,255,0.06);
+  box-shadow: none;
 }
 .plot[data-s=tilled] .pt::before{
   content:'';position:absolute;inset:0;
@@ -165,7 +165,7 @@ header{
 .plot[data-s=planted] .pt,
 .plot[data-s=regrowing] .pt{
   background:#4e2508;
-  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5);
+  box-shadow: none;
 }
 .plot[data-s=planted] .pt::before,
 .plot[data-s=regrowing] .pt::before{
@@ -189,7 +189,7 @@ header{
 /* READY — glowing golden soil */
 .plot[data-s=ready] .pt{
   background:#4e2508;
-  box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5), 0 0 6px rgba(255,210,60,0.5);
+  box-shadow:inset  0 0 6px rgba(255,210,60,0.5);
   animation:readyGlow 1.4s ease-in-out infinite;
 }
 .plot[data-s=ready] .pt::before{
@@ -203,7 +203,7 @@ header{
   );
   opacity:0.85;
 }
-@keyframes readyGlow{0%,100%{box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5),0 0 4px rgba(255,210,60,0.3)}50%{box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5),0 0 10px rgba(255,210,60,0.75)}}
+@keyframes readyGlow{0%,100%{box-shadow:0 0 4px rgba(255,210,60,0.3)}50%{box-shadow:inset -2px -2px 0 rgba(0,0,0,0.5),0 0 10px rgba(255,210,60,0.75)}}
 
 .cs{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);font-size:1.4rem;line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.5));z-index:2;pointer-events:none}
 .plot[data-s=planted] .cs{font-size:1rem;animation:plantBob 1.4s ease-in-out infinite}
