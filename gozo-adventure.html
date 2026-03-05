@@ -192,41 +192,73 @@
   /* ═══════════════════════════════════════
      BATTLE SCREEN — full redesign
   ═══════════════════════════════════════ */
-  #battle-screen{display:none;position:fixed;inset:0;z-index:80;flex-direction:column;align-items:center;justify-content:flex-end;padding:0 0 60px;
-    background:radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#0d0d1a 60%,#000 100%);}
-  .battle-arena{width:100%;flex:1;position:relative;display:flex;align-items:flex-end;justify-content:space-between;padding:20px 5%;overflow:hidden;
-    background:linear-gradient(180deg,#0d0820 0%,#1a1040 35%,#0d0820 35%,#1a0d30 50%,#1a3010 50%,#243820 75%,#1a2a10 100%);}
-  .battle-arena::before{content:'';position:absolute;inset:0;background:
-    radial-gradient(ellipse 200px 60px at 25% 95%,rgba(255,215,0,.06),transparent),
-    radial-gradient(ellipse 200px 60px at 75% 95%,rgba(100,100,255,.06),transparent);pointer-events:none;}
-  .battle-arena::after{content:'';position:absolute;left:0;right:0;top:50%;height:2px;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);pointer-events:none;}
-  /* Stars in battle sky */
-  .battle-arena .b-star{position:absolute;background:#fff;border-radius:50%;animation:bStarTwinkle 2s ease-in-out infinite;}
-  @keyframes bStarTwinkle{0%,100%{opacity:.3}50%{opacity:1;box-shadow:0 0 4px #fff;}}
+  #battle-screen{position:fixed;inset:0;display:none;flex-direction:column;z-index:80;}
+  #battle-screen.active{display:flex !important;}
 
-  .enemy-battle{display:flex;flex-direction:column;align-items:center;align-self:flex-start;margin-top:16px;}
-  .enemy-hpbar-wrap{background:rgba(0,0,0,.7);border:2px solid #ff444466;padding:6px 12px;margin-bottom:12px;min-width:160px;
+  /* Arena: sky top 55%, ground bottom 45% */
+  .battle-arena{
+    width:100%;flex:1 1 0;min-height:0;position:relative;overflow:hidden;
+    background:linear-gradient(180deg,
+      #04020e 0%,#08042a 20%,#0e0840 42%,#140a52 54%,
+      #0c1608 54%,#142008 66%,#1a2a0c 80%,#111e08 100%
+    );
+  }
+  /* Horizon glow line */
+  .battle-arena::before{
+    content:'';position:absolute;left:0;right:0;top:54%;height:3px;
+    background:linear-gradient(90deg,transparent,rgba(180,230,100,.22) 30%,rgba(220,255,140,.4) 50%,rgba(180,230,100,.22) 70%,transparent);
+    pointer-events:none;z-index:2;
+  }
+  /* Ground perspective lines */
+  .battle-arena::after{
+    content:'';position:absolute;left:0;right:0;bottom:0;top:54%;
+    background:repeating-linear-gradient(180deg,transparent,transparent 20px,rgba(0,0,0,.15) 20px,rgba(0,0,0,.15) 21px);
+    pointer-events:none;z-index:1;
+  }
+  .b-star{position:absolute;background:#fff;border-radius:50%;animation:bStarTwinkle 2s ease-in-out infinite;}
+  @keyframes bStarTwinkle{0%,100%{opacity:.2}50%{opacity:.85;box-shadow:0 0 3px #fff;}}
+
+  /* Enemy: left, upper sky area */
+  .enemy-battle{position:absolute;left:6%;top:3%;display:flex;flex-direction:column;align-items:center;z-index:10;}
+  .enemy-hpbar-wrap{
+    background:rgba(0,0,0,.9);border:2px solid #ff444466;
+    padding:7px 14px;margin-bottom:10px;min-width:190px;
+    clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);
+  }
+  #enemy-battle-sprite{image-rendering:pixelated;image-rendering:crisp-edges;
+    filter:drop-shadow(0 16px 32px rgba(0,0,0,.95)) drop-shadow(0 0 14px rgba(100,80,255,.2));}
+  .enemy-shadow{width:110px;height:18px;margin-top:4px;
+    background:radial-gradient(ellipse,rgba(0,0,0,.6) 0%,transparent 70%);filter:blur(4px);}
+
+  /* Player: right, ground area */
+  .player-battle{position:absolute;right:4%;bottom:4%;display:flex;flex-direction:column;align-items:center;z-index:10;}
+  #battle-partner-display{position:absolute;right:116px;bottom:166px;font-size:44px;
+    animation:float 2s ease-in-out infinite .5s;filter:drop-shadow(0 6px 10px rgba(0,0,0,.8));}
+  .player-hpbar-wrap{
+    background:rgba(0,0,0,.9);border:2px solid #44ff8866;
+    padding:7px 14px;margin-top:10px;min-width:190px;
+    clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);
+  }
+
+  /* Battle UI panel */
+  #battle-ui{width:100%;flex-shrink:0;background:linear-gradient(180deg,#050210 0%,#080420 100%);
+    border-top:2px solid #FFD70030;padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;}
+  #battle-log{background:rgba(0,0,0,.93);border:2px solid #FFD70044;padding:8px 14px;font-size:8px;
+    line-height:2;min-height:46px;color:#ddeeff;text-shadow:0 0 8px rgba(100,150,255,.3);
+    clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);}
+  #battle-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .battle-btn{background:rgba(0,0,0,.78);border:2px solid #FFD70055;color:#FFD700;
+    font-family:'Press Start 2P',monospace;font-size:7px;padding:10px 8px;cursor:pointer;transition:all .15s;
     clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);}
-  .player-battle{display:flex;flex-direction:column;align-items:center;align-self:flex-end;}
-  .player-hpbar-wrap{background:rgba(0,0,0,.7);border:2px solid #44ff8866;padding:6px 12px;margin-top:12px;min-width:160px;
-    clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);}
+  .battle-btn:hover:not(:disabled){background:rgba(255,215,0,.18);border-color:#FFD700;transform:scale(1.03);box-shadow:0 0 14px #FFD70044;}
+  .battle-btn:disabled{opacity:.28;cursor:not-allowed;}
+
   .battle-sprite{image-rendering:pixelated;filter:drop-shadow(0 8px 20px rgba(0,0,0,.9));transition:transform .1s;}
   .battle-sprite.shake{animation:shakeBig .45s ease;}
   .battle-sprite.hit-flash{animation:hitFlash .35s steps(1) forwards;}
   .battle-sprite.knockback{animation:knockback .35s ease forwards;}
   .battle-sprite.player-hit{animation:playerHit .4s ease forwards;}
   .battle-sprite.attack-lunge{animation:attackLunge .3s ease forwards;}
-  #battle-ui{width:100%;max-width:560px;display:flex;flex-direction:column;gap:8px;padding:0 12px;}
-  #battle-log{background:rgba(0,0,0,.85);border:2px solid #FFD70044;padding:10px 14px;font-size:8px;line-height:2;min-height:52px;
-    clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);
-    color:#ddeeff;text-shadow:0 0 8px rgba(100,150,255,.3);}
-  #battle-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-  .battle-btn{background:rgba(0,0,0,.7);border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;font-size:7px;
-    padding:11px 8px;cursor:pointer;transition:all .15s;
-    clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);}
-  .battle-btn:hover:not(:disabled){background:rgba(255,215,0,.15);border-color:#FFD700;transform:scale(1.03);box-shadow:0 0 12px #FFD70044;}
-  .battle-btn:disabled{opacity:.3;cursor:not-allowed;}
   .dmg-popup{position:absolute;font-size:20px;color:#ff6644;text-shadow:2px 2px 0 #000,0 0 8px #ff4400;font-family:'Press Start 2P',monospace;animation:dmgFloat 1s ease-out forwards;pointer-events:none;z-index:99;}
   .dmg-popup.heal{color:#44ffaa;text-shadow:2px 2px 0 #000,0 0 8px #00ff88;}
   .dmg-popup.big{font-size:30px;}
@@ -647,127 +679,104 @@
 </div>
 
 <!-- BATTLE -->
-<div id="battle-screen" style="display:none;flex-direction:column;">
+<div id="battle-screen" style="display:none;">
+
+  <!-- ARENA: sky top 55%, ground bottom 45% -->
   <div class="battle-arena" id="battle-arena">
     <div id="battle-flash"></div>
     <div id="battle-result"></div>
+
+    <!-- ENEMY SIDE — left, elevated on sky half -->
     <div class="enemy-battle">
       <div class="enemy-hpbar-wrap">
-        <div style="font-size:8px;color:var(--yellow);margin-bottom:4px;" id="enemy-name">???</div>
-        <div class="hp-bar" style="width:160px"><div class="hp-fill" id="enemy-hp-bar" style="width:100%;background:linear-gradient(90deg,#ff4444,#ff8844)"></div></div>
-        <div style="font-size:7px;color:var(--chain);margin-top:2px;" id="enemy-hp-text">HP: ?/?</div>
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:5px;letter-spacing:1px;" id="enemy-name">???</div>
+        <div class="hp-bar" style="width:180px"><div class="hp-fill" id="enemy-hp-bar" style="width:100%;background:linear-gradient(90deg,#ff3333,#ff7744)"></div></div>
+        <div style="font-size:7px;color:#ff8866;margin-top:3px;" id="enemy-hp-text">HP: ?/?</div>
       </div>
       <div id="enemy-battle-sprite" class="battle-sprite"></div>
+      <div class="enemy-shadow" id="enemy-shadow"></div>
     </div>
+
+    <!-- PLAYER SIDE — right, on ground half -->
     <div class="player-battle">
       <div id="player-battle-sprite" class="battle-sprite">
-        <!-- Gozo battle sprite 100x140 pixel art -->
-        <svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="100" height="140" shape-rendering="crispEdges">
-          <!-- Boots -->
+        <svg viewBox="0 0 50 70" xmlns="http://www.w3.org/2000/svg" width="110" height="154" shape-rendering="crispEdges">
           <rect x="11" y="56" width="11" height="14" fill="#1a1a2e"/>
           <rect x="28" y="56" width="11" height="14" fill="#1a1a2e"/>
           <rect x="9"  y="62" width="14" height="8"  fill="#252540"/>
           <rect x="27" y="62" width="14" height="8"  fill="#252540"/>
-          <!-- Boot highlight -->
           <rect x="10" y="63" width="5"  height="2"  fill="#3a3a60"/>
           <rect x="28" y="63" width="5"  height="2"  fill="#3a3a60"/>
-          <!-- Jeans -->
           <rect x="12" y="38" width="12" height="20" fill="#3a5080"/>
           <rect x="26" y="38" width="12" height="20" fill="#3a5080"/>
-          <!-- Jeans seam -->
           <rect x="12" y="38" width="12" height="2"  fill="#2e3f66"/>
           <rect x="26" y="38" width="12" height="2"  fill="#2e3f66"/>
           <rect x="23" y="38" width="4"  height="20" fill="#334470"/>
-          <!-- Belt -->
           <rect x="10" y="35" width="30" height="4"  fill="#2a2a2a"/>
           <rect x="22" y="34" width="6"  height="6"  fill="#888"/>
           <rect x="23" y="35" width="4"  height="4"  fill="#aaa"/>
-          <!-- Body hoodie main -->
           <rect x="9"  y="17" width="32" height="20" fill="#2d2d3d"/>
-          <!-- Hoodie center panel -->
           <rect x="21" y="17" width="8"  height="20" fill="#3a3a50"/>
-          <!-- Zipper -->
           <rect x="24" y="17" width="2"  height="20" fill="#666"/>
-          <!-- Hoodie pockets -->
           <rect x="10" y="27" width="9"  height="8"  fill="#252535"/>
           <rect x="31" y="27" width="9"  height="8"  fill="#252535"/>
-          <!-- Pocket lines -->
           <rect x="10" y="27" width="9"  height="1"  fill="#1e1e2e"/>
           <rect x="31" y="27" width="9"  height="1"  fill="#1e1e2e"/>
-          <!-- Hoodie collar -->
           <rect x="17" y="15" width="16" height="4"  fill="#232333"/>
-          <!-- Inner shirt at collar -->
           <rect x="20" y="15" width="10" height="4"  fill="#555"/>
-          <!-- Arms -->
           <rect x="1"  y="18" width="9"  height="18" fill="#2d2d3d"/>
           <rect x="40" y="18" width="9"  height="18" fill="#2d2d3d"/>
-          <!-- Sleeve cuffs -->
           <rect x="1"  y="33" width="9"  height="3"  fill="#232333"/>
           <rect x="40" y="33" width="9"  height="3"  fill="#232333"/>
-          <!-- Hands skin -->
           <rect x="2"  y="36" width="7"  height="6"  fill="#d4a574"/>
           <rect x="41" y="36" width="7"  height="6"  fill="#d4a574"/>
-          <!-- Neck -->
           <rect x="22" y="10" width="6"  height="7"  fill="#d4a574"/>
-          <!-- Head -->
           <rect x="13" y="3"  width="24" height="18" fill="#d4a574"/>
-          <!-- Ears -->
           <rect x="9"  y="8"  width="5"  height="8"  fill="#c49060"/>
           <rect x="36" y="8"  width="5"  height="8"  fill="#c49060"/>
-          <!-- Ear inner -->
           <rect x="10" y="9"  width="3"  height="5"  fill="#b07850"/>
           <rect x="37" y="9"  width="3"  height="5"  fill="#b07850"/>
-          <!-- HAIR - messy dark -->
           <rect x="11" y="0"  width="28" height="8"  fill="#1a1a1a"/>
           <rect x="9"  y="1"  width="32" height="6"  fill="#1a1a1a"/>
           <rect x="13" y="3"  width="24" height="4"  fill="#1a1a1a"/>
-          <!-- Hair spikes top -->
           <rect x="10" y="0"  width="6"  height="5"  fill="#1a1a1a"/>
           <rect x="16" y="0"  width="6"  height="3"  fill="#1a1a1a"/>
           <rect x="28" y="0"  width="6"  height="3"  fill="#1a1a1a"/>
           <rect x="34" y="0"  width="6"  height="5"  fill="#1a1a1a"/>
           <rect x="20" y="0"  width="10" height="2"  fill="#1a1a1a"/>
-          <!-- Hair sides covering ears -->
           <rect x="9"  y="6"  width="5"  height="10" fill="#1a1a1a"/>
           <rect x="36" y="6"  width="5"  height="10" fill="#1a1a1a"/>
-          <!-- Forehead shadow from hair -->
           <rect x="13" y="3"  width="24" height="3"  fill="#222"/>
-          <!-- EYES -->
           <rect x="16" y="9"  width="8"  height="7"  fill="#fff"/>
           <rect x="26" y="9"  width="8"  height="7"  fill="#fff"/>
-          <!-- Iris -->
           <rect x="18" y="10" width="5"  height="5"  fill="#3a2a1a"/>
           <rect x="28" y="10" width="5"  height="5"  fill="#3a2a1a"/>
-          <!-- Pupil -->
           <rect x="19" y="11" width="3"  height="3"  fill="#0d0500"/>
           <rect x="29" y="11" width="3"  height="3"  fill="#0d0500"/>
-          <!-- Eye shine -->
           <rect x="21" y="11" width="2"  height="2"  fill="#fff"/>
           <rect x="31" y="11" width="2"  height="2"  fill="#fff"/>
-          <!-- Eyelid line -->
           <rect x="16" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
           <rect x="26" y="9"  width="8"  height="2"  fill="#1a1a1a"/>
-          <!-- EYEBROWS -->
           <rect x="15" y="7"  width="10" height="3"  fill="#111"/>
           <rect x="25" y="7"  width="10" height="3"  fill="#111"/>
-          <!-- NOSE -->
           <rect x="23" y="15" width="4"  height="4"  fill="#c49060"/>
           <rect x="22" y="17" width="6"  height="2"  fill="#b07850"/>
-          <!-- MOUTH neutral -->
           <rect x="17" y="19" width="16" height="2"  fill="#9a5535"/>
           <rect x="19" y="19" width="12" height="2"  fill="#bb7755"/>
         </svg>
       </div>
-      <div id="battle-partner-display" style="font-size:40px;position:absolute;right:70px;bottom:115px;animation:float 2s ease-in-out infinite .5s;filter:drop-shadow(0 6px 10px rgba(0,0,0,.8));"></div>
+      <div id="battle-partner-display"></div>
       <div class="player-hpbar-wrap">
-        <div style="font-size:8px;color:var(--yellow);margin-bottom:4px;">⚡ GOZO</div>
-        <div class="hp-bar" style="width:160px"><div class="hp-fill" id="battle-player-hp-bar" style="width:100%"></div></div>
-        <div style="font-size:7px;color:var(--chain);margin-top:2px;" id="battle-player-hp-text"></div>
+        <div style="font-size:8px;color:var(--yellow);margin-bottom:5px;">⚡ GOZO</div>
+        <div class="hp-bar" style="width:180px"><div class="hp-fill" id="battle-player-hp-bar" style="width:100%"></div></div>
+        <div style="font-size:7px;color:#88ffaa;margin-top:3px;" id="battle-player-hp-text"></div>
       </div>
     </div>
   </div>
+
+  <!-- BATTLE UI PANEL -->
   <div id="battle-ui">
-    <div id="weather-battle-hint" style="font-size:6px;color:#88aaff;text-align:center;padding:2px 8px;opacity:0;transition:opacity .5s;min-height:12px;"></div>
+    <div id="weather-battle-hint" style="font-size:6px;color:#88aaff;text-align:center;padding:2px 8px;opacity:0;transition:opacity .5s;min-height:10px;"></div>
     <div id="battle-log">A wild monster appeared!</div>
     <div id="battle-actions">
       <button class="battle-btn" onclick="battleAction('attack')">⚔️ ATTACK</button>
@@ -6025,12 +6034,18 @@ function startBattle(enemy){
   const arena = document.getElementById('battle-arena');
   if(arena){
     arena.querySelectorAll('.b-star').forEach(s=>s.remove());
-    for(let i=0;i<18;i++){
+    for(let i=0;i<20;i++){
       const s=document.createElement('div'); s.className='b-star';
-      const sz=1+Math.random()*2;
-      s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*45}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
+      const sz=1+Math.random()*2.5;
+      s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*50}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
       arena.appendChild(s);
     }
+    // Element-based sky/ground tinting
+    const skyTints={fire:'#300a00',water:'#001428',grass:'#041a04',dark:'#0d001a',electric:'#181000',ice:'#001428',earth:'#1a0e00',wind:'#020c14',light:'#1a1600'};
+    const gndTints={fire:'#2a1000',water:'#041e0c',grass:'#0a2204',dark:'#0a0014',electric:'#141a00',ice:'#041c10',earth:'#1a1000',wind:'#081408',light:'#1a1a04'};
+    const sk = enemy.element ? skyTints[enemy.element]||'#04020e' : '#04020e';
+    const gn = enemy.element ? gndTints[enemy.element]||'#0c1608' : '#0c1608';
+    arena.style.background = `linear-gradient(180deg,${sk} 0%,#08042a 20%,#0e0840 42%,#140a52 54%,${gn} 54%,#142008 66%,#1a2a0c 80%,#111e08 100%)`;
   }
   // Reset per-battle state
   resetCombo();
@@ -6045,8 +6060,9 @@ function startBattle(enemy){
   if(ebs){
     ebs.innerHTML='';
     const sc = getMonsterCanvas(enemy.name, enemy.element, enemy.t||1);
-    const dispSz = Math.min(160, 80+(enemy.t||1)*8);
-    sc.style.cssText=`width:${dispSz}px;height:${dispSz}px;image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 8px 16px rgba(0,0,0,.8));animation:float 2s ease-in-out infinite;`;
+    const dispSz = Math.min(220, 120 + (enemy.t||1) * 12);
+    const isBossEnemy = enemy.isBoss || enemy.isMiniBoss || (enemy.t||1) >= 7;
+    sc.style.cssText=`width:${dispSz}px;height:${dispSz}px;image-rendering:pixelated;image-rendering:crisp-edges;filter:drop-shadow(0 12px 28px rgba(0,0,0,.9)) drop-shadow(0 0 ${isBossEnemy?'20px rgba(150,80,255,.4)':'8px rgba(80,120,255,.2)'});animation:float 2.2s ease-in-out infinite;`;
     ebs.appendChild(sc);
   }
 
