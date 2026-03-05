@@ -2069,6 +2069,1110 @@ reg('CHAOS GOD', ctx=>{
   p(ctx,12,28,4,4,B); p(ctx,18,28,4,4,B); // feet
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// UNIQUE SHAPE DRAWERS FOR ALL REMAINING MONSTERS
+// Each uses distinct body silhouette based on monster archetype
+// ══════════════════════════════════════════════════════════════════════
+
+// ── Slime variants ──
+reg('BABY SLIME', ctx=>{
+  const O='#000820',B='#1155aa',M='#3388cc',L='#66bbee',H='#aaddff',W='#eef8ff';
+  // tiny round blob
+  p(ctx,12,18,8,7,B); p(ctx,11,20,10,6,M); p(ctx,12,19,8,5,L);
+  p(ctx,13,17,6,4,M); p(ctx,14,16,4,3,L); // head bump
+  p(ctx,14,19,3,2,O); p(ctx,15,19,2,2,H); // eye
+  p(ctx,10,23,3,2,B); p(ctx,19,23,3,2,B); // feet nubs
+});
+
+reg('WOBBLE JELLY', ctx=>{
+  const O='#110022',B='#551188',M='#8833cc',L='#bb55ff',H='#dd99ff',W='#ffe0ff';
+  // translucent jellyfish blob
+  p(ctx,10,14,12,10,B); p(ctx,9,16,14,9,M); p(ctx,10,15,12,8,L);
+  p(ctx,11,13,10,4,M); p(ctx,12,12,8,4,L); // dome top
+  // tentacles
+  p(ctx,11,24,2,5,M); p(ctx,14,25,2,4,L); p(ctx,17,24,2,5,M); p(ctx,20,23,2,4,L);
+  p(ctx,13,19,3,2,O); p(ctx,14,19,2,2,H); p(ctx,14,19,1,1,W);
+  p(ctx,18,19,3,2,O); p(ctx,19,19,2,2,H); p(ctx,19,19,1,1,W);
+});
+
+// ── Bug/Insect variants ──
+reg('STONE BEETLE', ctx=>{
+  const O='#0a0800',B='#2a2010',M='#4a3820',L='#6a5830',H='#8a7850',W='#b0a070';
+  // hard shell beetle
+  p(ctx,8,14,16,12,B); p(ctx,9,13,14,11,M); p(ctx,10,13,12,10,L);
+  // shell segments
+  p(ctx,10,15,12,3,M); p(ctx,10,19,12,3,M);
+  // head
+  p(ctx,12,10,8,6,B); p(ctx,13,11,6,5,M);
+  // antennae
+  p(ctx,13,8,1,3,M); p(ctx,18,8,1,3,M); p(ctx,12,6,2,2,L); p(ctx,19,6,2,2,L);
+  // eyes
+  p(ctx,13,12,3,3,O); p(ctx,14,12,2,2,H); p(ctx,14,12,1,1,W);
+  p(ctx,18,12,3,3,O); p(ctx,19,12,2,2,H); p(ctx,19,12,1,1,W);
+  // legs
+  p(ctx,7,16,3,2,B); p(ctx,7,19,3,2,B); p(ctx,7,22,3,2,B);
+  p(ctx,22,16,3,2,B); p(ctx,22,19,3,2,B); p(ctx,22,22,3,2,B);
+});
+
+reg('SPARK WISP', ctx=>{
+  const O='#111100',B='#554400',M='#998800',L='#ddcc00',H='#ffee44',W='#ffffcc',G='#ff8800';
+  // floating electric orb with sparks
+  p(ctx,12,12,8,8,B); p(ctx,11,13,10,7,M); p(ctx,12,12,8,6,L); p(ctx,13,13,6,5,H);
+  // glow corona
+  p(ctx,10,10,12,12,M); p(ctx,11,11,10,10,L);
+  p(ctx,13,12,6,6,H); p(ctx,14,13,4,4,W);
+  // sparks radiating out
+  p(ctx,8,8,2,2,G); p(ctx,22,9,2,2,G); p(ctx,9,22,2,2,G); p(ctx,22,21,2,2,G);
+  p(ctx,7,15,2,2,H); p(ctx,23,15,2,2,H);
+  // tiny face
+  p(ctx,14,15,2,2,O); p(ctx,18,15,2,2,O);
+});
+
+// ── Humanoid monsters ──
+reg('ORC GRUNT', ctx=>{
+  const O='#000a00',B='#1a4010',M='#2d6020',L='#3d8830',H='#55aa40',S='#88cc66',W='#cceeaa';
+  // stocky orc body
+  p(ctx,10,16,12,12,B); p(ctx,11,17,10,10,M); // torso
+  p(ctx,9,14,14,5,B); // shoulders wide
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,7,M); p(ctx,13,10,6,6,L); // head
+  // tusks
+  p(ctx,12,16,3,3,O); p(ctx,19,16,3,3,O);
+  p(ctx,13,17,2,4,W); p(ctx,19,17,2,4,W); // tusk points
+  // eyes (angry)
+  p(ctx,13,11,4,3,O); p(ctx,14,12,3,2,H); p(ctx,14,12,1,1,W);
+  p(ctx,19,11,4,3,O); p(ctx,20,12,3,2,H); p(ctx,20,12,1,1,W);
+  // arms + weapon
+  p(ctx,7,16,4,8,B); p(ctx,8,17,3,7,M); // left arm
+  p(ctx,21,16,4,8,B); p(ctx,22,15,3,10,O); p(ctx,23,13,2,14,S); // club
+  // legs
+  p(ctx,11,26,5,5,B); p(ctx,16,26,5,5,B);
+});
+
+reg('SKELETON', ctx=>{
+  const O='#000000',B='#1a1a1a',M='#555555',L='#aaaaaa',H='#dddddd',W='#ffffff';
+  // skull
+  p(ctx,12,6,8,8,L); p(ctx,13,7,6,7,H); p(ctx,14,8,4,5,W);
+  p(ctx,13,13,3,4,O); p(ctx,13,14,2,3,B); // left eye socket
+  p(ctx,18,13,3,4,O); p(ctx,18,14,2,3,B); // right eye socket
+  p(ctx,14,17,6,3,O); // mouth gap
+  p(ctx,14,17,1,2,H); p(ctx,16,17,1,2,H); p(ctx,18,17,1,2,H); // teeth
+  // ribcage
+  p(ctx,12,20,8,1,L); p(ctx,12,22,8,1,L); p(ctx,12,24,8,1,L);
+  p(ctx,12,19,1,8,L); p(ctx,19,19,1,8,L); // spine sides
+  // arms (thin bones)
+  p(ctx,8,19,5,2,L); p(ctx,6,21,3,2,L); // left arm
+  p(ctx,19,19,5,2,L); p(ctx,23,21,3,2,L); // right arm
+  // pelvis + legs
+  p(ctx,11,27,4,4,L); p(ctx,17,27,4,4,L);
+  p(ctx,12,28,2,3,H); p(ctx,18,28,2,3,H);
+});
+
+reg('DARK GOBLIN', ctx=>{
+  const O='#040004',B='#1a0033',M='#330066',L='#5500aa',H='#8833cc',S='#cc55ff',W='#ffaaff';
+  // sneaky dark goblin
+  p(ctx,12,18,8,10,B); p(ctx,13,19,6,9,M); // body
+  p(ctx,12,13,8,7,B); p(ctx,13,14,6,6,M); p(ctx,14,15,4,5,L); // head
+  // big pointy ears
+  p(ctx,8,11,5,7,B); p(ctx,9,12,4,5,M); p(ctx,9,11,3,3,L); // left ear
+  p(ctx,19,11,5,7,B); p(ctx,20,12,4,5,M); p(ctx,20,11,3,3,L); // right ear
+  // glowing eyes
+  p(ctx,13,16,3,2,H); p(ctx,14,16,2,2,S); p(ctx,14,16,1,1,W);
+  p(ctx,18,16,3,2,H); p(ctx,19,16,2,2,S); p(ctx,19,16,1,1,W);
+  // claws
+  p(ctx,8,22,5,6,B); p(ctx,8,27,2,2,L); p(ctx,10,28,2,2,L);
+  p(ctx,19,22,5,6,B); p(ctx,20,27,2,2,L); p(ctx,22,28,2,2,L);
+  // legs
+  p(ctx,12,27,4,4,B); p(ctx,16,27,4,4,B);
+});
+
+reg('BONE WARRIOR', ctx=>{
+  const O='#000000',B='#1a1400',M='#554400',L='#aa9900',H='#ddcc44',W='#fffff0';
+  // armored skeleton warrior
+  p(ctx,11,16,10,12,B); p(ctx,12,17,8,10,M); // armored torso
+  p(ctx,11,12,10,6,B); p(ctx,12,13,8,5,M); p(ctx,13,14,6,4,L); // skull head
+  // helmet
+  p(ctx,11,8,10,7,B); p(ctx,12,9,8,5,M); p(ctx,13,10,6,3,L);
+  p(ctx,11,11,2,3,M); p(ctx,19,11,2,3,M); // cheek guards
+  // sword
+  p(ctx,6,14,2,16,M); p(ctx,7,13,3,18,L); p(ctx,8,12,2,2,H); // blade
+  p(ctx,6,21,5,3,O); // crossguard
+  // shield
+  p(ctx,21,14,6,10,M); p(ctx,22,15,5,8,L); p(ctx,23,16,3,6,H);
+  p(ctx,24,19,2,2,O); // shield emblem
+  // legs
+  p(ctx,11,27,4,4,B); p(ctx,17,27,4,4,B);
+  // glowing eye sockets
+  p(ctx,13,15,3,2,O); p(ctx,14,15,2,2,H);
+  p(ctx,18,15,3,2,O); p(ctx,19,15,2,2,H);
+});
+
+reg('TROLL', ctx=>{
+  const O='#001400',B='#0a3a10',M='#1a6020',L='#2a8830',H='#44aa44',S='#66cc55',W='#aaeebb';
+  // huge lumpy troll
+  p(ctx,8,16,16,12,B); p(ctx,9,17,14,10,M); p(ctx,10,18,12,8,L); // body
+  p(ctx,6,14,20,5,B); // wide shoulders
+  p(ctx,10,8,12,8,B); p(ctx,11,9,10,7,M); p(ctx,12,10,8,6,L); // big head
+  // lumps/warts
+  p(ctx,9,14,3,3,M); p(ctx,20,15,3,3,M); p(ctx,14,10,3,3,M);
+  // nose
+  p(ctx,14,14,4,4,B); p(ctx,15,15,3,3,M); p(ctx,15,14,2,2,L);
+  // eyes (small, beady)
+  p(ctx,12,11,3,3,O); p(ctx,13,11,2,2,H); p(ctx,13,11,1,1,W);
+  p(ctx,18,11,3,3,O); p(ctx,19,11,2,2,H); p(ctx,19,11,1,1,W);
+  // giant fists
+  p(ctx,5,20,5,8,B); p(ctx,6,21,4,7,M); p(ctx,5,26,4,3,L); // left
+  p(ctx,22,20,5,8,B); p(ctx,22,21,4,7,M); p(ctx,23,26,4,3,L); // right
+  // legs
+  p(ctx,9,27,6,4,B); p(ctx,17,27,6,4,B);
+});
+
+// ── Reptile/Serpent monsters ──
+reg('SWAMP TOAD', ctx=>{
+  const O='#001400',B='#1a4a00',M='#2a7a00',L='#3aaa10',H='#66cc22',S='#99ee44',W='#ccff88';
+  // squat wide toad body
+  p(ctx,8,18,16,8,B); p(ctx,7,19,18,7,M); p(ctx,8,19,16,6,L); // body
+  p(ctx,6,22,4,4,M); p(ctx,22,22,4,4,M); // hind legs wide
+  p(ctx,4,20,5,3,B); p(ctx,23,20,5,3,B); // forelegs
+  // wide flat head
+  p(ctx,9,12,14,8,B); p(ctx,10,13,12,7,M); p(ctx,11,14,10,6,L);
+  // bulging eyes on top
+  p(ctx,10,10,5,5,B); p(ctx,11,11,4,4,M); p(ctx,11,10,3,4,H); p(ctx,12,10,2,2,S); p(ctx,12,10,1,1,W);
+  p(ctx,17,10,5,5,B); p(ctx,18,11,4,4,M); p(ctx,18,10,3,4,H); p(ctx,19,10,2,2,S); p(ctx,19,10,1,1,W);
+  // mouth
+  p(ctx,10,17,12,2,O); p(ctx,11,18,10,1,M);
+  // spots
+  p(ctx,12,20,3,2,S); p(ctx,18,21,3,2,S);
+});
+
+reg('LAVA SLUG', ctx=>{
+  const O='#1a0000',B='#660000',M='#aa2200',L='#dd4400',H='#ff6600',Y='#ffaa00',G='#ffdd44';
+  // slow elongated slug body
+  p(ctx,7,20,18,7,B); p(ctx,6,21,20,6,M); p(ctx,7,21,18,5,L); // body
+  p(ctx,8,20,14,2,H); // hot top stripe
+  // glowing cracks
+  p(ctx,10,22,2,3,Y); p(ctx,15,21,2,4,Y); p(ctx,20,23,2,2,Y);
+  // head
+  p(ctx,7,16,10,6,B); p(ctx,8,17,8,5,M); p(ctx,9,18,6,4,L);
+  // antennae with molten tips
+  p(ctx,9,12,2,5,M); p(ctx,12,11,2,6,M); p(ctx,9,10,3,3,H); p(ctx,12,9,3,3,G);
+  // eyes
+  p(ctx,9,18,3,3,O); p(ctx,10,18,2,2,Y); p(ctx,10,18,1,1,G);
+  p(ctx,14,18,3,3,O); p(ctx,15,18,2,2,Y); p(ctx,15,18,1,1,G);
+  // molten drips underneath
+  p(ctx,10,26,2,3,H); p(ctx,15,27,2,2,Y); p(ctx,20,26,2,3,H);
+});
+
+reg('FIRE SNAKE', ctx=>{
+  const O='#110000',B='#550000',M='#990000',L='#cc2200',H='#ff4400',Y='#ff8800',G='#ffcc00';
+  // serpentine winding body
+  p(ctx,14,6,4,22,B); p(ctx,15,7,3,20,M); // main body curve
+  p(ctx,8,20,8,4,B); p(ctx,9,21,6,3,M); // body loop
+  p(ctx,18,14,6,4,B); p(ctx,19,15,4,3,M); // upper loop
+  // head
+  p(ctx,10,4,8,6,B); p(ctx,11,5,6,5,M); p(ctx,12,6,4,4,L);
+  // forked tongue
+  p(ctx,14,4,4,3,H); p(ctx,13,2,2,3,Y); p(ctx,17,2,2,3,Y);
+  // eyes
+  p(ctx,11,5,3,3,O); p(ctx,12,5,2,2,Y); p(ctx,12,5,1,1,G);
+  p(ctx,18,5,3,3,O); p(ctx,19,5,2,2,Y); p(ctx,19,5,1,1,G);
+  // scale pattern
+  p(ctx,15,10,3,2,H); p(ctx,15,14,3,2,H); p(ctx,15,18,3,2,H);
+  // tail tip flame
+  p(ctx,14,26,4,4,H); p(ctx,15,25,3,3,Y); p(ctx,15,24,2,2,G);
+});
+
+// ── Aquatic monsters ──
+reg('VOLT SHRIMP', ctx=>{
+  const O='#001122',B='#003366',M='#005599',L='#0077cc',H='#00aaff',Y='#ffee00',G='#ffff88';
+  // shrimp body curved
+  p(ctx,12,10,8,16,B); p(ctx,13,11,6,14,M); p(ctx,14,12,4,12,L); // body arc
+  p(ctx,10,20,4,6,B); p(ctx,9,22,3,5,M); // tail fan
+  p(ctx,18,20,4,6,B); p(ctx,19,22,3,5,M);
+  // head
+  p(ctx,10,8,12,5,B); p(ctx,11,9,10,4,M); p(ctx,12,10,8,3,L);
+  // antennae
+  p(ctx,11,4,2,5,H); p(ctx,13,3,2,6,Y); p(ctx,19,4,2,5,H); p(ctx,21,3,2,6,Y);
+  // eyes on stalks
+  p(ctx,11,9,3,3,O); p(ctx,12,9,2,2,Y); p(ctx,12,9,1,1,G);
+  p(ctx,18,9,3,3,O); p(ctx,19,9,2,2,Y); p(ctx,19,9,1,1,G);
+  // lightning stripe
+  p(ctx,14,12,4,2,Y); p(ctx,13,15,4,2,Y); p(ctx,14,18,4,2,Y);
+  // legs/swimmerets
+  p(ctx,9,14,3,2,B); p(ctx,9,16,3,2,M); p(ctx,9,18,3,2,B);
+  p(ctx,20,14,3,2,B); p(ctx,20,16,3,2,M); p(ctx,20,18,3,2,B);
+});
+
+reg('SEA WITCH', ctx=>{
+  const O='#000a11',B='#002244',M='#003366',L='#0055aa',H='#3388cc',S='#66bbdd',W='#aaddff';
+  const P='#440066',Q='#8833aa';
+  // flowing robes over tentacles
+  p(ctx,10,14,12,14,B); p(ctx,11,15,10,12,M); // robe body
+  // tentacles below robe
+  p(ctx,9,24,3,6,P); p(ctx,12,25,2,5,Q); p(ctx,15,24,2,6,P); p(ctx,18,25,3,5,Q); p(ctx,21,24,3,4,P);
+  // torso/upper body
+  p(ctx,11,10,10,6,M); p(ctx,12,11,8,5,L); p(ctx,13,12,6,4,H);
+  // head
+  p(ctx,12,6,8,6,M); p(ctx,13,7,6,5,L); p(ctx,14,8,4,4,H);
+  // witch hat
+  p(ctx,13,2,6,5,B); p(ctx,14,3,4,4,M); p(ctx,12,6,8,2,B); // brim
+  p(ctx,15,0,2,3,B); // tip
+  // glowing eyes
+  p(ctx,13,9,3,2,O); p(ctx,14,9,2,2,S); p(ctx,14,9,1,1,W);
+  p(ctx,18,9,3,2,O); p(ctx,19,9,2,2,S); p(ctx,19,9,1,1,W);
+  // staff
+  p(ctx,6,8,2,18,M); p(ctx,5,6,4,4,Q); p(ctx,6,5,3,3,P); p(ctx,7,4,2,3,H);
+});
+
+reg('SIREN', ctx=>{
+  const O='#001133',B='#003377',M='#0055aa',L='#3388cc',H='#66bbee',S='#99ddff',W='#cceeff';
+  const K='#aa6600',G='#ddaa44';
+  // mermaid body
+  p(ctx,12,14,8,12,B); p(ctx,13,15,6,11,M); // torso
+  p(ctx,10,22,12,4,M); p(ctx,9,24,14,3,L); // fish lower body
+  // tail fins
+  p(ctx,6,24,6,6,B); p(ctx,7,25,5,5,M); p(ctx,20,24,6,6,B); p(ctx,21,25,5,5,M);
+  // tail curve
+  p(ctx,12,26,8,4,L); p(ctx,14,28,4,3,H);
+  // head
+  p(ctx,12,8,8,8,K); p(ctx,13,9,6,7,G); // face/hair color
+  p(ctx,13,9,6,6,K); p(ctx,14,10,4,5,G); // face
+  // hair flowing
+  p(ctx,10,8,4,12,K); p(ctx,11,9,3,11,G); p(ctx,20,8,4,12,K); p(ctx,19,9,3,11,G);
+  // eyes
+  p(ctx,13,11,3,3,O); p(ctx,14,11,2,2,S); p(ctx,14,11,1,1,W);
+  p(ctx,18,11,3,3,O); p(ctx,19,11,2,2,S); p(ctx,19,11,1,1,W);
+  // arms/fins
+  p(ctx,8,15,5,7,M); p(ctx,19,15,5,7,M);
+});
+
+// ── Wolf/Beast variants ──
+reg('EARTH BOAR', ctx=>{
+  const O='#0a0600',B='#3a2800',M='#6a4818',L='#8a6828',H='#aa8840',S='#ccaa60',W='#eecc88';
+  // thick boar body
+  p(ctx,8,16,16,10,B); p(ctx,9,17,14,9,M); p(ctx,10,18,12,8,L); // body
+  // hump on back
+  p(ctx,10,12,12,6,B); p(ctx,11,13,10,5,M); p(ctx,12,13,8,4,L);
+  // head (low, forward)
+  p(ctx,6,18,10,8,B); p(ctx,7,19,8,7,M); p(ctx,8,20,6,6,L);
+  // snout
+  p(ctx,4,22,6,5,B); p(ctx,5,23,4,4,M); p(ctx,4,24,3,2,L);
+  p(ctx,5,24,2,2,O); p(ctx,7,24,2,2,O); // nostrils
+  // tusks
+  p(ctx,3,25,4,2,W); p(ctx,2,26,4,2,W); // left tusk
+  p(ctx,8,25,4,2,W); p(ctx,9,26,4,2,W); // right tusk
+  // eyes
+  p(ctx,8,20,3,3,O); p(ctx,9,20,2,2,S); p(ctx,9,20,1,1,W);
+  // legs (short and thick)
+  p(ctx,10,25,5,5,B); p(ctx,17,25,5,5,B);
+  // bristles on back
+  p(ctx,12,11,1,3,O); p(ctx,15,10,1,3,O); p(ctx,18,11,1,3,O);
+});
+
+reg('WEREWOLF', ctx=>{
+  const O='#060410',B='#1a1030',M='#2d2050',L='#402870',H='#6040a0',S='#8060c0',W='#c0a0ff';
+  const F='#cc9900',G='#ffcc44';
+  // bipedal werewolf
+  p(ctx,11,16,10,10,B); p(ctx,12,17,8,9,M); // body
+  p(ctx,9,14,14,5,B); // broad shoulders
+  // wolf head
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,7,M); p(ctx,13,10,6,6,L);
+  // snout
+  p(ctx,12,14,8,5,B); p(ctx,13,15,6,4,M); p(ctx,14,16,4,3,H);
+  p(ctx,14,17,4,2,O); p(ctx,15,16,2,2,W); // nose/mouth
+  // ears (pointed)
+  p(ctx,11,6,4,5,B); p(ctx,12,5,3,4,M); p(ctx,12,4,2,3,L);
+  p(ctx,17,6,4,5,B); p(ctx,18,5,3,4,M); p(ctx,19,4,2,3,L);
+  // glowing eyes
+  p(ctx,12,10,3,3,O); p(ctx,13,10,2,2,F); p(ctx,13,10,1,1,G);
+  p(ctx,18,10,3,3,O); p(ctx,19,10,2,2,F); p(ctx,19,10,1,1,G);
+  // clawed arms
+  p(ctx,7,16,5,9,B); p(ctx,6,22,3,2,L); p(ctx,7,24,2,2,L); p(ctx,8,25,2,2,L);
+  p(ctx,20,16,5,9,B); p(ctx,21,22,3,2,L); p(ctx,21,24,2,2,L); p(ctx,20,25,2,2,L);
+  // legs + claws
+  p(ctx,11,25,5,5,B); p(ctx,16,25,5,5,B);
+  p(ctx,10,29,3,2,L); p(ctx,19,29,3,2,L);
+});
+
+reg('SHADOW WOLF', ctx=>{
+  const O='#000000',B='#050010',M='#100030',L='#200050',H='#400080',S='#6000b0',W='#9940e0';
+  // sleek dark wolf
+  p(ctx,8,18,16,8,B); p(ctx,9,19,14,7,M); p(ctx,10,20,12,6,L); // body
+  // head low and forward
+  p(ctx,6,14,12,7,B); p(ctx,7,15,10,6,M); p(ctx,8,16,8,5,L);
+  // snout
+  p(ctx,4,17,6,4,B); p(ctx,5,18,4,3,M); p(ctx,4,19,3,2,H);
+  // pointed ears
+  p(ctx,8,10,4,6,B); p(ctx,9,9,3,5,M); p(ctx,9,8,2,4,L);
+  p(ctx,14,11,4,5,B); p(ctx,15,10,3,4,M); p(ctx,15,9,2,3,L);
+  // glowing purple eyes
+  p(ctx,8,16,3,3,O); p(ctx,9,16,2,2,W); p(ctx,9,16,1,1,O);
+  p(ctx,14,16,3,3,O); p(ctx,15,16,2,2,W); p(ctx,15,16,1,1,O);
+  // shadow legs
+  p(ctx,10,25,4,5,B); p(ctx,14,26,4,4,M); p(ctx,18,25,4,5,B);
+  // bushy tail
+  p(ctx,22,16,6,8,B); p(ctx,23,17,5,7,M); p(ctx,24,18,4,6,L); p(ctx,25,19,3,5,H);
+});
+
+// ── Plant/Nature monsters ──
+reg('POISON IVY', ctx=>{
+  const O='#000800',B='#003300',M='#006600',L='#009900',H='#00cc00',S='#44ee22',P='#aa44aa';
+  // tangled vine creature
+  p(ctx,6,10,20,18,B); p(ctx,7,11,18,16,M); // vine mass
+  p(ctx,8,12,16,14,L); // inner mass
+  // face in vines
+  p(ctx,11,14,10,8,M); p(ctx,12,15,8,7,L); p(ctx,13,16,6,6,H);
+  // glowing poison eyes
+  p(ctx,12,16,4,3,O); p(ctx,13,16,3,2,P); p(ctx,13,16,2,1,S);
+  p(ctx,18,16,4,3,O); p(ctx,19,16,3,2,P); p(ctx,19,16,2,1,S);
+  // thorny vines extending
+  p(ctx,4,8,4,10,B); p(ctx,3,7,3,8,M); p(ctx,3,7,1,6,H); // left vine
+  p(ctx,24,9,4,10,B); p(ctx,25,8,3,8,M); p(ctx,26,8,1,6,H); // right vine
+  // thorns
+  p(ctx,2,9,3,2,L); p(ctx,2,13,3,2,L); p(ctx,25,10,3,2,L); p(ctx,25,14,3,2,L);
+  // purple berries/poison pods
+  p(ctx,10,8,3,3,P); p(ctx,18,9,3,3,P); p(ctx,8,18,3,3,P); p(ctx,21,19,3,3,P);
+});
+
+reg('FOREST FAIRY', ctx=>{
+  const O='#001100',B='#005500',M='#009900',L='#44cc44',H='#88ee88',S='#ccffcc',W='#ffffff';
+  const P='#ffaaff',Q='#ff55ff',R='#aa00aa';
+  // tiny winged fairy
+  // wings (transparent look)
+  p(ctx,4,10,10,8,M); p(ctx,5,11,8,6,L); p(ctx,6,12,6,4,H); // left wing
+  p(ctx,18,10,10,8,M); p(ctx,19,11,8,6,L); p(ctx,20,12,6,4,H); // right wing
+  // body (small)
+  p(ctx,12,16,8,10,M); p(ctx,13,17,6,9,L); p(ctx,14,18,4,8,H);
+  // head
+  p(ctx,12,10,8,7,Q); p(ctx,13,11,6,6,P); p(ctx,14,12,4,5,W);
+  // flower crown
+  p(ctx,11,8,2,3,M); p(ctx,14,7,4,3,L); p(ctx,19,8,2,3,M);
+  p(ctx,13,7,2,2,Q); p(ctx,17,7,2,2,Q);
+  // eyes
+  p(ctx,13,13,3,2,O); p(ctx,14,13,2,2,W); p(ctx,14,13,1,1,Q);
+  p(ctx,18,13,3,2,O); p(ctx,19,13,2,2,W); p(ctx,19,13,1,1,Q);
+  // wand
+  p(ctx,22,12,2,14,L); p(ctx,21,10,4,4,Q); p(ctx,22,9,3,3,P); p(ctx,23,8,2,2,W);
+});
+
+// ── Giant/Titan monsters ──
+reg('STORM GIANT', ctx=>{
+  const O='#001122',B='#003366',M='#0055aa',L='#3377cc',H='#66aaee',S='#aaccff',W='#ddeeff';
+  const Y='#ffee00',G='#ffff88';
+  // massive giant
+  p(ctx,8,14,16,14,B); p(ctx,9,15,14,12,M); // torso
+  p(ctx,5,12,22,5,B); // massive shoulders
+  // head
+  p(ctx,10,5,12,10,B); p(ctx,11,6,10,9,M); p(ctx,12,7,8,8,L);
+  // beard of storm clouds
+  p(ctx,10,13,12,4,M); p(ctx,9,14,14,3,B); // beard
+  // eyes (storm blue/lightning)
+  p(ctx,12,8,4,4,O); p(ctx,13,8,3,3,Y); p(ctx,13,8,2,2,G);
+  p(ctx,18,8,4,4,O); p(ctx,19,8,3,3,Y); p(ctx,19,8,2,2,G);
+  // arms holding lightning
+  p(ctx,4,15,5,12,B); p(ctx,5,16,4,11,M);
+  p(ctx,23,15,5,12,B); p(ctx,23,16,4,11,M);
+  // lightning bolts in hands
+  p(ctx,3,25,4,2,Y); p(ctx,4,27,3,2,Y); p(ctx,3,28,4,2,G);
+  p(ctx,25,25,4,2,Y); p(ctx,26,27,3,2,Y); p(ctx,25,28,4,2,G);
+  // legs
+  p(ctx,10,27,6,4,B); p(ctx,16,27,6,4,B);
+});
+
+reg('ICE GOLEM', ctx=>{
+  const O='#001133',B='#003366',M='#004488',L='#006699',H='#4499bb',S='#88ccdd',W='#cceeFF';
+  const C='#ffffff';
+  // boxy ice golem
+  p(ctx,9,14,14,14,B); p(ctx,10,15,12,12,M); p(ctx,11,16,10,10,L); // body
+  // crystal shards sticking out
+  p(ctx,6,12,4,6,B); p(ctx,7,10,3,5,M); p(ctx,7,8,2,4,L); p(ctx,8,7,2,3,W); // left shard
+  p(ctx,22,12,4,6,B); p(ctx,23,10,3,5,M); p(ctx,23,8,2,4,L); p(ctx,23,7,2,3,W); // right shard
+  p(ctx,14,5,4,8,B); p(ctx,15,4,3,7,M); p(ctx,15,3,2,5,L); p(ctx,16,2,2,4,W); // top shard
+  // head (rectangular)
+  p(ctx,10,8,12,8,B); p(ctx,11,9,10,7,M); p(ctx,12,10,8,6,L);
+  // eyes (cold blue glow)
+  p(ctx,12,11,4,3,O); p(ctx,13,11,3,2,S); p(ctx,13,11,2,1,W);
+  p(ctx,18,11,4,3,O); p(ctx,19,11,3,2,S); p(ctx,19,11,2,1,W);
+  // cracks
+  p(ctx,13,18,2,6,O); p(ctx,18,20,2,5,O); p(ctx,11,22,1,4,O);
+  // feet (wide icy blocks)
+  p(ctx,9,27,7,4,B); p(ctx,16,27,7,4,B);
+});
+
+reg('IRON GOLEM', ctx=>{
+  const O='#0a0a0a',B='#1a1a1a',M='#333333',L='#555555',H='#777777',S='#999999',W='#cccccc';
+  const R='#cc2200',Y='#ff6600';
+  // massive iron golem
+  p(ctx,8,14,16,14,B); p(ctx,9,15,14,12,M); p(ctx,10,16,12,10,L); // body
+  p(ctx,6,12,20,4,B); // wide shoulders with bolts
+  // rivets/bolts
+  p(ctx,7,13,2,2,L); p(ctx,13,12,2,2,L); p(ctx,19,13,2,2,L); p(ctx,24,13,2,2,L);
+  // head (square)
+  p(ctx,10,6,12,8,B); p(ctx,11,7,10,7,M); p(ctx,12,8,8,6,L);
+  // glowing forge eyes
+  p(ctx,12,9,4,4,O); p(ctx,13,9,3,3,R); p(ctx,13,9,2,2,Y);
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,R); p(ctx,19,9,2,2,Y);
+  // metal seam lines
+  p(ctx,16,14,2,14,O); p(ctx,16,10,2,4,O); // center seam
+  p(ctx,10,20,12,1,B); p(ctx,10,23,12,1,B); // horizontal plates
+  // arms (thick)
+  p(ctx,4,14,5,14,B); p(ctx,5,15,4,12,M); p(ctx,4,26,5,3,L); // left
+  p(ctx,23,14,5,14,B); p(ctx,23,15,4,12,M); p(ctx,23,26,5,3,L); // right
+  // legs
+  p(ctx,9,27,7,4,B); p(ctx,16,27,7,4,B);
+});
+
+// ── Spirit/Undead monsters ──
+reg('MIASMA', ctx=>{
+  const O='#000000',B='#0a0014',M='#140028',L='#1e003c',H='#280050',S='#400080',T='#80ff00',G='#40dd00';
+  // toxic gas cloud form
+  p(ctx,8,10,16,16,B); p(ctx,7,12,18,14,M); p(ctx,8,11,16,14,L); // cloud body
+  // wispy tendrils
+  p(ctx,5,14,5,8,M); p(ctx,4,15,4,6,L);
+  p(ctx,22,13,5,9,M); p(ctx,23,14,4,7,L);
+  p(ctx,10,24,4,5,M); p(ctx,18,23,4,6,M);
+  // toxic green glow from inside
+  p(ctx,12,13,8,8,H); p(ctx,13,14,6,7,S); p(ctx,14,15,4,5,T);
+  // eerie eyes
+  p(ctx,12,15,4,3,O); p(ctx,13,15,3,2,T); p(ctx,13,15,2,1,G);
+  p(ctx,18,15,4,3,O); p(ctx,19,15,3,2,T); p(ctx,19,15,2,1,G);
+  // skull visible within
+  p(ctx,14,16,4,3,O); p(ctx,15,16,2,2,T); // mouth grin
+});
+
+reg('BANSHEE', ctx=>{
+  const O='#000000',B='#050020',M='#0a0040',L='#100060',H='#1800a0',S='#4000ff',W='#c0c0ff';
+  const G='#ffffff';
+  // wailing ghost
+  p(ctx,11,8,10,18,B); p(ctx,10,10,12,16,M); p(ctx,11,9,10,16,L); // flowing ghost body
+  // fading bottom
+  p(ctx,10,22,12,4,M); p(ctx,11,24,10,3,L); p(ctx,12,26,8,2,H); p(ctx,14,28,4,2,S);
+  // torn edges
+  p(ctx,9,16,3,4,B); p(ctx,20,17,3,4,B); p(ctx,10,20,2,3,M);
+  // head
+  p(ctx,12,5,8,7,M); p(ctx,13,6,6,6,L); p(ctx,14,7,4,5,H);
+  // screaming mouth (O shape)
+  p(ctx,13,11,6,5,O); p(ctx,14,12,4,4,B); p(ctx,15,13,2,3,O);
+  // empty eye sockets
+  p(ctx,13,8,3,4,O); p(ctx,14,8,2,3,S);
+  p(ctx,18,8,3,4,O); p(ctx,19,8,2,3,S);
+  // trailing hair
+  p(ctx,8,6,4,10,M); p(ctx,9,5,3,8,L);
+  p(ctx,20,6,4,10,M); p(ctx,21,5,3,8,L);
+});
+
+reg('DUSK PHANTOM', ctx=>{
+  const O='#000000',B='#050014',M='#0a0028',L='#14003c',H='#20005a',S='#400088',W='#aa44ff';
+  // cloaked phantom
+  p(ctx,10,10,12,18,B); p(ctx,9,12,14,16,M); // cloak
+  // inner darkness
+  p(ctx,11,12,10,14,L); p(ctx,12,13,8,12,H);
+  // face in hood
+  p(ctx,12,11,8,6,M); p(ctx,13,12,6,5,L); p(ctx,14,13,4,4,H);
+  // glowing eyes only visible thing
+  p(ctx,13,14,3,2,O); p(ctx,14,14,2,2,W); p(ctx,14,14,1,1,O);
+  p(ctx,18,14,3,2,O); p(ctx,19,14,2,2,W); p(ctx,19,14,1,1,O);
+  // cloak tails at bottom
+  p(ctx,9,26,4,4,B); p(ctx,14,27,4,3,M); p(ctx,19,26,4,4,B);
+  // reaching arm
+  p(ctx,6,14,5,8,B); p(ctx,5,18,4,4,M); // arm
+  p(ctx,4,20,3,2,L); p(ctx,5,22,2,2,H); p(ctx,4,23,3,2,W); // claw fingers
+});
+
+// ── Dragon/Flying bosses ──
+reg('VINE HYDRA', ctx=>{
+  const O='#001400',B='#004400',M='#007700',L='#00aa00',H='#44cc00',S='#88ee44',W='#ccff88';
+  // three-headed hydra (vine themed)
+  p(ctx,10,18,12,10,B); p(ctx,11,19,10,9,M); // main body
+  // three necks
+  p(ctx,9,10,4,10,B); p(ctx,10,11,3,9,M); // left neck
+  p(ctx,14,8,4,12,B); p(ctx,15,9,3,11,M); // center neck
+  p(ctx,19,10,4,10,B); p(ctx,20,11,3,9,M); // right neck
+  // three heads
+  p(ctx,7,6,7,6,B); p(ctx,8,7,5,5,M); p(ctx,9,8,4,4,L); // left head
+  p(ctx,12,4,8,6,B); p(ctx,13,5,6,5,M); p(ctx,14,6,4,4,L); // center head
+  p(ctx,18,6,7,6,B); p(ctx,19,7,5,5,M); p(ctx,20,8,4,4,L); // right head
+  // eyes on each head
+  p(ctx,8,7,2,2,O); p(ctx,9,7,2,2,S); // left
+  p(ctx,13,6,2,2,O); p(ctx,14,6,2,2,S); // center
+  p(ctx,19,7,2,2,O); p(ctx,20,7,2,2,S); // right
+  // leaf frills
+  p(ctx,6,8,3,4,L); p(ctx,7,7,3,3,H); p(ctx,22,8,3,4,L); p(ctx,23,7,3,3,H);
+  // tail
+  p(ctx,20,25,6,3,B); p(ctx,23,26,5,2,M); p(ctx,26,27,4,2,L);
+  // legs
+  p(ctx,10,27,5,4,B); p(ctx,17,27,5,4,B);
+});
+
+reg('GARGOYLE', ctx=>{
+  const O='#060606',B='#151515',M='#2a2a2a',L='#444444',H='#666666',S='#888888',W='#aaaaaa';
+  const R='#cc0000';
+  // stone gargoyle
+  p(ctx,10,16,12,12,B); p(ctx,11,17,10,11,M); p(ctx,12,18,8,10,L); // body
+  // stone wings
+  p(ctx,4,10,8,14,B); p(ctx,5,11,7,12,M); p(ctx,6,12,6,10,L); // left wing
+  p(ctx,20,10,8,14,B); p(ctx,21,11,7,12,M); p(ctx,22,12,6,10,L); // right wing
+  // wing membrane detail
+  p(ctx,5,14,4,2,M); p(ctx,5,18,4,2,M); p(ctx,5,22,4,2,M);
+  p(ctx,23,14,4,2,M); p(ctx,23,18,4,2,M); p(ctx,23,22,4,2,M);
+  // horned head
+  p(ctx,11,8,10,8,B); p(ctx,12,9,8,7,M); p(ctx,13,10,6,6,L);
+  p(ctx,11,4,3,5,B); p(ctx,12,3,2,4,M); // left horn
+  p(ctx,18,4,3,5,B); p(ctx,19,3,2,4,M); // right horn
+  // gargoyle scowl
+  p(ctx,12,13,3,3,O); p(ctx,13,13,2,2,R); // red eye glow left
+  p(ctx,18,13,3,3,O); p(ctx,19,13,2,2,R); // red eye glow right
+  // talons
+  p(ctx,10,27,6,4,B); p(ctx,8,30,3,2,M); p(ctx,11,30,2,2,M); p(ctx,13,30,2,2,M);
+  p(ctx,16,27,6,4,B); p(ctx,17,30,2,2,M); p(ctx,20,30,2,2,M); p(ctx,22,30,3,2,M);
+});
+
+// ── Knight/Warrior monsters ──
+reg('SHADOW KNIGHT', ctx=>{
+  const O='#000000',B='#050010',M='#0a0020',L='#150030',H='#200044',S='#300060',W='#8833cc';
+  const R='#ff0044',A='#cccccc';
+  // dark armored knight
+  p(ctx,11,16,10,12,B); p(ctx,12,17,8,11,M); // armored torso
+  p(ctx,10,14,12,4,B); // pauldrons
+  // dark helmet
+  p(ctx,11,6,10,10,B); p(ctx,12,7,8,9,M); p(ctx,13,8,6,8,L);
+  p(ctx,11,10,2,4,M); p(ctx,19,10,2,4,M); // cheek guards
+  p(ctx,13,11,6,3,O); // visor slit
+  p(ctx,14,12,4,2,R); p(ctx,15,12,3,1,W); // glowing red eyes in visor
+  // dark sword
+  p(ctx,6,12,2,18,B); p(ctx,7,11,3,20,M); p(ctx,8,10,2,22,L); p(ctx,7,10,3,1,A); // blade
+  p(ctx,5,20,6,3,B); // crossguard
+  // shield with rune
+  p(ctx,22,14,6,12,B); p(ctx,23,15,5,10,M); p(ctx,24,16,3,8,L);
+  p(ctx,25,19,2,3,W); // rune glow
+  // legs
+  p(ctx,11,27,5,4,B); p(ctx,16,27,5,4,B);
+});
+
+reg('BLOOD KNIGHT', ctx=>{
+  const O='#0a0000',B='#200000',M='#400000',L='#660000',H='#990000',S='#cc2200',R='#ff4400';
+  const A='#dddddd',W='#ff8800';
+  // blood-soaked knight
+  p(ctx,11,16,10,12,B); p(ctx,12,17,8,10,M); p(ctx,13,18,6,8,L); // torso
+  p(ctx,10,14,12,4,B); // wide shoulders
+  // blood drips
+  p(ctx,13,22,2,4,S); p(ctx,17,24,2,3,S); p(ctx,20,19,2,5,S);
+  // helmet (horned)
+  p(ctx,11,6,10,10,M); p(ctx,12,7,8,9,L); p(ctx,13,8,6,8,H);
+  p(ctx,10,4,3,5,B); p(ctx,11,3,2,4,M); // left horn
+  p(ctx,19,4,3,5,B); p(ctx,20,3,2,4,M); // right horn
+  p(ctx,13,12,6,2,O); // visor slot
+  p(ctx,14,12,4,2,R); // glowing red inside
+  // huge axe
+  p(ctx,4,8,3,22,B); p(ctx,5,7,4,24,M); // handle
+  p(ctx,2,6,7,8,L); p(ctx,3,7,5,6,H); p(ctx,2,14,7,5,H); // axe head
+  p(ctx,3,8,3,2,S); p(ctx,3,16,3,2,S); // blood on blade
+  // legs
+  p(ctx,11,27,5,5,B); p(ctx,16,27,5,5,B);
+});
+
+reg('DEATH KNIGHT', ctx=>{
+  const O='#000000',B='#050005',M='#100010',L='#1a001a',H='#280028',S='#440044',W='#cc00cc';
+  const G='#00ff88',A='#888888';
+  // spectral death knight
+  p(ctx,11,14,10,14,B); p(ctx,12,15,8,12,M); // spectral body (fades)
+  p(ctx,9,12,14,4,B); // shoulder armor
+  // skull head with crown
+  p(ctx,11,6,10,8,B); p(ctx,12,7,8,7,M); p(ctx,13,8,6,6,L);
+  // crown
+  p(ctx,11,4,2,3,A); p(ctx,14,3,4,4,A); p(ctx,13,2,6,2,A); p(ctx,19,4,2,3,A);
+  // skull features
+  p(ctx,12,9,4,4,O); p(ctx,13,9,3,3,G); // left socket glow
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,G); // right socket glow
+  p(ctx,14,13,6,2,O); p(ctx,15,14,4,1,S); // jaw gap
+  // necromantic scythe
+  p(ctx,5,6,2,24,M); p(ctx,6,5,3,26,L); // handle
+  p(ctx,3,4,8,6,B); p(ctx,4,5,6,5,M); p(ctx,5,6,4,4,S); // blade
+  p(ctx,3,10,4,2,W); // magical edge
+  // ghostly lower body fade
+  p(ctx,12,26,8,4,M); p(ctx,13,28,6,3,L); p(ctx,14,30,4,2,H);
+});
+
+// ── Large wyrm/dragon-category ──
+reg('MAGMA WYRM', ctx=>{
+  const O='#110000',B='#440000',M='#880000',L='#cc2200',H='#ff4400',Y='#ff8800',G='#ffcc00';
+  // large winding wyrm
+  p(ctx,8,8,6,20,B); p(ctx,9,9,5,18,M); // body segment 1
+  p(ctx,14,12,6,18,B); p(ctx,15,13,5,16,M); // body segment 2
+  p(ctx,18,8,6,16,B); p(ctx,19,9,5,14,M); // body segment 3
+  // connecting segments
+  p(ctx,10,16,5,4,B); p(ctx,11,17,4,3,M);
+  p(ctx,18,14,3,4,B); p(ctx,18,18,3,4,B);
+  // head
+  p(ctx,6,4,12,8,B); p(ctx,7,5,10,7,M); p(ctx,8,6,8,6,L);
+  // horns
+  p(ctx,8,2,3,4,B); p(ctx,9,1,2,3,M); p(ctx,15,2,3,4,B); p(ctx,16,1,2,3,M);
+  // glowing magma eyes
+  p(ctx,8,6,4,4,O); p(ctx,9,6,3,3,Y); p(ctx,9,6,2,2,G);
+  p(ctx,15,6,4,4,O); p(ctx,16,6,3,3,Y); p(ctx,16,6,2,2,G);
+  // molten cracks
+  p(ctx,10,12,2,6,H); p(ctx,15,16,2,4,H); p(ctx,20,10,2,5,H);
+});
+
+reg('FROST WYRM', ctx=>{
+  const O='#001133',B='#002266',M='#003399',L='#0055bb',H='#3388dd',S='#77bbff',W='#cceeff',C='#ffffff';
+  // ice-armored wyrm
+  p(ctx,9,8,5,20,B); p(ctx,10,9,4,18,M);
+  p(ctx,16,12,5,16,B); p(ctx,17,13,4,14,M);
+  p(ctx,13,8,4,5,B); p(ctx,14,9,3,4,M);
+  // head
+  p(ctx,7,4,12,8,B); p(ctx,8,5,10,7,M); p(ctx,9,6,8,6,L);
+  // ice spikes
+  p(ctx,9,2,2,4,L); p(ctx,12,1,3,4,S); p(ctx,16,2,2,4,L);
+  // cold blue eyes
+  p(ctx,9,6,4,4,O); p(ctx,10,6,3,3,S); p(ctx,10,6,2,2,C);
+  p(ctx,16,6,4,4,O); p(ctx,17,6,3,3,S); p(ctx,17,6,2,2,C);
+  // frost breath
+  p(ctx,6,10,4,2,S); p(ctx,5,11,3,2,W); p(ctx,4,12,3,2,C);
+  // ice armor scales
+  p(ctx,10,12,4,2,S); p(ctx,10,16,4,2,S); p(ctx,17,14,4,2,S);
+});
+
+reg('PLAGUE DRAGON', ctx=>{
+  const O='#010800',B='#0a2800',M='#1a4800',L='#2a7800',H='#40a800',S='#70cc20',P='#aa44aa';
+  // toxic dragon
+  p(ctx,9,10,5,18,B); p(ctx,10,11,4,16,M);
+  p(ctx,16,8,6,20,B); p(ctx,17,9,5,18,M);
+  p(ctx,12,14,5,8,B);
+  // head
+  p(ctx,7,4,14,9,B); p(ctx,8,5,12,8,M); p(ctx,9,6,10,7,L);
+  // plague pustules
+  p(ctx,11,8,3,3,P); p(ctx,17,9,3,3,P); p(ctx,9,14,3,3,P); p(ctx,19,16,3,3,P);
+  // toxic eyes
+  p(ctx,9,6,4,4,O); p(ctx,10,6,3,3,S); p(ctx,10,6,2,2,P);
+  p(ctx,17,6,4,4,O); p(ctx,18,6,3,3,S); p(ctx,18,6,2,2,P);
+  // toxic breath
+  p(ctx,5,10,4,2,H); p(ctx,4,11,3,2,S); p(ctx,3,12,3,2,P);
+  // wings
+  p(ctx,4,12,7,8,B); p(ctx,5,13,6,7,M);
+  p(ctx,21,12,7,8,B); p(ctx,22,13,6,7,M);
+});
+
+// ── Elemental titans ──
+reg('LAVA GOLEM', ctx=>{
+  const O='#110000',B='#440000',M='#880000',L='#cc3300',H='#ff5500',Y='#ff9900',G='#ffdd00';
+  // molten rock golem
+  p(ctx,9,14,14,14,B); p(ctx,10,15,12,12,M); p(ctx,11,16,10,10,L); // body
+  p(ctx,7,12,18,4,B); // shoulders
+  // head
+  p(ctx,10,7,12,8,B); p(ctx,11,8,10,7,M); p(ctx,12,9,8,6,L);
+  // lava cracks glowing
+  p(ctx,12,17,2,6,H); p(ctx,17,19,2,5,H); p(ctx,14,22,3,4,H);
+  p(ctx,11,12,2,4,Y); p(ctx,19,14,2,3,Y);
+  // molten eyes
+  p(ctx,12,9,4,4,O); p(ctx,13,9,3,3,Y); p(ctx,13,9,2,2,G);
+  p(ctx,18,9,4,4,O); p(ctx,19,9,3,3,Y); p(ctx,19,9,2,2,G);
+  // dripping lava
+  p(ctx,11,27,3,4,H); p(ctx,15,28,3,3,Y); p(ctx,19,27,3,4,H);
+  p(ctx,12,30,2,2,G); p(ctx,20,30,2,2,G);
+  // arms
+  p(ctx,5,14,5,12,B); p(ctx,6,15,4,10,M);
+  p(ctx,22,14,5,12,B); p(ctx,22,15,4,10,M);
+});
+
+reg('ARCANE GOLEM', ctx=>{
+  const O='#020008',B='#080020',M='#100040',L='#1a0060',H='#280090',S='#4000cc',W='#8844ff';
+  const G='#00ffcc',Y='#ffee00';
+  // mystical arcane golem
+  p(ctx,9,14,14,14,B); p(ctx,10,15,12,12,M); p(ctx,11,16,10,10,L); // body
+  // arcane runes glowing on body
+  p(ctx,12,18,4,2,G); p(ctx,12,21,2,3,G); p(ctx,17,20,3,2,G); p(ctx,14,24,3,2,G);
+  // floating geometric head
+  p(ctx,10,6,12,10,B); p(ctx,11,7,10,9,M); p(ctx,12,8,8,8,L);
+  // all-seeing magical eye (center)
+  p(ctx,13,9,6,6,O); p(ctx,14,10,4,5,H); p(ctx,15,11,2,4,W); p(ctx,15,12,2,2,G);
+  // arcane arm crystals
+  p(ctx,5,14,5,12,B); p(ctx,5,16,4,8,M); p(ctx,4,22,5,4,W); // left
+  p(ctx,22,14,5,12,B); p(ctx,23,16,4,8,M); p(ctx,23,22,5,4,W); // right
+  // orbiting mana spheres
+  p(ctx,6,10,3,3,Y); p(ctx,23,12,3,3,Y);
+  // legs
+  p(ctx,10,27,6,4,B); p(ctx,16,27,6,4,B);
+});
+
+reg('CAVE TROLL', ctx=>{
+  const O='#010800',B='#203010',M='#304820',L='#407030',H='#609040',S='#88aa55',W='#aaccaa';
+  // hunched cave troll
+  p(ctx,9,16,14,12,B); p(ctx,10,17,12,11,M); p(ctx,11,18,10,10,L); // body
+  p(ctx,7,14,18,5,B); // extra-wide hunched shoulders
+  // large round head
+  p(ctx,10,8,12,9,B); p(ctx,11,9,10,8,M); p(ctx,12,10,8,7,L);
+  // flat wide nose
+  p(ctx,13,14,6,5,B); p(ctx,14,15,5,4,M); p(ctx,14,14,3,2,L);
+  p(ctx,14,16,2,2,O); p(ctx,17,16,2,2,O); // nostrils
+  // beady eyes under brow ridge
+  p(ctx,10,9,3,2,B); p(ctx,11,10,3,3,O); p(ctx,12,10,2,2,S); p(ctx,12,10,1,1,W);
+  p(ctx,18,9,3,2,B); p(ctx,19,10,3,3,O); p(ctx,20,10,2,2,S); p(ctx,20,10,1,1,W);
+  // club/stalactite weapon
+  p(ctx,22,12,3,16,M); p(ctx,21,10,5,4,L); p(ctx,22,9,4,3,H); // club
+  // legs
+  p(ctx,10,27,6,4,B); p(ctx,16,27,6,4,B);
+  // warts
+  p(ctx,12,16,2,2,M); p(ctx,20,18,2,2,M); p(ctx,14,21,2,2,M);
+});
+
+reg('PLAGUE RAT', ctx=>{
+  const O='#050005',B='#1a0a00',M='#3a1a00',L='#5a2a00',H='#7a4a10',S='#aa6622',P='#aa44aa';
+  // diseased rat
+  p(ctx,8,18,16,8,B); p(ctx,9,19,14,7,M); p(ctx,10,20,12,6,L); // body
+  // bulging diseased spots
+  p(ctx,11,17,4,4,P); p(ctx,18,18,4,4,P); p(ctx,14,21,3,3,P);
+  // head (rat-like)
+  p(ctx,8,14,10,6,B); p(ctx,9,15,8,5,M); p(ctx,10,16,6,4,L);
+  // long snout
+  p(ctx,6,17,6,4,B); p(ctx,7,18,4,3,M); p(ctx,6,19,3,2,L);
+  p(ctx,7,19,2,2,O); p(ctx,9,19,2,2,O); // nostrils
+  // diseased red eyes
+  p(ctx,10,15,3,3,O); p(ctx,11,15,2,2,P); p(ctx,11,15,1,1,S);
+  p(ctx,16,15,3,3,O); p(ctx,17,15,2,2,P); p(ctx,17,15,1,1,S);
+  // ears
+  p(ctx,10,11,4,5,B); p(ctx,11,12,3,4,M); p(ctx,11,10,2,3,S);
+  p(ctx,18,11,4,5,B); p(ctx,19,12,3,4,M); p(ctx,19,10,2,3,S);
+  // long scaly tail
+  p(ctx,23,20,6,2,M); p(ctx,25,22,4,2,L); p(ctx,26,24,3,2,M);
+});
+
+// ── Hawk/Bird variants ──
+reg('STORM HAWK', ctx=>{
+  const O='#001122',B='#003366',M='#0055aa',L='#3388cc',H='#66bbee',S='#aaddff',W='#ffffff';
+  const Y='#ffee00';
+  // sleek hawk in dive
+  p(ctx,12,10,8,16,B); p(ctx,13,11,6,14,M); p(ctx,14,12,4,12,L); // body
+  // spread wings
+  p(ctx,4,8,10,8,B); p(ctx,5,9,8,6,M); p(ctx,6,10,6,5,L); // left wing
+  p(ctx,18,8,10,8,B); p(ctx,19,9,8,6,M); p(ctx,20,10,6,5,L); // right wing
+  // wing tips
+  p(ctx,4,8,2,3,H); p(ctx,3,10,2,3,H); p(ctx,4,13,2,2,H);
+  p(ctx,26,8,2,3,H); p(ctx,27,10,2,3,H); p(ctx,26,13,2,2,H);
+  // head
+  p(ctx,12,6,8,6,B); p(ctx,13,7,6,5,M); p(ctx,14,8,4,4,L);
+  // sharp beak
+  p(ctx,14,10,4,2,Y); p(ctx,15,11,3,2,Y); p(ctx,16,12,2,2,Y);
+  // lightning-strike eyes
+  p(ctx,13,8,3,3,O); p(ctx,14,8,2,2,Y);
+  p(ctx,18,8,3,3,O); p(ctx,19,8,2,2,Y);
+  // talons
+  p(ctx,13,24,3,4,M); p(ctx,12,27,2,2,Y); p(ctx,14,27,2,2,Y); p(ctx,16,27,2,2,Y);
+  p(ctx,16,24,3,4,M); p(ctx,17,27,2,2,Y);
+  // lightning charge
+  p(ctx,8,12,2,2,Y); p(ctx,22,11,2,2,Y); p(ctx,10,18,2,2,H); p(ctx,22,18,2,2,H);
+});
+
+// ── Demon/Hell variants ──
+reg('RIFT DEMON', ctx=>{
+  const O='#000000',B='#1a0000',M='#330000',L='#550000',H='#880000',S='#cc2200',R='#ff4400';
+  const P='#440044',W='#ff00ff';
+  // rip in reality demon
+  p(ctx,10,14,12,14,B); p(ctx,11,15,10,12,M); p(ctx,12,16,8,10,L); // body
+  // rift tear (dark void on body)
+  p(ctx,13,17,6,8,O); p(ctx,14,18,4,7,P); p(ctx,15,19,2,5,W);
+  // demon head with horns
+  p(ctx,11,7,10,9,B); p(ctx,12,8,8,8,M); p(ctx,13,9,6,7,L);
+  p(ctx,10,4,3,5,B); p(ctx,11,3,2,4,M); p(ctx,11,2,2,3,S); // left horn
+  p(ctx,19,4,3,5,B); p(ctx,20,3,2,4,M); p(ctx,20,2,2,3,S); // right horn
+  // glowing crimson eyes
+  p(ctx,12,10,4,4,O); p(ctx,13,10,3,3,R); p(ctx,13,10,2,2,W);
+  p(ctx,18,10,4,4,O); p(ctx,19,10,3,3,R); p(ctx,19,10,2,2,W);
+  // clawed arms
+  p(ctx,6,16,5,10,B); p(ctx,5,22,4,4,M); p(ctx,4,24,3,3,S);
+  p(ctx,3,24,2,2,R); p(ctx,4,26,2,2,R); p(ctx,6,27,2,2,R); // claws
+  p(ctx,21,16,5,10,B); p(ctx,22,22,4,4,M); p(ctx,23,24,3,3,S);
+  p(ctx,25,24,2,2,R); p(ctx,24,26,2,2,R); p(ctx,22,27,2,2,R);
+  // legs
+  p(ctx,11,27,5,4,B); p(ctx,16,27,5,4,B);
+  // shadow wings
+  p(ctx,4,10,7,10,O); p(ctx,5,11,5,8,P); p(ctx,21,10,7,10,O); p(ctx,22,11,5,8,P);
+});
+
+reg('ASTRAL TITAN', ctx=>{
+  const O='#000011',B='#001133',M='#002266',L='#003399',H='#4466cc',S='#88aaff',W='#ccdeff';
+  const G='#ffffff',Y='#ffee00';
+  // cosmic titan
+  p(ctx,8,14,16,14,B); p(ctx,9,15,14,12,M); p(ctx,10,16,12,10,L); // body
+  // star field on body
+  p(ctx,12,18,1,1,G); p(ctx,15,20,1,1,G); p(ctx,18,17,1,1,G); p(ctx,13,22,1,1,Y); p(ctx,19,21,1,1,G);
+  // massive cosmic head
+  p(ctx,10,5,12,10,B); p(ctx,11,6,10,9,M); p(ctx,12,7,8,8,L);
+  // galaxy swirl eyes
+  p(ctx,12,8,4,4,O); p(ctx,13,8,3,3,H); p(ctx,13,8,2,2,S); p(ctx,14,9,1,1,G);
+  p(ctx,18,8,4,4,O); p(ctx,19,8,3,3,H); p(ctx,19,8,2,2,S); p(ctx,20,9,1,1,G);
+  // cosmic crown/halo
+  p(ctx,10,3,12,3,M); p(ctx,11,2,10,2,L); p(ctx,12,1,8,2,H);
+  p(ctx,12,0,2,2,Y); p(ctx,16,0,2,2,Y); p(ctx,20,0,2,2,Y);
+  // arms with star energy
+  p(ctx,4,14,5,14,B); p(ctx,5,15,4,12,M); p(ctx,3,25,5,3,S);
+  p(ctx,23,14,5,14,B); p(ctx,23,15,4,12,M); p(ctx,24,25,5,3,S);
+  // legs
+  p(ctx,10,27,6,4,B); p(ctx,16,27,6,4,B);
+});
+
+// ── Boss-category silhouettes ──
+reg('GLACIER BEAR', ctx=>{
+  const O='#001133',B='#002266',M='#003399',L='#2255aa',H='#5588cc',S='#88bbee',W='#cceeff',C='#ffffff';
+  // enormous ice bear
+  p(ctx,7,15,18,13,B); p(ctx,8,16,16,12,M); p(ctx,9,17,14,11,L); // massive body
+  p(ctx,5,13,22,5,B); // wide shoulders
+  // bear head
+  p(ctx,9,7,14,10,B); p(ctx,10,8,12,9,M); p(ctx,11,9,10,8,L);
+  // round ears
+  p(ctx,9,5,5,5,B); p(ctx,10,6,4,4,M); p(ctx,11,5,3,3,H);
+  p(ctx,18,5,5,5,B); p(ctx,19,6,4,4,M); p(ctx,20,5,3,3,H);
+  // big snout
+  p(ctx,12,13,8,5,B); p(ctx,13,14,6,4,M); p(ctx,14,15,4,3,L);
+  p(ctx,14,16,2,2,O); p(ctx,17,16,2,2,O); // nostrils
+  // ice-blue eyes
+  p(ctx,11,10,4,4,O); p(ctx,12,10,3,3,S); p(ctx,12,10,2,2,C);
+  p(ctx,17,10,4,4,O); p(ctx,18,10,3,3,S); p(ctx,18,10,2,2,C);
+  // ice crystal claws
+  p(ctx,5,22,5,6,B); p(ctx,4,26,3,2,W); p(ctx,6,27,2,2,W); p(ctx,7,28,2,2,W);
+  p(ctx,22,22,5,6,B); p(ctx,24,26,3,2,W); p(ctx,22,27,2,2,W); p(ctx,21,28,2,2,W);
+  // legs
+  p(ctx,9,27,7,4,B); p(ctx,16,27,7,4,B);
+});
+
+reg('THUNDER LION', ctx=>{
+  const O='#111100',B='#333300',M='#666600',L='#999900',H='#cccc00',S='#ffff00',W='#ffffff';
+  const Z='#ff8800';
+  // majestic lion with lightning mane
+  p(ctx,8,17,16,11,B); p(ctx,9,18,14,10,M); p(ctx,10,19,12,9,L); // body
+  // HUGE mane (electric)
+  p(ctx,7,8,18,12,B); p(ctx,6,10,20,10,M); p(ctx,7,9,18,9,H); // mane
+  p(ctx,8,8,16,7,S); // mane inner glow
+  // lightning in mane
+  p(ctx,9,7,2,4,W); p(ctx,13,6,2,5,W); p(ctx,17,7,2,4,W); p(ctx,21,8,2,3,W);
+  // face
+  p(ctx,10,10,12,9,B); p(ctx,11,11,10,8,M); p(ctx,12,12,8,7,L);
+  // big nose
+  p(ctx,13,16,6,4,B); p(ctx,14,17,4,3,M); p(ctx,14,16,3,2,H);
+  p(ctx,14,18,2,2,O); p(ctx,17,18,2,2,O);
+  // fierce eyes
+  p(ctx,11,12,4,4,O); p(ctx,12,12,3,3,Z); p(ctx,12,12,2,2,S);
+  p(ctx,17,12,4,4,O); p(ctx,18,12,3,3,Z); p(ctx,18,12,2,2,S);
+  // paws
+  p(ctx,6,22,7,7,B); p(ctx,5,27,3,2,L); p(ctx,7,28,2,2,L); p(ctx,9,27,2,2,L);
+  p(ctx,19,22,7,7,B); p(ctx,20,27,2,2,L); p(ctx,22,28,2,2,L); p(ctx,25,27,3,2,L);
+  // tail with lightning
+  p(ctx,23,18,5,3,M); p(ctx,25,20,4,3,L); p(ctx,27,22,3,3,S);
+});
+
+reg('TREANT', ctx=>{
+  const O='#010800',B='#1a4400',M='#2a6600',L='#3a8800',H='#50aa00',S='#70cc00',W='#aaee44';
+  const R='#5a3010',K='#3a2000';
+  // ancient walking tree
+  p(ctx,10,14,12,14,R); p(ctx,11,15,10,12,K); // trunk body
+  // bark texture
+  p(ctx,11,16,2,4,B); p(ctx,15,17,2,6,B); p(ctx,18,15,2,4,B);
+  // root legs
+  p(ctx,8,27,5,4,R); p(ctx,6,29,4,2,K); // left
+  p(ctx,19,27,5,4,R); p(ctx,21,29,4,2,K); // right
+  // branch arms
+  p(ctx,4,12,7,3,R); p(ctx,4,10,3,4,K); p(ctx,3,8,3,4,B); p(ctx,2,7,3,3,L); // left
+  p(ctx,21,12,7,3,R); p(ctx,25,10,3,4,K); p(ctx,26,8,3,4,B); p(ctx,27,7,3,3,L); // right
+  // canopy of leaves
+  p(ctx,8,4,16,10,B); p(ctx,7,6,18,8,M); p(ctx,8,5,16,7,L); p(ctx,9,5,14,5,H);
+  // face carved in bark
+  p(ctx,13,16,6,8,K); p(ctx,14,17,4,7,R);
+  // hollow eyes
+  p(ctx,13,17,3,3,O); p(ctx,14,17,2,2,H); // left
+  p(ctx,18,17,3,3,O); p(ctx,19,17,2,2,H); // right
+  // mouth
+  p(ctx,14,22,6,2,O); p(ctx,15,23,4,1,R);
+  // moss patches
+  p(ctx,11,19,3,2,L); p(ctx,18,20,3,2,L);
+});
+
+reg('CYCLONE BIRD', ctx=>{
+  const O='#001122',B='#224466',M='#446688',L='#6688aa',H='#88aacc',S='#aaccee',W='#cceeff';
+  const Y='#ffffff';
+  // bird wrapped in wind spiral
+  p(ctx,12,10,8,16,B); p(ctx,13,11,6,14,M); p(ctx,14,12,4,12,L); // body
+  // cyclone swirls
+  p(ctx,6,8,20,16,M); // large wind zone
+  p(ctx,8,9,16,14,L); p(ctx,10,10,12,12,H);
+  // bird inside swirl
+  p(ctx,12,12,8,10,B); p(ctx,13,13,6,9,M);
+  // head
+  p(ctx,13,8,6,6,B); p(ctx,14,9,4,5,M);
+  p(ctx,14,10,4,3,O); p(ctx,15,10,2,2,Y);
+  p(ctx,18,10,3,3,O); p(ctx,19,10,2,2,Y);
+  // wind feathers extending
+  p(ctx,4,10,8,4,L); p(ctx,4,12,6,3,S); p(ctx,4,15,5,2,W);
+  p(ctx,20,10,8,4,L); p(ctx,22,12,6,3,S); p(ctx,23,15,5,2,W);
+  // tail wind
+  p(ctx,12,24,8,4,H); p(ctx,11,26,10,3,S); p(ctx,10,28,12,2,W);
+});
+
+// ── Ocean/Sea titans ──
+reg('OCEAN TITAN', ctx=>{
+  const O='#000a14',B='#002244',M='#003366',L='#004488',H='#0066aa',S='#3399cc',W='#88ccee';
+  // colossus of the sea
+  p(ctx,8,12,16,16,B); p(ctx,9,13,14,14,M); p(ctx,10,14,12,12,L); // massive torso
+  p(ctx,5,10,22,4,B); // titan shoulders
+  // crested head (like a wave)
+  p(ctx,9,4,14,9,B); p(ctx,10,5,12,8,M); p(ctx,11,6,10,7,L);
+  // wave crest on head
+  p(ctx,8,2,8,4,M); p(ctx,9,1,6,4,L); p(ctx,10,0,5,3,H); p(ctx,14,0,5,3,H);
+  p(ctx,17,2,6,4,M); p(ctx,18,1,5,4,L);
+  // giant eyes (ocean deep)
+  p(ctx,11,7,5,5,O); p(ctx,12,7,4,4,H); p(ctx,12,7,3,3,S); p(ctx,13,8,2,2,W);
+  p(ctx,18,7,5,5,O); p(ctx,19,7,4,4,H); p(ctx,19,7,3,3,S); p(ctx,20,8,2,2,W);
+  // ocean arms (waves)
+  p(ctx,4,12,5,16,B); p(ctx,5,13,4,14,M); p(ctx,3,24,6,4,S);
+  p(ctx,23,12,5,16,B); p(ctx,23,13,4,14,M); p(ctx,23,24,6,4,S);
+  // waterfall from body
+  p(ctx,12,27,8,5,M); p(ctx,11,29,10,3,L); p(ctx,10,31,12,2,H);
+});
+
+// ── For ALL remaining unregistered monsters: smart element+shape system ──
+// This replaces drawGenericAnimal with a much richer version
+(()=>{
+  // Monsters we still need to handle via smart system
+  const remaining = [
+    'MIASMA','HELLHOUND','NECROMANCER','THUNDER GOD Jr','BLIZZARD DRAKE','VOLCANO GIANT',
+    'WIND COLOSSUS','WORLD SERPENT','LIGHT PALADIN','ABYSSAL SHADE','ARCH DEMON',
+    'INFERNO HYDRA','STORM EMPEROR','GLACIAL COLOSS','VERDANT WYRM','DOOM GUARDIAN',
+    'CELESTIAL HAWK','CHAOS WRAITH','ANCIENT GOLEM','TSUNAMI GOD','MAGMA PHOENIX',
+    'THUNDER TITAN','ETERNAL ICE','GAIA SERPENT','VOID EMPEROR','CELESTIAL LION',
+    'EARTH TITAN','TEMPEST DRAKE','FALLEN ANGEL','VOID REAPER','LAVA TITAN',
+    'SHADOW KNIGHT','CYCLONE BIRD','TIDAL LEVIATH','THUNDER LION',
+  ];
+
+  // Smart shape system: determine form from name keywords
+  function smartDraw(ctx, name, element){
+    const n = name.toUpperCase();
+    const palettes={
+      fire:['#110000','#550000','#990000','#cc2200','#ff4400','#ff9900'],
+      water:['#000a14','#002244','#003366','#005599','#3399cc','#88ddff'],
+      grass:['#001400','#004400','#007700','#00aa00','#44cc00','#aaee44'],
+      dark:['#040004','#0a000a','#180018','#2a0033','#550066','#9933cc'],
+      electric:['#111100','#444400','#888800','#cccc00','#ffee00','#ffff88'],
+      ice:['#001133','#003366','#0055aa','#4488cc','#88bbee','#cceeff'],
+      earth:['#110800','#3a2000','#6a4010','#9a6820','#c89040','#eedda0'],
+      wind:['#001122','#224466','#446688','#7799bb','#aabbdd','#ddeeff'],
+      light:['#221100','#554400','#998800','#ccbb22','#ffee66','#ffffcc'],
+    };
+    const [O,B,M,L,H,S] = palettes[element] || palettes.earth;
+    const W='#ffffff';
+
+    // Determine shape category
+    const isDrake = n.includes('DRAKE') || n.includes('WYRM') || n.includes('DRAGON') || n.includes('SERPENT');
+    const isGiant = n.includes('GIANT') || n.includes('TITAN') || n.includes('COLOSS') || n.includes('GOLEM');
+    const isAngel = n.includes('ANGEL') || n.includes('PALADIN') || n.includes('CELESTIAL');
+    const isPhoenix = n.includes('PHOENIX') || n.includes('HAWK') || n.includes('BIRD');
+    const isWraith = n.includes('WRAITH') || n.includes('SHADE') || n.includes('REAPER') || n.includes('PHANTOM');
+    const isHound = n.includes('HOUND') || n.includes('WOLF') || n.includes('LION') || n.includes('BEAR');
+    const isHydra = n.includes('HYDRA') || n.includes('LEVIATH');
+    const isMage  = n.includes('MANCER') || n.includes('MAGE') || n.includes('GOD') || n.includes('EMPEROR') || n.includes('GUARDIAN');
+    const isIce   = element === 'ice' || n.includes('ICE') || n.includes('GLACIAL') || n.includes('BLIZZARD') || n.includes('FROST') || n.includes('ETERNAL');
+    const isGod   = n.includes('GOD') || n.includes('EMPEROR') || n.includes('SOVEREIGN');
+
+    if(isDrake){
+      // Dragon/Wyrm shape
+      const C = isIce ? '#aaddff' : S;
+      p(ctx,10,8,6,20,B); p(ctx,11,9,5,18,M);
+      p(ctx,16,6,6,22,B); p(ctx,17,7,5,20,M);
+      p(ctx,12,12,5,10,B);
+      p(ctx,7,4,14,8,B); p(ctx,8,5,12,7,M); p(ctx,9,6,10,6,L);
+      p(ctx,9,2,3,4,B); p(ctx,10,1,2,3,M); p(ctx,16,2,3,4,B); p(ctx,17,1,2,3,M);
+      p(ctx,9,6,4,4,O); p(ctx,10,6,3,3,H); p(ctx,10,6,2,2,C);
+      p(ctx,16,6,4,4,O); p(ctx,17,6,3,3,H); p(ctx,17,6,2,2,C);
+      p(ctx,4,10,7,10,B); p(ctx,5,11,6,8,M); p(ctx,21,10,7,10,B); p(ctx,22,11,6,8,M);
+      p(ctx,11,14,2,4,H); p(ctx,17,16,2,4,H);
+    } else if(isGiant || (isMage && !isDrake)){
+      // Giant/Golem shape
+      p(ctx,9,13,14,15,B); p(ctx,10,14,12,13,M); p(ctx,11,15,10,11,L);
+      p(ctx,6,11,20,4,B);
+      p(ctx,10,5,12,9,B); p(ctx,11,6,10,8,M); p(ctx,12,7,8,7,L);
+      const glowC = element==='fire'?'#ff4400':element==='electric'?'#ffee00':element==='ice'?'#88ccff':H;
+      p(ctx,12,8,4,4,O); p(ctx,13,8,3,3,glowC);
+      p(ctx,18,8,4,4,O); p(ctx,19,8,3,3,glowC);
+      p(ctx,4,13,5,13,B); p(ctx,5,14,4,11,M);
+      p(ctx,23,13,5,13,B); p(ctx,23,14,4,11,M);
+      p(ctx,10,27,6,4,B); p(ctx,16,27,6,4,B);
+      if(isGod){ p(ctx,10,2,12,4,M); p(ctx,11,1,10,3,L); p(ctx,13,0,3,2,H); p(ctx,18,0,3,2,H); }
+    } else if(isAngel){
+      // Angel/Paladin shape with feathered wings
+      p(ctx,12,14,8,14,M); p(ctx,13,15,6,12,L); p(ctx,14,16,4,10,H);
+      p(ctx,4,6,10,16,M); p(ctx,5,7,8,14,L); p(ctx,6,8,6,12,H); p(ctx,7,9,4,10,S);
+      p(ctx,18,6,10,16,M); p(ctx,19,7,8,14,L); p(ctx,20,8,6,12,H); p(ctx,21,9,4,10,S);
+      p(ctx,12,6,8,9,M); p(ctx,13,7,6,8,L); p(ctx,14,8,4,7,H);
+      p(ctx,13,9,3,3,O); p(ctx,14,9,2,2,W); p(ctx,14,9,1,1,H);
+      p(ctx,18,9,3,3,O); p(ctx,19,9,2,2,W); p(ctx,19,9,1,1,H);
+      p(ctx,13,3,6,4,H); p(ctx,14,2,4,3,S); p(ctx,15,1,2,2,W);
+    } else if(isPhoenix){
+      // Phoenix/Bird shape
+      p(ctx,12,10,8,16,B); p(ctx,13,11,6,14,M);
+      p(ctx,4,6,10,10,B); p(ctx,5,7,8,8,M); p(ctx,6,8,6,7,L); p(ctx,4,8,3,5,H); p(ctx,3,10,3,4,H);
+      p(ctx,18,6,10,10,B); p(ctx,19,7,8,8,M); p(ctx,20,8,6,7,L); p(ctx,25,8,3,5,H); p(ctx,26,10,3,4,H);
+      p(ctx,12,6,8,6,B); p(ctx,13,7,6,5,M); p(ctx,14,8,4,4,L);
+      p(ctx,14,9,4,2,H); p(ctx,13,7,2,3,O); p(ctx,13,7,2,2,S);
+      p(ctx,19,7,3,3,O); p(ctx,20,7,2,2,S);
+      p(ctx,11,24,10,6,H); p(ctx,10,26,12,4,S); p(ctx,9,28,14,3,L);
+    } else if(isWraith){
+      // Ghost/Wraith shape
+      p(ctx,11,8,10,20,B); p(ctx,10,10,12,18,M); p(ctx,11,9,10,17,L);
+      p(ctx,10,24,12,4,M); p(ctx,11,26,10,3,L); p(ctx,12,28,8,3,H); p(ctx,14,30,4,2,S);
+      p(ctx,8,14,3,6,M); p(ctx,21,15,3,5,M);
+      p(ctx,12,9,8,6,M); p(ctx,13,10,6,5,L); p(ctx,14,11,4,4,H);
+      p(ctx,13,12,3,3,O); p(ctx,14,12,2,2,S);
+      p(ctx,18,12,3,3,O); p(ctx,19,12,2,2,S);
+      p(ctx,14,15,6,3,O); p(ctx,15,16,4,2,L);
+    } else if(isHound){
+      // Beast/Quadruped shape
+      p(ctx,8,16,16,10,B); p(ctx,9,17,14,9,M); p(ctx,10,18,12,8,L);
+      p(ctx,6,12,12,7,B); p(ctx,7,13,10,6,M); p(ctx,8,14,8,5,L);
+      p(ctx,4,16,6,5,B); p(ctx,5,17,4,4,M);
+      p(ctx,8,9,4,5,B); p(ctx,9,8,3,4,M); p(ctx,9,7,2,3,L);
+      p(ctx,14,10,4,5,B); p(ctx,15,9,3,4,M); p(ctx,15,8,2,3,L);
+      p(ctx,8,14,3,3,O); p(ctx,9,14,2,2,H); p(ctx,9,14,1,1,S);
+      p(ctx,14,14,3,3,O); p(ctx,15,14,2,2,H); p(ctx,15,14,1,1,S);
+      p(ctx,4,18,5,3,B); p(ctx,6,20,4,3,M);
+      p(ctx,8,25,4,5,B); p(ctx,12,26,4,4,M); p(ctx,17,25,4,5,B);
+      p(ctx,21,16,7,8,B); p(ctx,23,17,6,7,M); p(ctx,25,20,4,5,L);
+    } else if(isHydra){
+      // Multi-headed hydra
+      p(ctx,10,18,12,10,B); p(ctx,11,19,10,9,M);
+      p(ctx,9,10,4,10,B); p(ctx,10,11,3,9,M);
+      p(ctx,14,8,4,12,B); p(ctx,15,9,3,11,M);
+      p(ctx,19,10,4,10,B); p(ctx,20,11,3,9,M);
+      p(ctx,7,6,7,6,B); p(ctx,8,7,5,5,M); p(ctx,9,8,4,4,L);
+      p(ctx,12,4,8,6,B); p(ctx,13,5,6,5,M); p(ctx,14,6,4,4,L);
+      p(ctx,18,6,7,6,B); p(ctx,19,7,5,5,M); p(ctx,20,8,4,4,L);
+      p(ctx,8,7,2,2,O); p(ctx,9,7,2,2,H);
+      p(ctx,14,6,2,2,O); p(ctx,15,6,2,2,H);
+      p(ctx,19,7,2,2,O); p(ctx,20,7,2,2,H);
+      p(ctx,10,27,5,4,B); p(ctx,17,27,5,4,B);
+    } else {
+      // Default: humanoid mage/caster
+      p(ctx,11,16,10,12,B); p(ctx,12,17,8,10,M); p(ctx,13,18,6,8,L);
+      p(ctx,9,14,14,4,B);
+      p(ctx,12,7,8,9,B); p(ctx,13,8,6,8,M); p(ctx,14,9,4,7,L);
+      p(ctx,11,5,4,4,B); p(ctx,11,4,3,3,M); p(ctx,17,5,4,4,B); p(ctx,18,4,3,3,M);
+      p(ctx,13,9,3,3,O); p(ctx,14,9,2,2,H); p(ctx,14,9,1,1,S);
+      p(ctx,18,9,3,3,O); p(ctx,19,9,2,2,H); p(ctx,19,9,1,1,S);
+      p(ctx,6,14,5,12,B); p(ctx,5,22,4,4,M); p(ctx,4,24,3,3,L);
+      p(ctx,21,14,5,12,B); p(ctx,22,22,4,4,M); p(ctx,23,24,3,3,L);
+      p(ctx,11,27,5,4,B); p(ctx,16,27,5,4,B);
+      // spell effect
+      p(ctx,14,4,4,4,H); p(ctx,15,3,2,3,S); p(ctx,12,3,2,2,S); p(ctx,18,3,2,2,S);
+    }
+  }
+
+  remaining.forEach(name=>{
+    if(!MONSTER_DRAWERS[name]){
+      // Find this monster's element in WILD array
+      reg(name, ctx=>{
+        const m = [...WILD,...BOSS_LIST].find(w=>w.name.toUpperCase()===name.toUpperCase());
+        smartDraw(ctx, name, m?m.element:null);
+      });
+    }
+  });
+})();
+
 // ── PUBLIC API ────────────────────────────────────────────────────────────────
 
 // Get or create a 32×32 canvas with the correct sprite drawn
