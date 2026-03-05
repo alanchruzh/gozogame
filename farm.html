@@ -390,6 +390,7 @@ header{
           <div class="fields-row" id="rowBot"></div>
         </div>
       </div>
+      <div id="animalLayer" style="position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden;"></div>
     </div>
   </div>
 
@@ -5095,6 +5096,306 @@ window.handleClick = function(fid, pid){
   }
   document.addEventListener("click", tryAutoplay);
 })();
+</script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// 🐾 PIXEL ART ANIMAL SPRITES ON FIELD
+// ══════════════════════════════════════════════════════════
+
+const ANIMAL_PIXELS = {
+  chicken: {
+    w: 10, h: 10,
+    frames: [
+      // frame 0 - stand
+      [
+        '..RRRRR...',
+        '.RYYYYYR..',
+        '.RYYYYYY..',
+        '.RYYYYYR..',
+        '..RRRRR...',
+        '.BBBBBBB..',
+        'BWWWWWWBB.',
+        '.BWWWWWB..',
+        '..YY.YY...',
+        '..YY.YY...',
+      ],
+      // frame 1 - walk (legs shifted)
+      [
+        '..RRRRR...',
+        '.RYYYYYR..',
+        '.RYYYYYY..',
+        '.RYYYYYR..',
+        '..RRRRR...',
+        '.BBBBBBB..',
+        'BWWWWWWBB.',
+        '.BWWWWWB..',
+        '.YY..YY...',
+        'YY...YY...',
+      ]
+    ],
+    palette: { R:'#cc3311', Y:'#ffcc00', B:'#cc6622', W:'#ffffff', '.':'transparent' }
+  },
+  cow: {
+    w: 14, h: 10,
+    frames: [
+      [
+        '..WWBBWWBBWW..',
+        '.WWWBBWWBBWWW.',
+        'WWWWWWWWWWWWWW',
+        'WWWWWWWWWWWWWW',
+        'WWWBBWWWWBBWWW',
+        'WWWBBWWWWBBWWW',
+        '.WWWWWWWWWWWW.',
+        '..WWWWWWWWWW..',
+        '..GG.GG.GG.GG.',
+        '..GG.GG.GG.GG.',
+      ],
+      [
+        '..WWBBWWBBWW..',
+        '.WWWBBWWBBWWW.',
+        'WWWWWWWWWWWWWW',
+        'WWWWWWWWWWWWWW',
+        'WWWBBWWWWBBWWW',
+        'WWWBBWWWWBBWWW',
+        '.WWWWWWWWWWWW.',
+        '..WWWWWWWWWW..',
+        '.GG..GG.GG..GG',
+        'GG...GG.GG...G',
+      ]
+    ],
+    palette: { W:'#f5f5f0', B:'#222222', G:'#b8864e', '.':'transparent' }
+  },
+  rabbit: {
+    w: 8, h: 10,
+    frames: [
+      [
+        '.WW..WW.',
+        '.WW..WW.',
+        '.WWWWWW.',
+        'WWWPPWWW',
+        'WWWWWWWW',
+        'WWWWWWWW',
+        '.WWWWWW.',
+        '..WWWW..',
+        '.WW..WW.',
+        '.W....W.',
+      ],
+      [
+        '.WW..WW.',
+        '.WW..WW.',
+        '.WWWWWW.',
+        'WWWPPWWW',
+        'WWWWWWWW',
+        'WWWWWWWW',
+        '.WWWWWW.',
+        '..WWWW..',
+        'WW....WW',
+        'W......W',
+      ]
+    ],
+    palette: { W:'#e8e8e8', P:'#ffaabb', '.':'transparent' }
+  },
+  bee: {
+    w: 8, h: 7,
+    frames: [
+      [
+        '..YYYY..',
+        '.YBYBYY.',
+        'YYBYBYYY',
+        '.YYYYYY.',
+        '..YYYY..',
+        '.WW..WW.',
+        '.WW..WW.',
+      ],
+      [
+        '..YYYY..',
+        '.YBYBYY.',
+        'YYBYBYYY',
+        '.YYYYYY.',
+        '..YYYY..',
+        '..WW..WW',
+        '..WW..WW',
+      ]
+    ],
+    palette: { Y:'#f5c200', B:'#222222', W:'#ddeeff', '.':'transparent' }
+  }
+};
+
+const PIXEL_SIZE = 3;
+const _fieldAnimals = {}; // { 'chicken_0': { el, x, y, vx, type, frame, frameTimer, flipX } }
+
+function makeAnimalCanvas(type, flipX, frame) {
+  const def = ANIMAL_PIXELS[type];
+  if (!def) return null;
+  const rows = def.frames[frame];
+  const pal = def.palette;
+  const canvas = document.createElement('canvas');
+  canvas.width = def.w * PIXEL_SIZE;
+  canvas.height = def.h * PIXEL_SIZE;
+  canvas.style.imageRendering = 'pixelated';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (flipX) {
+    ctx.save();
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  for (let r = 0; r < rows.length; r++) {
+    for (let c = 0; c < rows[r].length; c++) {
+      const ch = rows[r][c];
+      const color = pal[ch];
+      if (!color || color === 'transparent') continue;
+      ctx.fillStyle = color;
+      ctx.fillRect(c * PIXEL_SIZE, r * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE);
+    }
+  }
+  if (flipX) ctx.restore();
+  return canvas;
+}
+
+function spawnFieldAnimal(type, uid) {
+  const layer = document.getElementById('animalLayer');
+  if (!layer) return;
+  const def = ANIMAL_PIXELS[type];
+  if (!def) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:absolute;bottom:' + (10 + Math.random() * 30) + 'px;transition:none;';
+  wrapper.dataset.animalUid = uid;
+
+  const canvas = makeAnimalCanvas(type, false, 0);
+  wrapper.appendChild(canvas);
+  layer.appendChild(wrapper);
+
+  const lw = layer.offsetWidth || 300;
+  const startX = Math.random() * (lw - def.w * PIXEL_SIZE);
+  const speed = (type === 'bee') ? (0.4 + Math.random() * 0.4) : (0.2 + Math.random() * 0.3);
+  const dir = Math.random() > 0.5 ? 1 : -1;
+
+  _fieldAnimals[uid] = {
+    el: wrapper,
+    canvas: canvas,
+    x: startX,
+    y: 10 + Math.random() * 30,
+    vx: speed * dir,
+    type: type,
+    frame: 0,
+    frameTimer: 0,
+    flipX: dir < 0,
+    pauseTimer: 0,
+    paused: false,
+  };
+  wrapper.style.left = startX + 'px';
+}
+
+function removeFieldAnimal(uid) {
+  if (_fieldAnimals[uid]) {
+    _fieldAnimals[uid].el.remove();
+    delete _fieldAnimals[uid];
+  }
+}
+
+function updateAnimalCanvas(animal) {
+  const def = ANIMAL_PIXELS[animal.type];
+  const newCanvas = makeAnimalCanvas(animal.type, animal.flipX, animal.frame);
+  animal.el.replaceChild(newCanvas, animal.canvas);
+  animal.canvas = newCanvas;
+}
+
+// Main animation loop
+let _lastAnimalTick = 0;
+function animalLoop(ts) {
+  const dt = ts - _lastAnimalTick;
+  _lastAnimalTick = ts;
+
+  const layer = document.getElementById('animalLayer');
+  const lw = layer ? (layer.offsetWidth || 300) : 300;
+
+  for (const uid in _fieldAnimals) {
+    const a = _fieldAnimals[uid];
+    const def = ANIMAL_PIXELS[a.type];
+    if (!def) continue;
+
+    // pause sometimes
+    if (a.paused) {
+      a.pauseTimer -= dt;
+      if (a.pauseTimer <= 0) a.paused = false;
+      continue;
+    }
+
+    // random pause
+    if (Math.random() < 0.001) {
+      a.paused = true;
+      a.pauseTimer = 800 + Math.random() * 1500;
+      continue;
+    }
+
+    a.x += a.vx;
+    const maxX = lw - def.w * PIXEL_SIZE;
+
+    if (a.x <= 0) { a.x = 0; a.vx = Math.abs(a.vx); a.flipX = false; }
+    if (a.x >= maxX) { a.x = maxX; a.vx = -Math.abs(a.vx); a.flipX = true; }
+
+    // bee bobs vertically
+    if (a.type === 'bee') {
+      a.y = 20 + Math.sin(ts / 400) * 8;
+      a.el.style.bottom = a.y + 'px';
+    }
+
+    a.el.style.left = a.x + 'px';
+
+    // animate frames
+    a.frameTimer += dt;
+    const frameDur = a.paused ? 999999 : (a.type === 'bee' ? 200 : 300);
+    if (a.frameTimer >= frameDur) {
+      a.frameTimer = 0;
+      a.frame = (a.frame + 1) % def.frames.length;
+      updateAnimalCanvas(a);
+    }
+  }
+
+  requestAnimationFrame(animalLoop);
+}
+requestAnimationFrame(animalLoop);
+
+// Sync field animals with ownedAnimals
+function syncFieldAnimals() {
+  const existing = new Set(Object.keys(_fieldAnimals));
+  const desired = new Set();
+
+  for (const type in ownedAnimals) {
+    ownedAnimals[type].forEach((a, i) => {
+      const uid = type + '_' + a.id;
+      desired.add(uid);
+      if (!existing.has(uid)) {
+        spawnFieldAnimal(type, uid);
+      }
+    });
+  }
+
+  // Remove animals no longer owned
+  existing.forEach(uid => {
+    if (!desired.has(uid)) removeFieldAnimal(uid);
+  });
+}
+
+// Patch buyAnimal to sync sprites
+const _origBuyAnimal = window.buyAnimal || buyAnimal;
+window.buyAnimal = function(type) {
+  _origBuyAnimal(type);
+  setTimeout(syncFieldAnimals, 100);
+};
+
+// Restore from save
+const _origLoadState = window.loadState;
+window.loadState = function() {
+  if (_origLoadState) _origLoadState();
+  setTimeout(syncFieldAnimals, 300);
+};
+
+// Also sync on page load after state restore
+setTimeout(syncFieldAnimals, 600);
 </script>
 </body>
 </html>
