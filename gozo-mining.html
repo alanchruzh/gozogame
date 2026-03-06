@@ -168,6 +168,52 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   text-align:center;line-height:2;
 }
 @keyframes bp{0%,100%{box-shadow:0 0 8px rgba(232,192,96,.3)}50%{box-shadow:0 0 24px rgba(232,192,96,.7)}}
+/* INVENTORY PANEL */
+#inv-panel{
+  display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:200;background:linear-gradient(180deg,#2a1e10,#1a1208);
+  border:3px solid #8a6030;border-radius:4px;padding:12px;
+  font-family:'Press Start 2P',monospace;min-width:340px;
+}
+#inv-panel.open{display:block;}
+#inv-panel h3{color:#f0c840;font-size:9px;text-align:center;margin-bottom:10px;border-bottom:1px solid #4a3010;padding-bottom:6px;}
+#inv-grid{display:grid;grid-template-columns:repeat(6,50px);gap:4px;justify-content:center;}
+.inv-slot{
+  width:50px;height:50px;background:rgba(0,0,0,0.5);
+  border:1px solid #4a3010;border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;font-size:18px;
+  transition:border-color .1s;
+}
+.inv-slot:hover{border-color:#e8c060;}
+.inv-slot .inv-qty{position:absolute;bottom:2px;right:3px;font-size:6px;color:#f0c840;font-family:'Press Start 2P',monospace;}
+.inv-slot .inv-name{font-size:5px;color:#a08060;font-family:'Press Start 2P',monospace;margin-top:1px;text-align:center;line-height:1.3;}
+.inv-slot.weapon-item{border-color:#c06020;}
+.inv-slot.weapon-item:hover{border-color:#f08040;}
+#inv-info{margin-top:8px;padding:6px;background:rgba(0,0,0,0.4);border:1px solid #3a2810;border-radius:2px;min-height:36px;font-size:6px;color:#c0a060;line-height:1.8;}
+#inv-close{margin-top:8px;width:100%;padding:5px;background:transparent;border:1px solid #6a4820;color:#e0c080;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;}
+#inv-close:hover{border-color:#e8c060;}
+
+/* Gozo HP bar */
+#gozo-hp-bar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:50;
+  background:rgba(10,5,2,.85);border:2px solid #8a6030;border-radius:3px;
+  padding:4px 12px;font-family:'Press Start 2P',monospace;font-size:7px;
+  display:flex;align-items:center;gap:8px;pointer-events:none;}
+#gozo-hp-bar span{color:#f04040;}
+#gozo-hp-fill{width:120px;height:8px;background:#1a0808;border:1px solid #4a1010;border-radius:2px;overflow:hidden;}
+#gozo-hp-inner{height:100%;background:linear-gradient(90deg,#c02020,#f04040);transition:width .2s;}
+
+/* Monster HP bars (canvas overlay via DOM) */
+.mob-hp{position:absolute;pointer-events:none;z-index:35;}
+.mob-hp-bar{width:32px;height:4px;background:#1a0808;border:1px solid #3a1010;}
+.mob-hp-fill{height:100%;background:#c03030;transition:width .1s;}
+
+/* Weapon equipped indicator */
+#equipped-weapon{position:absolute;top:10px;right:100px;z-index:50;
+  background:rgba(10,5,2,.85);border:2px solid #8a6030;border-radius:3px;
+  padding:4px 10px;font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;
+  pointer-events:none;}
+
 .hb{font-size:13px;color:#7a6040;border:1px solid #3a2810;padding:5px 14px;line-height:2.1;text-align:center;}
 
 /* TOAST */
@@ -188,10 +234,10 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   <div class="hb">🎮 WASD / Arrow = move<br>🖱 Click rock = auto mine<br>🪜 Find ladder → go deeper<br>[T] = open upgrade panel</div>
   <div id="splash-btns">
     <button id="ss" onclick="startNewGame()">► NEW GAME</button>
-    <button id="ss-load" onclick="loadGame()" style="display:none">📂 CONTINUE</button>
+    <button id="ss-load" onclick="loadGame()">📂 LOAD SAVE</button>
   </div>
-  <div id="save-preview" style="display:none"></div>
 </div>
+<input type="file" id="file-input" accept=".json" style="display:none" onchange="onFileLoad(event)">
 
 <div id="toast"></div>
 
@@ -204,7 +250,18 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   <div id="gold-hud">💰 <span id="gh-coins">0</span></div>
   <div id="chint">WASD=MOVE &nbsp; CLICK ROCK=MINE &nbsp; T=UPGRADE</div>
 
-  <!-- Ladder modal -->
+  <!-- Gozo HP bar -->
+  <div id="gozo-hp-bar">❤️ <span id="gozo-hp-txt">100</span>&nbsp;<div id="gozo-hp-fill"><div id="gozo-hp-inner" style="width:100%"></div></div></div>
+  <!-- Equipped weapon display -->
+  <div id="equipped-weapon">⚔️ <span id="eq-name">Fists</span></div>
+
+  <!-- Inventory Panel -->
+  <div id="inv-panel">
+    <h3>🎒 INVENTORY (I)</h3>
+    <div id="inv-grid"></div>
+    <div id="inv-info">Click item for details. Drag weapons to equip.</div>
+    <button id="inv-close" onclick="toggleInv()">✕ CLOSE</button>
+  </div>
   <div id="lm">
     <h2>🪜 LADDER FOUND!</h2>
     <p>Descend to floor <span id="nf">2</span>?<br>Better ore rewards below!</p>
@@ -259,9 +316,10 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 <div id="hud">
   <!-- Hotbar -->
   <div class="hotbar">
-    <div class="hslot active" title="Pickaxe"><span class="slot-num">1</span><span class="slot-icon">⛏️</span></div>
-    <div class="hslot" title="TNT" id="slot-tnt"><span class="slot-num">2</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
-    <div class="hslot" title="Ladder"><span class="slot-num">3</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
+    <div class="hslot active" id="slot-pick" title="Pickaxe" onclick="equipSlot('pick')"><span class="slot-num">1</span><span class="slot-icon">⛏️</span></div>
+    <div class="hslot" id="slot-weapon" title="Weapon" onclick="equipSlot('weapon')"><span class="slot-num">2</span><span id="weapon-icon" class="slot-icon">👊</span></div>
+    <div class="hslot" title="TNT" id="slot-tnt"><span class="slot-num">3</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
+    <div class="hslot" title="Ladder"><span class="slot-num">4</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
   </div>
   <!-- Stats -->
   <div class="hud-stats">
@@ -278,6 +336,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     <button class="hud-btn" onclick="sell('diamond')">💎 Sell Diam<br>+500💰 each</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn upg" onclick="toggleUpgPanel()">[T] UPGRADE</button>
+    <div style="width:2px;height:40px;background:#4a3010"></div>
+    <button class="hud-btn" onclick="toggleInv()" style="border-color:#a060c0;color:#c080e0;">[I] BAG</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="saveGame()" style="border-color:#60c890;color:#60c890;">💾 SAVE</button>
   </div>
@@ -719,9 +779,8 @@ function makeWallTile(variant=0) {
   return oc;
 }
 
-// ── WALL FACE — tall vertical cliff face, drawn below wall onto floor row ──
-// This is the KEY to the 2.5D look — tall dark face creates depth
-const FACE_H = TILE; // Full tile height face for dramatic cliff
+// ── WALL FACE — cliff front strip, drawn below wall onto the floor row ──
+const FACE_H = TILE;
 function makeWallFaceTile(variant=0) {
   const oc = document.createElement('canvas');
   oc.width = TILE; oc.height = FACE_H;
@@ -729,47 +788,31 @@ function makeWallFaceTile(variant=0) {
   const seed = variant * 2311;
   const rng = (n) => ((Math.sin(n+seed)*43758.5453)%1+1)%1;
 
-  // Vertical gradient: warm brown at top → very dark at bottom (deep shadow)
+  // Gradient: warm tan at top (matches wall bottom edge) → very dark at bottom
   const grad = cx.createLinearGradient(0,0,0,FACE_H);
-  grad.addColorStop(0,   '#7a5228');  // warm rim at top
-  grad.addColorStop(0.15,'#5a3818');  // darker cliff face
-  grad.addColorStop(0.5, '#3e2510');
-  grad.addColorStop(1,   '#1e1008');  // deep shadow at bottom
+  grad.addColorStop(0,    '#7a5228'); // matches wall color
+  grad.addColorStop(0.2,  '#5c3c1c');
+  grad.addColorStop(0.55, '#3a2410');
+  grad.addColorStop(1,    '#0e0806'); // deep shadow
   cx.fillStyle = grad;
   cx.fillRect(0,0,TILE,FACE_H);
 
-  // Horizontal strata — rock layering lines across the face
-  cx.strokeStyle='rgba(0,0,0,0.28)'; cx.lineWidth=1;
-  for(let y=4;y<FACE_H;y+=5+Math.floor(rng(y+variant)*3)){
-    const wobble = (rng(y*3+variant)-.5)*3;
+  // Horizontal rock strata lines
+  cx.strokeStyle='rgba(0,0,0,0.22)'; cx.lineWidth=1;
+  for(let y=6; y<FACE_H; y+=5+Math.floor(rng(y+variant)*3)){
     cx.beginPath();
-    cx.moveTo(0, y+wobble);
-    cx.lineTo(TILE*0.38, y+(rng(y+1)-.5)*2+wobble);
-    cx.moveTo(TILE*0.44, y+(rng(y+2)-.5)*2+wobble);
-    cx.lineTo(TILE, y+(rng(y+3)-.5)*2+wobble);
+    cx.moveTo(0, y+(rng(y*3+variant)-.5)*2);
+    cx.lineTo(TILE*0.42, y+(rng(y+1)-.5)*2);
+    cx.moveTo(TILE*0.48, y+(rng(y+2)-.5)*2);
+    cx.lineTo(TILE, y+(rng(y+3)-.5)*2);
     cx.stroke();
   }
 
-  // Subtle vertical crack on the face
-  cx.strokeStyle='rgba(15,8,2,0.35)'; cx.lineWidth=1;
-  const cx1=4+variant*7, startY=2;
-  cx.beginPath(); cx.moveTo(cx1, startY);
-  for(let y=startY;y<FACE_H;y+=4){
-    cx.lineTo(cx1+(rng(y+variant*3)-.5)*3, y+4);
-  }
-  cx.stroke();
-
-  // TOP RIM — bright warm highlight where wall top meets face
-  // This is the most important visual element of the 2.5D look
-  const rimGrad = cx.createLinearGradient(0,0,0,6);
-  rimGrad.addColorStop(0,'rgba(220,170,80,0.75)');
-  rimGrad.addColorStop(1,'rgba(220,170,80,0)');
-  cx.fillStyle = rimGrad;
-  cx.fillRect(0,0,TILE,6);
-
-  // Bottom: fully dark — merges into cave shadow
-  cx.fillStyle='rgba(0,0,0,0.55)';
-  cx.fillRect(0,FACE_H-6,TILE,6);
+  // Bright rim at the very top — the "ledge" highlight
+  const rim = cx.createLinearGradient(0,0,0,5);
+  rim.addColorStop(0,'rgba(200,150,70,0.7)');
+  rim.addColorStop(1,'rgba(200,150,70,0)');
+  cx.fillStyle=rim; cx.fillRect(0,0,TILE,5);
 
   return oc;
 }
@@ -890,6 +933,9 @@ const G={
   coins:0,ladder:0,iron:0,gold:0,diamond:0,
   rocksSmashed:0,
   tntCount:0,
+  hp:100, maxHp:100,
+  equippedWeapon:null, // weapon id string or null
+  inventory:Array(30).fill(null), // 30 slots: {type:'ore'|'weapon', id, qty}
   upg:{
     pick:  {lv:0,max:10,cost:50, mult:1.65,unlock:1},
     crit:  {lv:0,max:5, cost:150,mult:1.9, unlock:1},
@@ -906,6 +952,656 @@ const getLuck =()=>G.upg.lucky.lv*0.09;
 const getMag  =()=>G.upg.magnet.lv>=1?2:1;
 const getSpd  =()=>2.2+G.upg.speed.lv*0.5;
 const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
+
+// ═══════════════════════════════════════════════════════════
+//  WEAPONS — 20 unique weapons, tiered by floor
+// ═══════════════════════════════════════════════════════════
+const WEAPONS = {
+  // Tier 1 (floor 1-10)
+  wooden_sword:  {name:'Wooden Sword',  dmg:3,  spd:1.0, range:1.2, tier:1, icon:'🗡️',  color:'#c8a060', floorMin:1},
+  stone_dagger:  {name:'Stone Dagger',  dmg:5,  spd:1.3, range:0.9, tier:1, icon:'🔪',  color:'#909090', floorMin:2},
+  iron_sword:    {name:'Iron Sword',    dmg:8,  spd:1.0, range:1.3, tier:2, icon:'⚔️',  color:'#80b0c0', floorMin:5},
+  club:          {name:'Stone Club',    dmg:10, spd:0.7, range:1.1, tier:1, icon:'🏏',  color:'#888070', floorMin:3},
+  // Tier 2 (floor 10-30)
+  iron_axe:      {name:'Iron Axe',      dmg:14, spd:0.8, range:1.2, tier:2, icon:'🪓',  color:'#80b0c0', floorMin:10},
+  silver_sword:  {name:'Silver Sword',  dmg:16, spd:1.1, range:1.4, tier:2, icon:'🗡️',  color:'#c0d0e0', floorMin:12},
+  crossbow:      {name:'Crossbow',      dmg:12, spd:1.4, range:2.5, tier:2, icon:'🏹',  color:'#a07040', floorMin:15},
+  war_hammer:    {name:'War Hammer',    dmg:20, spd:0.5, range:1.1, tier:2, icon:'🔨',  color:'#c0a060', floorMin:18},
+  // Tier 3 (floor 30-60)
+  gold_sword:    {name:'Gold Sword',    dmg:24, spd:1.2, range:1.5, tier:3, icon:'⚔️',  color:'#f0d040', floorMin:30},
+  enchanted_bow: {name:'Enchanted Bow', dmg:22, spd:1.5, range:3.0, tier:3, icon:'🏹',  color:'#8060f0', floorMin:35},
+  crystal_blade: {name:'Crystal Blade', dmg:28, spd:1.3, range:1.6, tier:3, icon:'🗡️',  color:'#80f0f0', floorMin:40},
+  lava_axe:      {name:'Lava Axe',      dmg:32, spd:0.9, range:1.3, tier:3, icon:'🪓',  color:'#f06020', floorMin:45},
+  // Tier 4 (floor 60-90)
+  shadow_blade:  {name:'Shadow Blade',  dmg:40, spd:1.4, range:1.8, tier:4, icon:'🗡️',  color:'#4020a0', floorMin:60},
+  thunder_spear: {name:'Thunder Spear', dmg:36, spd:1.6, range:2.0, tier:4, icon:'⚡',  color:'#f0f040', floorMin:65},
+  void_hammer:   {name:'Void Hammer',   dmg:50, spd:0.6, range:1.2, tier:4, icon:'🔨',  color:'#200840', floorMin:70},
+  dragon_sword:  {name:'Dragon Sword',  dmg:45, spd:1.2, range:1.8, tier:4, icon:'⚔️',  color:'#f04020', floorMin:75},
+  // Tier 5 (floor 90-100)
+  soul_reaper:   {name:'Soul Reaper',   dmg:60, spd:1.0, range:2.0, tier:5, icon:'⚔️',  color:'#20c080', floorMin:85},
+  starfire_bow:  {name:'Starfire Bow',  dmg:55, spd:1.8, range:3.5, tier:5, icon:'🏹',  color:'#f0c040', floorMin:90},
+  abyss_blade:   {name:'Abyss Blade',   dmg:70, spd:1.3, range:2.0, tier:5, icon:'🗡️',  color:'#6000c0', floorMin:95},
+  omega_hammer:  {name:'Ω Hammer',      dmg:100,spd:0.5, range:1.3, tier:5, icon:'🔨',  color:'#ff80ff', floorMin:98},
+};
+
+// Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
+const WEAPON_SPR = {};
+function buildWeaponSprite(id) {
+  const w = WEAPONS[id];
+  const oc = document.createElement('canvas');
+  oc.width=32; oc.height=32;
+  const cx = oc.getContext('2d');
+  cx.imageSmoothingEnabled=false;
+
+  const c = w.color;
+  const dark = '#1a1010';
+  const light = '#ffffff';
+
+  if(w.icon==='⚔️'||w.icon==='🗡️'){
+    // Sword shape
+    cx.fillStyle=dark;   cx.fillRect(14,2,4,24);
+    cx.fillStyle=c;      cx.fillRect(15,3,2,20);
+    cx.fillStyle=light;  cx.fillRect(15,3,1,8);
+    // Guard
+    cx.fillStyle='#a06020'; cx.fillRect(10,20,12,3);
+    cx.fillStyle='#c08030'; cx.fillRect(11,21,10,1);
+    // Handle
+    cx.fillStyle='#6a3a10'; cx.fillRect(13,23,6,6);
+  } else if(w.icon==='🏹'){
+    // Bow shape
+    cx.strokeStyle=c; cx.lineWidth=2;
+    cx.beginPath(); cx.arc(16,16,11,Math.PI*0.15,Math.PI*0.85); cx.stroke();
+    // Arrow
+    cx.fillStyle='#c09050'; cx.fillRect(15,4,2,24);
+    cx.fillStyle=c; cx.fillRect(14,4,4,3);
+  } else if(w.icon==='🪓'){
+    // Axe
+    cx.fillStyle=dark;   cx.fillRect(14,16,4,14);
+    cx.fillStyle='#8a5020'; cx.fillRect(15,17,2,12);
+    cx.fillStyle=c;      cx.fillRect(8,4,16,14);
+    cx.fillStyle=light;  cx.fillRect(9,5,4,4);
+    cx.fillStyle=dark;   cx.fillRect(8,4,16,2); cx.fillRect(8,4,2,14); cx.fillRect(22,4,2,14);
+  } else if(w.icon==='🔨'){
+    // Hammer
+    cx.fillStyle='#8a5020'; cx.fillRect(14,12,4,18);
+    cx.fillStyle='#a06028'; cx.fillRect(15,13,2,16);
+    cx.fillStyle=c;      cx.fillRect(6,4,20,12);
+    cx.fillStyle=light;  cx.fillRect(7,5,6,4);
+    cx.fillStyle=dark;   cx.fillRect(6,4,20,2); cx.fillRect(6,4,2,12); cx.fillRect(24,4,2,12);
+  } else if(w.icon==='🔪'){
+    // Dagger
+    cx.fillStyle=dark;   cx.fillRect(14,4,4,18);
+    cx.fillStyle=c;      cx.fillRect(15,5,2,14);
+    cx.fillStyle=light;  cx.fillRect(15,5,1,6);
+    cx.fillStyle='#805020'; cx.fillRect(13,20,6,8);
+  } else if(w.icon==='🏏'){
+    // Club
+    cx.fillStyle='#8a5020'; cx.fillRect(14,2,4,20);
+    cx.fillStyle=c;      cx.fillRect(9,18,14,10);
+    cx.fillStyle=light;  cx.fillRect(10,19,4,3);
+  } else if(w.icon==='⚡'){
+    // Spear
+    cx.fillStyle='#8a5020'; cx.fillRect(15,12,2,18);
+    cx.fillStyle=c;      cx.fillRect(13,2,6,14);
+    cx.fillStyle=light;  cx.fillRect(14,3,2,6);
+  } else {
+    // Generic sword fallback
+    cx.fillStyle=c; cx.fillRect(14,2,4,24);
+    cx.fillStyle='#a06020'; cx.fillRect(10,20,12,3);
+  }
+  // Tier glow
+  if(w.tier>=3){
+    cx.globalAlpha=0.25;
+    cx.fillStyle=c; cx.fillRect(0,0,32,32);
+    cx.globalAlpha=1;
+  }
+  return oc;
+}
+function buildAllWeaponSprites(){
+  for(const id in WEAPONS) WEAPON_SPR[id]=buildWeaponSprite(id);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MONSTERS — 100 types, 1 type per floor
+// ═══════════════════════════════════════════════════════════
+// Each monster: name, emoji/color seed, base hp, base dmg, spd, drop weapon chance
+const MOB_DEFS = (()=>{
+  const list = [
+    // Floor 1-10: cute/easy cave creatures
+    {n:'Cave Bat',     cl:'#604080',hl:'#c080f0',hp:8,  dmg:2,  spd:1.2, drop:'wooden_sword'},
+    {n:'Stone Slime',  cl:'#808070',hl:'#c0c0a0',hp:12, dmg:3,  spd:0.7, drop:'stone_dagger'},
+    {n:'Dirt Crab',    cl:'#806040',hl:'#c09060',hp:15, dmg:3,  spd:0.8, drop:'club'},
+    {n:'Cave Moth',    cl:'#908060',hl:'#e0d0a0',hp:10, dmg:4,  spd:1.5, drop:'wooden_sword'},
+    {n:'Rock Sprite',  cl:'#707080',hl:'#a0a0c0',hp:18, dmg:4,  spd:0.9, drop:'stone_dagger'},
+    {n:'Mud Crawler',  cl:'#604030',hl:'#a07050',hp:20, dmg:5,  spd:0.6, drop:'club'},
+    {n:'Gloom Rat',    cl:'#504040',hl:'#907070',hp:22, dmg:5,  spd:1.3, drop:'iron_sword'},
+    {n:'Pebble Golem', cl:'#808888',hl:'#b0c0c0',hp:28, dmg:6,  spd:0.5, drop:'iron_sword'},
+    {n:'Shadow Bat',   cl:'#302040',hl:'#7040a0',hp:25, dmg:7,  spd:1.4, drop:'iron_axe'},
+    {n:'Crystal Bug',  cl:'#408080',hl:'#80e0e0',hp:30, dmg:7,  spd:1.0, drop:'iron_axe'},
+    // Floor 11-20
+    {n:'Iron Crab',    cl:'#506070',hl:'#80a0c0',hp:40, dmg:9,  spd:0.8, drop:'silver_sword'},
+    {n:'Cave Troll',   cl:'#405030',hl:'#708050',hp:55, dmg:10, spd:0.5, drop:'war_hammer'},
+    {n:'Bone Archer',  cl:'#d0c0a0',hl:'#f0e0c0',hp:38, dmg:11, spd:1.0, drop:'crossbow'},
+    {n:'Lava Bat',     cl:'#803020',hl:'#f06040',hp:35, dmg:12, spd:1.5, drop:'crossbow'},
+    {n:'Moss Giant',   cl:'#406030',hl:'#70a050',hp:65, dmg:11, spd:0.4, drop:'war_hammer'},
+    {n:'Dark Slime',   cl:'#202030',hl:'#4040a0',hp:45, dmg:12, spd:0.7, drop:'silver_sword'},
+    {n:'Stone Brute',  cl:'#606060',hl:'#909090',hp:70, dmg:13, spd:0.5, drop:'war_hammer'},
+    {n:'Venom Crab',   cl:'#308040',hl:'#50d060',hp:50, dmg:14, spd:0.9, drop:'iron_axe'},
+    {n:'Wind Sprite',  cl:'#a0c0e0',hl:'#e0f0ff',hp:42, dmg:15, spd:1.8, drop:'crossbow'},
+    {n:'Cave Warden',  cl:'#504060',hl:'#806090',hp:80, dmg:14, spd:0.6, drop:'silver_sword'},
+    // Floor 21-30
+    {n:'Gold Slime',   cl:'#c0a020',hl:'#f0e040',hp:90, dmg:16, spd:0.8, drop:'gold_sword'},
+    {n:'Iron Golem',   cl:'#607080',hl:'#90c0d0',hp:120,dmg:18, spd:0.4, drop:'war_hammer'},
+    {n:'Shade Wolf',   cl:'#303040',hl:'#6060a0',hp:85, dmg:20, spd:1.4, drop:'gold_sword'},
+    {n:'Rock Drake',   cl:'#607060',hl:'#90b090',hp:100,dmg:19, spd:0.7, drop:'enchanted_bow'},
+    {n:'Cursed Bat',   cl:'#500040',hl:'#c000a0',hp:80, dmg:21, spd:1.6, drop:'enchanted_bow'},
+    {n:'Cave Hydra',   cl:'#204040',hl:'#40a080',hp:130,dmg:20, spd:0.5, drop:'gold_sword'},
+    {n:'Bone Knight',  cl:'#c0c0b0',hl:'#e0e0d0',hp:110,dmg:22, spd:0.6, drop:'crystal_blade'},
+    {n:'Lava Toad',    cl:'#803010',hl:'#f06020',hp:95, dmg:23, spd:0.8, drop:'lava_axe'},
+    {n:'Frost Sprite', cl:'#8080e0',hl:'#c0c0ff',hp:88, dmg:24, spd:1.5, drop:'crystal_blade'},
+    {n:'Deep Crawler', cl:'#202020',hl:'#404040',hp:145,dmg:22, spd:0.5, drop:'lava_axe'},
+    // Floor 31-40
+    {n:'Crystal Drake',cl:'#408090',hl:'#80f0ff',hp:160,dmg:26, spd:0.7, drop:'crystal_blade'},
+    {n:'Shadow Wolf',  cl:'#101020',hl:'#3030a0',hp:140,dmg:28, spd:1.5, drop:'shadow_blade'},
+    {n:'Magma Golem',  cl:'#802010',hl:'#f04020',hp:200,dmg:25, spd:0.4, drop:'lava_axe'},
+    {n:'Void Bat',     cl:'#100010',hl:'#6000c0',hp:130,dmg:30, spd:1.7, drop:'shadow_blade'},
+    {n:'Rune Crab',    cl:'#4040c0',hl:'#8080f0',hp:170,dmg:27, spd:0.6, drop:'crystal_blade'},
+    {n:'Jade Brute',   cl:'#204030',hl:'#40a060',hp:210,dmg:29, spd:0.4, drop:'thunder_spear'},
+    {n:'Plague Rat',   cl:'#405020',hl:'#809040',hp:155,dmg:31, spd:1.3, drop:'shadow_blade'},
+    {n:'Deep Troll',   cl:'#303820',hl:'#606840',hp:240,dmg:28, spd:0.3, drop:'thunder_spear'},
+    {n:'Frost Drake',  cl:'#6080b0',hl:'#a0c0f0',hp:185,dmg:32, spd:0.8, drop:'thunder_spear'},
+    {n:'Cave Lich',    cl:'#300050',hl:'#9000f0',hp:200,dmg:35, spd:0.9, drop:'shadow_blade'},
+    // Floor 41-50
+    {n:'Storm Golem',  cl:'#4060a0',hl:'#80b0f0',hp:280,dmg:34, spd:0.4, drop:'thunder_spear'},
+    {n:'Death Bat',    cl:'#080008',hl:'#400040',hp:200,dmg:38, spd:1.8, drop:'void_hammer'},
+    {n:'Acid Slime',   cl:'#408000',hl:'#a0f000',hp:220,dmg:36, spd:0.6, drop:'thunder_spear'},
+    {n:'Iron Lich',    cl:'#405060',hl:'#6090a0',hp:260,dmg:37, spd:0.8, drop:'void_hammer'},
+    {n:'Lava Drake',   cl:'#901010',hl:'#f04020',hp:300,dmg:38, spd:0.6, drop:'lava_axe'},
+    {n:'Bone Dragon',  cl:'#d0d0c0',hl:'#f0f0e0',hp:320,dmg:40, spd:0.5, drop:'void_hammer'},
+    {n:'Shadow Golem', cl:'#101018',hl:'#3030a0',hp:290,dmg:39, spd:0.4, drop:'dragon_sword'},
+    {n:'Void Crab',    cl:'#100020',hl:'#5000a0',hp:250,dmg:42, spd:0.7, drop:'dragon_sword'},
+    {n:'Cursed Drake', cl:'#600050',hl:'#e000c0',hp:310,dmg:40, spd:0.7, drop:'dragon_sword'},
+    {n:'Abyss Troll',  cl:'#080010',hl:'#2000a0',hp:380,dmg:42, spd:0.3, drop:'dragon_sword'},
+    // Floor 51-60
+    {n:'Fire Drake',   cl:'#a03010',hl:'#f06020',hp:400,dmg:44, spd:0.7, drop:'dragon_sword'},
+    {n:'Plague Golem', cl:'#304020',hl:'#60a040',hp:380,dmg:46, spd:0.4, drop:'soul_reaper'},
+    {n:'Storm Lich',   cl:'#3050a0',hl:'#60a0f0',hp:350,dmg:48, spd:0.9, drop:'soul_reaper'},
+    {n:'Blood Bat',    cl:'#600010',hl:'#e00030',hp:300,dmg:50, spd:1.9, drop:'soul_reaper'},
+    {n:'Void Drake',   cl:'#100018',hl:'#4000c0',hp:450,dmg:47, spd:0.6, drop:'soul_reaper'},
+    {n:'Death Golem',  cl:'#202020',hl:'#606060',hp:500,dmg:49, spd:0.3, drop:'soul_reaper'},
+    {n:'Rune Lich',    cl:'#500060',hl:'#c000f0',hp:420,dmg:52, spd:0.9, drop:'starfire_bow'},
+    {n:'Iron Dragon',  cl:'#506070',hl:'#90b0c0',hp:550,dmg:50, spd:0.5, drop:'starfire_bow'},
+    {n:'Shadow Dragon',cl:'#100820',hl:'#4020a0',hp:520,dmg:54, spd:0.6, drop:'starfire_bow'},
+    {n:'Infernal Bat', cl:'#400020',hl:'#c00060',hp:400,dmg:56, spd:2.0, drop:'starfire_bow'},
+    // Floor 61-70
+    {n:'Frost Dragon', cl:'#5070b0',hl:'#90c0f0',hp:600,dmg:55, spd:0.6, drop:'starfire_bow'},
+    {n:'Death Drake',  cl:'#080010',hl:'#3000a0',hp:580,dmg:58, spd:0.7, drop:'abyss_blade'},
+    {n:'Chaos Golem',  cl:'#601020',hl:'#f02040',hp:700,dmg:57, spd:0.3, drop:'abyss_blade'},
+    {n:'Void Lich',    cl:'#0a000a',hl:'#6000c0',hp:650,dmg:60, spd:0.9, drop:'abyss_blade'},
+    {n:'Storm Dragon', cl:'#304880',hl:'#6090f0',hp:750,dmg:59, spd:0.5, drop:'abyss_blade'},
+    {n:'Blood Drake',  cl:'#700010',hl:'#e00030',hp:680,dmg:62, spd:0.7, drop:'abyss_blade'},
+    {n:'Rune Dragon',  cl:'#400060',hl:'#a000f0',hp:800,dmg:61, spd:0.5, drop:'omega_hammer'},
+    {n:'Plague Dragon',cl:'#203010',hl:'#50a020',hp:850,dmg:63, spd:0.5, drop:'omega_hammer'},
+    {n:'Chaos Drake',  cl:'#500010',hl:'#f02000',hp:780,dmg:65, spd:0.6, drop:'omega_hammer'},
+    {n:'Void Dragon',  cl:'#050010',hl:'#2000c0',hp:900,dmg:64, spd:0.5, drop:'omega_hammer'},
+    // Floor 71-80
+    {n:'Abyss Drake',  cl:'#050008',hl:'#4000a0',hp:950,dmg:68, spd:0.6, drop:'omega_hammer'},
+    {n:'Soul Golem',   cl:'#100820',hl:'#3020a0',hp:1100,dmg:66,spd:0.3, drop:'omega_hammer'},
+    {n:'Infernal Drake',cl:'#600008',hl:'#e02000',hp:1000,dmg:70,spd:0.6,drop:'omega_hammer'},
+    {n:'Death Dragon', cl:'#080008',hl:'#200060',hp:1200,dmg:68,spd:0.4, drop:'omega_hammer'},
+    {n:'Chaos Lich',   cl:'#400000',hl:'#c00000',hp:1050,dmg:72,spd:0.9, drop:'omega_hammer'},
+    {n:'Void Golem',   cl:'#050005',hl:'#100090',hp:1300,dmg:70,spd:0.3, drop:'omega_hammer'},
+    {n:'Soul Drake',   cl:'#080010',hl:'#3010b0',hp:1150,dmg:74,spd:0.6, drop:'omega_hammer'},
+    {n:'Abyss Dragon', cl:'#030008',hl:'#1500a0',hp:1400,dmg:72,spd:0.4, drop:'omega_hammer'},
+    {n:'Infernal Lich',cl:'#500000',hl:'#d00010',hp:1250,dmg:76,spd:0.8, drop:'omega_hammer'},
+    {n:'Chaos Dragon', cl:'#100005',hl:'#500060',hp:1500,dmg:75,spd:0.4, drop:'omega_hammer'},
+    // Floor 81-90
+    {n:'Soul Lich',    cl:'#080010',hl:'#2010c0',hp:1600,dmg:78,spd:0.8, drop:'omega_hammer'},
+    {n:'Void Drake II',cl:'#030005',hl:'#0a00a0',hp:1800,dmg:80,spd:0.6, drop:'omega_hammer'},
+    {n:'Death Lich',   cl:'#050010',hl:'#150090',hp:1700,dmg:82,spd:0.8, drop:'omega_hammer'},
+    {n:'Infernal Dragon',cl:'#600000',hl:'#ff2000',hp:2000,dmg:80,spd:0.5,drop:'omega_hammer'},
+    {n:'Abyss Lich',   cl:'#030008',hl:'#1000b0',hp:1900,dmg:85,spd:0.8, drop:'omega_hammer'},
+    {n:'Chaos Dragon II',cl:'#100010',hl:'#600080',hp:2200,dmg:83,spd:0.4,drop:'omega_hammer'},
+    {n:'Soul Dragon',  cl:'#050010',hl:'#2000d0',hp:2100,dmg:87,spd:0.5, drop:'omega_hammer'},
+    {n:'Void Titan',   cl:'#020005',hl:'#0800c0',hp:2500,dmg:85,spd:0.3, drop:'omega_hammer'},
+    {n:'Death Titan',  cl:'#080008',hl:'#180070',hp:2400,dmg:90,spd:0.4, drop:'omega_hammer'},
+    {n:'Infernal Titan',cl:'#700000',hl:'#ff3000',hp:2800,dmg:88,spd:0.4,drop:'omega_hammer'},
+    // Floor 91-100: final bosses
+    {n:'Abyss Titan',  cl:'#020008',hl:'#0a00d0',hp:3000,dmg:92,spd:0.4, drop:'omega_hammer'},
+    {n:'Chaos Titan',  cl:'#100010',hl:'#800090',hp:3200,dmg:95,spd:0.4, drop:'omega_hammer'},
+    {n:'Soul Titan',   cl:'#050018',hl:'#2010e0',hp:3100,dmg:98,spd:0.4, drop:'omega_hammer'},
+    {n:'Shadow God',   cl:'#010008',hl:'#0500c0',hp:3500,dmg:100,spd:0.5,drop:'omega_hammer'},
+    {n:'Void God',     cl:'#000005',hl:'#0000f0',hp:3800,dmg:105,spd:0.4,drop:'omega_hammer'},
+    {n:'Death God',    cl:'#050005',hl:'#1000a0',hp:4000,dmg:108,spd:0.4,drop:'omega_hammer'},
+    {n:'Chaos God',    cl:'#100008',hl:'#600080',hp:4200,dmg:112,spd:0.4,drop:'omega_hammer'},
+    {n:'Infernal God', cl:'#800000',hl:'#ff4000',hp:4500,dmg:115,spd:0.5,drop:'omega_hammer'},
+    {n:'Abyss God',    cl:'#010005',hl:'#0800e0',hp:4800,dmg:118,spd:0.4,drop:'omega_hammer'},
+    {n:'Cave Overlord',cl:'#000000',hl:'#ff00ff',hp:5000,dmg:120,spd:0.5,drop:'omega_hammer'},
+  ];
+  return list;
+})();
+
+// Draw monster pixel art — unique body shape per monster type
+const MOB_SPR = {};
+// Build monster sprite — multiple frames for animation
+// Returns array of 4 canvas frames
+function buildMonsterSprite(idx) {
+  const def = MOB_DEFS[idx];
+  const shape = idx % 6;
+  const cl = def.cl, hl = def.hl;
+  const tier = Math.floor(idx/10);
+  const frames = [];
+
+  for(let frame=0; frame<4; frame++){
+    const oc = document.createElement('canvas');
+    oc.width=32; oc.height=32;
+    const cx = oc.getContext('2d');
+    cx.imageSmoothingEnabled=false;
+
+    // Animation offset: bob/bounce per frame
+    const bob = [0, -1, -2, -1][frame];
+    const wingAng = [0, 0.3, 0.5, 0.3][frame]; // wing flap angle
+
+    if(shape===0){ // ── BAT — oval body + animated wings ──
+      const by = 18+bob;
+      // Wings (animated flap)
+      cx.fillStyle=cl;
+      cx.save(); cx.translate(10,by); cx.rotate(-wingAng);
+      cx.beginPath(); cx.moveTo(0,0); cx.lineTo(-7,-8+frame); cx.lineTo(0,-4); cx.closePath(); cx.fill();
+      cx.restore();
+      cx.save(); cx.translate(22,by); cx.rotate(wingAng);
+      cx.beginPath(); cx.moveTo(0,0); cx.lineTo(7,-8+frame); cx.lineTo(0,-4); cx.closePath(); cx.fill();
+      cx.restore();
+      // Body
+      cx.fillStyle=cl;
+      cx.beginPath(); cx.ellipse(16,by,7,5,0,0,Math.PI*2); cx.fill();
+      // Ear nubs
+      cx.fillStyle=hl;
+      cx.fillRect(12,by-5,3,3); cx.fillRect(18,by-5,3,3);
+      // Eyes glow
+      cx.fillStyle=hl;
+      cx.fillRect(13,by-1,3,2); cx.fillRect(18,by-1,3,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(14,by-1,1,1); cx.fillRect(19,by-1,1,1);
+
+    } else if(shape===1){ // ── SLIME — wobbly blob ──
+      const squish = [0,1,-1,0][frame];
+      // Body squish animation
+      cx.fillStyle=cl;
+      cx.beginPath(); cx.ellipse(16, 20+bob, 10+squish, 8-squish, 0,0,Math.PI*2); cx.fill();
+      // Head dome
+      cx.beginPath(); cx.ellipse(16, 13+bob, 7, 6+squish, 0,0,Math.PI*2); cx.fill();
+      // Shine
+      cx.fillStyle=hl; cx.globalAlpha=0.35;
+      cx.beginPath(); cx.ellipse(12, 11+bob, 3,4, Math.PI*0.3,0,Math.PI*2); cx.fill();
+      cx.globalAlpha=1;
+      // Eyes (blink on frame 3)
+      cx.fillStyle='#ffffff';
+      if(frame!==3){ cx.fillRect(12,13+bob,4,3); cx.fillRect(17,13+bob,4,3); }
+      cx.fillStyle=hl;
+      if(frame!==3){ cx.fillRect(13,14+bob,2,2); cx.fillRect(18,14+bob,2,2); }
+      // Drip bottom
+      cx.fillStyle=cl;
+      cx.beginPath(); cx.moveTo(13,25+bob); cx.lineTo(16,28+bob+squish); cx.lineTo(19,25+bob); cx.fill();
+
+    } else if(shape===2){ // ── CRAB/SPIDER — leg animation ──
+      const legBob = [0,2,0,-2][frame];
+      cx.fillStyle=cl;
+      // Shell body
+      cx.beginPath(); cx.ellipse(16,18+bob,9,7,0,0,Math.PI*2); cx.fill();
+      // Legs — alternating up/down
+      for(let i=0;i<4;i++){
+        const lb = i%2===0 ? legBob : -legBob;
+        cx.fillStyle=cl;
+        cx.fillRect(4+i*2, 18+bob, 2, 6+lb);   // left legs
+        cx.fillRect(24-i*2, 18+bob, 2, 6+lb);  // right legs
+      }
+      // Claws
+      cx.fillStyle=hl;
+      cx.fillRect(4,16+bob,4,4); cx.fillRect(24,16+bob,4,4);
+      // Eyes on stalks
+      cx.fillStyle=cl; cx.fillRect(12,12+bob,3,5); cx.fillRect(18,12+bob,3,5);
+      cx.fillStyle='#ffffff'; cx.fillRect(12,11+bob,3,3); cx.fillRect(18,11+bob,3,3);
+      cx.fillStyle=hl; cx.fillRect(13,12+bob,1,1); cx.fillRect(19,12+bob,1,1);
+
+    } else if(shape===3){ // ── GOLEM — stomping walk ──
+      const stomp = [0,1,0,-1][frame];
+      cx.fillStyle=cl;
+      // Legs
+      cx.fillRect(11,22+stomp,4,8-stomp);
+      cx.fillRect(17,22-stomp,4,8+stomp);
+      // Body
+      cx.fillRect(10,8+bob,12,16);
+      // Head
+      cx.fillRect(11,3+bob,10,7);
+      // Arms swing
+      const armSwing = [-1,0,1,0][frame];
+      cx.fillRect(5,10+bob+armSwing,6,8);
+      cx.fillRect(21,10+bob-armSwing,6,8);
+      // Dark details
+      cx.fillStyle='rgba(0,0,0,0.3)';
+      cx.fillRect(10,8+bob,12,3);
+      cx.fillRect(5,10+bob+armSwing,6,3);
+      // Eyes glow
+      cx.fillStyle=hl;
+      cx.fillRect(12,5+bob,3,2); cx.fillRect(17,5+bob,3,2);
+      // Cracks
+      cx.fillStyle='rgba(0,0,0,0.4)';
+      cx.fillRect(15,9+bob,2,6); cx.fillRect(12,12+bob,4,2);
+
+    } else if(shape===4){ // ── DRAGON — slithering ──
+      const slither = [0,2,-2,0][frame];
+      cx.fillStyle=cl;
+      // Tail tip
+      cx.beginPath(); cx.moveTo(4,22+bob); cx.lineTo(2,26+bob); cx.lineTo(8,20+bob); cx.closePath(); cx.fill();
+      // Body
+      cx.beginPath(); cx.ellipse(14+slither, 18+bob, 10,7,0,0,Math.PI*2); cx.fill();
+      // Neck
+      cx.beginPath(); cx.ellipse(22-slither, 11+bob, 6,5, Math.PI*0.1,0,Math.PI*2); cx.fill();
+      // Head
+      cx.beginPath(); cx.ellipse(26-slither, 8+bob, 5,4,0,0,Math.PI*2); cx.fill();
+      // Wing (flap)
+      cx.save(); cx.translate(14+slither, 14+bob); cx.rotate(-wingAng*0.5);
+      cx.beginPath(); cx.moveTo(0,0); cx.lineTo(-8,-10); cx.lineTo(2,-6); cx.closePath(); cx.fill();
+      cx.restore();
+      // Belly highlight
+      cx.fillStyle=hl; cx.globalAlpha=0.3;
+      cx.beginPath(); cx.ellipse(14+slither,18+bob,7,4,0,0,Math.PI*2); cx.fill();
+      cx.globalAlpha=1;
+      // Eyes
+      cx.fillStyle=hl;
+      cx.fillRect(25-slither,7+bob,2,2); cx.fillRect(28-slither,7+bob,2,2);
+      // Flame breath on attack frame
+      if(frame===2){
+        cx.fillStyle='#f06020'; cx.globalAlpha=0.7;
+        cx.beginPath(); cx.ellipse(31-slither,6+bob,3,2,0,0,Math.PI*2); cx.fill();
+        cx.globalAlpha=1;
+      }
+
+    } else { // ── LICH/GHOST — ethereal float ──
+      const float = [0,-1,-2,-1][frame];
+      cx.fillStyle=cl; cx.globalAlpha=0.8;
+      // Robe body
+      cx.beginPath(); cx.ellipse(16, 18+float, 8,11,0,0,Math.PI*2); cx.fill();
+      // Hood
+      cx.beginPath(); cx.ellipse(16, 9+float, 7,7,0,0,Math.PI*2); cx.fill();
+      cx.globalAlpha=1;
+      // Glowing eyes
+      cx.fillStyle=hl;
+      cx.fillRect(11,8+float,5,3); cx.fillRect(17,8+float,5,3);
+      cx.fillStyle='#ffffff'; cx.globalAlpha=0.7;
+      cx.fillRect(12,9+float,2,1); cx.fillRect(18,9+float,2,1);
+      cx.globalAlpha=1;
+      // Wisp tendrils (animated)
+      cx.fillStyle=hl; cx.globalAlpha=0.4+frame*0.1;
+      cx.beginPath(); cx.ellipse(7+frame,22+float,3,5+frame,Math.PI*0.2,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.ellipse(25-frame,23+float,3,5+frame,Math.PI*0.8,0,Math.PI*2); cx.fill();
+      cx.globalAlpha=1;
+      // Dark skull mouth
+      cx.fillStyle='rgba(0,0,0,0.5)';
+      cx.fillRect(13,13+float,6,2);
+    }
+
+    // Tier aura glow (higher tier = more glow)
+    if(tier>=4){
+      cx.globalAlpha=0.08+tier*0.02;
+      cx.fillStyle=hl;
+      cx.beginPath(); cx.arc(16,16,15,0,Math.PI*2); cx.fill();
+      cx.globalAlpha=1;
+    }
+
+    frames.push(oc);
+  }
+  return frames; // Return array of 4 frames
+}
+
+function buildAllMonsterSprites(){
+  for(let i=0;i<100;i++) MOB_SPR[i]=buildMonsterSprite(i);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MONSTER STATE
+// ═══════════════════════════════════════════════════════════
+let monsters = {};   // key = "x,y" world pos, value = mob object
+let mobIdCtr = 0;
+
+function spawnMonsters(fl){
+  monsters={};
+  const def = MOB_DEFS[Math.min(fl-1, 99)];
+  const floorMult = 1+(fl-1)*0.15;
+  // 5-10 monsters per floor, scaling with depth
+  const count = 5 + Math.min(5, Math.floor(fl/12));
+  const floors=[];
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)
+    if(worldMap[y][x]===T_FLOOR&&!rocks[x+','+y])floors.push({x,y});
+  const gx=Math.floor(gozo.wx/TILE), gy=Math.floor(gozo.wy/TILE);
+  const cands=floors.filter(f=>Math.abs(f.x-gx)+Math.abs(f.y-gy)>8);
+  const shuffled=[...cands].sort(()=>Math.random()-0.5);
+  for(let i=0;i<Math.min(count,shuffled.length);i++){
+    const{x,y}=shuffled[i];
+    const id=++mobIdCtr;
+    const maxHp=Math.ceil(def.hp*floorMult);
+    monsters[id]={
+      id, defIdx:Math.min(fl-1,99),
+      wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
+      hp:maxHp, maxHp, state:'wander',
+      dir:'S', frameT:0, frame:0,
+      atkCd:0, wanderT:0,
+      tx:x, ty:y,
+    };
+  }
+}
+
+function updateMonsters(){
+  const spd=1.0;
+  const now=Date.now();
+  for(const id in monsters){
+    const m=monsters[id];
+    const def=MOB_DEFS[m.defIdx];
+    const flMult=1+(G.floor-1)*0.15;
+    m.atkCd=Math.max(0,m.atkCd-1);
+
+    const dx=gozo.wx-m.wx, dy=gozo.wy-m.wy;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    const aggroRange=TILE*5;
+    const atkRange=TILE*1.1;
+
+    if(dist<aggroRange){
+      m.state='chase';
+      const speed=def.spd*spd;
+      if(dist>atkRange){
+        const nx=m.wx+(dx/dist)*speed;
+        const ny=m.wy+(dy/dist)*speed;
+        if(canWalk(nx,m.wy)&&!mobCollidesAt(nx,m.wy,id))m.wx=nx;
+        if(canWalk(m.wx,ny)&&!mobCollidesAt(m.wx,ny,id))m.wy=ny;
+      } else if(m.atkCd<=0){
+        // Attack Gozo
+        const dmg=Math.ceil(def.dmg*flMult);
+        G.hp=Math.max(0,G.hp-dmg);
+        m.atkCd=60;
+        updateGozoHpBar();
+        shakeAmt=4;
+        const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-20);
+        spawnDmg(sx,sy-10,`-${dmg}`,'#f04040',8);
+        if(G.hp<=0) handleGozoDeath();
+      }
+    } else {
+      // Wander
+      m.wanderT--;
+      if(m.wanderT<=0){
+        m.wanderT=30+Math.floor(Math.random()*60);
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        const[wdx,wdy]=dirs[Math.floor(Math.random()*4)];
+        const nx=m.wx+wdx*TILE*0.5, ny=m.wy+wdy*TILE*0.5;
+        if(canWalk(nx,ny))m.state='wander';
+      }
+      if(m.state==='wander'){
+        // slight drift
+      }
+    }
+    // Update tile pos
+    m.tx=Math.floor(m.wx/TILE); m.ty=Math.floor(m.wy/TILE);
+  }
+}
+
+function mobCollidesAt(wx,wy,skipId){
+  for(const id in monsters){
+    if(id==skipId)continue;
+    const m=monsters[id];
+    if(Math.abs(m.wx-wx)<12&&Math.abs(m.wy-wy)<12)return true;
+  }
+  return false;
+}
+
+function hitMonster(id){
+  const m=monsters[id];
+  if(!m)return;
+  const wep=G.equippedWeapon?WEAPONS[G.equippedWeapon]:null;
+  const baseDmg=wep?wep.dmg:getDmg();
+  let dmg=baseDmg;
+  let isCrit=false;
+  if(Math.random()<getCrit()){dmg=Math.floor(dmg*3);isCrit=true;}
+  m.hp-=dmg;
+  shakeAmt=isCrit?5:2;
+  playPickaxeHit('stone',isCrit);
+  const sx=Math.round(m.wx-camX), sy=Math.round(m.wy-camY-20);
+  spawnDmg(sx,sy,isCrit?`CRIT ${dmg}`:`-${dmg}`,isCrit?'#f0f040':'#f08040',isCrit?9:7);
+  if(m.hp<=0)killMonster(id);
+}
+
+function killMonster(id){
+  const m=monsters[id];
+  if(!m)return;
+  const def=MOB_DEFS[m.defIdx];
+  const sx=Math.round(m.wx-camX), sy=Math.round(m.wy-camY);
+  spawnDmg(sx,sy-10,'💀 DEFEATED','#f0c840',8);
+  // Drop weapon
+  if(Math.random()<0.35&&def.drop){
+    const wid=def.drop;
+    const added=addToInventory({type:'weapon',id:wid,qty:1});
+    if(added)spawnDmg(sx,sy-28,`⚔️ ${WEAPONS[wid].name}`,'#f08040',7);
+  }
+  delete monsters[id];
+}
+
+function handleGozoDeath(){
+  G.hp=1; // don't die, just reset floor with penalty
+  toast('💀 Gozo was defeated! Lost some coins...');
+  G.coins=Math.floor(G.coins*0.7);
+  updateHud();
+}
+
+function updateGozoHpBar(){
+  const pct=Math.max(0,G.hp/G.maxHp*100);
+  document.getElementById('gozo-hp-inner').style.width=pct+'%';
+  document.getElementById('gozo-hp-txt').textContent=G.hp;
+  const c=pct>50?'#c02020':pct>25?'#e06020':'#f04040';
+  document.getElementById('gozo-hp-inner').style.background=`linear-gradient(90deg,${c},#f06060)`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INVENTORY SYSTEM
+// ═══════════════════════════════════════════════════════════
+function addToInventory(item){
+  // Try to stack ore/same items
+  if(item.type==='ore'){
+    for(let i=0;i<30;i++){
+      const s=G.inventory[i];
+      if(s&&s.type==='ore'&&s.id===item.id&&s.qty<99){
+        s.qty+=item.qty; renderInventory(); return true;
+      }
+    }
+  }
+  // Find empty slot
+  for(let i=0;i<30;i++){
+    if(!G.inventory[i]){ G.inventory[i]={...item}; renderInventory(); return true; }
+  }
+  toast('🎒 Inventory full!'); return false;
+}
+
+function removeFromInventory(slot, qty=1){
+  const s=G.inventory[slot];
+  if(!s)return;
+  if(s.qty>qty){ s.qty-=qty; }
+  else { G.inventory[slot]=null; }
+  renderInventory();
+}
+
+function renderInventory(){
+  const grid=document.getElementById('inv-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  const oreEmoji={stone:'🪨',iron:'⚙️',gold:'✨',diamond:'💎'};
+  for(let i=0;i<30;i++){
+    const s=G.inventory[i];
+    const div=document.createElement('div');
+    div.className='inv-slot'+(s&&s.type==='weapon'?' weapon-item':'');
+    if(s){
+      let icon='',name='',qty='';
+      if(s.type==='ore'){
+        icon=oreEmoji[s.id]||'📦'; name=s.id; qty=s.qty>1?s.qty:'';
+      } else if(s.type==='weapon'){
+        icon=WEAPONS[s.id]?WEAPONS[s.id].icon:'⚔️';
+        name=WEAPONS[s.id]?WEAPONS[s.id].name.split(' ').slice(-1)[0]:'Wpn';
+        qty='';
+      }
+      div.innerHTML=`<span style="font-size:20px">${icon}</span><span class="inv-name">${name}</span>${qty?`<span class="inv-qty">${qty}</span>`:''}`;
+      div.onclick=()=>onInvClick(i);
+    }
+    grid.appendChild(div);
+  }
+}
+
+function onInvClick(i){
+  const s=G.inventory[i];
+  const info=document.getElementById('inv-info');
+  if(!s){info.textContent='Empty slot.';return;}
+  if(s.type==='weapon'){
+    const w=WEAPONS[s.id];
+    info.innerHTML=`<b style="color:#f0c840">${w.name}</b><br>DMG: ${w.dmg} | SPD: ${w.spd}x | RNG: ${w.range}x<br><span style="color:#a080c0">Click again to EQUIP</span>`;
+    if(info.dataset.pending===String(i)){
+      equipWeapon(s.id,i); info.dataset.pending='';
+    } else { info.dataset.pending=String(i); }
+  } else if(s.type==='ore'){
+    const prices={stone:0,iron:15,gold:80,diamond:500};
+    info.innerHTML=`<b style="color:#f0c840">${s.id.toUpperCase()}</b> ×${s.qty}<br>Sell value: 💰${prices[s.id]||0} each<br><span style="color:#60e890">Click again to SELL ALL</span>`;
+    if(info.dataset.pending===String(i)){
+      const p=prices[s.id]||0; G.coins+=p*s.qty;
+      toast(`💰 Sold ${s.qty} ${s.id} for ${p*s.qty}g!`);
+      removeFromInventory(i,s.qty); updateHud(); info.dataset.pending='';
+    } else { info.dataset.pending=String(i); }
+  }
+}
+
+function equipWeapon(wid, slotIdx){
+  G.equippedWeapon=wid;
+  document.getElementById('weapon-icon').textContent=WEAPONS[wid].icon;
+  document.getElementById('eq-name').textContent=WEAPONS[wid].name;
+  document.getElementById('slot-weapon').classList.add('active');
+  document.getElementById('slot-pick').classList.remove('active');
+  toast(`⚔️ Equipped ${WEAPONS[wid].name}!`);
+  renderInventory();
+}
+
+function equipSlot(slot){
+  if(slot==='pick'){
+    G.equippedWeapon=null;
+    document.getElementById('weapon-icon').textContent='👊';
+    document.getElementById('eq-name').textContent='Fists';
+    document.getElementById('slot-pick').classList.add('active');
+    document.getElementById('slot-weapon').classList.remove('active');
+  }
+}
+
+function toggleInv(){
+  const p=document.getElementById('inv-panel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open'))renderInventory();
+}
+
+// Give starting weapon
+function giveStarterWeapon(){
+  addToInventory({type:'weapon',id:'wooden_sword',qty:1});
+}
 
 // ═══════════════════════════════════════════════════════════
 //  WORLD MAP
@@ -996,6 +1692,11 @@ function genFloor(fl){
   gozo.state='idle';gozo.dir='S';gozo.frame=0;gozo.frameT=0;
   gozo.mineTarget=null;gozo.clickDest=null;
   ladderTile=null;
+  // Restore HP on new floor
+  G.hp=G.maxHp;
+  updateGozoHpBar();
+  // Spawn monsters for this floor
+  spawnMonsters(fl);
 }
 
 const typeKeys=['stone','iron','gold','diamond'];
@@ -1068,6 +1769,33 @@ function updateGozo(){
     if(Math.abs(tx-mx)<=1&&Math.abs(ty-my)<=1){gozo.clickDest=null;startMining();}
   }
 
+  // AUTO-ATTACK — find nearest monster in range and attack it automatically
+  gozo.atkCd = (gozo.atkCd||0) - 1;
+  let nearestMob = null, nearestDist = Infinity;
+  for(const id in monsters){
+    const m = monsters[id];
+    const dx = m.wx-gozo.wx, dy = m.wy-gozo.wy;
+    const d = Math.sqrt(dx*dx+dy*dy);
+    if(d < nearestDist){ nearestDist=d; nearestMob=id; }
+  }
+
+  const autoAtkRange = TILE * 1.3;
+  if(nearestMob && nearestDist < autoAtkRange){
+    // In range — stop moving and swing
+    if(gozo.state !== 'mine') gozo.state = 'mine';
+    gozo.clickDest = null; gozo.mineTarget = null;
+    const m = monsters[nearestMob];
+    gozo.dir = m.wx > gozo.wx ? 'E' : m.wx < gozo.wx ? 'W' : m.wy > gozo.wy ? 'S' : 'N';
+    if(gozo.atkCd <= 0){
+      hitMonster(nearestMob);
+      gozo.atkCd = 22; // attack speed ~3 hits/sec at 60fps
+    }
+  } else if(gozo.attackTarget && monsters[gozo.attackTarget]){
+    // Walking toward clicked monster
+    const m = monsters[gozo.attackTarget];
+    gozo.clickDest = {wx: m.wx, wy: m.wy};
+  }
+
   // Mine animation + hit
   if(gozo.state==='mine'){
     gozo.frameT++;
@@ -1075,7 +1803,16 @@ function updateGozo(){
     gozo.frame=Math.floor(gozo.frameT/s)%3;
     if(gozo.frameT%(s*3)===s*2){
       if(gozo.mineTarget&&rocks[gozo.mineTarget])doHit(gozo.mineTarget);
-      else{gozo.state='idle';gozo.frame=0;gozo.mineTarget=null;}
+      else if(!gozo.mineTarget){
+        // Check still near a monster — if not, go idle
+        let stillFighting=false;
+        for(const id in monsters){
+          const m=monsters[id];
+          const dx=m.wx-gozo.wx,dy=m.wy-gozo.wy;
+          if(Math.sqrt(dx*dx+dy*dy)<TILE*1.3){stillFighting=true;break;}
+        }
+        if(!stillFighting){gozo.state='idle';gozo.frame=0;}
+      } else {gozo.state='idle';gozo.frame=0;gozo.mineTarget=null;}
     }
     return;
   }
@@ -1154,7 +1891,7 @@ function render(){
   const ex=Math.min(MAP_W,sx+Math.ceil(cW/TILE)+3);
   const ey=Math.min(MAP_H,sy+Math.ceil(cH/TILE)+3);
 
-  // Draw tiles — two passes: floor first, then wall faces on top
+  // Pass 1: floor tiles
   for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
     for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
       const px=Math.round(tx2*TILE-cx2)+ox;
@@ -1163,28 +1900,53 @@ function render(){
       const v=tileVariant[ty2]?.[tx2]??0;
       if(t===T_FLOOR){
         gctx.drawImage(TC.floor[v],px,py);
-      } else if(t===T_WALL){
-        gctx.drawImage(TC.wall[v],px,py);
-      } else {
+      } else if(t!==T_WALL){
         gctx.drawImage(TC.border,px,py);
       }
     }
   }
 
-  // Pass 2: draw front face of walls — on floor tiles that have a wall ABOVE them
-  // This creates the 2.5D cliff/ledge effect like Stardew Valley
+  // Pass 2: wall top surface
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const t=worldMap[ty2]?.[tx2]??T_VOID;
+      if(t!==T_WALL) continue;
+      const px=Math.round(tx2*TILE-cx2)+ox;
+      const py=Math.round(ty2*TILE-cy2)+oy;
+      const v=tileVariant[ty2]?.[tx2]??0;
+      gctx.drawImage(TC.wall[v], px, py);
+    }
+  }
+
+  // Pass 3: cliff face — drawn at BOTTOM of wall tile, hanging over floor below
+  // This is the key to 2.5D: the face is part of the wall, not the floor
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const t=worldMap[ty2]?.[tx2]??T_VOID;
+      if(t!==T_WALL) continue;
+      const below=worldMap[ty2+1]?.[tx2]??T_VOID;
+      if(below!==T_FLOOR) continue;
+      const px=Math.round(tx2*TILE-cx2)+ox;
+      const py=Math.round(ty2*TILE-cy2)+oy;
+      const v=tileVariant[ty2]?.[tx2]??0;
+      // Face drawn starting from bottom of wall tile, going down over floor
+      gctx.drawImage(TC.face[v], px, py + TILE - 2);
+    }
+  }
+
+  // Pass 4: drop shadow on floor tiles just below a wall
   for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
     for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
       const t=worldMap[ty2]?.[tx2]??T_VOID;
       if(t!==T_FLOOR) continue;
       const above=worldMap[ty2-1]?.[tx2]??T_VOID;
-      if(above===T_WALL){
-        const px=Math.round(tx2*TILE-cx2)+ox;
-        const py=Math.round(ty2*TILE-cy2)+oy;
-        const v=tileVariant[ty2-1]?.[tx2]??0;
-        // Draw face at top of this floor tile (overlapping wall below)
-        gctx.drawImage(TC.face[v], px, py);
-      }
+      if(above!==T_WALL) continue;
+      const px=Math.round(tx2*TILE-cx2)+ox;
+      const py=Math.round(ty2*TILE-cy2)+oy;
+      const sg=gctx.createLinearGradient(0,py,0,py+TILE*0.55);
+      sg.addColorStop(0,'rgba(0,0,0,0.38)');
+      sg.addColorStop(1,'rgba(0,0,0,0)');
+      gctx.fillStyle=sg; gctx.fillRect(px,py,TILE,TILE);
     }
   }
 
@@ -1202,6 +1964,34 @@ function render(){
     const py=Math.round(r.ty*TILE-cy2)+oy;
     const spr=ORE_SPR[r.type][r.cracks];
     gctx.drawImage(spr,px,py);
+  }
+
+  // Draw monsters (sorted by Y)
+  const mobList=Object.values(monsters).sort((a,b)=>a.wy-b.wy);
+  for(const m of mobList){
+    const mpx=Math.round(m.wx-cx2)+ox;
+    const mpy=Math.round(m.wy-cy2)+oy;
+    // Shadow
+    gctx.fillStyle='rgba(0,0,0,0.28)';
+    gctx.beginPath();gctx.ellipse(mpx,mpy+4,13,5,0,0,Math.PI*2);gctx.fill();
+    // Animated sprite — cycle 4 frames
+    m.animT=(m.animT||0)+1;
+    const animFrame = Math.floor(m.animT/10)%4; // change frame every 10 ticks
+    const frames=MOB_SPR[m.defIdx];
+    const spr=frames?frames[animFrame]:null;
+    if(spr) gctx.drawImage(spr,mpx-16,mpy-28);
+    // HP bar above monster
+    const hpPct=m.hp/m.maxHp;
+    const bw=34,bh=4,bx=mpx-17,by=mpy-36;
+    gctx.fillStyle='#1a0808'; gctx.fillRect(bx,by,bw,bh);
+    gctx.fillStyle=hpPct>0.5?'#30c030':hpPct>0.25?'#c0a020':'#e02020';
+    gctx.fillRect(bx,by,Math.round(bw*hpPct),bh);
+    // Monster name on hover (show always for clarity)
+    gctx.fillStyle='rgba(0,0,0,0.55)';
+    gctx.fillRect(bx,by-11,bw,9);
+    gctx.fillStyle='#e0c080';
+    gctx.font='5px monospace';
+    gctx.fillText(MOB_DEFS[m.defIdx].n.slice(0,12),bx+1,by-4);
   }
 
   // Draw gozo shadow (at feet)
@@ -1285,6 +2075,22 @@ function onCanvasClick(e){
   const wx=mx+camX,wy=my+camY;
   const tx=Math.floor(wx/TILE),ty=Math.floor(wy/TILE);
   const k=tx+','+ty;
+
+  // Check if clicked near a monster — walk toward it (auto-attack fires when close)
+  for(const id in monsters){
+    const m=monsters[id];
+    const dx=m.wx-wx, dy=m.wy-wy;
+    if(Math.sqrt(dx*dx+dy*dy)<TILE){
+      gozo.mineTarget=null;
+      gozo.attackTarget=id;
+      gozo.clickDest={wx:m.wx, wy:m.wy};
+      gozo.state='walk';
+      return;
+    }
+  }
+
+  // Rock or floor click
+  gozo.attackTarget=null;
   if(rocks[k]){
     gozo.mineTarget=k;
     const adj=findAdj(tx,ty);
@@ -1419,12 +2225,23 @@ function smashRock(r){
   playRockSmash(r.type);
   const loot=rollLoot(r.type,G.floor);
   const mag=getMag();
-  G.coins+=loot.coins*mag;G.iron+=loot.iron*mag;G.gold+=loot.gold*mag;G.diamond+=loot.diamond*mag;
   const sx=Math.round(r.tx*TILE+TILE/2-camX);
   const sy=Math.round(r.ty*TILE+TILE/2-camY);
-  if(loot.iron)   spawnDmg(sx+6, sy-26,`+${loot.iron*mag} iron`,'#90c8d8',7);
-  if(loot.gold)   spawnDmg(sx-6, sy-38,`+${loot.gold*mag} gold`,'#f0d040',7);
-  if(loot.diamond)spawnDmg(sx,   sy-50,`+${loot.diamond*mag} diam`,'#80f0f0',9);
+  if(loot.iron){
+    const qty=loot.iron*mag;
+    addToInventory({type:'ore',id:'iron',qty});
+    spawnDmg(sx+6, sy-26,`+${qty} iron`,'#90c8d8',7);
+  }
+  if(loot.gold){
+    const qty=loot.gold*mag;
+    addToInventory({type:'ore',id:'gold',qty});
+    spawnDmg(sx-6, sy-38,`+${qty} gold`,'#f0d040',7);
+  }
+  if(loot.diamond){
+    const qty=loot.diamond*mag;
+    addToInventory({type:'ore',id:'diamond',qty});
+    spawnDmg(sx,   sy-50,`+${qty} diam`,'#80f0f0',9);
+  }
   if(loot.ladder){
     G.ladder++;
     ladderTile={tx:r.tx,ty:r.ty};
@@ -1451,9 +2268,15 @@ function rollLoot(type,fl){
 // ═══════════════════════════════════════════════════════════
 function sell(type){
   const p={iron:15,gold:80,diamond:500};
-  const qty=G[type];if(!qty){toast('❌ No '+type+' to sell!');return;}
-  G.coins+=qty*p[type];G[type]=0;
-  toast(`💰 +${qty*p[type]}g from ${qty} ${type}!`);updateHud();
+  let totalQty=0;
+  for(let i=0;i<30;i++){
+    const s=G.inventory[i];
+    if(s&&s.type==='ore'&&s.id===type){totalQty+=s.qty;G.inventory[i]=null;}
+  }
+  if(!totalQty){toast('❌ No '+type+' in bag!');return;}
+  G.coins+=totalQty*p[type];
+  toast(`💰 +${totalQty*p[type]}g from ${totalQty} ${type}!`);
+  renderInventory(); updateHud();
 }
 
 function buyUpgrade(id){
@@ -1487,8 +2310,6 @@ function goNextFloor(){
     fa.style.transition='opacity .5s';fa.style.opacity='0';
     setTimeout(()=>fa.remove(),520);
     toast(`🪜 Floor ${G.floor}! Rocks are tougher...`);
-    // Auto-save on floor change
-    setTimeout(()=>saveGame(),600);
   },320);
 }
 function closeLadder(){document.getElementById('lm').classList.remove('show');}
@@ -1525,9 +2346,12 @@ function updateHud(){
   document.getElementById('gh-coins').textContent=c;
   document.getElementById('fb-num').textContent=G.floor;
   document.getElementById('hs-coins').textContent=c;
-  document.getElementById('hs-iron').textContent=fmt(G.iron);
-  document.getElementById('hs-gold').textContent=fmt(G.gold);
-  document.getElementById('hs-diam').textContent=fmt(G.diamond);
+  // Count ore in inventory
+  let iron=0,gold=0,diam=0;
+  for(const s of G.inventory){if(!s)continue;if(s.type==='ore'){if(s.id==='iron')iron+=s.qty;else if(s.id==='gold')gold+=s.qty;else if(s.id==='diamond')diam+=s.qty;}}
+  document.getElementById('hs-iron').textContent=fmt(iron);
+  document.getElementById('hs-gold').textContent=fmt(gold);
+  document.getElementById('hs-diam').textContent=fmt(diam);
   document.getElementById('hs-rocks').textContent=Object.keys(rocks).length;
   document.getElementById('lad-slot-qty').textContent=G.ladder;
   updateUpgUI();
@@ -1553,7 +2377,7 @@ let tt;function toast(msg){const t=document.getElementById('toast');t.textConten
 // ═══════════════════════════════════════════════════════════
 //  GAME LOOP
 // ═══════════════════════════════════════════════════════════
-function loop(){updateGozo();render();requestAnimationFrame(loop);}
+function loop(){updateGozo();updateMonsters();render();requestAnimationFrame(loop);}
 
 function initCanvas(){
   const wrap=document.getElementById('game-wrap');
@@ -1574,15 +2398,15 @@ function initCanvas(){
 document.addEventListener('keydown',e=>{
   KEYS[e.key]=true;
   if(e.key==='t'||e.key==='T')toggleUpgPanel();
+  if(e.key==='i'||e.key==='I')toggleInv();
   if(e.code==='Space'){e.preventDefault();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
 });
 document.addEventListener('keyup',e=>{KEYS[e.key]=false;});
 
 // ═══════════════════════════════════════════════════════════
-//  SAVE / LOAD
+//  SAVE / LOAD — file based (download/upload)
 // ═══════════════════════════════════════════════════════════
-const SAVE_KEY = 'gozo_mining_save';
 
 function saveGame(){
   const data = {
@@ -1590,38 +2414,48 @@ function saveGame(){
     timestamp: Date.now(),
     G: JSON.parse(JSON.stringify(G)),
   };
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-    toast('💾 Game saved!');
-  } catch(e) {
-    toast('❌ Save failed!');
-  }
-}
-
-function getSaveData(){
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch(e){ return null; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `gozo-save-floor${G.floor}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('💾 Save file downloaded!');
 }
 
 function loadGame(){
-  const data = getSaveData();
-  if(!data){ toast('❌ No save found!'); return; }
-  getAudioCtx();
-  buildAllSprites();
-  buildTiles();
-  buildOreSprites();
-  // Restore G state
-  Object.assign(G, data.G);
-  const sp=document.getElementById('splash');
-  sp.style.transition='opacity .5s';sp.style.opacity='0';
-  setTimeout(()=>sp.style.display='none',520);
-  initCanvas();
-  genFloor(G.floor);
-  updateHud();
-  toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`);
-  requestAnimationFrame(loop);
+  document.getElementById('file-input').click();
+}
+
+function onFileLoad(e){
+  const file = e.target.files[0];
+  if(!file){ return; }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(!data.G || !data.version){ toast('❌ Invalid save file!'); return; }
+      getAudioCtx();
+      buildAllSprites();
+      buildTiles();
+      buildOreSprites();
+      Object.assign(G, data.G);
+      const sp=document.getElementById('splash');
+      sp.style.transition='opacity .5s';sp.style.opacity='0';
+      setTimeout(()=>sp.style.display='none',520);
+      initCanvas();
+      genFloor(G.floor);
+      updateHud();
+      toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`);
+      requestAnimationFrame(loop);
+    } catch(err){
+      toast('❌ Failed to read save file!');
+    }
+  };
+  reader.readAsText(file);
+  // reset so same file can be loaded again
+  e.target.value = '';
 }
 
 function startNewGame(){
@@ -1629,32 +2463,24 @@ function startNewGame(){
   buildAllSprites();
   buildTiles();
   buildOreSprites();
+  buildAllWeaponSprites();
+  buildAllMonsterSprites();
+  buildAllWeaponSprites();
+  buildAllMonsterSprites();
   const sp=document.getElementById('splash');
   sp.style.transition='opacity .5s';sp.style.opacity='0';
   setTimeout(()=>sp.style.display='none',520);
   initCanvas();
   genFloor(1);
+  giveStarterWeapon();
   updateHud();
-  toast('⛏ WASD / Arrow = move | Click rock = mine | T = upgrade');
+  updateGozoHpBar();
+  toast('⛏ WASD=move | Click rock=mine | Click monster=attack | I=bag');
   requestAnimationFrame(loop);
 }
 
-// Check for existing save on page load
 window.addEventListener('load', ()=>{
-  const data = getSaveData();
-  if(data){
-    const loadBtn = document.getElementById('ss-load');
-    const preview = document.getElementById('save-preview');
-    loadBtn.style.display = 'block';
-    const d = new Date(data.timestamp);
-    const timeStr = d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-    const G2 = data.G;
-    preview.style.display = 'block';
-    preview.innerHTML =
-      `SAVED: ${timeStr}<br>` +
-      `FLOOR ${G2.floor} &nbsp;|&nbsp; 💰 ${G2.coins}<br>` +
-      `⚙️ ${G2.iron} &nbsp; ✨ ${G2.gold} &nbsp; 💎 ${G2.diamond}`;
-  }
+  // nothing to preview — file based save
 });
 
 </script>
