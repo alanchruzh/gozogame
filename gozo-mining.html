@@ -834,18 +834,44 @@ function makeLadderTile() {
   const oc = document.createElement('canvas');
   oc.width = TILE; oc.height = TILE;
   const cx = oc.getContext('2d');
-  cx.fillStyle='#c8a060'; cx.fillRect(0,0,TILE,TILE);
-  cx.strokeStyle='rgba(80,50,10,0.35)'; cx.lineWidth=1;
-  cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,0,0,Math.PI*2); cx.stroke();
-  // Ladder rungs
-  cx.fillStyle='#8a5020';
-  cx.fillRect(6,4,4,TILE-8); cx.fillRect(TILE-10,4,4,TILE-8);
-  cx.fillStyle='#b07030';
-  for(let i=0;i<4;i++) cx.fillRect(6,6+i*7,TILE-12,3);
-  // glow
-  cx.fillStyle='rgba(255,200,80,0.18)';
-  cx.fillRect(0,0,TILE,TILE);
-  cx.strokeStyle='#f0d060'; cx.lineWidth=2; cx.strokeRect(1,1,TILE-2,TILE-2);
+
+  // Draw on top of floor — transparent background, blends with floor tile
+  // Hole/pit effect — dark circle in floor
+  const grad = cx.createRadialGradient(TILE/2,TILE/2,2, TILE/2,TILE/2,TILE/2-2);
+  grad.addColorStop(0,   '#0a0604');
+  grad.addColorStop(0.6, '#1a1008');
+  grad.addColorStop(1,   'rgba(10,6,2,0)');
+  cx.fillStyle=grad;
+  cx.beginPath(); cx.ellipse(TILE/2,TILE/2+2, TILE/2-3, TILE/2-5, 0,0,Math.PI*2); cx.fill();
+
+  // Wooden ladder rails — two vertical posts
+  cx.fillStyle='#7a4a18';
+  cx.fillRect(9, 4, 4, TILE-6);   // left rail
+  cx.fillRect(TILE-13, 4, 4, TILE-6); // right rail
+  // Rail highlights
+  cx.fillStyle='#a06828';
+  cx.fillRect(10, 5, 2, TILE-8);
+  cx.fillRect(TILE-12, 5, 2, TILE-8);
+
+  // Rungs
+  const rungColor = ['#6a3e12','#8a5420','#7a4818'];
+  for(let i=0;i<4;i++){
+    const ry = 6+i*7;
+    cx.fillStyle=rungColor[i%3];
+    cx.fillRect(9, ry, TILE-18, 3);
+    // Rung highlight top edge
+    cx.fillStyle='#b07830';
+    cx.fillRect(10, ry, TILE-20, 1);
+  }
+
+  // Golden shimmer glow — downward opening, soft
+  const glow = cx.createRadialGradient(TILE/2,TILE/2,0, TILE/2,TILE/2,TILE/2);
+  glow.addColorStop(0,   'rgba(255,200,60,0.22)');
+  glow.addColorStop(0.5, 'rgba(255,160,30,0.10)');
+  glow.addColorStop(1,   'rgba(255,140,0,0)');
+  cx.fillStyle=glow;
+  cx.beginPath(); cx.ellipse(TILE/2,TILE/2, TILE/2-1, TILE/2-2, 0,0,Math.PI*2); cx.fill();
+
   return oc;
 }
 
@@ -1393,6 +1419,24 @@ function spawnMonsters(fl){
 
 function updateMonsters(){
   const spd=1.0;
+
+  // HP Regen — heal when no monster is nearby
+  let anyNear = false;
+  for(const id in monsters){
+    const m=monsters[id];
+    const dx=gozo.wx-m.wx, dy=gozo.wy-m.wy;
+    if(Math.sqrt(dx*dx+dy*dy)<TILE*6){anyNear=true;break;}
+  }
+  if(!anyNear && G.hp < G.maxHp){
+    G._regenT=(G._regenT||0)+1;
+    if(G._regenT>=90){ // regen 1 HP every 1.5s (90 frames)
+      G.hp=Math.min(G.maxHp, G.hp+1);
+      G._regenT=0;
+      updateGozoHpBar();
+    }
+  } else if(anyNear){
+    G._regenT=0; // reset regen timer when monster nearby
+  }
   const now=Date.now();
   for(const id in monsters){
     const m=monsters[id];
