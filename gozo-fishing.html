@@ -3790,6 +3790,8 @@ let G={
   riverColor2:null,
   // Weather tracking for ambience
   _lastWeather:'clear',
+  // Clouds
+  clouds:[],
 };
 
 // ── XP / LEVEL ──
@@ -4353,6 +4355,17 @@ function updateWeather(dt){
   }
   G.puddles = G.puddles.filter(q=>q.life>0.02 && q.size>1);
 
+  // ── Move clouds ──
+  if(G.clouds && G.clouds.length){
+    const windMult = G.weather==='storm' ? 2.2 : G.weather==='rain' ? 1.5 : G.weather==='drizzle' ? 1.2 : 1.0;
+    G.clouds.forEach(c=>{
+      c.wx += c.spd * windMult * dt * 60;
+      // Wrap around world
+      const totalW = c.puffs.reduce((a,b)=>a+b,0) + 20;
+      if(c.wx > WORLD_W + totalW) c.wx = -totalW - 10;
+    });
+  }
+
   // ── FIREFLIES ──
   const skyC = getSkyColors();
   const isNight = skyC.starAlpha > 0.3;
@@ -4364,17 +4377,7 @@ function updateWeather(dt){
     // Fade out during day
     if(G.fireflies.length > 0 && Math.random()<0.02) G.fireflies.shift();
   }
-  G.fireflies.forEach(f=>{
-    f.x  += Math.cos(f.angle)*f.spd;
-    f.y  += Math.sin(f.angle)*f.spd * 0.5 + Math.sin(G.t*f.wobble+f.phase)*0.3;
-    f.angle += (Math.random()-0.5)*0.08;
-    f.pulseT += f.pulseSpd;
-    f.alpha  = 0.4 + Math.sin(f.pulseT)*0.55;
-    // Respawn at edge
-    if(f.x < G.camX-60 || f.x > G.camX+W+60) f.x = G.camX + Math.random()*W;
-    if(f.y < SKY_H || f.y > GROUND_Y-8) f.y = SKY_H+20 + Math.random()*(GROUND_Y-SKY_H-40);
-  });
-}
+  }
 
 function _newFirefly(){
   return {
@@ -4722,7 +4725,7 @@ function progressQuest(type, amount=1){
   let updated=false;
   G.quests.forEach(q=>{
     if(q.done) return;
-    if(q.type===type || (type==='catch_any' && (q.type==='catch_any'))){
+    if(q.type === type){
       q.progress = Math.min(q.target, (q.progress||0)+amount);
       if(q.progress>=q.target && !q.done){
         q.done=true;
@@ -5677,6 +5680,33 @@ const CHERRY_X = 1200; // center of world
 const MAX_FIREFLIES = 28;
 let _fireflies = [];
 
+function initClouds(){
+  G.clouds = [];
+  const cloudTypes = [
+    // [widths of each puff, height, speed, yBase]
+    { puffs:[28,36,22], h:14, spd:0.4,  yBase:0.10 },
+    { puffs:[20,28,16], h:10, spd:0.55, yBase:0.06 },
+    { puffs:[36,48,28], h:18, spd:0.28, yBase:0.12 },
+    { puffs:[16,22,14], h: 8, spd:0.70, yBase:0.04 },
+    { puffs:[24,32,20], h:12, spd:0.45, yBase:0.09 },
+    { puffs:[40,52,30], h:20, spd:0.22, yBase:0.13 },
+    { puffs:[18,26,14], h:10, spd:0.60, yBase:0.07 },
+    { puffs:[30,42,24], h:16, spd:0.33, yBase:0.11 },
+  ];
+  // Spawn clouds spread across full world + some off-screen buffer
+  for(let i=0; i<12; i++){
+    const t = cloudTypes[i % cloudTypes.length];
+    G.clouds.push({
+      wx: Math.random() * (WORLD_W + W) - W*0.5, // world X
+      yFrac: t.yBase + Math.random() * 0.04,      // Y as fraction of SKY_H
+      puffs: t.puffs,
+      h: t.h,
+      spd: t.spd * (0.8 + Math.random() * 0.4),
+      type: i % cloudTypes.length,
+    });
+  }
+}
+
 function initFireflies(){
   _fireflies = [];
   for(let i=0;i<MAX_FIREFLIES;i++){
@@ -5733,37 +5763,37 @@ function updateFireflies(dt){
 }
 
 function drawFireflies(ctx, cx){
-  if(!G.fireflies || !G.fireflies.length) return;
+  if(!_fireflies || !_fireflies.length) return;
   ctx.save();
-  G.fireflies.forEach(f=>{
-    const sx = f.x - cx;
+  _fireflies.forEach(f=>{
+    const sx = Math.round(f.wx - cx);
     if(sx < -20 || sx > W+20) return;
 
-    // Pulse alpha using pulseT
-    const alpha = (Math.sin(f.pulseT) * 0.5 + 0.5) * f.alpha;
-    if(alpha < 0.05) return;
+    // Blink using phase (sine wave 0-1)
+    const blink = (Math.sin(f.phase) + 1) * 0.5;
+    if(blink < 0.05) return;
 
-    const color = `hsl(${f.hue},100%,70%)`;
+    const color = f.color || '#AAFF44';
 
     // Outer glow
-    ctx.globalAlpha = alpha * 0.2;
+    ctx.globalAlpha = blink * 0.18;
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(sx, f.y, f.size * 4, 0, Math.PI * 2);
     ctx.fill();
 
     // Mid glow
-    ctx.globalAlpha = alpha * 0.6;
+    ctx.globalAlpha = blink * 0.55;
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(sx, f.y, f.size * 1.8, 0, Math.PI * 2);
     ctx.fill();
 
     // Core bright dot
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#FFFFAA';
+    ctx.globalAlpha = blink;
+    ctx.fillStyle = '#FFFFBB';
     ctx.beginPath();
-    ctx.arc(sx, f.y, f.size * 0.5, 0, Math.PI * 2);
+    ctx.arc(sx, f.y, f.size * 0.55, 0, Math.PI * 2);
     ctx.fill();
   });
   ctx.globalAlpha = 1;
@@ -5829,6 +5859,33 @@ function drawSakuraPetals(ctx, cx){
 // ═══════════════════════════════════════════
 // RIVER PARTICLES (current effect: top→bottom)
 // ═══════════════════════════════════════════
+function initClouds(){
+  G.clouds = [];
+  const cloudTypes = [
+    // [widths of each puff, height, speed, yBase]
+    { puffs:[28,36,22], h:14, spd:0.4,  yBase:0.10 },
+    { puffs:[20,28,16], h:10, spd:0.55, yBase:0.06 },
+    { puffs:[36,48,28], h:18, spd:0.28, yBase:0.12 },
+    { puffs:[16,22,14], h: 8, spd:0.70, yBase:0.04 },
+    { puffs:[24,32,20], h:12, spd:0.45, yBase:0.09 },
+    { puffs:[40,52,30], h:20, spd:0.22, yBase:0.13 },
+    { puffs:[18,26,14], h:10, spd:0.60, yBase:0.07 },
+    { puffs:[30,42,24], h:16, spd:0.33, yBase:0.11 },
+  ];
+  // Spawn clouds spread across full world + some off-screen buffer
+  for(let i=0; i<12; i++){
+    const t = cloudTypes[i % cloudTypes.length];
+    G.clouds.push({
+      wx: Math.random() * (WORLD_W + W) - W*0.5, // world X
+      yFrac: t.yBase + Math.random() * 0.04,      // Y as fraction of SKY_H
+      puffs: t.puffs,
+      h: t.h,
+      spd: t.spd * (0.8 + Math.random() * 0.4),
+      type: i % cloudTypes.length,
+    });
+  }
+}
+
 function initFireflies(){
   G.fireflies = [];
   // Pre-spawn a few so they're ready at night
@@ -6620,20 +6677,68 @@ function render(){
     }
   }
 
-  // Clouds — color changes based on time
-  const cloudCol1 = _sky.ambientAlpha > 0.4 ? '#B0C8E8' : '#2A4A7A';
-  const cloudCol2 = _sky.ambientAlpha > 0.4 ? '#D0E4F8' : '#3A5A9A';
-  const cloudCol3 = _sky.ambientAlpha > 0.4 ? '#E8F4FF' : '#4A6AAA';
-  ctx.save();
-  [[80,9,56,20],[520,11,48,18],[1080,8,56,20],[1650,10,52,18]].forEach(([wx,wy,cw,ch])=>{
-    const sx=(wx-cx*0.08+WORLD_W)%WORLD_W;
-    if(sx<-cw||sx>W+cw) return;
-    ctx.fillStyle=cloudCol1; ctx.fillRect(sx,wy+ch*0.5,cw,ch*0.5);
-    ctx.fillStyle=cloudCol2; ctx.fillRect(sx+4,wy+ch*0.2,cw-8,ch*0.6);
-    ctx.fillStyle=cloudCol3; ctx.fillRect(sx+8,wy,cw-16,ch*0.5);
-    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(sx+8,wy,cw-16,3);
-  });
-  ctx.restore();
+  // ── Animated pixel art clouds ──
+  if(G.clouds && G.clouds.length){
+    const isDay   = _sky.ambientAlpha > 0.4;
+    const isStorm = G.weather==='storm';
+    const isRain  = G.weather==='rain'||G.weather==='drizzle';
+    // Cloud palette based on time + weather
+    const cBase = isStorm ? '#556070' : isRain ? '#7888A0' : isDay  ? '#C8DCEF' : '#253555';
+    const cMid  = isStorm ? '#6A7888' : isRain ? '#90A0B8' : isDay  ? '#E2EEF8' : '#334A7A';
+    const cTop  = isStorm ? '#788090' : isRain ? '#A8B8CC' : isDay  ? '#F4FAFF' : '#445A99';
+    const cShadow = isStorm ? '#3A4050': isRain ? '#5A6A7A' : isDay ? '#A0B8CC' : '#1A2A4A';
+    const cShine  = isStorm ? '#88909A': isRain ? '#C0CCD8' : isDay ? '#FFFFFF' : '#5A7AAA';
+    ctx.save();
+    G.clouds.forEach(c=>{
+      // Parallax: clouds move slower than camera (depth illusion)
+      const sx = Math.round(c.wx - cx * 0.06);
+      const sy = Math.round((SKY_H || 30) * c.yFrac);
+      const ch = c.h;
+      // Total width
+      const pw0=c.puffs[0], pw1=c.puffs[1], pw2=c.puffs[2];
+      const totalW = pw0 + pw1 * 0.6 + pw2 * 0.5 + 6;
+      if(sx < -totalW - 4 || sx > W + 4) return;
+
+      // Draw 3-puff pixel cloud (left, center-tall, right)
+      // Shadow layer (offset +2,+2)
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(sx+2,        sy+ch*0.5+2, pw0,      ch*0.5);
+      ctx.fillRect(sx+pw0*0.4+2,sy+ch*0.2+2, pw1,      ch*0.8);
+      ctx.fillRect(sx+pw0*0.4+pw1*0.6+2, sy+ch*0.4+2, pw2, ch*0.55);
+      ctx.globalAlpha = 1;
+
+      // Bottom row (base)
+      ctx.fillStyle = cBase;
+      ctx.fillRect(sx,           sy+ch*0.5, pw0,      ch*0.5);
+      ctx.fillRect(sx+pw0*0.4,   sy+ch*0.2, pw1,      ch*0.8);
+      ctx.fillRect(sx+pw0*0.4+pw1*0.6, sy+ch*0.4, pw2, ch*0.55);
+
+      // Mid row
+      ctx.fillStyle = cMid;
+      ctx.fillRect(sx+2,         sy+ch*0.35, pw0-4,    ch*0.45);
+      ctx.fillRect(sx+pw0*0.4+2, sy+ch*0.05, pw1-4,    ch*0.6);
+      ctx.fillRect(sx+pw0*0.4+pw1*0.6+2, sy+ch*0.28, pw2-4, ch*0.4);
+
+      // Top highlight puffs
+      ctx.fillStyle = cTop;
+      ctx.fillRect(sx+4,         sy+ch*0.22, pw0-10,   ch*0.28);
+      ctx.fillRect(sx+pw0*0.4+4, sy,         pw1-8,    ch*0.2);
+      ctx.fillRect(sx+pw0*0.4+pw1*0.6+4, sy+ch*0.18, pw2-8, ch*0.24);
+
+      // Bottom shadow strip
+      ctx.fillStyle = cShadow;
+      ctx.fillRect(sx+2,           sy+ch*0.88, pw0-4,  ch*0.14);
+      ctx.fillRect(sx+pw0*0.4+2,   sy+ch*0.88, pw1-4,  ch*0.14);
+      ctx.fillRect(sx+pw0*0.4+pw1*0.6+2, sy+ch*0.88, pw2-6, ch*0.14);
+
+      // Top shine pixel line
+      ctx.fillStyle = cShine;
+      ctx.fillRect(sx+6,           sy+ch*0.18, pw0-14, 2);
+      ctx.fillRect(sx+pw0*0.4+6,   sy,         pw1-14, 2);
+    });
+    ctx.restore();
+  }
 
   // ══════════════════════════════════════════
   //  FAR BANK — dark treeline silhouette
@@ -6856,26 +6961,149 @@ function render(){
   // ── ZONE TRANSITION GATES ──
   for(let z=1; z<4; z++){
     const gateX = Math.round(z * ZONE_W - cx);
-    if(gateX > -60 && gateX < W+60){
+    if(gateX > -120 && gateX < W+120){
       const zData = ZONES[z];
-      // Gate pillars
-      ctx.fillStyle='#FFD700';
-      ctx.fillRect(gateX-3, GROUND_Y-55, 6, 55);
-      ctx.fillRect(gateX-3+50, GROUND_Y-55, 6, 55);
-      // Gate top beam
-      ctx.fillStyle='#C8A000';
-      ctx.fillRect(gateX-4, GROUND_Y-58, 61, 8);
-      // Arch glow
+      const pulse = 0.55 + Math.abs(Math.sin(G.t*1.8))*0.45;
+      const gateColor  = z===3?'#4488FF': z===2?'#40DDAA': '#88CCFF';
+      const gateColorD = z===3?'#224499': z===2?'#208860': '#3366AA';
+      const gateGold   = '#FFD700';
+      const gateGoldD  = '#A07800';
+      const gw = 64; // gate total width
+      const gh = 72; // gate total height
+      const pw = 8;  // pillar width
+      const gx = gateX - gw/2; // left edge of gate
+
       ctx.save();
-      ctx.globalAlpha=0.3+Math.abs(Math.sin(G.t*1.5))*0.2;
-      ctx.fillStyle=z===3?'#4080FF':z===2?'#40FFAA':z===1?'#80C0FF':'#FFD700';
-      ctx.fillRect(gateX+2, GROUND_Y-54, 48, 52);
+
+      // ── PILLAR LEFT ──
+      // Shadow
+      ctx.globalAlpha=0.3; ctx.fillStyle='#000';
+      ctx.fillRect(gx+pw+2, GROUND_Y-gh+2, pw, gh);
+      ctx.globalAlpha=1;
+      // Main pillar body
+      ctx.fillStyle=gateGoldD;
+      ctx.fillRect(gx, GROUND_Y-gh, pw, gh);
+      // Highlight strip
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(gx+1, GROUND_Y-gh, 2, gh);
+      // Pillar cap (top decoration block)
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(gx-2, GROUND_Y-gh-4, pw+4, 6);
+      ctx.fillStyle='#FFF8C0';
+      ctx.fillRect(gx-1, GROUND_Y-gh-4, pw+2, 2);
+      // Pillar notch decorations
+      for(let ni=0; ni<3; ni++){
+        const ny = GROUND_Y - gh + 12 + ni*18;
+        ctx.fillStyle=gateGoldD;
+        ctx.fillRect(gx-1, ny, pw+2, 5);
+        ctx.fillStyle=gateGold;
+        ctx.fillRect(gx, ny+1, pw, 2);
+      }
+      // Base block
+      ctx.fillStyle=gateGoldD;
+      ctx.fillRect(gx-2, GROUND_Y-8, pw+4, 8);
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(gx-1, GROUND_Y-8, pw+2, 2);
+
+      // ── PILLAR RIGHT ──
+      const rx = gx + gw - pw;
+      ctx.globalAlpha=0.3; ctx.fillStyle='#000';
+      ctx.fillRect(rx+pw+2, GROUND_Y-gh+2, pw, gh);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=gateGoldD;
+      ctx.fillRect(rx, GROUND_Y-gh, pw, gh);
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(rx+pw-3, GROUND_Y-gh, 2, gh);
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(rx-2, GROUND_Y-gh-4, pw+4, 6);
+      ctx.fillStyle='#FFF8C0';
+      ctx.fillRect(rx-1, GROUND_Y-gh-4, pw+2, 2);
+      for(let ni=0; ni<3; ni++){
+        const ny = GROUND_Y - gh + 12 + ni*18;
+        ctx.fillStyle=gateGoldD;
+        ctx.fillRect(rx-1, ny, pw+2, 5);
+        ctx.fillStyle=gateGold;
+        ctx.fillRect(rx, ny+1, pw, 2);
+      }
+      ctx.fillStyle=gateGoldD;
+      ctx.fillRect(rx-2, GROUND_Y-8, pw+4, 8);
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(rx-1, GROUND_Y-8, pw+2, 2);
+
+      // ── TOP BEAM ──
+      const bx = gx - 4, by = GROUND_Y-gh-10, bw2 = gw+8, bh2 = 14;
+      // Beam shadow
+      ctx.globalAlpha=0.3; ctx.fillStyle='#000';
+      ctx.fillRect(bx+3, by+3, bw2, bh2);
+      ctx.globalAlpha=1;
+      // Beam body
+      ctx.fillStyle=gateGoldD;
+      ctx.fillRect(bx, by, bw2, bh2);
+      // Beam top highlight
+      ctx.fillStyle=gateGold;
+      ctx.fillRect(bx, by, bw2, 3);
+      ctx.fillStyle='#FFF8C0';
+      ctx.fillRect(bx+1, by, bw2-2, 1);
+      // Beam bottom dark line
+      ctx.fillStyle='#704000';
+      ctx.fillRect(bx, by+bh2-2, bw2, 2);
+      // Center orb on beam
+      const ox = gx + gw/2;
+      ctx.globalAlpha=pulse*0.9;
+      ctx.fillStyle=gateColor;
+      ctx.beginPath(); ctx.arc(ox, by+bh2/2, 7, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#FFF';
+      ctx.beginPath(); ctx.arc(ox-2, by+bh2/2-2, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle=gateColorD;
+      ctx.beginPath(); ctx.arc(ox, by+bh2/2, 7, 0, Math.PI*2);
+      ctx.strokeStyle=gateGold; ctx.lineWidth=1.5; ctx.stroke();
+
+      // ── GATE PASSAGE (portal glow) ──
+      const passX = gx + pw, passY = GROUND_Y-gh, passW = gw - pw*2, passH = gh;
+      // Dark background
+      ctx.globalAlpha=0.6; ctx.fillStyle='#000820';
+      ctx.fillRect(passX, passY, passW, passH);
+      // Portal shimmer (vertical gradient)
+      ctx.globalAlpha = pulse * 0.18;
+      const portalGrad = ctx.createLinearGradient(passX, passY, passX+passW, passY+passH);
+      portalGrad.addColorStop(0, gateColor);
+      portalGrad.addColorStop(0.5, '#FFFFFF');
+      portalGrad.addColorStop(1, gateColor);
+      ctx.fillStyle = portalGrad;
+      ctx.fillRect(passX, passY, passW, passH);
+      // Scanlines effect
+      ctx.globalAlpha=0.06;
+      ctx.fillStyle='#000';
+      for(let sl=0; sl<passH; sl+=3) ctx.fillRect(passX, passY+sl, passW, 1);
+      ctx.globalAlpha=1;
+      // Portal edge glow strips
+      ctx.globalAlpha=pulse*0.7;
+      ctx.fillStyle=gateColor;
+      ctx.fillRect(passX, passY, 2, passH);
+      ctx.fillRect(passX+passW-2, passY, 2, passH);
+      ctx.globalAlpha=1;
+
+      // ── FLOATING PARTICLES above gate ──
+      for(let pi=0; pi<4; pi++){
+        const px2 = passX + passW/2 + Math.sin(G.t*1.2 + pi*1.57)*18;
+        const py2 = by - 6 - ((G.t*22 + pi*14) % 28);
+        const pa = 1 - ((G.t*22 + pi*14) % 28)/28;
+        ctx.globalAlpha = pa * 0.8;
+        ctx.fillStyle = gateColor;
+        ctx.beginPath(); ctx.arc(px2, py2, 2, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha=1;
+
+      // ── ZONE LABEL (above gate) ──
+      ctx.font = '5px "Press Start 2P"';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#000';
+      ctx.fillText(zData.label, gx+gw/2+1, by-6+1);
+      ctx.fillStyle = gateGold;
+      ctx.fillText(zData.label, gx+gw/2, by-6);
+
       ctx.restore();
-      // Zone label on gate
-      ctx.fillStyle='#FFD700';
-      ctx.font='4px "Press Start 2P"';
-      ctx.textAlign='center';
-      ctx.fillText(zData.label, gateX+27, GROUND_Y-62);
     }
   }
 
@@ -7142,7 +7370,12 @@ function render(){
 function handleCast(){
   const modalOpen=document.getElementById('shopModal').classList.contains('show')||
                   document.getElementById('invModal').classList.contains('show')||
-                  document.getElementById('catchPopup').classList.contains('show');
+                  document.getElementById('catchPopup').classList.contains('show')||
+                  document.getElementById('npcDialog').style.display==='block'||
+                  document.getElementById('achModal').classList.contains('show')||
+                  document.getElementById('journalModal').classList.contains('show')||
+                  document.getElementById('lbModal').classList.contains('show')||
+                  document.getElementById('fishDetailModal').style.display==='block';
   if(modalOpen) return;
 
   if(G.waiting){ reel(); return; }
@@ -7561,6 +7794,9 @@ function checkZoneBanner(){
     G._zoneFishBonus = z.fishBonus;
     notify('📍 Entered ' + z.name);
     playSound('levelup');
+    // ── Update HUD zone label immediately ──
+    const zoneEl = document.getElementById('zoneLabel');
+    if(zoneEl) zoneEl.textContent = z.name;
   }
   _bannerTimer -= 1/60;
   if(_bannerTimer <= 0){
@@ -7586,7 +7822,9 @@ function rollFish(pw){
   let roll=Math.random()*tot,cum=0,rar=0;
   for(let i=0;i<w.length;i++){cum+=w[i];if(roll<=cum){rar=i;break;}}
   let pool=el.filter(f=>f.r===rar);
-  if(!pool.length)pool=el.filter(f=>f.r===0);
+  if(!pool.length) pool=el.filter(f=>f.r===0);
+  if(!pool.length) pool=el; // last resort: any fish in zone
+  if(!pool.length) pool=FISH.filter(f=>f.r===0); // absolute fallback: any common fish
   return pool[Math.floor(Math.random()*pool.length)];
 }
 function resetRod(){
@@ -8067,6 +8305,7 @@ function startGame(){
   buildTrees();
   initParticles();
   initSakuraPetals();
+  initClouds();
   initFireflies();
   renderBaits();
   updateHUD();
