@@ -5733,42 +5733,37 @@ function updateFireflies(dt){
 }
 
 function drawFireflies(ctx, cx){
-  if(!_fireflies.length) return;
+  if(!G.fireflies || !G.fireflies.length) return;
   ctx.save();
-  _fireflies.forEach(f=>{
-    const sx = f.wx - cx;
+  G.fireflies.forEach(f=>{
+    const sx = f.x - cx;
     if(sx < -20 || sx > W+20) return;
 
-    // Blink: sine wave 0–1
-    const blink = (Math.sin(f.phase * Math.PI * 2) + 1) / 2;
-    if(blink < 0.05) return; // off phase — invisible
+    // Pulse alpha using pulseT
+    const alpha = (Math.sin(f.pulseT) * 0.5 + 0.5) * f.alpha;
+    if(alpha < 0.05) return;
 
-    // Fade in/out over life
-    const lifeAlpha = Math.min(1, Math.min(f.life, f.maxLife-f.life) * 0.8);
-    const alpha = blink * lifeAlpha * 0.85;
+    const color = `hsl(${f.hue},100%,70%)`;
 
     // Outer glow
-    const grd = ctx.createRadialGradient(sx,f.y,0, sx,f.y,f.size*5);
-    grd.addColorStop(0, f.color.replace(')', `,${alpha})`).replace('rgb','rgba').replace('#','rgba(').replace(/([0-9a-fA-F]{2})/g,v=>parseInt(v,16)+',').replace(/,$/,`,${alpha})`));
-    // Simpler approach:
-    ctx.globalAlpha = alpha * 0.25;
-    ctx.fillStyle = f.color;
+    ctx.globalAlpha = alpha * 0.2;
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(sx, f.y, f.size*4, 0, Math.PI*2);
+    ctx.arc(sx, f.y, f.size * 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Mid glow
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(sx, f.y, f.size * 1.8, 0, Math.PI * 2);
     ctx.fill();
 
     // Core bright dot
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = '#FFFFAA';
     ctx.beginPath();
-    ctx.arc(sx, f.y, f.size*0.6, 0, Math.PI*2);
-    ctx.fill();
-
-    // Mid glow
-    ctx.globalAlpha = alpha * 0.7;
-    ctx.fillStyle = f.color;
-    ctx.beginPath();
-    ctx.arc(sx, f.y, f.size*1.8, 0, Math.PI*2);
+    ctx.arc(sx, f.y, f.size * 0.5, 0, Math.PI * 2);
     ctx.fill();
   });
   ctx.globalAlpha = 1;
