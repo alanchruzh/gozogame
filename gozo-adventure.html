@@ -600,6 +600,7 @@
         <div id="hud-coins-display">💰 <span id="hud-coins">0</span></div>
         <div id="grass-badge">🌿 TALL GRASS!</div>
       </div>
+      <button id="rest-btn" onclick="openRestMenu()" style="display:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:4px 8px;margin-top:4px;background:#0a0a18;border:2px solid #ff6666;color:#ff6666;cursor:pointer;width:100%;animation:pulse 1.5s infinite;">❤️ REST</button>
     </div>
     <div class="hud-box right">
       <div class="hud-name" style="color:#cc88ff">PARTNER <span id="partner-level-display" style="color:#44aaff;font-size:6px;">LV1</span></div>
@@ -682,6 +683,25 @@
   </div>
 
   <button onclick="closeSaveScreen()" style="font-family:'Press Start 2P',monospace;font-size:7px;padding:8px 16px;border:2px solid #555;background:none;color:#555;cursor:pointer;margin-top:4px;">✖ CLOSE</button>
+</div>
+
+<!-- REST MODAL -->
+<div id="rest-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:95;align-items:center;justify-content:center;">
+  <div style="background:#0a0a18;border:2px solid #ff6666;padding:20px;max-width:300px;width:90%;font-family:'Press Start 2P',monospace;text-align:center;">
+    <div style="font-size:28px;margin-bottom:8px;">🏕️</div>
+    <div style="font-size:9px;color:#ff6666;margin-bottom:4px;">REST &amp; RECOVER</div>
+    <div id="rest-hp-info" style="font-size:6px;color:#888;margin-bottom:14px;"></div>
+    <button onclick="doRest('free')" id="rest-free-btn" style="width:100%;margin-bottom:8px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #44ffaa;color:#44ffaa;cursor:pointer;">
+      😴 SLEEP (FREE)<br><span style="font-size:5px;color:#888;">Regen 30% HP over time</span>
+    </button>
+    <button onclick="doRest('pay')" id="rest-pay-btn" style="width:100%;margin-bottom:8px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #FFD700;color:#FFD700;cursor:pointer;">
+      💰 CAMP REST<br><span id="rest-pay-label" style="font-size:5px;color:#888;"></span>
+    </button>
+    <button onclick="doRest('full')" id="rest-full-btn" style="width:100%;margin-bottom:12px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #aa88ff;color:#aa88ff;cursor:pointer;">
+      ✨ FULL RESTORE<br><span id="rest-full-label" style="font-size:5px;color:#888;"></span>
+    </button>
+    <button onclick="cancelRest()" style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 16px;background:none;border:1px solid #333;color:#555;cursor:pointer;">✕ CANCEL</button>
+  </div>
 </div>
 
 <!-- BATTLE -->
@@ -6132,6 +6152,7 @@ function gameLoop() {
     if(moving) updateFogOfWar();
     tickDayNight();
     tickCombo();
+    tickOutOfGrassRegen();
     tickMiniBoss();
     if(npcPatrollers.length) tickNpcPatrol();
     // Check achievements & story events periodically
@@ -6224,6 +6245,7 @@ function checkGrass(){
   const zone = getZoneAt(px, py);
   const wasIn = state.inGrass;
   state.inGrass = !!zone;
+  if(state.inGrass && _restInterval){ clearInterval(_restInterval); _restInterval=null; cancelRest(); }
 
   if(!_playerEl) _playerEl = document.getElementById('player');
   if(!_grassBadge) _grassBadge = document.getElementById('grass-badge');
@@ -6315,6 +6337,7 @@ function triggerEncounter(zone){
 // ==============================================
 function startBattle(enemy){
   if(state.inBattle)return;
+  cancelRest();
   state.inBattle=true;
   state.currentEnemy={...enemy};
   state.battleTurn='player';
@@ -7044,6 +7067,124 @@ function updateHUD(){
   // EXP bar
   const exb=document.getElementById('player-exp-bar');
   if(exb) exb.style.width=(Math.min(1,p.exp/p.expToLevel)*100)+'%';
+
+  // REST button — visible when HP not full, not in battle, not in grass
+  const restBtn = document.getElementById('rest-btn');
+  if(restBtn) restBtn.style.display = (p.hp < p.maxHp && !state.inBattle && !state.inGrass) ? 'block' : 'none';
+}
+
+// ==============================================
+// ❤️ AUTO-REGEN (out of grass, out of battle)
+// ==============================================
+let _regenTick = 0;         // frame counter
+const REGEN_INTERVAL = 180; // frames between each regen tick (~3s at 60fps)
+const REGEN_PCT = 0.02;     // heal 2% of maxHp per tick
+
+function tickOutOfGrassRegen(){
+  if(!state.player || state.inBattle || state.inGrass) { _regenTick=0; return; }
+  const p = state.player;
+  if(p.hp >= p.maxHp) { _regenTick=0; return; }
+  _regenTick++;
+  if(_regenTick >= REGEN_INTERVAL){
+    _regenTick = 0;
+    const heal = Math.max(1, Math.floor(p.maxHp * REGEN_PCT));
+    p.hp = Math.min(p.maxHp, p.hp + heal);
+    updateHUD();
+  }
+}
+
+// ==============================================
+// 🏕️ REST SYSTEM (manual heal outside grass)
+// ==============================================
+let _restInterval = null;
+
+function openRestMenu(){
+  const p = state.player;
+  if(state.inBattle || state.inGrass) return;
+  if(_restInterval){ showSellToast('😴 Already resting...','#44ffaa'); return; } // BUG2: guard active regen
+  if(p.hp >= p.maxHp){ showSellToast('❤️ HP already full!','#44ffaa'); return; }
+
+  const missing   = p.maxHp - p.hp;
+  const payCost   = Math.max(5,  Math.floor(missing * 0.3));
+  const fullCost  = Math.max(15, Math.floor(missing * 0.7));
+
+  const el = id => document.getElementById(id);
+  const info = el('rest-hp-info');
+  if(info) info.textContent = `HP: ${p.hp} / ${p.maxHp}  (-${missing})`;
+
+  const payLbl = el('rest-pay-label');
+  if(payLbl) payLbl.textContent = `Heals 40% of missing · costs ${payCost}g`;
+
+  const fulLbl = el('rest-full-label');
+  if(fulLbl) fulLbl.textContent = `Full restore · costs ${fullCost}g`;
+
+  const payBtn = el('rest-pay-btn');
+  if(payBtn){ payBtn.disabled = p.coins < payCost;  payBtn.style.opacity = p.coins>=payCost  ? '1':'0.4'; }
+
+  const fulBtn = el('rest-full-btn');
+  if(fulBtn){ fulBtn.disabled = p.coins < fullCost; fulBtn.style.opacity = p.coins>=fullCost ? '1':'0.4'; }
+
+  const modal = el('rest-modal');
+  if(modal) modal.style.display = 'flex';
+}
+
+function closeRestMenu(){
+  const modal = document.getElementById('rest-modal');
+  if(modal) modal.style.display = 'none';
+  // NOTE: intentionally does NOT clear _restInterval — free regen continues after modal close
+}
+
+function cancelRest(){ // fully cancel regen + close modal
+  if(_restInterval){ clearInterval(_restInterval); _restInterval = null; }
+  const modal = document.getElementById('rest-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function doRest(type){
+  const p = state.player;
+  if(p.hp >= p.maxHp){ closeRestMenu(); return; }
+  const missing  = p.maxHp - p.hp;
+  const payCost  = Math.max(5,  Math.floor(missing * 0.3));
+  const fullCost = Math.max(15, Math.floor(missing * 0.7));
+
+  if(type === 'free'){
+    closeRestMenu();
+    const totalHeal = Math.floor(p.maxHp * 0.30);
+    const tickHeal  = Math.max(1, Math.floor(totalHeal / 6));
+    let ticks = 0;
+    showSellToast('😴 Resting...','#44ffaa');
+    // BUG3: hide rest-btn while regen active
+    const rb = document.getElementById('rest-btn');
+    if(rb) rb.style.display = 'none';
+    _restInterval = setInterval(()=>{
+      if(state.inBattle || state.inGrass || p.hp >= p.maxHp || ticks >= 6){
+        clearInterval(_restInterval); _restInterval = null;
+        if(ticks > 0){ showSellToast('❤️ Rest complete!','#44ffaa'); lsSave(); } // BUG1: lsSave on complete
+        updateHUD();
+        return;
+      }
+      p.hp = Math.min(p.maxHp, p.hp + tickHeal);
+      ticks++;
+      updateHUD();
+    }, 800);
+
+  } else if(type === 'pay'){
+    if(p.coins < payCost){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
+    const heal = Math.floor(missing * 0.40);
+    p.coins -= payCost;
+    p.hp     = Math.min(p.maxHp, p.hp + heal);
+    closeRestMenu();
+    updateHUD(); lsSave();
+    showSellToast(`❤️ +${heal} HP restored!`,'#ff6666');
+
+  } else if(type === 'full'){
+    if(p.coins < fullCost){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
+    p.coins -= fullCost;
+    p.hp     = p.maxHp;
+    closeRestMenu();
+    updateHUD(); lsSave();
+    showSellToast('✨ Fully restored!','#aa88ff');
+  }
 }
 
 // ==============================================
@@ -7539,6 +7680,7 @@ let _wSort = 'atk', _aSort = 'def';
 const dropLog = [];
 
 function openInventory(tab){
+  cancelRest();
   _invTab = tab || _invTab || 'equipped';
   renderInventory();
   const invs = document.getElementById('inv-screen');
@@ -8264,6 +8406,7 @@ function learnSkill(id){
 }
 
 function openSkillTree(){
+  cancelRest();
   const sc = document.getElementById('skilltree-screen');
   if(!sc) return;
   renderSkillTree();
@@ -8704,6 +8847,7 @@ const CRAFT_RECIPES = [
 let craftingLog = [];
 
 function openCrafting(){
+  cancelRest();
   const sc=document.getElementById('craft-screen');
   if(!sc) return;
   const p=state.player;
@@ -10304,6 +10448,7 @@ let _shopType = 'general';
 let _shopTab  = 'weapons';
 
 function openShop(type, desc){
+  cancelRest();
   _shopType = type;
   _shopTab  = type==='armors' ? 'armors' : type==='upgrade' ? 'upgrade' : 'weapons';
   const sc = document.getElementById('shop-screen');
