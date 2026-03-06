@@ -452,6 +452,65 @@
   @keyframes flowerSway{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
 
   @media(max-width:600px){#dpad{display:block;}}
+
+  /* ═══════════════════════════════════════
+     GOZO MARKET — Pixel Art 2.5D Shop
+  ═══════════════════════════════════════ */
+  #market-screen { background: linear-gradient(180deg,#020208 0%,#050518 100%); }
+  .mkt-header { width:100%; max-width:700px; padding:18px 20px 0; }
+  .mkt-title { font-family:'Orbitron',sans-serif; font-size:clamp(16px,4vw,28px);
+    background:linear-gradient(135deg,#FFD700,#ff8c00,#ff4400);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 20px #FFD70066); letter-spacing:3px; }
+  .mkt-subtitle { font-size:7px; color:#555; margin-top:4px; letter-spacing:2px; }
+  .mkt-wallet { display:flex; align-items:center; gap:8px; margin-top:10px;
+    background:rgba(255,215,0,.05); border:1px solid #FFD70022;
+    padding:8px 12px; border-radius:4px; flex-wrap:wrap; }
+  .mkt-wallet-addr { font-size:6px; color:#FFD70088; word-break:break-all; }
+  .mkt-connect-btn { font-family:'Press Start 2P',monospace; font-size:6px;
+    background:linear-gradient(135deg,#FFD700,#ff8c00); color:#000;
+    border:none; padding:6px 12px; cursor:pointer; clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px); }
+  .mkt-tabs { display:flex; gap:0; width:100%; max-width:700px; margin-top:14px; }
+  .mkt-tab { flex:1; font-family:'Press Start 2P',monospace; font-size:6px; padding:8px;
+    background:transparent; border:1px solid #ffffff11; color:#555; cursor:pointer;
+    transition:all .2s; }
+  .mkt-tab.active { background:rgba(255,215,0,.1); border-color:#FFD70066; color:#FFD700; }
+  .mkt-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px; width:100%; max-width:700px; padding:14px 20px; }
+  .mkt-card { background:linear-gradient(145deg,#0a0a1a,#080814);
+    border:1px solid #ffffff11; position:relative; cursor:pointer;
+    transition:all .25s; overflow:hidden; }
+  .mkt-card:hover { transform:translateY(-3px); border-color:#FFD70066;
+    box-shadow:0 8px 30px rgba(255,215,0,.15); }
+  .mkt-card.legendary { border-color:#ffaa0044; }
+  .mkt-card.legendary:hover { border-color:#ffaa00; box-shadow:0 8px 30px rgba(255,170,0,.3); }
+  .mkt-card.epic { border-color:#cc44ff44; }
+  .mkt-card.epic:hover { border-color:#cc44ff; box-shadow:0 8px 30px rgba(200,68,255,.3); }
+  .mkt-card.rare { border-color:#4488ff44; }
+  .mkt-card.rare:hover { border-color:#4488ff; box-shadow:0 8px 30px rgba(68,136,255,.3); }
+  .mkt-canvas-wrap { display:flex; justify-content:center; align-items:center;
+    padding:16px 16px 8px; background:linear-gradient(180deg,#0d0d20,#080810); }
+  .mkt-card canvas { image-rendering:pixelated; }
+  .mkt-card-body { padding:10px 12px 12px; }
+  .mkt-card-name { font-size:8px; color:#fff; margin-bottom:3px; }
+  .mkt-card-rarity { font-size:6px; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .mkt-card-stats { font-size:6px; color:#666; margin-bottom:8px; line-height:1.8; }
+  .mkt-card-desc { font-size:5px; color:#444; font-family:monospace; margin-bottom:10px; font-style:italic; }
+  .mkt-buy-btn { width:100%; font-family:'Press Start 2P',monospace; font-size:6px;
+    padding:8px; border:none; cursor:pointer; transition:all .2s;
+    clip-path:polygon(4px 0%,calc(100% - 4px) 0%,100% 4px,100% calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,0% calc(100% - 4px),0% 4px); }
+  .mkt-buy-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .mkt-close-btn { font-family:'Press Start 2P',monospace; font-size:7px;
+    background:none; border:1px solid #333; color:#555; padding:8px 16px; cursor:pointer; margin-top:8px; }
+  .mkt-badge { position:absolute; top:8px; right:8px; font-size:5px;
+    padding:2px 6px; letter-spacing:1px; font-family:'Press Start 2P',monospace; }
+  .mkt-tx-overlay { position:fixed; inset:0; z-index:300; background:rgba(0,0,0,.85);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  .mkt-tx-box { background:#08080f; border:2px solid #FFD70066; padding:24px 32px;
+    max-width:360px; width:90%; text-align:center; font-family:'Press Start 2P',monospace; }
+  @keyframes mktSpin { to { transform:rotate(360deg); } }
+  .mkt-spinner { width:32px; height:32px; border:3px solid #FFD70033;
+    border-top-color:#FFD700; border-radius:50%; animation:mktSpin .8s linear infinite; margin:0 auto; }
 </style>
 </head>
 <body>
@@ -10401,6 +10460,9 @@ function shopUpgrade(type, idx){
   renderShop();
 }
 
+// ==============================================
+// 🛒 GOZO MARKET — Web3 Token Shop
+// ==============================================
 function openQuestScreen(){
   refreshDailyQuests();
   const sc = document.getElementById('quest-screen');
@@ -10470,6 +10532,414 @@ function renderQuestScreen(){
     </div>`;
 }
 
+// ==============================================
+// 🛒 GOZO MARKET — Web3 Pixel Art Shop
+// ==============================================
+const GOZO_TOKEN = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+const MONAD_CHAIN_ID = '0x279F'; // 10143 decimal = Monad Testnet
+const MONAD_CHAIN = {
+  chainId: MONAD_CHAIN_ID,
+  chainName: 'Monad Mainnet',
+  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+  rpcUrls: ['https://rpc.monad.xyz'],
+  blockExplorerUrls: ['https://explorer.monad.xyz']
+};
+
+// ERC20 transfer ABI
+const ERC20_ABI = ['function transfer(address to, uint256 amount) returns (bool)',
+                   'function decimals() view returns (uint8)',
+                   'function balanceOf(address) view returns (uint256)'];
+
+let _mktWallet = null;
+let _mktTab = 'weapons';
+let _mktPurchasing = false;
+
+// ── MARKET ITEMS — 5 weapons + 5 armors, Rare→Legendary ──
+const MARKET_ITEMS = [
+  // WEAPONS
+  { id:'mw1', type:'weapon', name:'Void Reaper',    rarity:'Legendary', atk:95, t:10,
+    price:5000, desc:'Forged in the void between worlds. Tears reality.',
+    lore:'Only one exists. The last wielder vanished.',
+    palette:['#1a0a2e','#3d1a6e','#7b2fff','#c084fc','#f0abfc','#fff'] },
+  { id:'mw2', type:'weapon', name:'Solar Blade',    rarity:'Legendary', atk:88, t:10,
+    price:4500, desc:'Crystallized starfire. Burns without consuming.',
+    lore:'Born from a dying star\'s last breath.',
+    palette:['#431407','#9a3412','#f97316','#fbbf24','#fef08a','#fff'] },
+  { id:'mw3', type:'weapon', name:'Storm Fang',     rarity:'Epic',      atk:72, t:9,
+    price:3000, desc:'Crackling with eternal lightning. Never silent.',
+    lore:'Carved from a fallen storm giant\'s tooth.',
+    palette:['#0c1445','#1e3a8a','#3b82f6','#7dd3fc','#e0f2fe','#fff'] },
+  { id:'mw4', type:'weapon', name:'Crimson Edge',   rarity:'Epic',      atk:68, t:8,
+    price:2500, desc:'Blood-forged and battle-hungry. Craves combat.',
+    lore:'A blade that drinks the courage of the fallen.',
+    palette:['#3b0000','#7f1d1d','#dc2626','#f87171','#fca5a5','#fff'] },
+  { id:'mw5', type:'weapon', name:'Abyssal Lance',  rarity:'Rare',      atk:55, t:7,
+    price:1500, desc:'Dipped in the deep ocean trench. Ice-cold forever.',
+    lore:'Fishermen speak of the glowing spear beneath the waves.',
+    palette:['#042f2e','#065f46','#059669','#34d399','#a7f3d0','#fff'] },
+  // ARMORS
+  { id:'ma1', type:'armor',  name:'Void Mantle',    rarity:'Legendary', def:80, hp:300, t:10,
+    price:5000, desc:'Woven from collapsed starlight. Absorbs all damage.',
+    lore:'The wearer becomes one with emptiness.',
+    palette:['#0f0c29','#302b63','#24243e','#7b2fff','#c084fc','#fff'] },
+  { id:'ma2', type:'armor',  name:'Phoenix Plate',  rarity:'Legendary', def:75, hp:280, t:10,
+    price:4500, desc:'Reborn from ashes. Grants a second life.',
+    lore:'Has died and risen exactly 99 times.',
+    palette:['#431407','#9a3412','#c2410c','#f97316','#fef08a','#fff'] },
+  { id:'ma3', type:'armor',  name:'Aegis of Storms',rarity:'Epic',      def:60, hp:220, t:9,
+    price:3000, desc:'Channels lightning into a protective barrier.',
+    lore:'Stolen from the Sky Fortress by a lone thief.',
+    palette:['#0c1445','#1e3a8a','#1d4ed8','#60a5fa','#bfdbfe','#fff'] },
+  { id:'ma4', type:'armor',  name:'Bloodstone Mail',rarity:'Epic',      def:55, hp:200, t:8,
+    price:2500, desc:'Each gem pulses with the owner\'s heartbeat.',
+    lore:'The gems grow brighter as danger approaches.',
+    palette:['#450a0a','#7f1d1d','#991b1b','#dc2626','#fca5a5','#fff'] },
+  { id:'ma5', type:'armor',  name:'Coral Guard',    rarity:'Rare',      def:42, hp:160, t:7,
+    price:1000, desc:'Living coral that hardens under attack.',
+    lore:'It grows stronger each time it is struck.',
+    palette:['#042f2e','#134e4a','#0f766e','#14b8a6','#99f6e4','#fff'] },
+];
+
+// ── PIXEL ART RENDERER ──
+function drawMarketItem(canvas, item) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const p = item.palette;
+
+  if (item.type === 'weapon') {
+    drawPixelWeapon(ctx, item, p, W, H);
+  } else {
+    drawPixelArmor(ctx, item, p, W, H);
+  }
+}
+
+function px(ctx, x, y, s, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x*s, y*s, s, s);
+}
+
+function drawPixelWeapon(ctx, item, p, W, H) {
+  const s = Math.floor(W / 16);
+  const ox = Math.floor((W - 16*s)/2), oy = Math.floor((H - 16*s)/2);
+  const $ = (x,y,c) => { ctx.fillStyle=c; ctx.fillRect(ox+x*s, oy+y*s, s, s); };
+
+  // Glow aura
+  if(item.rarity==='Legendary'||item.rarity==='Epic'){
+    const grad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2);
+    grad.addColorStop(0, p[2]+'33');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  if(item.id==='mw1') { // Void Reaper — curved scythe
+    [2,3,4,5,6,7,8,9,10,11].forEach(x => $(x,1,p[1]));
+    $(12,2,p[2]); $(13,2,p[2]); $(12,3,p[3]);
+    [1,2,3,4,5].forEach((_,i) => $(11-i, 3+i, p[2]));
+    $(6,8,p[4]); $(7,9,p[3]); $(8,10,p[2]); $(9,11,p[1]);
+    [0,1,2,3,4,5].forEach((_,i) => $(10+i, 7+i, p[4]));
+    $(8,7,p[5]); $(9,8,p[5]);
+    for(let i=0;i<6;i++) $(7+i,13-i,p[1]);
+    $(8,14,p[0]); $(9,13,p[0]);
+  } else if(item.id==='mw2') { // Solar Blade — straight longsword
+    [7,8].forEach(x => { for(let y=1;y<13;y++) $(x,y, y<3?p[5]:y<6?p[4]:y<10?p[3]:p[2]); });
+    $(6,13,p[1]); $(9,13,p[1]); $(7,13,p[2]); $(8,13,p[2]);
+    $(6,14,p[0]); $(7,14,p[1]); $(8,14,p[1]); $(9,14,p[0]);
+    for(let x=3;x<13;x++) $(x,9,p[3]);
+    $(7,1,p[5]); $(8,1,p[5]); // tip glow
+  } else if(item.id==='mw3') { // Storm Fang — zigzag lightning sword
+    [[7,1],[8,2],[7,3],[8,4],[7,5],[8,6],[7,7],[8,8],[7,9],[8,10]].forEach(([x,y])=>$(x,y,p[4]));
+    [[6,1],[9,2],[6,3],[9,4],[6,5],[9,6],[6,7],[9,8],[6,9],[9,10]].forEach(([x,y])=>$(x,y,p[2]));
+    for(let x=4;x<12;x++) $(x,11,p[1]);
+    $(7,12,p[1]); $(8,12,p[1]); $(7,13,p[0]); $(8,13,p[0]);
+    // sparks
+    [[4,3],[11,5],[3,7],[12,8],[5,1],[10,2]].forEach(([x,y])=>$(x,y,p[5]));
+  } else if(item.id==='mw4') { // Crimson Edge — broad sword
+    for(let y=1;y<9;y++) { $(6,y,p[3]); $(7,y,p[4]); $(8,y,p[4]); $(9,y,p[3]); }
+    $(7,9,p[2]); $(8,9,p[2]);
+    for(let x=4;x<12;x++) $(x,10,p[1]);
+    $(7,11,p[2]); $(8,11,p[2]); $(7,12,p[1]); $(8,12,p[1]);
+    $(7,1,p[5]); $(8,1,p[5]); $(6,2,p[5]); $(9,2,p[5]);
+    [[5,4],[10,5],[5,6],[10,7]].forEach(([x,y])=>$(x,y,p[2]));
+  } else { // mw5 Abyssal Lance — spear
+    for(let y=0;y<14;y++) $(7,y, y<3?p[4]:y<5?p[3]:p[2]);
+    for(let y=5;y<14;y++) $(8,y,p[1]);
+    $(5,3,p[3]); $(6,2,p[4]); $(8,2,p[4]); $(9,3,p[3]);
+    $(5,4,p[2]); $(9,4,p[2]);
+    $(6,14,p[0]); $(7,14,p[1]); $(8,14,p[1]); $(9,14,p[0]);
+  }
+
+  // Rarity shimmer dots
+  if(item.rarity==='Legendary') {
+    [[2,2],[13,3],[1,10],[14,11],[7,15],[8,0]].forEach(([x,y])=>{$(x,y,p[5]);});
+  } else if(item.rarity==='Epic') {
+    [[3,2],[12,4],[2,11],[13,12]].forEach(([x,y])=>{$(x,y,p[4]);});
+  }
+}
+
+function drawPixelArmor(ctx, item, p, W, H) {
+  const s = Math.floor(W / 16);
+  const ox = Math.floor((W - 16*s)/2), oy = Math.floor((H - 16*s)/2);
+  const $ = (x,y,c) => { ctx.fillStyle=c; ctx.fillRect(ox+x*s, oy+y*s, s, s); };
+
+  if(item.rarity==='Legendary'||item.rarity==='Epic'){
+    const grad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2);
+    grad.addColorStop(0, p[2]+'44');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  if(item.id==='ma1') { // Void Mantle — flowing robe
+    for(let y=2;y<5;y++) for(let x=5;x<11;x++) $(x,y,p[1]);
+    for(let y=5;y<12;y++) for(let x=4+Math.floor((y-5)/2);x<12-Math.floor((y-5)/2);x++) $(x,y,p[2]);
+    [[7,2],[8,2],[7,3],[8,3]].forEach(([x,y])=>$(x,y,p[4]));
+    for(let x=3;x<13;x++) $(x,12,p[1]);
+    [[5,13],[6,13],[9,13],[10,13]].forEach(([x,y])=>$(x,y,p[0]));
+    [[6,6],[9,7],[7,9],[8,5]].forEach(([x,y])=>$(x,y,p[5]));
+  } else if(item.id==='ma2') { // Phoenix Plate — chest armor
+    for(let x=4;x<12;x++) $(x,2,p[1]);
+    for(let y=3;y<10;y++) for(let x=3;x<13;x++) $(x,y,y<6?p[2]:y<8?p[3]:p[1]);
+    $(5,2,p[4]); $(6,2,p[4]); $(9,2,p[4]); $(10,2,p[4]);
+    for(let x=3;x<13;x++) $(x,10,p[1]);
+    $(4,11,p[0]); $(5,11,p[1]); $(10,11,p[1]); $(11,11,p[0]);
+    [[7,4],[8,4],[7,5],[8,5]].forEach(([x,y])=>$(x,y,p[5]));
+    [[5,7],[10,7],[6,3],[9,3]].forEach(([x,y])=>$(x,y,p[4]));
+    // wings hint
+    [[1,5],[2,4],[2,5],[2,6],[13,5],[14,4],[14,5],[14,6]].forEach(([x,y])=>$(x,y,p[3]));
+  } else if(item.id==='ma3') { // Aegis of Storms — tower shield
+    for(let y=1;y<14;y++) for(let x=4;x<12;x++) $(x,y,y<3||y>11?p[1]:x<5||x>10?p[1]:p[2]);
+    [[7,2],[8,2]].forEach(([x,y])=>$(x,y,p[4]));
+    for(let x=4;x<12;x++) $(x,7,p[3]);
+    for(let y=8;y<12;y++) $(7,y,p[3]);
+    [[6,13],[7,13],[8,13],[9,13]].forEach(([x,y])=>$(x,y,p[1]));
+    [[7,13],[8,13]].forEach(([x,y])=>$(x,y,p[0]));
+    [[5,4],[10,4],[5,10],[10,10]].forEach(([x,y])=>$(x,y,p[5]));
+  } else if(item.id==='ma4') { // Bloodstone Mail — chainmail
+    for(let y=2;y<12;y++) for(let x=4;x<12;x++) {
+      $(x,y, (x+y)%2===0 ? p[2] : p[1]);
+    }
+    [[6,3],[9,3],[6,9],[9,9],[7,6],[8,6]].forEach(([x,y])=>$(x,y,p[4]));
+    [[7,3],[8,3],[7,9],[8,9]].forEach(([x,y])=>$(x,y,p[5]));
+    for(let x=4;x<12;x++) $(x,12,p[0]);
+    $(4,2,p[1]); $(11,2,p[1]);
+  } else { // ma5 Coral Guard
+    for(let y=2;y<11;y++) for(let x=4;x<12;x++) $(x,y, p[y%3===0?2:1]);
+    [[6,2],[9,2],[7,2],[8,2]].forEach(([x,y])=>$(x,y,p[3]));
+    [[4,5],[11,5],[4,8],[11,8]].forEach(([x,y])=>$(x,y,p[2]));
+    for(let x=4;x<12;x++) $(x,11,p[0]);
+    [[5,3],[7,4],[9,3],[6,7],[10,6]].forEach(([x,y])=>$(x,y,p[4]));
+    // coral spikes
+    [[3,4],[3,7],[12,5],[12,8],[6,1],[9,1]].forEach(([x,y])=>$(x,y,p[3]));
+  }
+
+  if(item.rarity==='Legendary') {
+    [[2,2],[13,3],[1,10],[14,11]].forEach(([x,y])=>$(x,y,p[5]));
+  }
+}
+
+// ── OPEN MARKET ──
+function openMarket() {
+  const sc = document.getElementById('market-screen');
+  if(!sc) return;
+  sc.style.display = 'flex';
+  renderMarket();
+}
+
+function closeMarket() {
+  const sc = document.getElementById('market-screen');
+  if(sc) sc.style.display = 'none';
+}
+
+function renderMarket() {
+  const sc = document.getElementById('market-screen');
+  if(!sc) return;
+  const items = MARKET_ITEMS.filter(i => i.type === (_mktTab==='weapons'?'weapon':'armor'));
+  const RC = {'Rare':'#4488ff','Epic':'#cc44ff','Legendary':'#ffaa00'};
+
+  sc.innerHTML = `
+    <div class="mkt-header">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div class="mkt-title">⚔ GOZO MARKET</div>
+          <div class="mkt-subtitle">MONAD CHAIN · PAY WITH GOZO TOKEN · BURN TO DEAD ADDRESS</div>
+        </div>
+        <button class="mkt-close-btn" onclick="closeMarket()">✕ CLOSE</button>
+      </div>
+      <div class="mkt-wallet" id="mkt-wallet-bar">
+        ${_mktWallet
+          ? `<span style="color:#44ffaa;font-size:6px;">● CONNECTED</span>
+             <span class="mkt-wallet-addr">${_mktWallet.slice(0,6)}...${_mktWallet.slice(-4)}</span>`
+          : `<span style="font-size:6px;color:#666;font-family:'Press Start 2P',monospace;">Connect wallet to buy with GOZO token</span>
+             <button class="mkt-connect-btn" onclick="mktConnectWallet()">🔗 CONNECT WALLET</button>`
+        }
+      </div>
+      <div style="font-size:6px;color:#444;margin-top:6px;padding:6px 8px;background:#0a0a14;border-left:2px solid #FFD70033;font-family:monospace;">
+        Token: <span style="color:#FFD70088;">${GOZO_TOKEN}</span><br>
+        Burns to: <span style="color:#ff444488;">${DEAD_ADDRESS}</span>
+      </div>
+    </div>
+    <div class="mkt-tabs">
+      <button class="mkt-tab ${_mktTab==='weapons'?'active':''}" onclick="_mktTab='weapons';renderMarket()">⚔️ WEAPONS (5)</button>
+      <button class="mkt-tab ${_mktTab==='armors'?'active':''}" onclick="_mktTab='armors';renderMarket()">🛡️ ARMORS (5)</button>
+    </div>
+    <div class="mkt-grid">
+      ${items.map(item => {
+        const col = RC[item.rarity]||'#aaa';
+        const stats = item.type==='weapon'
+          ? `⚔️ ATK +${item.atk}  ·  Tier ${item.t}`
+          : `🛡️ DEF +${item.def}  ·  ❤️ HP +${item.hp}  ·  Tier ${item.t}`;
+        return `<div class="mkt-card ${item.rarity.toLowerCase()}" id="mktcard-${item.id}">
+          <div class="mkt-badge" style="background:${col}22;color:${col};border:1px solid ${col}44;">${item.rarity.toUpperCase()}</div>
+          <div class="mkt-canvas-wrap">
+            <canvas id="mktcv-${item.id}" width="96" height="96"></canvas>
+          </div>
+          <div class="mkt-card-body">
+            <div class="mkt-card-name">${item.name}</div>
+            <div class="mkt-card-rarity" style="color:${col};">${item.rarity}</div>
+            <div class="mkt-card-stats">${stats}</div>
+            <div class="mkt-card-desc">"${item.lore}"</div>
+            <button class="mkt-buy-btn" style="background:linear-gradient(135deg,${col}33,${col}11);color:${col};border:1px solid ${col}66;"
+              onclick="mktBuyItem('${item.id}')">
+              🪙 ${item.price.toLocaleString()} GOZO
+            </button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // Draw pixel art after render — double RAF ensures DOM is ready
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    items.forEach(item => {
+      const cv = document.getElementById('mktcv-'+item.id);
+      if(cv) drawMarketItem(cv, item);
+    });
+  }));
+}
+
+// ── WEB3 CONNECT ──
+async function mktConnectWallet() {
+  if(typeof window.ethereum === 'undefined') {
+    showSellToast('❌ No wallet found! Install MetaMask.','#ff4444');
+    return;
+  }
+  try {
+    const accounts = await window.ethereum.request({ method:'eth_requestAccounts' });
+    _mktWallet = accounts[0];
+    // Switch to Monad chain
+    try {
+      await window.ethereum.request({ method:'wallet_switchEthereumChain', params:[{chainId:MONAD_CHAIN_ID}] });
+    } catch(e) {
+      if(e.code===4902) {
+        await window.ethereum.request({ method:'wallet_addEthereumChain', params:[MONAD_CHAIN] });
+      }
+    }
+    renderMarket();
+    showSellToast('✅ Wallet connected!','#44ffaa');
+  } catch(e) {
+    showSellToast('❌ Connection failed','#ff4444');
+  }
+}
+
+// ── BUY ITEM ──
+async function mktBuyItem(itemId) {
+  const item = MARKET_ITEMS.find(i=>i.id===itemId);
+  if(!item || _mktPurchasing) return;
+
+  if(!_mktWallet) {
+    showSellToast('⚠️ Connect wallet first!','#FFD700');
+    await mktConnectWallet();
+    return;
+  }
+
+  _mktPurchasing = true;
+  const overlay = document.createElement('div');
+  overlay.className = 'mkt-tx-overlay';
+  overlay.id = 'mkt-tx-overlay';
+  const col = {'Rare':'#4488ff','Epic':'#cc44ff','Legendary':'#ffaa00'}[item.rarity]||'#fff';
+  overlay.innerHTML = `
+    <div class="mkt-tx-box">
+      <div class="mkt-spinner"></div>
+      <div style="font-size:8px;color:#FFD700;margin-top:16px;">CONFIRM IN WALLET</div>
+      <div style="font-size:6px;color:#888;margin-top:8px;">Burning ${item.price.toLocaleString()} GOZO</div>
+      <div style="font-size:6px;color:#555;margin-top:4px;">→ Dead Address</div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    if(typeof window.ethereum === 'undefined') throw new Error('No wallet');
+    const { ethers } = window;
+    let provider, signer;
+
+    if(ethers) {
+      // ethers.js v6
+      if(ethers.BrowserProvider) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+      } else {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+      }
+      const erc20iface = new ethers.Interface
+        ? new ethers.Interface(['function transfer(address,uint256) returns(bool)'])
+        : new ethers.utils.Interface(['function transfer(address,uint256) returns(bool)']);
+      const amount = ethers.parseUnits
+        ? ethers.parseUnits(item.price.toString(), 18)
+        : ethers.utils.parseUnits(item.price.toString(), 18);
+      const tokenContract = new ethers.Contract(GOZO_TOKEN, ['function transfer(address,uint256) returns(bool)'], signer);
+      const tx = await tokenContract.transfer(DEAD_ADDRESS, amount);
+      overlay.querySelector('.mkt-tx-box').innerHTML = `
+        <div class="mkt-spinner"></div>
+        <div style="font-size:8px;color:#44ffaa;margin-top:16px;">TX SUBMITTED</div>
+        <div style="font-size:6px;color:#888;margin-top:8px;">Waiting for confirmation...</div>
+        <div style="font-size:5px;color:#444;margin-top:4px;word-break:break-all;">${tx.hash}</div>`;
+      await tx.wait();
+    } else {
+      // Fallback: raw eth_sendTransaction with encoded transfer
+      const amount = BigInt(item.price) * BigInt('1000000000000000000');
+      const amountHex = amount.toString(16).padStart(64,'0');
+      const toHex = DEAD_ADDRESS.slice(2).toLowerCase().padStart(64,'0');
+      const data = '0xa9059cbb' + toHex + amountHex;
+      const txHash = await window.ethereum.request({
+        method:'eth_sendTransaction',
+        params:[{ from:_mktWallet, to:GOZO_TOKEN, data }]
+      });
+      overlay.querySelector('.mkt-tx-box').innerHTML = `
+        <div class="mkt-spinner"></div>
+        <div style="font-size:8px;color:#44ffaa;margin-top:16px;">TX SUBMITTED</div>
+        <div style="font-size:5px;color:#444;margin-top:8px;word-break:break-all;">${txHash}</div>`;
+      // Wait ~3s then assume success
+      await new Promise(r=>setTimeout(r,3000));
+    }
+
+    // SUCCESS — add item to game inventory
+    overlay.querySelector('.mkt-tx-box').innerHTML = `
+      <div style="font-size:32px;margin-bottom:8px;">✅</div>
+      <div style="font-size:9px;color:#44ffaa;">PURCHASE COMPLETE!</div>
+      <div style="font-size:7px;color:#FFD700;margin-top:8px;">${item.name} added to BAG</div>
+      <div style="font-size:6px;color:#555;margin-top:4px;">${item.price.toLocaleString()} GOZO burned 🔥</div>`;
+
+    const gameItem = item.type==='weapon'
+      ? { id:item.id, name:item.name, emoji:'⚔️', atk:item.atk, spd:2, t:item.t, rarity:item.rarity, element:null, type:'weapon', desc:item.desc }
+      : { id:item.id, name:item.name, emoji:'🛡️', def:item.def, hp:item.hp, t:item.t, rarity:item.rarity, type:'armor', desc:item.desc };
+    addToInventory(gameItem);
+    updateHUD();
+    showSellToast(`✨ ${item.name} acquired!`, col);
+
+    setTimeout(()=>{ overlay.remove(); _mktPurchasing=false; renderMarket(); }, 2500);
+  } catch(e) {
+    overlay.remove();
+    _mktPurchasing = false;
+    if(e.code===4001||e.message?.includes('rejected')||e.message?.includes('denied')) {
+      showSellToast('❌ Transaction cancelled','#ff4444');
+    } else {
+      showSellToast('❌ Transaction failed: '+(e.message||'unknown').slice(0,40),'#ff4444');
+    }
+  }
+}
+
 </script>
 <!-- UNIFIED TOOLBAR -->
 <div id="toolbar">
@@ -10505,6 +10975,7 @@ function renderQuestScreen(){
 <div id="more-menu" style="display:none;position:fixed;bottom:52px;left:0;right:0;z-index:63;
   background:rgba(5,5,20,.97);border-top:2px solid #FFD70022;
   display:none;flex-wrap:wrap;justify-content:center;gap:4px;padding:8px;">
+  <button class="tb-btn" style="flex:0 0 80px;" onclick="openMarket();toggleMoreMenu()"><span class="tb-icon">🛒</span>MARKET</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openMonsterDex();toggleMoreMenu()"><span class="tb-icon">📸</span>DEX</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openCrafting();toggleMoreMenu()"><span class="tb-icon">📝</span>CRAFT</button>
   <button class="tb-btn" style="flex:0 0 80px;" onclick="openLeaderboard();toggleMoreMenu()"><span class="tb-icon">🏅</span>SCORES</button>
@@ -10532,5 +11003,8 @@ function renderQuestScreen(){
 <div id="settings-screen"></div>
 <div id="bestiary-screen"></div>
 <div id="storyev-screen"></div>
+
+<!-- GOZO MARKET SCREEN -->
+<div id="market-screen" style="display:none;position:fixed;inset:0;background:#020208;z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;"></div>
 </body>
 </html>
