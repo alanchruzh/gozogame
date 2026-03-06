@@ -73,7 +73,7 @@
   #game-screen{display:none;width:100vw;height:100vh;position:relative;overflow:hidden;padding-bottom:52px;box-sizing:border-box;}
 
   /* CAMERA VIEWPORT */
-  #viewport{position:absolute;inset:0;overflow:hidden;}
+  #viewport{position:absolute;top:0;left:0;right:0;bottom:52px;overflow:hidden;pointer-events:none;}
 
   /* WORLD — much larger than screen, camera follows player */
   #world{width:2400px;height:1800px;position:absolute;
@@ -81,7 +81,7 @@
       repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
       repeating-linear-gradient(0deg,  rgba(0,0,0,.035) 0px, rgba(0,0,0,.035) 1px, transparent 1px, transparent 64px),
       radial-gradient(ellipse at 25% 25%, #6a5228 0%, #5a3e18 50%, #442e0e 100%);
-    overflow:visible;will-change:transform;}
+    overflow:visible;pointer-events:all;}
   #world::before{display:none;}
 
   /* PATHS — dirt road with texture */
@@ -169,10 +169,10 @@
   /* ═══════════════════════════════════════
      BOTTOM TOOLBAR — all buttons unified
   ═══════════════════════════════════════ */
-  #toolbar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:61;
+  #toolbar{display:none;position:fixed;bottom:0;left:0;right:0;z-index:500;
     background:linear-gradient(180deg,rgba(0,0,0,.85),rgba(5,5,20,.98));
     border-top:2px solid #FFD70033;
-    display:none;flex-direction:row;align-items:stretch;justify-content:stretch;height:52px;}
+    flex-direction:row;align-items:stretch;justify-content:stretch;height:52px;}
   .tb-btn{flex:1;background:transparent;border:none;border-right:1px solid #ffffff0d;
     color:#888;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
@@ -338,7 +338,7 @@
   #dialog{display:none;position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--panel);border:3px solid var(--yellow);padding:16px 20px;max-width:500px;width:90%;font-size:9px;line-height:2;z-index:70;clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0% calc(100% - 12px),0% 12px);}
 
   /* D-PAD — above toolbar, left side */
-  #dpad{position:fixed;bottom:62px;left:12px;z-index:62;display:none;}
+  #dpad{position:fixed;bottom:62px;left:12px;z-index:62;display:none;pointer-events:all;}
   .dpad-grid{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:3px;}
   .dpad-btn{background:rgba(0,0,0,.6);border:2px solid rgba(255,215,0,.4);color:rgba(255,215,0,.8);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;user-select:none;backdrop-filter:blur(4px);}
   .dpad-btn:active{background:rgba(255,215,0,.25);border-color:#FFD700;}
@@ -600,7 +600,6 @@
         <div id="hud-coins-display">💰 <span id="hud-coins">0</span></div>
         <div id="grass-badge">🌿 TALL GRASS!</div>
       </div>
-      <button id="rest-btn" onclick="openRestMenu()" style="display:none;font-family:'Press Start 2P',monospace;font-size:6px;padding:4px 8px;margin-top:4px;background:#0a0a18;border:2px solid #ff6666;color:#ff6666;cursor:pointer;width:100%;animation:pulse 1.5s infinite;">❤️ REST</button>
     </div>
     <div class="hud-box right">
       <div class="hud-name" style="color:#cc88ff">PARTNER <span id="partner-level-display" style="color:#44aaff;font-size:6px;">LV1</span></div>
@@ -686,24 +685,6 @@
 </div>
 
 <!-- REST MODAL -->
-<div id="rest-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:95;align-items:center;justify-content:center;">
-  <div style="background:#0a0a18;border:2px solid #ff6666;padding:20px;max-width:300px;width:90%;font-family:'Press Start 2P',monospace;text-align:center;">
-    <div style="font-size:28px;margin-bottom:8px;">🏕️</div>
-    <div style="font-size:9px;color:#ff6666;margin-bottom:4px;">REST &amp; RECOVER</div>
-    <div id="rest-hp-info" style="font-size:6px;color:#888;margin-bottom:14px;"></div>
-    <button onclick="doRest('free')" id="rest-free-btn" style="width:100%;margin-bottom:8px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #44ffaa;color:#44ffaa;cursor:pointer;">
-      😴 SLEEP (FREE)<br><span style="font-size:5px;color:#888;">Regen 30% HP over time</span>
-    </button>
-    <button onclick="doRest('pay')" id="rest-pay-btn" style="width:100%;margin-bottom:8px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #FFD700;color:#FFD700;cursor:pointer;">
-      💰 CAMP REST<br><span id="rest-pay-label" style="font-size:5px;color:#888;"></span>
-    </button>
-    <button onclick="doRest('full')" id="rest-full-btn" style="width:100%;margin-bottom:12px;font-family:'Press Start 2P',monospace;font-size:7px;padding:10px;background:#0a0a18;border:2px solid #aa88ff;color:#aa88ff;cursor:pointer;">
-      ✨ FULL RESTORE<br><span id="rest-full-label" style="font-size:5px;color:#888;"></span>
-    </button>
-    <button onclick="cancelRest()" style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 16px;background:none;border:1px solid #333;color:#555;cursor:pointer;">✕ CANCEL</button>
-  </div>
-</div>
-
 <!-- BATTLE -->
 <div id="battle-screen" style="display:none;">
 
@@ -997,7 +978,7 @@
 <!-- DIALOG -->
 <div id="dialog" onclick="closeDialog()">
   <div id="dialog-text"></div>
-  <div style="text-align:right;font-size:7px;color:var(--yellow);margin-top:8px;">[ Click to continue ]</div>
+  <div style="text-align:right;font-size:7px;color:var(--yellow);margin-top:8px;opacity:0.3;">[ auto close ]</div>
 </div>
 
 <script>
@@ -6245,8 +6226,7 @@ function checkGrass(){
   const zone = getZoneAt(px, py);
   const wasIn = state.inGrass;
   state.inGrass = !!zone;
-  if(state.inGrass && _restInterval){ clearInterval(_restInterval); _restInterval=null; cancelRest(); }
-
+  
   if(!_playerEl) _playerEl = document.getElementById('player');
   if(!_grassBadge) _grassBadge = document.getElementById('grass-badge');
   if(!_playerEl || !_grassBadge) return;
@@ -6337,7 +6317,6 @@ function triggerEncounter(zone){
 // ==============================================
 function startBattle(enemy){
   if(state.inBattle)return;
-  cancelRest();
   state.inBattle=true;
   state.currentEnemy={...enemy};
   state.battleTurn='player';
@@ -7069,16 +7048,14 @@ function updateHUD(){
   if(exb) exb.style.width=(Math.min(1,p.exp/p.expToLevel)*100)+'%';
 
   // REST button — visible when HP not full, not in battle, not in grass
-  const restBtn = document.getElementById('rest-btn');
-  if(restBtn) restBtn.style.display = (p.hp < p.maxHp && !state.inBattle && !state.inGrass) ? 'block' : 'none';
 }
 
 // ==============================================
 // ❤️ AUTO-REGEN (out of grass, out of battle)
 // ==============================================
 let _regenTick = 0;         // frame counter
-const REGEN_INTERVAL = 180; // frames between each regen tick (~3s at 60fps)
-const REGEN_PCT = 0.02;     // heal 2% of maxHp per tick
+const REGEN_INTERVAL = 120; // frames between each regen tick (~2s at 60fps)
+const REGEN_PCT = 0.05;     // heal 5% of maxHp per tick
 
 function tickOutOfGrassRegen(){
   if(!state.player || state.inBattle || state.inGrass) { _regenTick=0; return; }
@@ -7090,108 +7067,16 @@ function tickOutOfGrassRegen(){
     const heal = Math.max(1, Math.floor(p.maxHp * REGEN_PCT));
     p.hp = Math.min(p.maxHp, p.hp + heal);
     updateHUD();
+    showDmgPopup(heal, true, true);
   }
 }
 
-// ==============================================
-// 🏕️ REST SYSTEM (manual heal outside grass)
-// ==============================================
-let _restInterval = null;
-
-function openRestMenu(){
-  const p = state.player;
-  if(state.inBattle || state.inGrass) return;
-  if(_restInterval){ showSellToast('😴 Already resting...','#44ffaa'); return; } // BUG2: guard active regen
-  if(p.hp >= p.maxHp){ showSellToast('❤️ HP already full!','#44ffaa'); return; }
-
-  const missing   = p.maxHp - p.hp;
-  const payCost   = Math.max(5,  Math.floor(missing * 0.3));
-  const fullCost  = Math.max(15, Math.floor(missing * 0.7));
-
-  const el = id => document.getElementById(id);
-  const info = el('rest-hp-info');
-  if(info) info.textContent = `HP: ${p.hp} / ${p.maxHp}  (-${missing})`;
-
-  const payLbl = el('rest-pay-label');
-  if(payLbl) payLbl.textContent = `Heals 40% of missing · costs ${payCost}g`;
-
-  const fulLbl = el('rest-full-label');
-  if(fulLbl) fulLbl.textContent = `Full restore · costs ${fullCost}g`;
-
-  const payBtn = el('rest-pay-btn');
-  if(payBtn){ payBtn.disabled = p.coins < payCost;  payBtn.style.opacity = p.coins>=payCost  ? '1':'0.4'; }
-
-  const fulBtn = el('rest-full-btn');
-  if(fulBtn){ fulBtn.disabled = p.coins < fullCost; fulBtn.style.opacity = p.coins>=fullCost ? '1':'0.4'; }
-
-  const modal = el('rest-modal');
-  if(modal) modal.style.display = 'flex';
-}
-
-function closeRestMenu(){
-  const modal = document.getElementById('rest-modal');
-  if(modal) modal.style.display = 'none';
-  // NOTE: intentionally does NOT clear _restInterval — free regen continues after modal close
-}
-
-function cancelRest(){ // fully cancel regen + close modal
-  if(_restInterval){ clearInterval(_restInterval); _restInterval = null; }
-  const modal = document.getElementById('rest-modal');
-  if(modal) modal.style.display = 'none';
-}
-
-function doRest(type){
-  const p = state.player;
-  if(p.hp >= p.maxHp){ closeRestMenu(); return; }
-  const missing  = p.maxHp - p.hp;
-  const payCost  = Math.max(5,  Math.floor(missing * 0.3));
-  const fullCost = Math.max(15, Math.floor(missing * 0.7));
-
-  if(type === 'free'){
-    closeRestMenu();
-    const totalHeal = Math.floor(p.maxHp * 0.30);
-    const tickHeal  = Math.max(1, Math.floor(totalHeal / 6));
-    let ticks = 0;
-    showSellToast('😴 Resting...','#44ffaa');
-    // BUG3: hide rest-btn while regen active
-    const rb = document.getElementById('rest-btn');
-    if(rb) rb.style.display = 'none';
-    _restInterval = setInterval(()=>{
-      if(state.inBattle || state.inGrass || p.hp >= p.maxHp || ticks >= 6){
-        clearInterval(_restInterval); _restInterval = null;
-        if(ticks > 0){ showSellToast('❤️ Rest complete!','#44ffaa'); lsSave(); } // BUG1: lsSave on complete
-        updateHUD();
-        return;
-      }
-      p.hp = Math.min(p.maxHp, p.hp + tickHeal);
-      ticks++;
-      updateHUD();
-    }, 800);
-
-  } else if(type === 'pay'){
-    if(p.coins < payCost){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
-    const heal = Math.floor(missing * 0.40);
-    p.coins -= payCost;
-    p.hp     = Math.min(p.maxHp, p.hp + heal);
-    closeRestMenu();
-    updateHUD(); lsSave();
-    showSellToast(`❤️ +${heal} HP restored!`,'#ff6666');
-
-  } else if(type === 'full'){
-    if(p.coins < fullCost){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
-    p.coins -= fullCost;
-    p.hp     = p.maxHp;
-    closeRestMenu();
-    updateHUD(); lsSave();
-    showSellToast('✨ Fully restored!','#aa88ff');
-  }
-}
 
 // ==============================================
 // HELPERS
 // ==============================================
-function showDialog(t){const dt=document.getElementById('dialog-text');const dg=document.getElementById('dialog');if(dt)dt.textContent=t;if(dg)dg.style.display='block';}
-function closeDialog(){const dg=document.getElementById('dialog');if(dg)dg.style.display='none';}
+function showDialog(t){const dt=document.getElementById('dialog-text');const dg=document.getElementById('dialog');if(dt)dt.textContent=t;if(dg){dg.style.display='block';clearTimeout(dg._t);dg._t=setTimeout(()=>{dg.style.display='none';},4000);}}
+function closeDialog(){const dg=document.getElementById('dialog');if(dg){clearTimeout(dg._t);dg.style.display='none';}}
 
 function shakeSprite(id){
   const el=document.getElementById(id);
@@ -7680,7 +7565,6 @@ let _wSort = 'atk', _aSort = 'def';
 const dropLog = [];
 
 function openInventory(tab){
-  cancelRest();
   _invTab = tab || _invTab || 'equipped';
   renderInventory();
   const invs = document.getElementById('inv-screen');
@@ -8406,7 +8290,6 @@ function learnSkill(id){
 }
 
 function openSkillTree(){
-  cancelRest();
   const sc = document.getElementById('skilltree-screen');
   if(!sc) return;
   renderSkillTree();
@@ -8847,7 +8730,6 @@ const CRAFT_RECIPES = [
 let craftingLog = [];
 
 function openCrafting(){
-  cancelRest();
   const sc=document.getElementById('craft-screen');
   if(!sc) return;
   const p=state.player;
@@ -9640,143 +9522,9 @@ function startRainCanvas(isStorm){
 // ==============================================
 // 🎲 RANDOM EVENTS
 // ==============================================
-const RANDOM_EVENTS = [
-  {
-    id:'treasure', weight:15, icon:'💰', title:'Treasure Chest!',
-    desc:'You found an old chest on the road!',
-    choices:[
-      {label:'🔓 Open it', action:(p)=>{
-        const coins = 20 + Math.floor(Math.random()*80);
-        p.coins += coins;
-        if(questState) questState.stats.chestsFound=(questState.stats.chestsFound||0)+1;
-        checkAchievements();
-        return `Found ${coins} coins inside! 💰`;
-      }},
-      {label:'🚶 Leave it', action:()=>'You walk away cautiously.'},
-    ]
-  },
-  {
-    id:'merchant', weight:12, icon:'🧳', title:'Wandering Merchant',
-    desc:'A travelling merchant offers you a deal: a random item for 30 coins!',
-    choices:[
-      {label:'💰 Buy (30g)', action:(p)=>{
-        if(p.coins<30) return "Not enough coins! The merchant leaves.";
-        p.coins-=30;
-        const pool=[...WEAPONS,...ARMORS].filter(x=>x.t<=Math.max(1,p.level-1));
-        const item=pool[Math.floor(Math.random()*pool.length)];
-        if(item){ addToInventory({...item,type:item.atk!=null?'weapon':'armor'}); return `Bought ${item.emoji} ${item.name}!`; }
-        return 'Nothing good available.';
-      }},
-      {label:'🚶 Pass', action:()=>'The merchant tips his hat and moves on.'},
-    ]
-  },
-  {
-    id:'ambush', weight:18, icon:'⚔️', title:'Ambush!',
-    desc:'Enemies spring from the bushes!',
-    choices:[
-      {label:'⚔️ Fight!', action:(p)=>{
-        // Trigger a random battle
-        const tier = Math.max(1,Math.min(10,p.level));
-        const pool = window._ENEMY_POOL ? window._ENEMY_POOL.filter(e=>e.t===tier) : [];
-        if(pool.length){ setTimeout(()=>startBattle({...pool[Math.floor(Math.random()*pool.length)]}),400); }
-        return 'Get ready to fight!';
-      }},
-      {label:'🏃 Run!', action:(p)=>{
-        p.hp = Math.max(1, p.hp - 8);
-        return 'You escaped! But lost 8 HP in the panic.';
-      }},
-    ]
-  },
-  {
-    id:'fountain', weight:10, icon:'⛲', title:'Healing Fountain',
-    desc:'You discover a magical fountain glowing with warm light.',
-    choices:[
-      {label:'💧 Drink', action:(p)=>{
-        const heal = Math.floor(p.maxHp * 0.3);
-        p.hp = Math.min(p.maxHp, p.hp + heal);
-        updateHUD();
-        return `Restored ${heal} HP! ✨`;
-      }},
-      {label:'🚶 Ignore', action:()=>'You hurry past.'},
-    ]
-  },
-  {
-    id:'potion', weight:14, icon:'💊', title:'Abandoned Pack',
-    desc:'An adventurer left behind their pack. You find a potion inside!',
-    choices:[
-      {label:'🎒 Take it', action:(p)=>{
-        if(p.potions>=(p.maxPotions||20)) return "Your small potion bag is full!";
-        p.potions++;
-        updateHUD();
-        return `Got a Small Potion! (${p.potions}/${p.maxPotions||20}) 💊`;
-      }},
-      {label:'🚶 Leave it', action:()=>'You leave it for the next adventurer.'},
-    ]
-  },
-  {
-    id:'scroll', weight:8, icon:'📜', title:'Ancient Scroll',
-    desc:'A mysterious scroll glows on the ground. It grants temporary power!',
-    choices:[
-      {label:'📖 Read it', action:(p)=>{
-        p.attack += 3;
-        setTimeout(()=>{ p.attack -= 3; showSellToast('📜 Scroll effect faded','#888'); },30000);
-        return 'ATK +3 for 30 seconds! ⚡';
-      }},
-      {label:'🚶 Ignore', action:()=>'You leave the strange scroll alone.'},
-    ]
-  },
-];
-
-let _randomEventCooldown = 0;
-const RANDOM_EVENT_CHANCE_INTERVAL = 600; // ~10s at 60fps
-
-function tickRandomEvents(){
-  if(_randomEventCooldown > 0){ _randomEventCooldown--; return; }
-  if(!state.player || state.inBattle || state.inGrass) return;
-  if(Math.random() < 0.002){ // ~0.2% per frame when off cooldown
-    triggerRandomEvent();
-    _randomEventCooldown = RANDOM_EVENT_CHANCE_INTERVAL;
-  }
-}
-
-function triggerRandomEvent(){
-  // Weighted random selection
-  const total = RANDOM_EVENTS.reduce((s,e)=>s+e.weight,0);
-  let r = Math.random()*total;
-  let evt = RANDOM_EVENTS[0];
-  for(const e of RANDOM_EVENTS){ r-=e.weight; if(r<=0){evt=e;break;} }
-
-  const sc = document.getElementById('event-screen');
-  if(!sc) return;
-  sc.innerHTML = `
-    <div style="width:100%;max-width:420px;padding:20px;text-align:center;">
-      <div style="font-size:48px;margin-bottom:12px;animation:resultPop .4s both;">${evt.icon}</div>
-      <div style="font-family:'Orbitron',sans-serif;font-size:14px;color:#FFD700;margin-bottom:8px;">${evt.title}</div>
-      <div style="font-size:8px;color:#888;margin-bottom:20px;line-height:1.8;">${evt.desc}</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        ${evt.choices.map((ch,i)=>`
-          <button onclick="resolveEvent(${i})"
-            style="background:#0a0a14;border:2px solid #FFD70066;color:#FFD700;font-family:'Press Start 2P',monospace;
-            font-size:8px;padding:12px;cursor:pointer;clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);">
-            ${ch.label}</button>`).join('')}
-      </div>
-      <div id="event-result" style="font-size:8px;color:#44ffaa;margin-top:16px;min-height:20px;"></div>
-    </div>`;
-  sc._evt = evt;
-  sc.style.display = 'flex';
-}
-
-function resolveEvent(choiceIdx){
-  const sc = document.getElementById('event-screen');
-  if(!sc||!sc._evt) return;
-  const evt = sc._evt;
-  const result = evt.choices[choiceIdx].action(state.player);
-  const resEl = document.getElementById('event-result');
-  if(resEl) resEl.textContent = result;
-  updateHUD();
-  // Auto-close after 2s
-  setTimeout(()=>{ sc.style.display='none'; sc._evt=null; }, 2200);
-}
+function tickRandomEvents(){}
+function triggerRandomEvent(){}
+function resolveEvent(){}
 
 // ==============================================
 // 📖 LORE / STORY INTRO
@@ -10448,7 +10196,6 @@ let _shopType = 'general';
 let _shopTab  = 'weapons';
 
 function openShop(type, desc){
-  cancelRest();
   _shopType = type;
   _shopTab  = type==='armors' ? 'armors' : type==='upgrade' ? 'upgrade' : 'weapons';
   const sc = document.getElementById('shop-screen');
@@ -10726,16 +10473,16 @@ function renderQuestScreen(){
 </script>
 <!-- UNIFIED TOOLBAR -->
 <div id="toolbar">
-  <button class="tb-btn" id="tb-bag" onclick="openInventory();playSoundUIClick()">
-    <span class="tb-icon">🎒</span>BAG
-    <span class="tb-dot" id="bag-dot-tb"></span>
+  <button class="tb-btn" id="tb-skills" onclick="openSkillTree();playSoundUIClick()">
+    <span class="tb-icon">🌟</span>SKILLS
   </button>
   <button class="tb-btn" id="tb-quest" onclick="openQuestScreen();playSoundUIClick()">
     <span class="tb-icon">📋</span>QUEST
     <span class="tb-dot" id="quest-dot-tb"></span>
   </button>
-  <button class="tb-btn" id="tb-skills" onclick="openSkillTree();playSoundUIClick()">
-    <span class="tb-icon">🌟</span>SKILLS
+  <button class="tb-btn" id="tb-bag" onclick="openInventory();playSoundUIClick()">
+    <span class="tb-icon">🎒</span>BAG
+    <span class="tb-dot" id="bag-dot-tb"></span>
   </button>
   <button class="tb-btn" id="tb-travel" onclick="openFastTravel();playSoundUIClick()">
     <span class="tb-icon">🗺️</span>TRAVEL
