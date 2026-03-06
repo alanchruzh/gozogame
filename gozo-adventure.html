@@ -244,7 +244,7 @@
   }
 
   /* Battle UI panel */
-  #battle-ui{width:100%;flex-shrink:0;background:linear-gradient(180deg,#050210 0%,#080420 100%);
+  #battle-ui{width:100%;flex-shrink:0;background:linear-gradient(180deg,#050210 0%,#080420 100%);position:relative;
     border-top:2px solid #FFD70030;padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;}
   #battle-log{background:rgba(0,0,0,.93);border:2px solid #FFD70044;padding:8px 14px;font-size:8px;
     line-height:2;min-height:46px;color:#ddeeff;text-shadow:0 0 8px rgba(100,150,255,.3);
@@ -786,12 +786,34 @@
     <div id="battle-log">A wild monster appeared!</div>
     <div id="battle-actions">
       <button class="battle-btn" onclick="battleAction('attack')">⚔️ ATTACK</button>
-      <button class="battle-btn" id="btn-special" onclick="battleAction('special')">⚡ SKILL</button>
-      <button class="battle-btn" id="btn-heal" onclick="battleAction('heal')" title="Small: restores 25-35% HP">💊 SMALL</button>
-      <button class="battle-btn" id="btn-heal-med" onclick="battleAction('healMed')" title="Medium: restores 55-65% HP">🧪 MEDIUM</button>
-      <button class="battle-btn" id="btn-heal-lrg" onclick="battleAction('healLrg')" title="Large: restores 90-100% HP">🫙 LARGE</button>
+      <button class="battle-btn" id="btn-special" onclick="battleAction('special')">⚡ SKILL 1</button>
+      <button class="battle-btn" id="btn-special2" onclick="battleAction('special2')">✨ SKILL 2</button>
+      <button class="battle-btn" id="btn-heal" onclick="openPotionMenu()">💊 POTION</button>
       <button class="battle-btn" onclick="battleAction('run')">🏃 RUN</button>
       <button class="battle-btn" id="btn-puzzle" onclick="openBattlePuzzle()" style="grid-column:span 3;border-color:#aa88ff55;color:#aa88ff;font-size:6px;">🧩 ELEMENT CHALLENGE (bonus dmg)</button>
+    <div id="potion-menu" style="display:none;position:absolute;bottom:60px;left:50%;transform:translateX(-50%);
+      background:#0a0a18;border:2px solid #44ffaa;border-radius:4px;padding:8px;z-index:200;
+      flex-direction:column;gap:6px;min-width:240px;">
+      <div style="font-size:7px;color:#44ffaa;text-align:center;margin-bottom:2px;letter-spacing:2px;">— USE POTION —</div>
+      <button id="pmenu-small" onclick="pickPotion('heal')"
+        style="background:#0a0a18;border:2px solid #44ffaa;color:#44ffaa;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px;cursor:pointer;text-align:left;">
+        💊 Small &nbsp;<span style="color:#888;font-size:6px;">25–35% HP</span>
+        <span id="pmenu-small-count" style="float:right;color:#aaa;font-size:6px;"></span>
+      </button>
+      <button id="pmenu-med" onclick="pickPotion('healMed')"
+        style="background:#0a0a18;border:2px solid #44aaff;color:#44aaff;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px;cursor:pointer;text-align:left;">
+        🧪 Medium &nbsp;<span style="color:#888;font-size:6px;">55–65% HP</span>
+        <span id="pmenu-med-count" style="float:right;color:#aaa;font-size:6px;"></span>
+      </button>
+      <button id="pmenu-lrg" onclick="pickPotion('healLrg')"
+        style="background:#0a0a18;border:2px solid #ffaa44;color:#ffaa44;font-family:'Press Start 2P',monospace;font-size:7px;padding:8px;cursor:pointer;text-align:left;">
+        🫙 Large &nbsp;<span style="color:#888;font-size:6px;">90–100% HP</span>
+        <span id="pmenu-lrg-count" style="float:right;color:#aaa;font-size:6px;"></span>
+      </button>
+      <button onclick="closePotionMenu()"
+        style="background:none;border:1px solid #333;color:#555;font-family:'Press Start 2P',monospace;font-size:6px;padding:5px;cursor:pointer;margin-top:2px;">
+        ✕ CANCEL
+      </button>
     </div>
   </div>
 </div>
@@ -1178,7 +1200,8 @@ const BOSS_LIST = [
 let bossIndex = 0;
 // Per-boss mechanic state
 let bossMechanicTurn = 0;
-let specialCooldown = 0; // turns remaining before special can be used again
+let specialCooldown = 0;  // turns remaining before skill 1 can be used
+let specialCooldown2 = 0; // turns remaining before skill 2 can be used
 let bossRevived = false;
 let bossBurnTurns = 0;
 let bossBurnActive = false;
@@ -3774,6 +3797,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🔥 FLARE BURST',
       specialDesc:'Ignis scorches the enemy!',
       specialMult:2.5, isHeal:false,
+      skill2Name:'🌡️ SCORCH',
+      skill2Desc:'Burns the enemy for 3 turns!',
+      skill2Type:'burn',
       strong:['grass','ice'], weak:['water'],
       passive:'ATK +10'
     },
@@ -3783,6 +3809,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌋 ERUPTION',
       specialDesc:'Pyrolos erupts volcanic flames — burns all defenses!',
       specialMult:3.5, isHeal:false,
+      skill2Name:'🌡️ MAGMA COAT',
+      skill2Desc:'Burns enemy for 3 turns AND ignores 20% DEF!',
+      skill2Type:'burn',
       strong:['grass','ice','earth'], weak:['water'],
       passive:'ATK +25, ignores 30% DEF',
       ignoreDefPct:0.3
@@ -3793,6 +3822,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🐉 INFERNO NOVA',
       specialDesc:'Infernus unleashes a cataclysmic firestorm — obliterates!',
       specialMult:5.0, isHeal:false,
+      skill2Name:'🔴 HELLFIRE',
+      skill2Desc:'Burns for 5 turns AND deals heavy damage!',
+      skill2Type:'burn', skill2Mult:1.8,
       strong:['grass','ice','earth','wind'], weak:['water'],
       passive:'ATK +50, ignores 50% DEF, splash burn',
       ignoreDefPct:0.5, burnOnHit:true
@@ -3805,6 +3837,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'💧 TIDAL WAVE',
       specialDesc:'Aqua crashes a huge wave!',
       specialMult:1.8, isHeal:false,
+      skill2Name:'💚 HEAL TIDE',
+      skill2Desc:'Aqua restores Gozo\'s HP with soothing water!',
+      skill2Type:'heal', skill2HealPct:0.25,
       strong:['fire','earth'], weak:['grass','electric'],
       passive:'HP +30, DEF +5'
     },
@@ -3814,6 +3849,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌊 TSUNAMI',
       specialDesc:'Maralith summons a devastating tsunami!',
       specialMult:3.0, isHeal:false,
+      skill2Name:'🌊 DEEP MEND',
+      skill2Desc:'Heals Gozo for 35% HP and removes poison/burn!',
+      skill2Type:'heal', skill2HealPct:0.35, skill2Cleanse:true,
       strong:['fire','earth','dark'], weak:['grass','electric'],
       passive:'HP +70, DEF +15, heals 5% HP each turn',
       regenPct:0.05
@@ -3824,6 +3862,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌀 ABYSSAL WHIRLPOOL',
       specialDesc:'Abyssos tears open a void whirlpool — drains life!',
       specialMult:4.0, isHeal:false,
+      skill2Name:'🩵 ABYSS RESTORE',
+      skill2Desc:'Heals 45% HP, removes all status effects!',
+      skill2Type:'heal', skill2HealPct:0.45, skill2Cleanse:true,
       strong:['fire','earth','dark','rock'], weak:['grass','electric'],
       passive:'HP +120, DEF +28, lifesteal 20%',
       regenPct:0.08, lifesteal:0.2
@@ -3836,6 +3877,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌿 NATURE HEAL',
       specialDesc:'Sylva restores Gozo\'s HP!',
       specialMult:1.5, isHeal:true,
+      skill2Name:'🕸️ ENTANGLE',
+      skill2Desc:'Roots the enemy — slows them for 2 turns!',
+      skill2Type:'slow',
       strong:['water','earth'], weak:['fire','ice'],
       passive:'Special = Heal HP'
     },
@@ -3845,6 +3889,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌳 THORNS FURY',
       specialDesc:'Thornwood erupts thorns — heals Gozo and poisons enemy!',
       specialMult:2.2, isHeal:true,
+      skill2Name:'☠️ SPORE CLOUD',
+      skill2Desc:'Poisons enemy for 4 turns AND slows them!',
+      skill2Type:'poison+slow',
       strong:['water','earth','dark'], weak:['fire','ice'],
       passive:'HP +45, DEF +10, Special heals AND poisons',
       poisonOnHit:true, healMult:1.5
@@ -3855,6 +3902,9 @@ const PARTNER_EVOLUTIONS = {
       specialName:'🌲 ANCIENT BLOOM',
       specialDesc:'Verdantis channels ancient life force — massive heal and nature explosion!',
       specialMult:3.0, isHeal:true,
+      skill2Name:'🌑 OVERGROWTH',
+      skill2Desc:'Ensnares enemy — poisons, slows, AND blinds for 3 turns!',
+      skill2Type:'poison+slow+blind',
       strong:['water','earth','dark','electric'], weak:['fire'],
       passive:'HP +90, DEF +20, Special heals DOUBLE and damages',
       poisonOnHit:true, healMult:2.5, dualAction:true
@@ -4798,7 +4848,10 @@ function initGame(fromLoad){
     span2.innerHTML=`${partner?.name||'???'} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
     hp2.appendChild(span2);
   }
-  const bs2=document.getElementById('btn-special'); if(bs2) bs2.textContent=partner.specialName;
+  const bs2=document.getElementById('btn-special');
+  if(bs2) bs2.textContent = partner.specialName || '⚡ SKILL 1';
+  const bs3=document.getElementById('btn-special2');
+  if(bs3) bs3.textContent = partner.skill2Name || '✨ SKILL 2';
   renderGozo('down', 0);
   if(!fromLoad) setTimeout(()=>showDialog('🌿 '+partner.name+' joined the team! Walk into tall grass to find wild monsters!'),900);
   requestAnimationFrame(gameLoop);
@@ -6266,8 +6319,9 @@ function startBattle(enemy){
   state.currentEnemy={...enemy};
   state.battleTurn='player';
   clearPlayerStatus(); // ensure no status effects carry over from previous battle
-  specialCooldown = 0; // reset special cooldown at battle start
-  resetCombo();        // reset combo so it doesn't carry over from previous battle
+  specialCooldown = 0;  // reset skill 1 cooldown at battle start
+  specialCooldown2 = 0; // reset skill 2 cooldown at battle start
+  resetCombo();         // reset combo so it doesn't carry over from previous battle
   if(questState) questState.stats.battles++;
   bgmFadeTo('battle');
   trackDexEncounter(enemy);
@@ -6355,19 +6409,54 @@ function updateBattleHP(){
 function setBattleLog(t){const el=document.getElementById('battle-log');if(el)el.textContent=t;}
 function setBattleButtons(on){
   if(!state.inBattle) return;
+  closePotionMenu();
   document.querySelectorAll('.battle-btn').forEach(b=>b.disabled=!on);
   if(on){
     const p=state.player;
     const full = p.hp>=p.maxHp;
+    const noPotion = p.potions<=0 && (p.potionsMed||0)<=0 && (p.potionsLrg||0)<=0;
     const healBtn=document.getElementById('btn-heal');
-    if(healBtn) healBtn.style.opacity=(p.potions<=0||full)?'0.4':'1';
-    const medBtn=document.getElementById('btn-heal-med');
-    if(medBtn) medBtn.style.opacity=((p.potionsMed||0)<=0||full)?'0.4':'1';
-    const lrgBtn=document.getElementById('btn-heal-lrg');
-    if(lrgBtn) lrgBtn.style.opacity=((p.potionsLrg||0)<=0||full)?'0.4':'1';
+    if(healBtn) healBtn.style.opacity=(noPotion||full)?'0.4':'1';
     const spBtn=document.getElementById('btn-special');
     if(spBtn) spBtn.style.opacity=specialCooldown>0?'0.4':'1';
+    const sp2Btn=document.getElementById('btn-special2');
+    if(sp2Btn){
+      const noSkill2 = !partner || !partner.skill2Name;
+      sp2Btn.style.opacity = (specialCooldown2>0 || noSkill2) ? '0.4' : '1';
+    }
   }
+}
+
+function openPotionMenu(){
+  if(!state.inBattle || state.battleTurn!=='player') return;
+  const p=state.player, full=p.hp>=p.maxHp;
+  const menu=document.getElementById('potion-menu');
+  if(!menu) return;
+  // Update counts
+  const sc=document.getElementById('pmenu-small-count');
+  const mc=document.getElementById('pmenu-med-count');
+  const lc=document.getElementById('pmenu-lrg-count');
+  if(sc) sc.textContent=`x${p.potions}`;
+  if(mc) mc.textContent=`x${p.potionsMed||0}`;
+  if(lc) lc.textContent=`x${p.potionsLrg||0}`;
+  // Grey out unavailable
+  const sb=document.getElementById('pmenu-small');
+  const mb=document.getElementById('pmenu-med');
+  const lb=document.getElementById('pmenu-lrg');
+  if(sb){ sb.disabled=(p.potions<=0||full); sb.style.opacity=(p.potions<=0||full)?'0.4':'1'; }
+  if(mb){ mb.disabled=((p.potionsMed||0)<=0||full); mb.style.opacity=((p.potionsMed||0)<=0||full)?'0.4':'1'; }
+  if(lb){ lb.disabled=((p.potionsLrg||0)<=0||full); lb.style.opacity=((p.potionsLrg||0)<=0||full)?'0.4':'1'; }
+  menu.style.display='flex';
+}
+
+function closePotionMenu(){
+  const menu=document.getElementById('potion-menu');
+  if(menu) menu.style.display='none';
+}
+
+function pickPotion(action){
+  closePotionMenu();
+  battleAction(action);
 }
 
 // Safety: if still in battle after 4s and buttons are all disabled, re-enable them
@@ -6514,6 +6603,48 @@ function battleAction(action){
       }
     }
 
+  }else if(action==='special2'){
+    if(!partner || !partner.skill2Name){setBattleLog('❌ No second skill available!');setBattleButtons(true);return;}
+    if(specialCooldown2>0){setBattleLog(`⏳ ${partner.skill2Name} on cooldown (${specialCooldown2} turn${specialCooldown2>1?'s':''} left)!`);setBattleButtons(true);return;}
+    const sk2 = partner.skill2Type||'';
+    specialCooldown2 = 3; // 3-turn cooldown for skill 2
+    playSoundSkill(partner.name);
+    flashArena('rgba(180,80,255,0.25)');
+    spawnBattleParticles(6,['✨','💫','⭐'],280,160);
+
+    if(sk2.includes('burn')){
+      e._burned = (partner.stage||1) >= 3 ? 5 : 3;
+      if(partner.skill2Mult){
+        // Also deal damage
+        const dmg2 = Math.max(1, Math.floor(p.attack * partner.skill2Mult * 0.7));
+        e.hp -= dmg2;
+        showDmgPopup(dmg2, false);
+        shakeSprite('enemy-battle-sprite');
+        log = `${partner.skill2Name}! ${partner.skill2Desc} (-${dmg2} dmg + 🔥 x${e._burned})`;
+      } else {
+        log = `${partner.skill2Name}! ${partner.skill2Desc} 🔥 Burns for ${e._burned} turns!`;
+      }
+    }
+    else if(sk2 === 'heal'){
+      if(p.hp>=p.maxHp){setBattleLog(`❌ HP already full! ${partner.skill2Name} wasted!`);specialCooldown2=0;setBattleButtons(true);return;} // refund cooldown
+      const healAmt = Math.floor(p.maxHp * (partner.skill2HealPct || 0.25));
+      p.hp = Math.min(p.maxHp, p.hp + healAmt);
+      showDmgPopup(healAmt, true);
+      if(partner.skill2Cleanse){ playerStatus.poison=0; playerStatus.burn=0; }
+      log = `${partner.skill2Name}! HP +${healAmt}!${partner.skill2Cleanse?' 🧹 Status cleared!':''}`;
+    }
+    else if(sk2.includes('slow') || sk2.includes('poison') || sk2.includes('blind')){
+      const effects = [];
+      if(sk2.includes('poison')){ e._poisoned = (partner.stage||1)>=3 ? 5 : 4; effects.push(`☠️ Poison x${e._poisoned}`); }
+      if(sk2.includes('slow')) { e._slowed = 2; effects.push('🧊 Slowed x2'); }
+      if(sk2.includes('blind')){ e._blinded = 3; effects.push('👁️ Blinded x3'); }
+      log = `${partner.skill2Name}! ${effects.join(' + ')}`;
+    }
+    else {
+      log = `${partner.skill2Name}! ${partner.skill2Desc}`;
+    }
+    if(questState) questState.stats.skillsUsed = (questState.stats.skillsUsed||0) + 1;
+
   }else if(action==='heal'||action==='healMed'||action==='healLrg'){
     const isSmall = action==='heal', isMed = action==='healMed', isLrg = action==='healLrg';
     const potKey = isSmall?'potions': isMed?'potionsMed':'potionsLrg';
@@ -6553,10 +6684,13 @@ function enemyTurn(){
   let log = ''; // declare early to avoid TDZ — used in special move path before main log assignment
   // Tick player status effects at start of enemy turn
   const statusDmgLog = tickPlayerStatus();
-  if(specialCooldown > 0) specialCooldown--; // tick special cooldown each turn
-  // Update special button label to show cooldown
+  if(specialCooldown > 0) specialCooldown--;   // tick skill 1 cooldown each turn
+  if(specialCooldown2 > 0) specialCooldown2--; // tick skill 2 cooldown each turn
+  // Update skill button labels to show cooldowns
   const spBtn = document.getElementById('btn-special');
-  if(spBtn) spBtn.textContent = specialCooldown > 0 ? `⏳ (${specialCooldown})` : (partner ? partner.specialName : '⚡ SKILL');
+  if(spBtn) spBtn.textContent = specialCooldown > 0 ? `⏳(${specialCooldown})` : (partner ? partner.specialName : '⚡ SKILL 1');
+  const sp2Btn = document.getElementById('btn-special2');
+  if(sp2Btn) sp2Btn.textContent = specialCooldown2 > 0 ? `⏳(${specialCooldown2})` : (partner&&partner.skill2Name ? partner.skill2Name : '✨ SKILL 2');
 
   // ── BOSS MECHANICS ──
   const curBoss = BOSS_LIST[bossIndex];
@@ -6601,8 +6735,20 @@ function enemyTurn(){
   }
 
   if(!skipAtk){
+    // Slowed enemy skips their attack this turn
+    if(e._slowed > 0){
+      e._slowed--;
+      log = `🧊 ${e.name} is slowed — turn skipped!`;
+      updateBattleHP(); setBattleLog(log);
+      updateStatusHUD();
+      state.battleTurn='player'; setBattleButtons(true);
+      return;
+    }
+
     let dmgMult = (isBossFight && e._overload) ? 3 : 1;
     e._overload=false;
+    // Blinded enemy has 35% miss chance
+    if(e._blinded > 0){ e._blinded--; if(Math.random()<0.35){ log+=' 👁️ Enemy missed! (Blinded)'; updateBattleHP(); setBattleLog(log); updateStatusHUD(); state.battleTurn='player'; setBattleButtons(true); return; } }
     const atkCount = (isBossFight && curBoss.mechanic==='multi') ? 2 : 1;
 
     // Try enemy special move (non-boss only, 28% chance)
@@ -6621,6 +6767,13 @@ function enemyTurn(){
       }
     }
 
+    // Apply weather element bonus to enemy attack
+    const eWeatherMult = e.element ? ((getWeatherBattleEffect().dmgMult||{})[e.element]||1) : 1;
+    if(eWeatherMult !== 1){
+      const wHint = document.getElementById('weather-battle-hint');
+      if(wHint){ const eff=getWeatherBattleEffect(); wHint.textContent=`${eff.label}: ${eff.desc}`; wHint.style.opacity='1'; setTimeout(()=>wHint.style.opacity='0',3000); }
+    }
+
     for(let ai=0;ai<atkCount;ai++){
       let dmg=Math.max(1,Math.floor((e.atk+Math.floor(Math.random()*6)-p.defense)*dmgMult));
       // Boss minimum damage — ignores 60% of player defense, always painful
@@ -6634,6 +6787,7 @@ function enemyTurn(){
         const wildDef = Math.floor(p.defense * 0.45);
         dmg = Math.max(2, Math.floor((e.atk + Math.floor(Math.random()*6) - wildDef) * dmgMult));
       }
+      dmg = Math.floor(dmg * eWeatherMult); // apply weather element multiplier
       p.hp-=dmg;
       if(questState) questState.stats.damageTaken += dmg;
       playSoundPlayerHurt();
@@ -6658,6 +6812,8 @@ function enemyTurn(){
     e.hp-=bdmg; e._burned--; showDmgPopup(bdmg,false);
     log+=` 🔥 Burn -${bdmg}HP`;
   }
+  if(e._blinded>0){ e._blinded--; } // always tick down regardless of miss outcome
+  if(e._slowed>0 && !skipAtk){ /* already decremented above when triggered */ }
   // Partner regen
   if(partner&&partner.regenPct){
     const regen=Math.max(1,Math.floor(p.maxHp*partner.regenPct));
@@ -6676,14 +6832,6 @@ function enemyTurn(){
   }
 
   setBattleLog(log + (statusDmgLog||''));
-  // Weather effects on enemy element
-  if(e.element){
-    const weatherMult = (getWeatherBattleEffect().dmgMult||{})[e.element]||1;
-    if(weatherMult !== 1){
-      const wHint = document.getElementById('weather-battle-hint');
-      if(wHint){ const eff=getWeatherBattleEffect(); wHint.textContent=`${eff.label}: ${eff.desc}`; wHint.style.opacity='1'; setTimeout(()=>wHint.style.opacity='0',3000); }
-    }
-  }
   // Sunny weather heals player each enemy turn
   const sunnyHeal = getWeatherBattleEffect().healBonus||0;
   if(sunnyHeal>0 && p.hp<p.maxHp){ p.hp=Math.min(p.maxHp,p.hp+sunnyHeal); }
@@ -6769,6 +6917,7 @@ function endBattle(won){
   state.inGrass=false;
   state.keys={}; // clear held keys so WASD doesn't instantly trigger another encounter
   state.moving=null;
+  specialCooldown = 0; specialCooldown2 = 0;
   resetCombo(); // clear any leftover combo
   const bs=document.getElementById('battle-screen'); if(bs) bs.style.display='none';
   const pl=document.getElementById('player'); if(pl) pl.classList.remove('in-grass');
@@ -8549,7 +8698,7 @@ const CRAFT_RECIPES = [
   { id:'power_gem',  name:'⚡ Power Gem',   desc:'ATK +8 permanently',    ingredients:[{type:'weapon',minT:3,count:2}],  effect:(p)=>{p.attack+=8;},   cost:0 },
   { id:'iron_will',  name:'🛡️ Iron Will',   desc:'DEF +6, HP +30',        ingredients:[{type:'armor',minT:3,count:2}],   effect:(p)=>{p.defense+=6;p.maxHp+=30;p.hp+=30;}, cost:0 },
   { id:'elixir',     name:'💎 Grand Elixir', desc:'HP +60, Crit +5%',      ingredients:[{type:'weapon',minT:5,count:1},{type:'armor',minT:5,count:1}], effect:(p)=>{p.maxHp+=60;p.hp+=60;p.critChance=Math.min(.75,(p.critChance||0)+.05);}, cost:100 },
-  { id:'void_blade', name:'🌌 Void Shard',   desc:'ATK +15, unlocks void element', ingredients:[{type:'weapon',minT:7,count:3}], effect:(p)=>{p.attack+=15;}, cost:200 },
+  { id:'void_blade', name:'🌌 Void Shard',   desc:'ATK +15, massive power boost', ingredients:[{type:'weapon',minT:7,count:3}], effect:(p)=>{p.attack+=15;}, cost:200 },
   { id:'titan_core', name:'🏔️ Titan Core',  desc:'DEF +12, HP +80',       ingredients:[{type:'armor',minT:7,count:3}],   effect:(p)=>{p.defense+=12;p.maxHp+=80;p.hp+=80;}, cost:200 },
 ];
 let craftingLog = [];
@@ -9956,16 +10105,16 @@ function showBattleIntro(enemy, onDone){
 // ⚔️ ENEMY SPECIAL MOVES
 // ==============================================
 const ENEMY_SPECIALS = {
-  // Format: element → special move
-  fire:     { name:'🔥 INFERNO BURST', effect:(p,e)=>{ const d=Math.floor(e.atk*1.8); p.hp-=d; return {dmg:d,log:'unleashes INFERNO BURST!',status:'burn'}; }},
-  water:    { name:'🌊 TIDAL CRASH',   effect:(p,e)=>{ const d=Math.floor(e.atk*1.5); p.hp-=d; return {dmg:d,log:'crashes a TIDAL WAVE!',status:null}; }},
-  grass:    { name:'🌿 SPORE CLOUD',   effect:(p,e)=>{ const d=Math.floor(e.atk*0.8); p.hp-=d; return {dmg:d,log:'releases SPORE CLOUD!',status:'poison'}; }},
-  electric: { name:'⚡ THUNDERSTRIKE', effect:(p,e)=>{ const d=Math.floor(e.atk*2.0); p.hp-=d; return {dmg:d,log:'fires THUNDERSTRIKE!',status:null}; }},
-  ice:      { name:'❄️ FROZEN GRAVE',  effect:(p,e)=>{ const d=Math.floor(e.atk*1.2); p.hp-=d; return {dmg:d,log:'casts FROZEN GRAVE! Speed halved!',status:'slow'}; }},
-  dark:     { name:'🌑 SOUL DRAIN',    effect:(p,e)=>{ const d=Math.floor(e.atk*1.0); p.hp-=d; e.hp=Math.min(e.maxHp||999,e.hp+Math.floor(d/2)); return {dmg:d,log:'uses SOUL DRAIN! Steals HP!',status:null}; }},
-  earth:    { name:'🪨 ROCKSLIDE',     effect:(p,e)=>{ const d=Math.floor(e.atk*1.6); p.hp-=d; return {dmg:d,log:'triggers ROCKSLIDE!',status:null}; }},
-  wind:     { name:'🌪️ CYCLONE',       effect:(p,e)=>{ const d=Math.floor(e.atk*1.4); p.hp-=d; return {dmg:d,log:'spins a CYCLONE!',status:null}; }},
-  light:    { name:'☀️ SOLAR FLARE',   effect:(p,e)=>{ const d=Math.floor(e.atk*1.7); p.hp-=d; return {dmg:d,log:'fires SOLAR FLARE!',status:'blind'}; }},
+  // Format: element → special move. Damage is reduced by 40% of player defense.
+  fire:     { name:'🔥 INFERNO BURST', effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(3,Math.floor(e.atk*1.8)-def); p.hp-=d; return {dmg:d,log:'unleashes INFERNO BURST!',status:'burn'}; }},
+  water:    { name:'🌊 TIDAL CRASH',   effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(2,Math.floor(e.atk*1.5)-def); p.hp-=d; return {dmg:d,log:'crashes a TIDAL WAVE!',status:null}; }},
+  grass:    { name:'🌿 SPORE CLOUD',   effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(1,Math.floor(e.atk*0.8)-def); p.hp-=d; return {dmg:d,log:'releases SPORE CLOUD!',status:'poison'}; }},
+  electric: { name:'⚡ THUNDERSTRIKE', effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.3); const d=Math.max(4,Math.floor(e.atk*2.0)-def); p.hp-=d; return {dmg:d,log:'fires THUNDERSTRIKE!',status:null}; }},
+  ice:      { name:'❄️ FROZEN GRAVE',  effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(2,Math.floor(e.atk*1.2)-def); p.hp-=d; return {dmg:d,log:'casts FROZEN GRAVE! Speed halved!',status:'slow'}; }},
+  dark:     { name:'🌑 SOUL DRAIN',    effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(2,Math.floor(e.atk*1.0)-def); p.hp-=d; e.hp=Math.min(e.maxHp||999,e.hp+Math.floor(d/2)); return {dmg:d,log:'uses SOUL DRAIN! Steals HP!',status:null}; }},
+  earth:    { name:'🪨 ROCKSLIDE',     effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(3,Math.floor(e.atk*1.6)-def); p.hp-=d; return {dmg:d,log:'triggers ROCKSLIDE!',status:null}; }},
+  wind:     { name:'🌪️ CYCLONE',       effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.4); const d=Math.max(2,Math.floor(e.atk*1.4)-def); p.hp-=d; return {dmg:d,log:'spins a CYCLONE!',status:null}; }},
+  light:    { name:'☀️ SOLAR FLARE',   effect:(p,e)=>{ const def=Math.floor((p.defense||0)*0.3); const d=Math.max(3,Math.floor(e.atk*1.7)-def); p.hp-=d; return {dmg:d,log:'fires SOLAR FLARE!',status:'blind'}; }},
 };
 
 // Player status effects
