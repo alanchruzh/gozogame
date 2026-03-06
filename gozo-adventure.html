@@ -249,7 +249,7 @@
   #battle-log{background:rgba(0,0,0,.93);border:2px solid #FFD70044;padding:8px 14px;font-size:8px;
     line-height:2;min-height:46px;color:#ddeeff;text-shadow:0 0 8px rgba(100,150,255,.3);
     clip-path:polygon(10px 0%,calc(100% - 10px) 0%,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0% calc(100% - 10px),0% 10px);}
-  #battle-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  #battle-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
   .battle-btn{background:rgba(0,0,0,.78);border:2px solid #FFD70055;color:#FFD700;
     font-family:'Press Start 2P',monospace;font-size:7px;padding:10px 8px;cursor:pointer;transition:all .15s;
     clip-path:polygon(6px 0%,calc(100% - 6px) 0%,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0% calc(100% - 6px),0% 6px);}
@@ -787,9 +787,11 @@
     <div id="battle-actions">
       <button class="battle-btn" onclick="battleAction('attack')">⚔️ ATTACK</button>
       <button class="battle-btn" id="btn-special" onclick="battleAction('special')">⚡ SKILL</button>
-      <button class="battle-btn" onclick="battleAction('heal')">💊 POTION</button>
+      <button class="battle-btn" id="btn-heal" onclick="battleAction('heal')" title="Small: restores 25-35% HP">💊 SMALL</button>
+      <button class="battle-btn" id="btn-heal-med" onclick="battleAction('healMed')" title="Medium: restores 55-65% HP">🧪 MEDIUM</button>
+      <button class="battle-btn" id="btn-heal-lrg" onclick="battleAction('healLrg')" title="Large: restores 90-100% HP">🫙 LARGE</button>
       <button class="battle-btn" onclick="battleAction('run')">🏃 RUN</button>
-      <button class="battle-btn" id="btn-puzzle" onclick="openBattlePuzzle()" style="grid-column:span 2;border-color:#aa88ff55;color:#aa88ff;font-size:6px;">🧩 ELEMENT CHALLENGE (bonus dmg)</button>
+      <button class="battle-btn" id="btn-puzzle" onclick="openBattlePuzzle()" style="grid-column:span 3;border-color:#aa88ff55;color:#aa88ff;font-size:6px;">🧩 ELEMENT CHALLENGE (bonus dmg)</button>
     </div>
   </div>
 </div>
@@ -1011,7 +1013,7 @@ function inGrass(x, y, w, h){
 }
 
 const state = {
-  player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3,maxPotions:5,critChance:0,speedBonus:0 },
+  player:{ x:300,y:250,hp:100,maxHp:100,level:1,exp:0,expToLevel:50,coins:0,attack:15,defense:5,potions:3,potionsMed:0,potionsLrg:0,maxPotions:20,critChance:0,speedBonus:0 },
   world:{ w:0,h:0 },
   keys:{}, moving:null,
   inBattle:false, currentEnemy:null, battleTurn:'player',
@@ -1176,6 +1178,7 @@ const BOSS_LIST = [
 let bossIndex = 0;
 // Per-boss mechanic state
 let bossMechanicTurn = 0;
+let specialCooldown = 0; // turns remaining before special can be used again
 let bossRevived = false;
 let bossBurnTurns = 0;
 let bossBurnActive = false;
@@ -4011,11 +4014,17 @@ function confirmLoad(){
   pendingLoad = null;
   const prev = document.getElementById('load-preview');
   if(prev) prev.style.display='none';
-  // Close save screen and restart game
   const ss = document.getElementById('save-screen');
   if(ss) ss.style.display='none';
-  // Reload the game state
   location.reload();
+}
+
+function cancelLoad(){
+  pendingLoad = null;
+  const prev = document.getElementById('load-preview');
+  if(prev) prev.style.display='none';
+  const inp = document.getElementById('load-file-input');
+  if(inp) inp.value='';
 }
 
 // Show LOAD SAVE FILE button always (loads from file), and preview localStorage save if exists
@@ -4072,7 +4081,24 @@ function confirmMonster(){
 // ==============================================
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-function getAudio(){ if(!audioCtx) audioCtx=new AudioCtx(); return audioCtx; }
+function getAudio(){
+  if(!audioCtx) audioCtx=new AudioCtx();
+  // Resume suspended AudioContext on first user gesture (browser autoplay policy)
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// SFX master gain — all sound effects connect here so sfxVolume setting works
+let _sfxMasterGain = null;
+function getSfxDest(){
+  const a = getAudio();
+  if(!_sfxMasterGain){
+    _sfxMasterGain = a.createGain();
+    _sfxMasterGain.gain.value = SETTINGS.sfxVolume ?? 1.0;
+    _sfxMasterGain.connect(a.destination);
+  }
+  return _sfxMasterGain;
+}
 
 // ==============================================
 // BACKGROUND MUSIC SYSTEM
@@ -4322,12 +4348,12 @@ function playSoundAttack(){
     const src=a.createBufferSource();
     const filt=a.createBiquadFilter(); filt.type='highpass'; filt.frequency.value=400;
     const g=a.createGain(); g.gain.setValueAtTime(0.55,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
-    src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(a.destination); src.start();
+    src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(getSfxDest()); src.start();
     // Impact thud
     const o=a.createOscillator(), g2=a.createGain();
     o.type='sine'; o.frequency.setValueAtTime(220,t); o.frequency.exponentialRampToValueAtTime(60,t+0.1);
     g2.gain.setValueAtTime(0.4,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
-    o.connect(g2); g2.connect(a.destination); o.start(); o.stop(t+0.1);
+    o.connect(g2); g2.connect(getSfxDest()); o.start(); o.stop(t+0.1);
   }catch(e){}
 }
 
@@ -4338,7 +4364,7 @@ function playSoundHit(){
     const o=a.createOscillator(), g=a.createGain();
     o.type='square'; o.frequency.setValueAtTime(300,t); o.frequency.exponentialRampToValueAtTime(120,t+0.08);
     g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.1);
-    o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.1);
+    o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+0.1);
   }catch(e){}
 }
 
@@ -4349,7 +4375,7 @@ function playSoundPlayerHurt(){
     const o=a.createOscillator(), g=a.createGain();
     o.type='sawtooth'; o.frequency.setValueAtTime(440,t); o.frequency.exponentialRampToValueAtTime(200,t+0.15);
     g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.18);
-    o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.18);
+    o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+0.18);
     // second screech layer
     setTimeout(()=>{
       try{
@@ -4373,7 +4399,7 @@ function playSoundHeal(){
       g.gain.setValueAtTime(0,t+i*0.06);
       g.gain.linearRampToValueAtTime(0.18,t+i*0.06+0.04);
       g.gain.linearRampToValueAtTime(0,t+i*0.06+0.14);
-      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.06+0.16);
+      o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+i*0.06+0.16);
     });
   }catch(e){}
 }
@@ -4386,7 +4412,7 @@ function playSoundRun(){
       const o=a.createOscillator(), g=a.createGain();
       o.type='square'; o.frequency.value=f;
       g.gain.setValueAtTime(0.18,t+i*0.07); g.gain.linearRampToValueAtTime(0,t+i*0.07+0.08);
-      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.07+0.1);
+      o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+i*0.07+0.1);
     });
   }catch(e){}
 }
@@ -4402,7 +4428,7 @@ function playSoundVictory(){
       const o=a.createOscillator(), g=a.createGain();
       o.type='square'; o.frequency.value=f;
       g.gain.setValueAtTime(0.18,cur); g.gain.setValueAtTime(0.18,cur+dur[i]*.8); g.gain.linearRampToValueAtTime(0,cur+dur[i]);
-      o.connect(g); g.connect(a.destination); o.start(cur); o.stop(cur+dur[i]);
+      o.connect(g); g.connect(getSfxDest()); o.start(cur); o.stop(cur+dur[i]);
       cur+=dur[i];
     });
   }catch(e){}
@@ -4416,7 +4442,7 @@ function playSoundDefeat(){
       const o=a.createOscillator(), g=a.createGain();
       o.type='sawtooth'; o.frequency.value=f;
       g.gain.setValueAtTime(0.22,t+i*0.18); g.gain.linearRampToValueAtTime(0,t+i*0.18+0.2);
-      o.connect(g); g.connect(a.destination); o.start(t+i*0.18); o.stop(t+i*0.18+0.22);
+      o.connect(g); g.connect(getSfxDest()); o.start(t+i*0.18); o.stop(t+i*0.18+0.22);
     });
   }catch(e){}
 }
@@ -4433,19 +4459,19 @@ function playSoundSkill(partnerType){
       const src=a.createBufferSource();
       const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=2200; filt.Q.value=0.5;
       const g=a.createGain(); g.gain.setValueAtTime(0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.3);
-      src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(a.destination); src.start();
+      src.buffer=buf; src.connect(filt); filt.connect(g); g.connect(getSfxDest()); src.start();
       // Whoosh up
       const o=a.createOscillator(), g2=a.createGain();
       o.type='sawtooth'; o.frequency.setValueAtTime(100,t); o.frequency.exponentialRampToValueAtTime(1800,t+0.25);
       g2.gain.setValueAtTime(0.25,t); g2.gain.linearRampToValueAtTime(0,t+0.28);
-      o.connect(g2); g2.connect(a.destination); o.start(); o.stop(t+0.28);
+      o.connect(g2); g2.connect(getSfxDest()); o.start(); o.stop(t+0.28);
 
     } else if(partnerType==='water'||partnerType==='AQUA'||partnerType==='MARALITH'||partnerType==='ABYSSOS'){
       // Water wave: low rumble + splashy noise
       const o=a.createOscillator(), g=a.createGain();
       o.type='sine'; o.frequency.setValueAtTime(80,t); o.frequency.linearRampToValueAtTime(140,t+0.2); o.frequency.linearRampToValueAtTime(60,t+0.45);
       g.gain.setValueAtTime(0.3,t); g.gain.linearRampToValueAtTime(0,t+0.5);
-      o.connect(g); g.connect(a.destination); o.start(); o.stop(t+0.5);
+      o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+0.5);
       // Splash noise
       const buf=a.createBuffer(1,a.sampleRate*0.2,a.sampleRate);
       const d=buf.getChannelData(0);
@@ -4453,7 +4479,7 @@ function playSoundSkill(partnerType){
       const src=a.createBufferSource();
       const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=800; filt.Q.value=0.8;
       const g2=a.createGain(); g2.gain.setValueAtTime(0.5,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.22);
-      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(a.destination); src.start();
+      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(getSfxDest()); src.start();
 
     } else {
       // Grass / heal: gentle chime arpeggio
@@ -4463,7 +4489,7 @@ function playSoundSkill(partnerType){
         g.gain.setValueAtTime(0,t+i*0.07);
         g.gain.linearRampToValueAtTime(0.2,t+i*0.07+0.05);
         g.gain.exponentialRampToValueAtTime(0.001,t+i*0.07+0.3);
-        o.connect(g); g.connect(a.destination); o.start(); o.stop(t+i*0.07+0.32);
+        o.connect(g); g.connect(getSfxDest()); o.start(); o.stop(t+i*0.07+0.32);
       });
       // Leafy rustle
       const buf=a.createBuffer(1,a.sampleRate*0.15,a.sampleRate);
@@ -4472,7 +4498,7 @@ function playSoundSkill(partnerType){
       const src=a.createBufferSource();
       const filt=a.createBiquadFilter(); filt.type='bandpass'; filt.frequency.value=1200; filt.Q.value=1;
       const g2=a.createGain(); g2.gain.setValueAtTime(0.4,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(a.destination); src.start();
+      src.buffer=buf; src.connect(filt); filt.connect(g2); g2.connect(getSfxDest()); src.start();
     }
   }catch(e){}
 }
@@ -4675,8 +4701,9 @@ function initGame(fromLoad){
   initAchievements();
   loadSettings();
   applySettings();
-  // Try to load persisted data from localStorage
-  try{
+  // Only load persisted data if explicitly loading (not starting fresh)
+  if(fromLoad){
+    try{
     const saved = lsLoad();
     if(saved){
       // Restore player stats from save
@@ -4690,6 +4717,8 @@ function initGame(fromLoad){
       if(saved.exl != null) p.expToLevel  = saved.exl;
       if(saved.coins!=null) p.coins       = saved.coins;
       if(saved.pot != null) p.potions     = saved.pot;
+      if(saved.potMed!=null)p.potionsMed  = saved.potMed;
+      if(saved.potLrg!=null)p.potionsLrg  = saved.potLrg;
       if(saved.maxPot!=null)p.maxPotions  = saved.maxPot;
       if(saved.crit!=null)  p.critChance  = saved.crit;
       if(saved.spd != null) p.speedBonus  = saved.spd;
@@ -4702,8 +4731,15 @@ function initGame(fromLoad){
       if(pType && PARTNER_EVOLUTIONS[pType]){
         const stageIdx = Math.max(0, Math.min((partnerStage||1)-1, PARTNER_EVOLUTIONS[pType].length-1));
         partner = PARTNER_EVOLUTIONS[pType][stageIdx];
+        // Re-apply partner level bonuses (each level gave +2 ATK, +1 DEF)
+        if(partnerLevel > 1){
+          partner.bonusAtk = (partnerLevel - 1) * 2;
+          partner.bonusDef = (partnerLevel - 1) * 1;
+        }
       }
       // Restore inventory & equipped items
+      // NOTE: p.attack/defense/maxHp already restored from save (which includes equip bonuses)
+      // So just restore the equipped references WITHOUT adding stats again
       if(saved.winv && saved.winv.length){
         inventory.weapons = saved.winv.map(id=>WEAPONS.find(w=>w.id===id)).filter(Boolean);
       }
@@ -4712,11 +4748,11 @@ function initGame(fromLoad){
       }
       if(saved.weq){
         const w = WEAPONS.find(x=>x.id===saved.weq);
-        if(w){ equipped.weapon = w; p.attack += w.atk; }
+        if(w) equipped.weapon = w; // don't add w.atk — already in p.attack from save
       }
       if(saved.aeq){
         const a = ARMORS.find(x=>x.id===saved.aeq);
-        if(a){ equipped.armor = a; p.defense += a.def; p.maxHp += a.hp; p.hp = Math.min(p.hp, p.maxHp); }
+        if(a) equipped.armor = a; // don't add a.def/a.hp — already in p.defense/maxHp from save
       }
       // Apply prestige bonuses on top
       if(prestigeState.level > 0){
@@ -4728,7 +4764,8 @@ function initGame(fromLoad){
       }
       updateHUD();
     }
-  }catch(e){}
+    }catch(e){ console.warn('Load error:', e); }
+  } // end if(fromLoad)
   window._ENEMY_POOL = WILD;
   // Show tutorial for new players after a short delay
   setTimeout(()=>{ if(!SETTINGS.tutorialDone) startTutorial(); }, 2000);
@@ -4758,7 +4795,7 @@ function initGame(fromLoad){
     pc2.style.cssText='width:20px;height:20px;image-rendering:pixelated;vertical-align:middle;margin-right:4px;';
     hp2.innerHTML=''; hp2.appendChild(pc2);
     const span2=document.createElement('span');
-    span2.innerHTML=`${partner.name} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
+    span2.innerHTML=`${partner?.name||'???'} <span style="color:#888;font-size:6px">★${partnerStage||1}</span>`;
     hp2.appendChild(span2);
   }
   const bs2=document.getElementById('btn-special'); if(bs2) bs2.textContent=partner.specialName;
@@ -5985,6 +6022,8 @@ function gameLoop() {
     if (state.keys['ArrowDown']  || state.keys['s'] || state.keys['S'] || state.moving === 'down')  dy += SPEED;
     if (state.keys['ArrowLeft']  || state.keys['a'] || state.keys['A'] || state.moving === 'left')  dx -= SPEED;
     if (state.keys['ArrowRight'] || state.keys['d'] || state.keys['D'] || state.moving === 'right') dx += SPEED;
+    // Normalize diagonal movement so it's same speed as cardinal direction
+    if (dx !== 0 && dy !== 0) { const n = 0.7071; dx = Math.round(dx*n); dy = Math.round(dy*n); }
 
     if (state.encounterCooldown > 0) state.encounterCooldown--;
 
@@ -6226,6 +6265,9 @@ function startBattle(enemy){
   state.inBattle=true;
   state.currentEnemy={...enemy};
   state.battleTurn='player';
+  clearPlayerStatus(); // ensure no status effects carry over from previous battle
+  specialCooldown = 0; // reset special cooldown at battle start
+  resetCombo();        // reset combo so it doesn't carry over from previous battle
   if(questState) questState.stats.battles++;
   bgmFadeTo('battle');
   trackDexEncounter(enemy);
@@ -6314,6 +6356,18 @@ function setBattleLog(t){const el=document.getElementById('battle-log');if(el)el
 function setBattleButtons(on){
   if(!state.inBattle) return;
   document.querySelectorAll('.battle-btn').forEach(b=>b.disabled=!on);
+  if(on){
+    const p=state.player;
+    const full = p.hp>=p.maxHp;
+    const healBtn=document.getElementById('btn-heal');
+    if(healBtn) healBtn.style.opacity=(p.potions<=0||full)?'0.4':'1';
+    const medBtn=document.getElementById('btn-heal-med');
+    if(medBtn) medBtn.style.opacity=((p.potionsMed||0)<=0||full)?'0.4':'1';
+    const lrgBtn=document.getElementById('btn-heal-lrg');
+    if(lrgBtn) lrgBtn.style.opacity=((p.potionsLrg||0)<=0||full)?'0.4':'1';
+    const spBtn=document.getElementById('btn-special');
+    if(spBtn) spBtn.style.opacity=specialCooldown>0?'0.4':'1';
+  }
 }
 
 // Safety: if still in battle after 4s and buttons are all disabled, re-enable them
@@ -6363,6 +6417,8 @@ function battleAction(action){
       dmg = Math.floor(dmg*2);
       if(questState) questState.stats.critHits = (questState.stats.critHits||0)+1;
     }
+    // Apply slow penalty — 30% less damage when slowed
+    if(playerStatus.slow > 0) dmg = Math.floor(dmg * 0.7);
     // Apply combo multiplier
     const comboMult = getComboMultiplier();
     if(comboMult > 1) dmg = Math.floor(dmg * comboMult);
@@ -6387,6 +6443,7 @@ function battleAction(action){
     log=isCrit?`💥 CRITICAL HIT! Dealt ${dmg} damage to ${e.name}!`:`Gozo attacks! Dealt ${dmg} damage to ${e.name}!`;
 
   }else if(action==='special'){
+    if(specialCooldown>0){setBattleLog(`⏳ Skill on cooldown (${specialCooldown} turn${specialCooldown>1?'s':''} left)!`);setBattleButtons(true);return;} // not a real action, just feedback
     playSoundSkill(partner ? partner.name : pType);
     // Element particle colors
     const elemParticles = {fire:['🔥','💥','✨'],water:['💧','🌊','✨'],grass:['🍃','🌿','✨'],
@@ -6402,7 +6459,9 @@ function battleAction(action){
       spawnBattleParticles(6,['💚','✨','🍃'],280,160);
       // dualAction: also deal damage
       if(partner.dualAction){
-        const dmgH=Math.max(1,Math.floor(p.attack*partner.specialMult)-e.def);
+        const daRoll = Math.floor(p.attack * partner.specialMult);
+        const daRatio = daRoll / (daRoll + e.def * 2.0);
+        const dmgH = Math.max(1, Math.round(daRoll * daRatio * 0.85));
         e.hp-=dmgH;
         showDmgPopup(dmgH,false);
         shakeSprite('enemy-battle-sprite');
@@ -6419,6 +6478,10 @@ function battleAction(action){
       const spAtkRoll = Math.floor(p.attack * (partner ? partner.specialMult : 2)) + Math.floor(Math.random()*12);
       const spRatio   = spAtkRoll / (spAtkRoll + effectiveDef * 2.0);
       let dmg = Math.max(1, Math.round(spAtkRoll * spRatio * 0.85));
+      // Apply slow penalty — 30% less damage when slowed
+      if(playerStatus.slow > 0) dmg = Math.floor(dmg * 0.7);
+      // Apply puzzle bonus to special too
+      if(puzzleReward>0){ dmg=Math.floor(dmg*(1+puzzleReward)); puzzleReward=0; }
       // Boss damage cap on specials too (max 12% HP per special)
       const isSpecialBoss = e.isBoss || e.isMiniBoss || (e.maxHp >= 400 && !e.t);
       if(isSpecialBoss){
@@ -6439,6 +6502,7 @@ function battleAction(action){
         arenaShake();
       }, 100);
       log=pre+(partner?partner.specialName:'⚡ CHAIN STRIKE')+`! Dealt ${dmg} damage!!`;
+      specialCooldown = 2; // 2-turn cooldown on special
       // burn effect
       if(partner&&partner.burnOnHit){ e._burned=3; log+=' 🔥 Burned!'; }
       // lifesteal
@@ -6450,15 +6514,21 @@ function battleAction(action){
       }
     }
 
-  }else if(action==='heal'){
-    if(p.potions<=0){setBattleLog('❌ No potions left!');setBattleButtons(true);return;}
-    const heal=30+Math.floor(Math.random()*20);
+  }else if(action==='heal'||action==='healMed'||action==='healLrg'){
+    const isSmall = action==='heal', isMed = action==='healMed', isLrg = action==='healLrg';
+    const potKey = isSmall?'potions': isMed?'potionsMed':'potionsLrg';
+    const potName = isSmall?'Small Potion': isMed?'Medium Potion':'Large Potion';
+    const potIcon = isSmall?'💊': isMed?'🧪':'🫙';
+    if((p[potKey]||0)<=0){setBattleLog(`❌ No ${potName} left!`);setBattleButtons(true);return;} // feedback only, not a real action
+    if(p.hp>=p.maxHp){setBattleLog('❌ HP is already full!');setBattleButtons(true);return;} // feedback only, not a real action
+    const healPct = isSmall ? (0.25+Math.random()*0.10) : isMed ? (0.55+Math.random()*0.10) : (0.90+Math.random()*0.10);
+    const heal=Math.floor(p.maxHp * healPct);
     p.hp=Math.min(p.maxHp,p.hp+heal);
-    p.potions--;
+    p[potKey]--;
     playSoundHeal();
     showDmgPopup(heal,true);
     if(questState) questState.stats.potionsUsed++;
-    log=`💊 Used a potion! HP +${heal}! (Left: ${p.potions})`;
+    log=`${potIcon} Used ${potName}! HP +${heal}! (Left: ${p[potKey]})`;
 
   }else if(action==='run'){
     playSoundRun();
@@ -6476,10 +6546,17 @@ function battleAction(action){
 }
 
 function enemyTurn(){
+  if(!state.inBattle) return; // battle may have ended already (e.g. winBattle fired)
   const p=state.player,e=state.currentEnemy;
+  if(p.hp <= 0){ p.hp=0; setBattleLog('💀 Gozo fainted...'); setTimeout(loseBattle,500); return; }
   bossMechanicTurn++;
+  let log = ''; // declare early to avoid TDZ — used in special move path before main log assignment
   // Tick player status effects at start of enemy turn
   const statusDmgLog = tickPlayerStatus();
+  if(specialCooldown > 0) specialCooldown--; // tick special cooldown each turn
+  // Update special button label to show cooldown
+  const spBtn = document.getElementById('btn-special');
+  if(spBtn) spBtn.textContent = specialCooldown > 0 ? `⏳ (${specialCooldown})` : (partner ? partner.specialName : '⚡ SKILL');
 
   // ── BOSS MECHANICS ──
   const curBoss = BOSS_LIST[bossIndex];
@@ -6495,6 +6572,8 @@ function enemyTurn(){
     }
     if(m==='shield' && bossMechanicTurn%4===0){
       e._shielded=1; mechLog=' 🛡️ Boss is shielded this turn!'; skipAtk=true;
+    } else {
+      e._shielded=0; // clear shield if not triggered this turn
     }
     if(m==='drain'){
       const drain=10; p.hp=Math.max(0,p.hp-drain); e.hp=Math.min(e.maxHp||999,e.hp+drain);
@@ -6566,7 +6645,7 @@ function enemyTurn(){
   }
 
   updateBattleHP();
-  let log=`${e.name} attacks!${mechLog}`;
+  log=`${e.name} attacks!${mechLog}`;
 
   // Tick status effects on enemy
   if(e._poisoned>0){
@@ -6619,6 +6698,8 @@ function enemyTurn(){
 }
 
 function winBattle(){
+  if(!state.inBattle) return; // guard against double-call
+  state.inBattle = false; // lock immediately so loseBattle can't also fire
   const e=state.currentEnemy,p=state.player;
   if(e.name===BOSS_LIST[bossIndex].name){
     bossDefeated=true;
@@ -6632,7 +6713,7 @@ function winBattle(){
       showDialog(`⚠️ A new threat rises: ${nextBoss.emoji} ${nextBoss.name}! "${nextBoss.lore}"`);
     }, 3000);
   }
-  p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||5,p.potions+1);
+  p.exp+=e.exp; p.coins+=e.coins; p.potions=Math.min(p.maxPotions||20,p.potions+1);
   trackDexKill(e);
   if(e.isMiniBoss && questState) questState.stats.miniBossKills = (questState.stats.miniBossKills||0)+1;
   gainPartnerExp(Math.floor(e.exp * 0.3));
@@ -6656,14 +6737,20 @@ function winBattle(){
     setBattleLog(`🏆 Victory! +${e.exp} EXP, +${e.coins} coins! 🎉`);
   }
   updateHUD();
+  // Handle potentially multiple level-ups (e.g. big EXP gain)
   if(p.exp>=p.expToLevel){
-    setTimeout(()=>{levelUp();setTimeout(()=>endBattle(true),1200);},900);
+    setTimeout(()=>{
+      while(p.exp >= p.expToLevel) levelUp();
+      setTimeout(()=>endBattle(true),1200);
+    },900);
   }else{
     setTimeout(()=>endBattle(true),1500);
   }
 }
 
 function loseBattle(){
+  if(!state.inBattle) return; // guard against double-call (e.g. if winBattle already fired)
+  state.inBattle = false; // lock immediately
   const p=state.player;
   p.hp=Math.floor(p.maxHp*0.3); p.coins=Math.max(0,p.coins-20);
   playSoundDefeat();
@@ -6680,6 +6767,9 @@ function endBattle(won){
   state.battleTurn='player';
   state.encounterCooldown=180;
   state.inGrass=false;
+  state.keys={}; // clear held keys so WASD doesn't instantly trigger another encounter
+  state.moving=null;
+  resetCombo(); // clear any leftover combo
   const bs=document.getElementById('battle-screen'); if(bs) bs.style.display='none';
   const pl=document.getElementById('player'); if(pl) pl.classList.remove('in-grass');
   const gb=document.getElementById('grass-badge'); if(gb) gb.style.display='none';
@@ -6791,7 +6881,7 @@ function updateHUD(){
   setEl('hud-exp', `${p.exp}/${p.expToLevel}`);
   setEl('hud-coins', p.coins);
   setEl('hud-stats', `HP: ${p.hp}/${p.maxHp}`);
-  setEl('hud-potions', `💊 ${p.potions}/${p.maxPotions||5}`);
+  setEl('hud-potions', `💊${p.potions} 🧪${p.potionsMed||0} 🫙${p.potionsLrg||0}`);
   if(p.critChance) setEl('hud-crit', `🎯 CRIT ${Math.round(p.critChance*100)}%`);
 
   // HP bar — color shifts red→yellow→green based on %
@@ -7661,13 +7751,15 @@ function buildSaveData(){
     hp: p.hp, mhp: p.maxHp,
     atk: p.attack, def: p.defense,
     exp: p.exp, exl: p.expToLevel,
-    coins: p.coins, pot: p.potions,
-    maxPot: p.maxPotions||5,
+    coins: p.coins, pot: p.potions, potMed: p.potionsMed||0, potLrg: p.potionsLrg||0,
+    maxPot: p.maxPotions||20,
     crit: p.critChance||0,
     spd: p.speedBonus||0,
     px: Math.round(p.x), py: Math.round(p.y),
     pt: pType,
     ps: partnerStage,
+    plv: partnerLevel,
+    pexp: partnerExp,
     bd: bossDefeated ? 1 : 0,
     bossIdx: bossIndex,
     weq: equipped.weapon ? equipped.weapon.id : null,
@@ -7683,6 +7775,7 @@ function buildSaveData(){
     waypoints: [...unlockedWaypoints],
     fogReveal: fogReveal,
     questSt: questState,
+    storyEv: triggeredStoryEvents,
   };
 }
 
@@ -7962,7 +8055,7 @@ const SKILL_TREE = [
   { id:'atk1',   branch:'warrior', row:0, col:2, icon:'⚔️',  label:'Power I',       desc:'ATK +3',               cost:80,  effect:{attack:3},            requires:null,    maxLv:1 },
   { id:'def1',   branch:'ranger',  row:0, col:1, icon:'🛡️',  label:'Guard I',       desc:'DEF +3',               cost:80,  effect:{defense:3},           requires:null,    maxLv:1 },
   { id:'spd1',   branch:'ranger',  row:0, col:2, icon:'⚡',  label:'Swiftness I',   desc:'Encounters faster',    cost:80,  effect:{speedBonus:1},        requires:null,    maxLv:1 },
-  { id:'pot1',   branch:'mystic',  row:0, col:1, icon:'💊',  label:'Herbalist I',   desc:'Max potions +1',       cost:80,  effect:{maxPotions:1},        requires:null,    maxLv:1 },
+  { id:'pot1',   branch:'mystic',  row:0, col:1, icon:'💊',  label:'Herbalist I',   desc:'Max potions +5 (all types)', cost:80,  effect:{maxPotions:5},        requires:null,    maxLv:1 },
   { id:'crit1',  branch:'mystic',  row:0, col:2, icon:'🎯',  label:'Precision I',   desc:'Crit chance +5%',      cost:80,  effect:{critChance:0.05},     requires:null,    maxLv:1 },
 
   // ── TIER 2 ──
@@ -7970,7 +8063,7 @@ const SKILL_TREE = [
   { id:'atk2',   branch:'warrior', row:1, col:2, icon:'⚔️',  label:'Power II',      desc:'ATK +5',               cost:160, effect:{attack:5},            requires:'atk1',  maxLv:1 },
   { id:'def2',   branch:'ranger',  row:1, col:1, icon:'🛡️',  label:'Guard II',      desc:'DEF +5',               cost:160, effect:{defense:5},           requires:'def1',  maxLv:1 },
   { id:'spd2',   branch:'ranger',  row:1, col:2, icon:'⚡',  label:'Swiftness II',  desc:'Encounters even faster',cost:160,effect:{speedBonus:1},        requires:'spd1',  maxLv:1 },
-  { id:'pot2',   branch:'mystic',  row:1, col:1, icon:'💊',  label:'Herbalist II',  desc:'Max potions +2',       cost:160, effect:{maxPotions:2},        requires:'pot1',  maxLv:1 },
+  { id:'pot2',   branch:'mystic',  row:1, col:1, icon:'💊',  label:'Herbalist II',  desc:'Max potions +10 (all types)',cost:160, effect:{maxPotions:10},        requires:'pot1',  maxLv:1 },
   { id:'crit2',  branch:'mystic',  row:1, col:2, icon:'🎯',  label:'Precision II',  desc:'Crit chance +8%',      cost:160, effect:{critChance:0.08},     requires:'crit1', maxLv:1 },
 
   // ── TIER 3 (powerful) ──
@@ -7978,7 +8071,7 @@ const SKILL_TREE = [
   { id:'atk3',   branch:'warrior', row:2, col:2, icon:'🗡️',  label:'Berserker',     desc:'ATK +8',               cost:320, effect:{attack:8},            requires:'atk2',  maxLv:1 },
   { id:'def3',   branch:'ranger',  row:2, col:1, icon:'🏰',  label:'Fortress',      desc:'DEF +8',               cost:320, effect:{defense:8},           requires:'def2',  maxLv:1 },
   { id:'spd3',   branch:'ranger',  row:2, col:2, icon:'🌀',  label:'Blur',          desc:'Max speed reached',    cost:320, effect:{speedBonus:2},        requires:'spd2',  maxLv:1 },
-  { id:'pot3',   branch:'mystic',  row:2, col:1, icon:'🧪',  label:'Alchemist',     desc:'Max potions +2, HP+15',cost:320, effect:{maxPotions:2,maxHp:15},requires:'pot2', maxLv:1 },
+  { id:'pot3',   branch:'mystic',  row:2, col:1, icon:'🧪',  label:'Alchemist',     desc:'Max potions +10, HP+15',     cost:320, effect:{maxPotions:10,maxHp:15},requires:'pot2', maxLv:1 },
   { id:'crit3',  branch:'mystic',  row:2, col:2, icon:'💥',  label:'Deadeye',       desc:'Crit chance +12%',     cost:320, effect:{critChance:0.12},     requires:'crit2', maxLv:1 },
 ];
 
@@ -8015,7 +8108,7 @@ function learnSkill(id){
   if(fx.maxPotions){ p.maxPotions = (p.maxPotions||5) + fx.maxPotions; }
   if(fx.critChance) p.critChance = Math.min(0.75, (p.critChance||0) + fx.critChance);
   updateHUD();
-  saveSkills();
+  lsSave(); // persist immediately to localStorage (not just sessionStorage)
   showSellToast(`✨ Learned ${sk.label}!`, '#FFD700');
   spawnCoinBurst(sk.cost, '#FFD700');
   renderSkillTree();
@@ -8186,6 +8279,7 @@ function lsSave(){
     data.leaderboard = leaderboardData;
     data.craftLog  = craftingLog;
     data.playtime  = (data.playtime||0) + (Date.now() - _sessionStart);
+    _sessionStart  = Date.now(); // reset so next save doesn't double-count this period
     localStorage.setItem('gozo_save', JSON.stringify(data));
     showSellToast('💾 Auto-saved!','#44aaff');
   } catch(e){ console.warn('lsSave failed',e); }
@@ -8206,13 +8300,16 @@ function lsLoad(){
     if(d.leaderboard) leaderboardData = d.leaderboard;
     if(d.craftLog)   craftingLog = d.craftLog;
     if(d.fogReveal)  Object.assign(fogReveal, d.fogReveal);
+    if(d.plv != null) partnerLevel = d.plv;
+    if(d.pexp != null) partnerExp = d.pexp;
+    if(d.storyEv)    Object.assign(triggeredStoryEvents, d.storyEv);
     return d;
   } catch(e){ return false; }
 }
 
 let _sessionStart = Date.now();
-// Auto-save every 60s
-setInterval(()=>{ if(state.player && !state.inBattle) lsSave(); }, 60000);
+// Auto-save every 60s — stored so applySettings can clear it if autoSave=OFF
+window._autoSaveInterval = setInterval(()=>{ if(SETTINGS.autoSave && state.player && !state.inBattle) lsSave(); }, 60000);
 
 // ==============================================
 // 🌟 PRESTIGE SYSTEM
@@ -8265,10 +8362,18 @@ function doPrestige(){
   p.hp=100+prestigeState.bonusHp; p.maxHp=100+prestigeState.bonusHp;
   p.attack=15+prestigeState.bonusAtk; p.defense=5+prestigeState.bonusDef;
   p.critChance=prestigeState.bonusCrit;
-  p.coins=0; p.potions=3;
+  p.coins=0; p.potions=3; p.potionsMed=0; p.potionsLrg=0;
   inventory.weapons=[]; inventory.armors=[];
   equipped.weapon=null; equipped.armor=null;
   skillState={}; bossIndex=0; bossDefeated=false;
+  // Reset partner to stage 1 (keep type choice, fresh start)
+  partnerLevel=1; partnerExp=0; partnerStage=1;
+  if(pType && PARTNER_EVOLUTIONS[pType]){
+    partner = {...PARTNER_EVOLUTIONS[pType][0]};
+    partner.bonusAtk=0; partner.bonusDef=0;
+  }
+  // Reset story events so they fire again on new run
+  triggeredStoryEvents = {};
   updateHUD(); lsSave();
   document.getElementById('prestige-screen').style.display='none';
   showSellToast(`⭐ Prestige ${prestigeState.level} achieved!`,'#FFD700');
@@ -9307,10 +9412,10 @@ const RANDOM_EVENTS = [
     desc:'An adventurer left behind their pack. You find a potion inside!',
     choices:[
       {label:'🎒 Take it', action:(p)=>{
-        if(p.potions>=(p.maxPotions||5)) return "Your potion bag is full!";
+        if(p.potions>=(p.maxPotions||20)) return "Your small potion bag is full!";
         p.potions++;
         updateHUD();
-        return `Got a potion! (${p.potions}/${p.maxPotions||5}) 💊`;
+        return `Got a Small Potion! (${p.potions}/${p.maxPotions||20}) 💊`;
       }},
       {label:'🚶 Leave it', action:()=>'You leave it for the next adventurer.'},
     ]
@@ -9669,9 +9774,15 @@ function applySettings(){
   // Apply BGM volume
   if(BGM._masterGain && !BGM.muted) BGM._masterGain.gain.setTargetAtTime(SETTINGS.bgmVolume, getAudio().currentTime, 0.1);
   BGM.volume = SETTINGS.bgmVolume;
-  // Auto-save toggle
-  if(!SETTINGS.autoSave){ clearInterval(window._autoSaveInterval); }
-  else if(!window._autoSaveInterval){ window._autoSaveInterval = setInterval(()=>{ if(SETTINGS.autoSave&&state.player&&!state.inBattle) lsSave(); },60000); }
+  // Apply SFX volume via master gain
+  if(_sfxMasterGain) _sfxMasterGain.gain.setTargetAtTime(SETTINGS.sfxVolume ?? 1.0, getAudio().currentTime, 0.1);
+  // Auto-save toggle — clear or restart the single shared interval
+  if(!SETTINGS.autoSave){
+    clearInterval(window._autoSaveInterval);
+    window._autoSaveInterval = null;
+  } else if(!window._autoSaveInterval){
+    window._autoSaveInterval = setInterval(()=>{ if(SETTINGS.autoSave&&state.player&&!state.inBattle) lsSave(); },60000);
+  }
 }
 
 // ==============================================
@@ -9881,6 +9992,11 @@ function tickPlayerStatus(){
     playerStatus.burn--;
     statusLog += ` 🔥 Burn -${dmg}HP`;
     showDmgPopup(dmg, false, true);
+  }
+  if(playerStatus.slow > 0){
+    playerStatus.slow--; // tick down each turn
+    // slow effect is applied in attack (damage penalty) — just tick here
+    statusLog += ` 🧊 Slowed`;
   }
   updateHUD();
   return statusLog;
@@ -10121,20 +10237,26 @@ function renderShop(){
     }).join('') || '<div style="color:#444;font-size:7px;text-align:center;padding:20px;">No armor available for your level.</div>';
 
   } else if(_shopTab==='potions'){
-    const potPrice = 25;
-    const canAfford = p.coins >= potPrice;
-    content = `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:12px;margin-bottom:6px;">
-      <span style="font-size:32px;">💊</span>
-      <div style="flex:1;">
-        <div style="font-size:9px;color:#44ffaa;">Health Potion</div>
-        <div style="font-size:6px;color:#888;margin-top:3px;">Restores 30-50 HP in battle · Max 5 potions</div>
-        <div style="font-size:6px;color:#555;">You have: ${p.potions}/5 potions</div>
-      </div>
-      <button onclick="shopBuyPotion()" ${canAfford && p.potions<5?'':'disabled'}
-        style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:pointer;
-        background:var(--panel);color:#44ffaa;border:2px solid #44ffaa;">
-        💰 ${potPrice}g</button>
-    </div>`;
+    const maxPot = p.maxPotions||20;
+    const mkRow = (icon,name,desc,price,key,buyFn,color)=>{
+      const have = p[key]||0;
+      const canAff = p.coins>=price, notFull = have<maxPot;
+      return `<div style="display:flex;align-items:center;gap:10px;background:#0d0d1a;border:2px solid #1a1a2a;padding:12px;margin-bottom:6px;">
+        <span style="font-size:28px;">${icon}</span>
+        <div style="flex:1;">
+          <div style="font-size:8px;color:${color};">${name}</div>
+          <div style="font-size:6px;color:#888;margin-top:3px;">${desc}</div>
+          <div style="font-size:6px;color:#555;">Stock: ${have}/${maxPot}</div>
+        </div>
+        <button onclick="${buyFn}()" ${canAff&&notFull?'':'disabled'}
+          style="font-family:'Press Start 2P',monospace;font-size:6px;padding:6px 8px;cursor:pointer;
+          background:var(--panel);color:${color};border:2px solid ${color};">
+          💰 ${price}g</button>
+      </div>`;
+    };
+    content = mkRow('💊','Small Potion','Restores 25–35% HP in battle',25,'potions','shopBuyPotion','#44ffaa')
+            + mkRow('🧪','Medium Potion','Restores 55–65% HP in battle',60,'potionsMed','shopBuyPotionMed','#44aaff')
+            + mkRow('🫙','Large Potion','Restores 90–100% HP in battle',120,'potionsLrg','shopBuyPotionLrg','#ffaa44');
 
   } else if(_shopTab==='upgrade'){
     const allItems = [
@@ -10194,22 +10316,27 @@ function shopBuy(type, itemId){
   if(questState) questState.stats.bought = (questState.stats.bought||0)+1;
   addToInventory(item);
   updateHUD();
+  lsSave();
   playSoundBuy();
   showSellToast(`✅ Bought ${item.emoji} ${item.name}!`, RARITY_COLOR[item.rarity]);
   renderShop();
 }
 
-function shopBuyPotion(){
-  const price = 25;
+function _buyPotion(key, price, name, icon){
   const p = state.player;
+  const maxPot = p.maxPotions || 20;
   if(p.coins < price){ showSellToast('❌ Not enough coins!','#ff4444'); return; }
-  if(p.potions >= 5){ showSellToast('❌ Already at max potions!','#ff8844'); return; }
+  if((p[key]||0) >= maxPot){ showSellToast(`❌ ${name} bag full! (${maxPot})`, '#ff8844'); return; }
   p.coins -= price;
-  p.potions++;
+  p[key] = (p[key]||0) + 1;
   updateHUD();
-  showSellToast(`✅ Bought a potion! (${p.potions}/5)`,'#44ffaa');
+  lsSave();
+  showSellToast(`✅ Bought ${icon} ${name}! (${p[key]}/${maxPot})`,'#44ffaa');
   renderShop();
 }
+function shopBuyPotion()   { _buyPotion('potions',    25,  'Small Potion',  '💊'); }
+function shopBuyPotionMed(){ _buyPotion('potionsMed', 60,  'Medium Potion', '🧪'); }
+function shopBuyPotionLrg(){ _buyPotion('potionsLrg', 120, 'Large Potion',  '🫙'); }
 
 function shopUpgrade(type, idx){
   const arr = type==='weapon' ? inventory.weapons : inventory.armors;
@@ -10227,6 +10354,7 @@ function shopUpgrade(type, idx){
     if(equipped.armor===item){ state.player.defense+=2; state.player.maxHp+=10; state.player.hp=Math.min(state.player.hp+10,state.player.maxHp); }
   }
   updateHUD();
+  lsSave();
   showSellToast(`🔮 ${item.name} upgraded!`,'#cc88ff');
   spawnCoinBurst(price, '#cc88ff');
   renderShop();
