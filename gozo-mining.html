@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gozo Mining</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;display:flex;flex-direction:column;}
+#game-wrap{flex:1;position:relative;overflow:hidden;min-height:0;}
+canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:crisp-edges;}
+#gc{z-index:1;}
+#fc{z-index:30;pointer-events:none;}
+
+/* HUD — Stardew style bottom toolbar */
+#hud{
+  height:64px;
+  background:linear-gradient(180deg,#2a1e10 0%,#1e160c 100%);
+  border-top:3px solid #8a6030;
+  display:flex;align-items:center;gap:0;
+  flex-shrink:0;position:relative;z-index:100;
+  box-shadow:0 -4px 0 #4a3010;
+}
+.hotbar{
+  display:flex;align-items:center;height:100%;
+  border-right:2px solid #4a3010;padding:0 6px;gap:3px;
+}
+.hslot{
+  width:50px;height:50px;
+  background:linear-gradient(135deg,#3a2a10,#2a1e0c);
+  border:2px solid #6a4820;border-radius:2px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;position:relative;font-size:10px;color:#c0a060;
+  font-family:'Press Start 2P',monospace;
+  transition:border-color .1s;
+}
+.hslot:hover,.hslot.active{border-color:#e8c060;background:linear-gradient(135deg,#4a3820,#3a2a14);}
+.hslot .slot-icon{font-size:22px;line-height:1;}
+.hslot .slot-qty{position:absolute;bottom:2px;right:3px;font-size:6px;color:#f0c840;}
+.hslot .slot-num{position:absolute;top:1px;left:3px;font-size:5px;color:#7a6040;}
+
+.hud-stats{
+  display:flex;align-items:center;gap:8px;padding:0 10px;height:100%;
+  border-right:2px solid #4a3010;
+}
+.stat-box{
+  background:rgba(0,0,0,0.5);border:1px solid #4a3010;border-radius:2px;
+  padding:3px 7px;display:flex;flex-direction:column;align-items:center;
+  min-width:52px;
+}
+.stat-label{font-family:'Press Start 2P',monospace;font-size:5px;color:#8a7050;margin-bottom:2px;}
+.stat-val{font-family:'Press Start 2P',monospace;font-size:9px;}
+.sv-coin{color:#f0c840;} .sv-iron{color:#90c0d0;} .sv-gold{color:#f0d040;} .sv-diam{color:#60e8e0;} .sv-lad{color:#e0a040;}
+
+.hud-right{
+  display:flex;align-items:center;gap:6px;padding:0 10px;margin-left:auto;
+}
+.hud-btn{
+  padding:6px 10px;
+  background:linear-gradient(180deg,#3a2a10,#2a1e0c);
+  border:2px solid #6a4820;border-radius:2px;
+  color:#e0c080;font-family:'Press Start 2P',monospace;font-size:6px;
+  cursor:pointer;letter-spacing:.5px;transition:all .1s;white-space:nowrap;
+}
+.hud-btn:hover{border-color:#e8c060;background:linear-gradient(180deg,#4a3820,#3a2a14);}
+.hud-btn.upg{border-color:#c08020;color:#f0c040;}
+
+/* Floor number (top-left like Stardew) */
+#floor-badge{
+  position:absolute;top:10px;left:10px;z-index:50;
+  background:rgba(20,10,5,.88);
+  border:2px solid #8a6030;border-radius:3px;
+  padding:5px 10px;
+  font-family:'Press Start 2P',monospace;font-size:9px;color:#f0c840;
+  text-shadow:1px 1px 0 #000;
+  pointer-events:none;
+}
+
+/* Gold counter (top-right like Stardew) */
+#gold-hud{
+  position:absolute;top:10px;right:10px;z-index:50;
+  background:rgba(20,10,5,.88);
+  border:2px solid #8a6030;border-radius:3px;
+  padding:5px 12px 5px 8px;
+  font-family:'Press Start 2P',monospace;font-size:10px;color:#f0c840;
+  display:flex;align-items:center;gap:6px;
+  pointer-events:none;
+}
+
+/* UPGRADE PANEL */
+#upg-panel{
+  position:absolute;bottom:72px;right:10px;z-index:200;
+  width:240px;
+  background:rgba(20,12,4,.97);
+  border:2px solid #8a6030;border-radius:3px;
+  padding:10px;display:none;
+}
+#upg-panel.open{display:block;}
+#upg-panel h3{
+  font-family:'Press Start 2P',monospace;font-size:7px;color:#e8c060;
+  margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid #4a3010;
+}
+.uc{border:1px solid #3a2810;border-radius:2px;padding:6px 7px;cursor:pointer;
+  background:rgba(255,255,255,.02);margin-bottom:4px;transition:all .1s;}
+.uc:hover:not(.ulk):not(.umx){background:rgba(232,192,96,.07);border-color:rgba(232,192,96,.5);}
+.ulk{opacity:.3;cursor:not-allowed;} .umx{border-color:rgba(96,232,224,.35);}
+.ut{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.un{font-family:'Press Start 2P',monospace;font-size:6px;color:#e0d0b0;line-height:1.4;}
+.ud{font-size:12px;color:#7a6040;margin-bottom:3px;}
+.uf{display:flex;justify-content:space-between;align-items:center;}
+.ups{display:flex;gap:2px;}
+.pip{width:6px;height:6px;border:1px solid #3a2810;border-radius:1px;}
+.pip.on{background:#e8c060;border-color:#e8c060;}
+.uco{font-size:13px;color:#f0c840;} .uco.red{color:#e04848;}
+
+/* LADDER MODAL */
+#lm{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);
+  z-index:300;background:rgba(16,8,2,.97);border:3px solid #e8c060;border-radius:3px;
+  padding:22px 30px;text-align:center;display:none;}
+#lm.show{display:block;}
+#lm h2{font-family:'Press Start 2P',monospace;font-size:9px;color:#e8c060;margin-bottom:9px;}
+#lm p{font-size:16px;color:#8a7050;margin-bottom:13px;line-height:1.6;}
+.pbs{display:flex;gap:9px;justify-content:center;}
+.pb{padding:7px 18px;font-family:'Press Start 2P',monospace;font-size:7px;
+  border:1px solid;border-radius:2px;cursor:pointer;transition:all .1s;}
+.pby{background:rgba(72,200,104,.1);border-color:#48c868;color:#48c868;}
+.pby:hover{background:rgba(72,200,104,.22);}
+.pbn{background:rgba(224,72,72,.1);border-color:#e04848;color:#e04848;}
+.pbn:hover{background:rgba(224,72,72,.22);}
+
+/* DMG FLOAT */
+.dmt{position:absolute;font-family:'Press Start 2P',monospace;font-size:8px;
+  pointer-events:none;text-shadow:1px 1px 0 #000;white-space:nowrap;z-index:40;
+  animation:dfloat 1.1s ease-out forwards;}
+@keyframes dfloat{0%{opacity:1;transform:translateY(0)}70%{opacity:1}100%{opacity:0;transform:translateY(-42px)}}
+@keyframes pfly{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+
+/* CONTROLS */
+#chint{position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  background:rgba(16,8,2,.75);border:1px solid #3a2810;border-radius:2px;
+  padding:4px 12px;font-family:'Press Start 2P',monospace;font-size:6px;
+  color:#7a6040;pointer-events:none;z-index:50;letter-spacing:.5px;}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;z-index:1000;background:#0a0604;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#spt{font-family:'Press Start 2P',monospace;font-size:22px;color:#e8c060;
+  text-align:center;line-height:1.7;text-shadow:3px 3px 0 #6a3010,0 0 40px rgba(232,192,96,.6);
+  animation:gl 1.8s ease-in-out infinite;}
+@keyframes gl{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+.ssb{font-size:18px;color:#7a6040;text-align:center;line-height:1.7;}
+.sgi{font-size:50px;animation:hop .75s ease-in-out infinite;}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+#ss{padding:10px 28px;font-family:'Press Start 2P',monospace;font-size:8px;
+  background:transparent;border:2px solid #e8c060;color:#e8c060;cursor:pointer;
+  letter-spacing:1px;animation:bp 1.2s ease-in-out infinite;transition:background .15s;}
+#ss:hover{background:rgba(232,192,96,.15);}
+@keyframes bp{0%,100%{box-shadow:0 0 8px rgba(232,192,96,.3)}50%{box-shadow:0 0 24px rgba(232,192,96,.7)}}
+.hb{font-size:13px;color:#7a6040;border:1px solid #3a2810;padding:5px 14px;line-height:2.1;text-align:center;}
+
+/* TOAST */
+#toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);
+  background:rgba(16,8,2,.97);border:2px solid #4a3010;border-radius:2px;
+  padding:6px 18px;font-family:'Press Start 2P',monospace;font-size:7px;
+  color:#e8c060;z-index:999;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="sgi">⛏️</div>
+  <div id="spt">GOZO<br>MINING</div>
+  <div class="ssb">Explore the mine dungeon with Gozo!<br>100 floors full of ore & mystery.</div>
+  <div class="hb">🎮 WASD / Arrow = move<br>🖱 Click rock = auto mine<br>🪜 Find ladder → go deeper<br>[T] = open upgrade panel</div>
+  <button id="ss" onclick="startGame()">► ENTER MINE</button>
+</div>
+
+<div id="toast"></div>
+
+<div id="game-wrap">
+  <canvas id="gc"></canvas>
+  <canvas id="fc"></canvas><!-- fx overlay -->
+
+  <!-- HUD overlays -->
+  <div id="floor-badge">B<span id="fb-num">1</span></div>
+  <div id="gold-hud">💰 <span id="gh-coins">0</span></div>
+  <div id="chint">WASD=MOVE &nbsp; CLICK ROCK=MINE &nbsp; T=UPGRADE</div>
+
+  <!-- Ladder modal -->
+  <div id="lm">
+    <h2>🪜 LADDER FOUND!</h2>
+    <p>Descend to floor <span id="nf">2</span>?<br>Better ore rewards below!</p>
+    <div class="pbs">
+      <button class="pb pby" onclick="goNextFloor()">✓ DESCEND</button>
+      <button class="pb pbn" onclick="closeLadder()">✕ STAY</button>
+    </div>
+  </div>
+
+  <!-- Upgrade panel -->
+  <div id="upg-panel">
+    <h3>⚒ UPGRADE GOZO</h3>
+    <div class="uc" id="upg-pick" onclick="buyUpgrade('pick')">
+      <div class="ut"><span style="font-size:14px">⛏️</span><span class="un">PICKAXE DMG</span></div>
+      <div class="ud">+3 damage per swing</div>
+      <div class="uf"><div class="ups" id="pp-pick"></div><div class="uco" id="pc-pick">💰50</div></div>
+    </div>
+    <div class="uc" id="upg-crit" onclick="buyUpgrade('crit')">
+      <div class="ut"><span style="font-size:14px">💥</span><span class="un">CRITICAL HIT</span></div>
+      <div class="ud">+10% chance to hit 3×</div>
+      <div class="uf"><div class="ups" id="pp-crit"></div><div class="uco" id="pc-crit">💰150</div></div>
+    </div>
+    <div class="uc" id="upg-speed" onclick="buyUpgrade('speed')">
+      <div class="ut"><span style="font-size:14px">👟</span><span class="un">MOVE SPEED</span></div>
+      <div class="ud">Gozo moves faster</div>
+      <div class="uf"><div class="ups" id="pp-speed"></div><div class="uco" id="pc-speed">💰120</div></div>
+    </div>
+    <div class="uc" id="upg-lucky" onclick="buyUpgrade('lucky')">
+      <div class="ut"><span style="font-size:14px">🍀</span><span class="un">LUCKY MINER</span></div>
+      <div class="ud">More minerals & ladder drops</div>
+      <div class="uf"><div class="ups" id="pp-lucky"></div><div class="uco" id="pc-lucky">💰200</div></div>
+    </div>
+    <div class="uc ulk" id="upg-tnt" onclick="buyUpgrade('tnt')">
+      <div class="ut"><span style="font-size:14px">💣</span><span class="un">TNT BLAST</span></div>
+      <div class="ud">Destroy all rocks on this floor!</div>
+      <div class="uf"><div class="ups" id="pp-tnt"></div><div class="uco" id="pc-tnt">💰400</div></div>
+    </div>
+    <div class="uc ulk" id="upg-magnet" onclick="buyUpgrade('magnet')">
+      <div class="ut"><span style="font-size:14px">🧲</span><span class="un">MAGNET</span></div>
+      <div class="ud">2× more minerals per drop</div>
+      <div class="uf"><div class="ups" id="pp-magnet"></div><div class="uco" id="pc-magnet">💰350</div></div>
+    </div>
+    <div class="uc ulk" id="upg-helmet" onclick="buyUpgrade('helmet')">
+      <div class="ut"><span style="font-size:14px">⛑️</span><span class="un">IRON HELMET</span></div>
+      <div class="ud">+25% chance for extra ladder</div>
+      <div class="uf"><div class="ups" id="pp-helmet"></div><div class="uco" id="pc-helmet">💰600</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- HUD bottom -->
+<div id="hud">
+  <!-- Hotbar -->
+  <div class="hotbar">
+    <div class="hslot active" title="Pickaxe"><span class="slot-num">1</span><span class="slot-icon">⛏️</span></div>
+    <div class="hslot" title="TNT" id="slot-tnt"><span class="slot-num">2</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
+    <div class="hslot" title="Ladder"><span class="slot-num">3</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
+  </div>
+  <!-- Stats -->
+  <div class="hud-stats">
+    <div class="stat-box"><div class="stat-label">COINS</div><div class="stat-val sv-coin" id="hs-coins">0</div></div>
+    <div class="stat-box"><div class="stat-label">IRON</div><div class="stat-val sv-iron" id="hs-iron">0</div></div>
+    <div class="stat-box"><div class="stat-label">GOLD</div><div class="stat-val sv-gold" id="hs-gold">0</div></div>
+    <div class="stat-box"><div class="stat-label">DIAMOND</div><div class="stat-val sv-diam" id="hs-diam">0</div></div>
+    <div class="stat-box"><div class="stat-label">ROCKS</div><div class="stat-val" style="color:#c0a080" id="hs-rocks">0</div></div>
+  </div>
+  <!-- Right buttons -->
+  <div class="hud-right">
+    <button class="hud-btn" onclick="sell('iron')">⚙️ Sell Iron<br>+15💰 each</button>
+    <button class="hud-btn" onclick="sell('gold')">✨ Sell Gold<br>+80💰 each</button>
+    <button class="hud-btn" onclick="sell('diamond')">💎 Sell Diam<br>+500💰 each</button>
+    <div style="width:2px;height:40px;background:#4a3010"></div>
+    <button class="hud-btn upg" onclick="toggleUpgPanel()">[T] UPGRADE</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  PIXEL ART ENGINE
+// ═══════════════════════════════════════════════════════════
+const TILE = 32;        // world tile px
+const MAP_W = 48;
+const MAP_H = 48;
+const MAX_FLOOR = 100;
+const SCALE = 3;        // sprite upscale: 16×16 → 48×48... we use TILE=32, sprite native 16 scaled ×2
+
+// ─── Palette ───────────────────────────────────────────────
+const P = {
+  _:null,        // transparent
+  // skin
+  a:'#e0b080', A:'#b07848', z:'#f0c890',
+  // hair
+  h:'#3a2010', H:'#5a3820',
+  // helmet
+  e:'#7a4810', E:'#c07020', Y:'#f0d050',
+  // shirt/jacket (brown like Stardew farmer)
+  r:'#7a3c18', R:'#5a2c10', w:'#9a5428',
+  // pants (dark brown/purple)
+  p:'#3c2848', P:'#2a1c34',
+  // boots
+  b:'#2a1808', B:'#4a2c10',
+  // pickaxe handle
+  x:'#7a4820', X:'#9a6030',
+  // pickaxe metal
+  m:'#8090a0', M:'#b0c8d8', c:'#d0e8f0',
+  // eyes / mouth
+  i:'#180c04',
+  // outline
+  k:'#0a0604',
+  // shadow
+  s:'rgba(0,0,0,0.3)',
+};
+
+// 16×16 sprite frames — each row is a string of 16 palette keys
+// Gozo facing SOUTH idle (2 frames)
+const FR_S_IDLE = [[
+'________________',
+'________________',
+'___eeeeeeee_____',
+'__eYeeeeeee_____',
+'__eeeeeeeee_____',
+'___aaaaaaa______',
+'___aiaaaia______',
+'___aaaaaaa______',
+'___Aaaaaaaa_____',
+'___rrrwrrr______',
+'__rrrwwrrr______',
+'___ppppppp______',
+'___ppppppp______',
+'__bpppppppb_____',
+'__bb_____bb_____',
+'________________',
+],[
+'________________',
+'________________',
+'___eeeeeeee_____',
+'__eYeeeeeee_____',
+'__eeeeeeeee_____',
+'___aaaaaaa______',
+'___aiaaaia______',
+'___aaaaaaa______',
+'___Aaaaaaaa_____',
+'___rrrwrrr______',
+'__rrrwwrrr______',
+'___ppppppp______',
+'___ppppppp______',
+'__bppppppb______',
+'__bb____b_______',
+'________________',
+]];
+
+// Facing SOUTH walk (4 frames)
+const FR_S_WALK = [[
+'________________',
+'________________',
+'___eeeeeeee_____',
+'__eYeeeeeee_____',
+'__eeeeeeeee_____',
+'___aaaaaaa______',
+'___aiaaaia______',
+'___aaaaaaa______',
+'___Aaaaaaaa_____',
+'___rrrwrrr______',
+'__rrrwwrrr______',
+'___ppppppp______',
+'__ppppppp_______',
+'__bpppp_ppb_____',
+'__bb____bb______',
+'________________',
+],[
+'________________',
+'________________',
+'___eeeeeeee_____',
+'__eYeeeeeee_____',
+'__eeeeeeeee_____',
+'___aaaaaaa______',
+'___aiaaaia______',
+'___aaaaaaa______',
+'___Aaaaaaaa_____',
+'___rrrwrrr______',
+'__rrrwwrrr______',
+'___ppppppp______',
+'___ppppppp______',
+'__bpppppppb_____',
+'__bb_____bb_____',
+'________________',
+],[
+'________________',
+'________________',
+'___eeeeeeee_____',
+'__eYeeeeeee_____',
+'__eeeeeeeee_____',
+'___aaaaaaa______',
+'___aiaaaia______',
+'___aaaaaaa______',
+'___Aaaaaaaa_____',
+'___rrrwrrr______',
+'__rrrwwrrr______',
+'___ppppppp______',
+'____ppppppp_____',
+'__bpp_ppppb_____',
+'__bb____bb______',
+'________________',
+],FR_S_IDLE[1]];
+
+// Facing EAST idle (right) — 2 frames
+const FR_E_IDLE = [[
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrr_____x',
+'__rrrwwrrrrxxmm_',
+'___pppppppp_mm__',
+'___pppppppp_____',
+'__bppp_bppp_____',
+'__bb___bb_______',
+'________________',
+],[
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrr_____x',
+'__rrrwwrrrr_xxMm',
+'___pppppppp__mm_',
+'___pppppppp_____',
+'__bppp_bppp_____',
+'__bb___bb_______',
+'________________',
+]];
+
+// Facing EAST walk (4 frames)
+const FR_E_WALK = [FR_E_IDLE[0],[
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrr_____x',
+'__rrrwwrrrr_xxmm',
+'___pppppppp_mm__',
+'__pppppppp______',
+'__bppp__bpp_____',
+'__bb____bb______',
+'________________',
+],FR_E_IDLE[1],[
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrr_____x',
+'__rrrwwrrrrxxmm_',
+'___pppppppp_mm__',
+'____pppppppp____',
+'__bpp__bppp_____',
+'__bb___bb_______',
+'________________',
+]];
+
+// MINE frames — facing east, 3 frame swing
+const FR_MINE = [[
+// raise
+'________________',
+'___________cMm__',
+'___eeeeeee__mm__',
+'__eYeeeeee_xx___',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrr______',
+'__rrrwwrrrrxx___',
+'___pppppppp_____',
+'___pppppppp_____',
+'__bppp_bppp_____',
+'__bb___bb_______',
+'________________',
+],[
+// mid
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz____cM',
+'___aaaaaaz___mxx',
+'___aaaaaz___mm__',
+'___Aaaaaaa______',
+'___rrrwrrr______',
+'__rrrwwrrrrxx___',
+'___pppppppp_____',
+'___pppppppp_____',
+'__bppp_bppp_____',
+'__bb___bb_______',
+'________________',
+],[
+// strike
+'________________',
+'________________',
+'___eeeeeee______',
+'__eYeeeeee______',
+'__eeeeeeee______',
+'___aaaaaaz______',
+'___aaaaaaz______',
+'___aaaaaz_______',
+'___Aaaaaaa______',
+'___rrrwrrrxxxxxxcMm',
+'__rrrwwrrrrxxmm_____',
+'___pppppppp_________',
+'___pppppppp_____',
+'__bppp_bppp_____',
+'__bb___bb_______',
+'________________',
+]];
+
+// Sprite builder
+function buildSprite(frame, scale=2) {
+  const rows = frame;
+  const H = rows.length, W = rows[0].length;
+  const oc = document.createElement('canvas');
+  oc.width = W*scale; oc.height = H*scale;
+  const cx = oc.getContext('2d');
+  cx.imageSmoothingEnabled = false;
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const ch = rows[y][x];
+      if(ch==='_') continue;
+      const col = P[ch];
+      if(!col) continue;
+      cx.fillStyle = col;
+      cx.fillRect(x*scale, y*scale, scale, scale);
+    }
+  }
+  return oc;
+}
+
+let SPR = null;
+const SS = 2; // sprite scale (16 → 32)
+function buildAllSprites() {
+  const b = (frs) => frs.map(f=>buildSprite(f,SS));
+  SPR = {
+    S_IDLE: b(FR_S_IDLE),
+    S_WALK: b(FR_S_WALK),
+    E_IDLE: b(FR_E_IDLE),
+    E_WALK: b(FR_E_WALK),
+    MINE:   b(FR_MINE),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TILE ART — drawn once to offscreen canvases
+// ═══════════════════════════════════════════════════════════
+
+// FLOOR tile — cobblestone tan/brown (Stardew mine floor)
+function makeFloorTile(variant=0) {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  // Base colors — warm sandy brown
+  const bases = ['#c8a060','#c09858','#b89050','#c4a05c'];
+  cx.fillStyle = bases[variant%4];
+  cx.fillRect(0,0,TILE,TILE);
+
+  // Cobblestone/cell pattern
+  cx.strokeStyle = 'rgba(80,50,10,0.35)';
+  cx.lineWidth = 1;
+  // Draw hexagonal-ish pattern (like Stardew cave floor)
+  const pat = variant%2===0;
+  if(pat) {
+    // Horizontal ovals
+    cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,0,0,Math.PI*2); cx.stroke();
+    cx.beginPath(); cx.ellipse(0,0,6,4,0,0,Math.PI*2); cx.stroke();
+    cx.beginPath(); cx.ellipse(TILE,TILE,6,4,0,0,Math.PI*2); cx.stroke();
+  } else {
+    cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,Math.PI*0.2,0,Math.PI*2); cx.stroke();
+    cx.beginPath(); cx.ellipse(2,TILE-2,6,4,0,0,Math.PI*2); cx.stroke();
+  }
+  // subtle shading
+  cx.fillStyle='rgba(0,0,0,0.06)';
+  cx.fillRect(0,TILE-4,TILE,4);
+  cx.fillStyle='rgba(255,255,255,0.06)';
+  cx.fillRect(0,0,TILE,3);
+  return oc;
+}
+
+// WALL tile — dark cave earth brown/tan
+function makeWallTile(variant=0) {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  const bases = ['#5a3c18','#4e3414','#6a4820','#543c1a'];
+  cx.fillStyle = bases[variant%4];
+  cx.fillRect(0,0,TILE,TILE);
+  // rocky texture lines
+  cx.strokeStyle='rgba(0,0,0,0.25)'; cx.lineWidth=1;
+  cx.beginPath(); cx.moveTo(2,8); cx.lineTo(TILE-4,6); cx.stroke();
+  cx.beginPath(); cx.moveTo(0,18); cx.lineTo(TILE,16); cx.stroke();
+  cx.beginPath(); cx.moveTo(3,26); cx.lineTo(TILE-2,24); cx.stroke();
+  cx.fillStyle='rgba(255,255,255,0.05)';
+  cx.fillRect(0,0,TILE,4);
+  // darker bottom
+  cx.fillStyle='rgba(0,0,0,0.3)';
+  cx.fillRect(0,TILE-6,TILE,6);
+  return oc;
+}
+
+// WALL TOP (where cave wall meets floor — lighter top edge)
+function makeWallTopTile(variant=0) {
+  const oc = makeWallTile(variant);
+  const cx = oc.getContext('2d');
+  // bright highlight on top = stalactite-ish
+  cx.fillStyle='rgba(210,160,80,0.25)';
+  cx.fillRect(0,0,TILE,8);
+  return oc;
+}
+
+// BORDER (black void outside cave)
+function makeBorderTile() {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  cx.fillStyle='#050302';
+  cx.fillRect(0,0,TILE,TILE);
+  return oc;
+}
+
+// LADDER tile
+function makeLadderTile() {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  cx.fillStyle='#c8a060'; cx.fillRect(0,0,TILE,TILE);
+  cx.strokeStyle='rgba(80,50,10,0.35)'; cx.lineWidth=1;
+  cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,0,0,Math.PI*2); cx.stroke();
+  // Ladder rungs
+  cx.fillStyle='#8a5020';
+  cx.fillRect(6,4,4,TILE-8); cx.fillRect(TILE-10,4,4,TILE-8);
+  cx.fillStyle='#b07030';
+  for(let i=0;i<4;i++) cx.fillRect(6,6+i*7,TILE-12,3);
+  // glow
+  cx.fillStyle='rgba(255,200,80,0.18)';
+  cx.fillRect(0,0,TILE,TILE);
+  cx.strokeStyle='#f0d060'; cx.lineWidth=2; cx.strokeRect(1,1,TILE-2,TILE-2);
+  return oc;
+}
+
+// Pre-build tile cache
+let TC = null;
+function buildTiles() {
+  TC = {
+    floor: [0,1,2,3].map(makeFloorTile),
+    wall:  [0,1,2,3].map(makeWallTile),
+    wallTop:[0,1,2,3].map(makeWallTopTile),
+    border: makeBorderTile(),
+    ladder: makeLadderTile(),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ORE / ROCK SPRITES — pixel art circles
+// ═══════════════════════════════════════════════════════════
+const ORE_DEF = {
+  stone:   {base:'#7a6878',hi:'#a08898',sh:'#3a2838',vein:null,        r:12},
+  iron:    {base:'#506878',hi:'#709098',sh:'#283848',vein:'#90c8d8',   r:11},
+  gold:    {base:'#806020',hi:'#c09030',sh:'#402c08',vein:'#f0d040',   r:11},
+  diamond: {base:'#1c6068',hi:'#30a0a8',sh:'#0a3038',vein:'#80f0f0',   r:10},
+};
+
+function makeOreTile(type, cracks=0) {
+  const def = ORE_DEF[type];
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  const cx2=TILE/2, cy2=TILE/2, r=def.r;
+
+  // Drop shadow
+  cx.fillStyle='rgba(0,0,0,0.4)';
+  cx.beginPath(); cx.ellipse(cx2+2,cy2+3,r,r*0.55,0,0,Math.PI*2); cx.fill();
+
+  // Main body
+  cx.fillStyle=def.base;
+  cx.beginPath(); cx.arc(cx2,cy2,r,0,Math.PI*2); cx.fill();
+
+  // Shading gradient
+  const g=cx.createRadialGradient(cx2-3,cy2-3,1,cx2,cy2,r);
+  g.addColorStop(0,def.hi+'cc');
+  g.addColorStop(0.5,'transparent');
+  g.addColorStop(1,def.sh+'99');
+  cx.fillStyle=g; cx.beginPath(); cx.arc(cx2,cy2,r,0,Math.PI*2); cx.fill();
+
+  // Vein sparkles
+  if(def.vein) {
+    cx.fillStyle=def.vein; cx.globalAlpha=0.85;
+    cx.fillRect(cx2-4,cy2-2,3,2);
+    cx.fillRect(cx2,cy2+1,2,2);
+    cx.fillRect(cx2-2,cy2+3,2,2);
+    cx.globalAlpha=1;
+  }
+
+  // Cracks
+  if(cracks>=1){
+    cx.strokeStyle='rgba(0,0,0,0.55)';cx.lineWidth=1.5;cx.lineCap='round';
+    cx.beginPath();cx.moveTo(cx2-5,cy2-5);cx.lineTo(cx2+2,cy2+2);cx.stroke();
+  }
+  if(cracks>=2){cx.beginPath();cx.moveTo(cx2+4,cy2-4);cx.lineTo(cx2-1,cy2+3);cx.stroke();}
+  if(cracks>=3){cx.lineWidth=2;cx.beginPath();cx.moveTo(cx2-6,cy2+1);cx.lineTo(cx2+5,cy2+3);cx.stroke();}
+  if(cracks>=4){cx.beginPath();cx.moveTo(cx2-1,cy2-6);cx.lineTo(cx2+1,cy2+5);cx.stroke();}
+
+  return oc;
+}
+
+// Cache ore sprites for each crack level
+let ORE_SPR = null;
+function buildOreSprites(){
+  ORE_SPR={};
+  for(const t of['stone','iron','gold','diamond']){
+    ORE_SPR[t]=[];
+    for(let c=0;c<=4;c++) ORE_SPR[t].push(makeOreTile(t,c));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════
+const G={
+  floor:1,maxFloor:1,
+  coins:0,ladder:0,iron:0,gold:0,diamond:0,
+  rocksSmashed:0,
+  tntCount:0,
+  upg:{
+    pick:  {lv:0,max:10,cost:50, mult:1.65,unlock:1},
+    crit:  {lv:0,max:5, cost:150,mult:1.9, unlock:1},
+    speed: {lv:0,max:5, cost:120,mult:1.7, unlock:1},
+    lucky: {lv:0,max:5, cost:200,mult:2.0, unlock:1},
+    tnt:   {lv:0,max:-1,cost:400,mult:1.5, unlock:3},
+    magnet:{lv:0,max:3, cost:350,mult:2.0, unlock:8},
+    helmet:{lv:0,max:3, cost:600,mult:2.3, unlock:10},
+  },
+};
+const getDmg  =()=>1+G.upg.pick.lv*3;
+const getCrit =()=>G.upg.crit.lv*0.10;
+const getLuck =()=>G.upg.lucky.lv*0.09;
+const getMag  =()=>G.upg.magnet.lv>=1?2:1;
+const getSpd  =()=>2.2+G.upg.speed.lv*0.5;
+const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
+
+// ═══════════════════════════════════════════════════════════
+//  WORLD MAP
+// ═══════════════════════════════════════════════════════════
+const T_FLOOR=0, T_WALL=1, T_VOID=2;
+let worldMap=[], rocks={}, ladderTile=null;
+let tileVariant=[];
+
+function genFloor(fl){
+  // Cellular automata cave gen
+  let raw=[];
+  for(let y=0;y<MAP_H;y++){raw[y]=[];for(let x=0;x<MAP_W;x++){
+    raw[y][x]=(x<2||x>=MAP_W-2||y<2||y>=MAP_H-2)?T_WALL:Math.random()<0.45?T_WALL:T_FLOOR;
+  }}
+  for(let pass=0;pass<5;pass++){
+    const nxt=raw.map(r=>[...r]);
+    for(let y=2;y<MAP_H-2;y++)for(let x=2;x<MAP_W-2;x++){
+      let w=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(raw[y+dy][x+dx]!==T_FLOOR)w++;
+      nxt[y][x]=w>=5?T_WALL:T_FLOOR;
+    }
+    raw=nxt;
+  }
+  // Fill unreachable voids
+  worldMap=raw;
+
+  // Tile variants (random once)
+  tileVariant=[];
+  for(let y=0;y<MAP_H;y++){tileVariant[y]=[];for(let x=0;x<MAP_W;x++)tileVariant[y][x]=Math.floor(Math.random()*4);}
+
+  // Collect floors
+  const floors=[];
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)if(worldMap[y][x]===T_FLOOR)floors.push({x,y});
+
+  // Scatter rocks (~20% of floor)
+  rocks={};
+  const hp=baseHp(fl);
+  const numRocks=Math.floor(floors.length*0.20);
+  const shuffled=[...floors].sort(()=>Math.random()-0.5);
+  for(let i=0;i<Math.min(numRocks,shuffled.length);i++){
+    const{x,y}=shuffled[i];
+    const t=pickType(fl),def=ORE_DEF[t];
+    const mx=Math.ceil(hp*(t==='stone'?1:t==='iron'?1.6:t==='gold'?2.4:3.8));
+    rocks[x+','+y]={tx:x,ty:y,type:t,def,hp:mx,maxHp:mx,cracks:0};
+  }
+
+  // Gozo start near center, on empty floor
+  const cx=Math.floor(MAP_W/2),cy=Math.floor(MAP_H/2);
+  let best=9999,sp=floors[0];
+  for(const f of floors){
+    const d=Math.abs(f.x-cx)+Math.abs(f.y-cy);
+    if(d<best&&!rocks[f.x+','+f.y]){best=d;sp=f;}
+  }
+  gozo.wx=sp.x*TILE+TILE/2; gozo.wy=sp.y*TILE+TILE/2;
+  gozo.state='idle';gozo.dir='S';gozo.frame=0;gozo.frameT=0;
+  gozo.mineTarget=null;gozo.clickDest=null;
+  ladderTile=null;
+}
+
+const typeKeys=['stone','iron','gold','diamond'];
+function rockWeights(fl){
+  if(fl<=5)  return[88,12,0,0];
+  if(fl<=15) return[65,26,9,0];
+  if(fl<=30) return[48,30,17,5];
+  if(fl<=50) return[35,30,22,13];
+  if(fl<=75) return[22,28,28,22];
+  return[10,22,30,38];
+}
+function pickType(fl){const w=rockWeights(fl);let r=Math.random()*100,s=0;for(let i=0;i<4;i++){s+=w[i];if(r<s)return typeKeys[i];}return'stone';}
+function baseHp(fl){return Math.max(10,Math.floor(20*Math.pow(1.32,fl-1)));}
+
+// ═══════════════════════════════════════════════════════════
+//  GOZO
+// ═══════════════════════════════════════════════════════════
+const gozo={wx:0,wy:0,state:'idle',dir:'S',frame:0,frameT:0,mineTarget:null,clickDest:null};
+const KEYS={};
+const ASPD={idle:22,walk:8,mine:9};
+
+function getSprFrames(){
+  const{state,dir}=gozo;
+  if(state==='mine') return[SPR.MINE,false];
+  const east=dir==='E'||dir==='W', flip=dir==='W';
+  if(state==='walk') return[east?SPR.E_WALK:SPR.S_WALK,flip];
+  return[east?SPR.E_IDLE:SPR.S_IDLE,flip];
+}
+
+function updateGozo(){
+  const spd=getSpd();
+  let moved=false;
+
+  if(gozo.state!=='mine'){
+    let dx=0,dy=0;
+    if(KEYS['ArrowLeft']||KEYS['a']||KEYS['A']){dx=-1;gozo.dir='W';}
+    if(KEYS['ArrowRight']||KEYS['d']||KEYS['D']){dx=1;gozo.dir='E';}
+    if(KEYS['ArrowUp']||KEYS['w']||KEYS['W']){dy=-1;gozo.dir='N';}
+    if(KEYS['ArrowDown']||KEYS['s']||KEYS['S']){dy=1;gozo.dir='S';}
+    if(dx&&dy){dx*=0.707;dy*=0.707;}
+    if(dx||dy){
+      gozo.clickDest=null;
+      const nx=gozo.wx+dx*spd,ny=gozo.wy+dy*spd;
+      if(canWalk(nx,gozo.wy))gozo.wx=nx;
+      if(canWalk(gozo.wx,ny))gozo.wy=ny;
+      gozo.state='walk';moved=true;
+    }
+    // click-to-move
+    if(gozo.clickDest){
+      const ddx=gozo.clickDest.wx-gozo.wx,ddy=gozo.clickDest.wy-gozo.wy;
+      const dist=Math.sqrt(ddx*ddx+ddy*ddy);
+      if(dist<spd+1){
+        gozo.wx=gozo.clickDest.wx;gozo.wy=gozo.clickDest.wy;
+        gozo.clickDest=null;
+        if(gozo.mineTarget)startMining();else gozo.state='idle';
+      } else {
+        const nx2=gozo.wx+(ddx/dist)*spd,ny2=gozo.wy+(ddy/dist)*spd;
+        if(canWalk(nx2,gozo.wy))gozo.wx=nx2;
+        if(canWalk(gozo.wx,ny2))gozo.wy=ny2;
+        gozo.dir=Math.abs(ddx)>Math.abs(ddy)?(ddx>0?'E':'W'):(ddy>0?'S':'N');
+        moved=true;
+      }
+    }
+    if(!moved&&gozo.state!=='idle')gozo.state='idle';
+  }
+
+  // Check adjacency to mine target while walking
+  if(gozo.state==='walk'&&gozo.mineTarget){
+    const[mx,my]=gozo.mineTarget.split(',').map(Number);
+    const tx=Math.floor(gozo.wx/TILE),ty=Math.floor(gozo.wy/TILE);
+    if(Math.abs(tx-mx)<=1&&Math.abs(ty-my)<=1){gozo.clickDest=null;startMining();}
+  }
+
+  // Mine animation + hit
+  if(gozo.state==='mine'){
+    gozo.frameT++;
+    const s=ASPD.mine;
+    gozo.frame=Math.floor(gozo.frameT/s)%3;
+    if(gozo.frameT%(s*3)===s*2){
+      if(gozo.mineTarget&&rocks[gozo.mineTarget])doHit(gozo.mineTarget);
+      else{gozo.state='idle';gozo.frame=0;gozo.mineTarget=null;}
+    }
+    return;
+  }
+
+  // Walk/idle anim
+  gozo.frameT++;
+  const as=gozo.state==='walk'?ASPD.walk:ASPD.idle;
+  if(gozo.frameT>=as){gozo.frame=(gozo.frame+1)%(gozo.state==='walk'?4:2);gozo.frameT=0;}
+
+  // Step on ladder
+  if(ladderTile){
+    const tx=Math.floor(gozo.wx/TILE),ty=Math.floor(gozo.wy/TILE);
+    if(tx===ladderTile.tx&&ty===ladderTile.ty){
+      document.getElementById('nf').textContent=Math.min(G.floor+1,MAX_FLOOR);
+      document.getElementById('lm').classList.add('show');
+      ladderTile=null;
+    }
+  }
+}
+
+function canWalk(wx,wy){
+  const pad=9;
+  for(const[cx,cy]of[[wx-pad,wy-pad],[wx+pad,wy-pad],[wx-pad,wy+pad],[wx+pad,wy+pad]]){
+    const tx=Math.floor(cx/TILE),ty=Math.floor(cy/TILE);
+    if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H||worldMap[ty][tx]!==T_FLOOR)return false;
+    if(rocks[tx+','+ty])return false;
+  }
+  return true;
+}
+
+function startMining(){
+  if(!gozo.mineTarget||!rocks[gozo.mineTarget]){gozo.state='idle';gozo.mineTarget=null;return;}
+  const[mx,my]=gozo.mineTarget.split(',').map(Number);
+  const tx=Math.floor(gozo.wx/TILE),ty=Math.floor(gozo.wy/TILE);
+  gozo.dir=mx>tx?'E':mx<tx?'W':my>ty?'S':'N';
+  gozo.state='mine';gozo.frame=0;gozo.frameT=0;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CAMERA
+// ═══════════════════════════════════════════════════════════
+let camX=0,camY=0,cW=800,cH=600;
+let shakeX=0,shakeY=0,shakeAmt=0;
+
+function updateCam(){
+  const tx=gozo.wx-cW/2,ty=gozo.wy-cH/2;
+  camX+=(tx-camX)*0.12; camY+=(ty-camY)*0.12;
+  camX=Math.max(0,Math.min(camX,MAP_W*TILE-cW));
+  camY=Math.max(0,Math.min(camY,MAP_H*TILE-cH));
+  if(shakeAmt>0){
+    shakeX=(Math.random()-.5)*shakeAmt;
+    shakeY=(Math.random()-.5)*shakeAmt;
+    shakeAmt*=0.7;if(shakeAmt<0.3)shakeAmt=0;
+  } else {shakeX=0;shakeY=0;}
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+let gc,gctx,fc,fctx;
+
+function render(){
+  if(!gctx||!TC||!SPR) return;
+  updateCam();
+  const ox=Math.round(shakeX), oy=Math.round(shakeY);
+  const cx2=camX, cy2=camY;
+
+  gctx.clearRect(0,0,cW,cH);
+  gctx.fillStyle='#050302'; gctx.fillRect(0,0,cW,cH);
+
+  const sx=Math.floor(cx2/TILE)-1, sy=Math.floor(cy2/TILE)-1;
+  const ex=Math.min(MAP_W,sx+Math.ceil(cW/TILE)+3);
+  const ey=Math.min(MAP_H,sy+Math.ceil(cH/TILE)+3);
+
+  // Draw tiles
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const px=Math.round(tx2*TILE-cx2)+ox;
+      const py=Math.round(ty2*TILE-cy2)+oy;
+      const t=worldMap[ty2]?.[tx2]??T_VOID;
+      const v=tileVariant[ty2]?.[tx2]??0;
+      if(t===T_FLOOR){
+        gctx.drawImage(TC.floor[v],px,py);
+      } else if(t===T_WALL){
+        // Check if tile below is floor (wall-top gets lighter highlight)
+        const below=worldMap[ty2+1]?.[tx2];
+        gctx.drawImage(below===T_FLOOR?TC.wallTop[v]:TC.wall[v],px,py);
+      } else {
+        gctx.drawImage(TC.border,px,py);
+      }
+    }
+  }
+
+  // Draw ladder
+  if(ladderTile){
+    const px=Math.round(ladderTile.tx*TILE-cx2)+ox;
+    const py=Math.round(ladderTile.ty*TILE-cy2)+oy;
+    gctx.drawImage(TC.ladder,px,py);
+  }
+
+  // Draw rocks (sorted by Y for depth)
+  const rockList=Object.values(rocks).sort((a,b)=>a.ty-b.ty);
+  for(const r of rockList){
+    const px=Math.round(r.tx*TILE-cx2)+ox;
+    const py=Math.round(r.ty*TILE-cy2)+oy;
+    const spr=ORE_SPR[r.type][r.cracks];
+    gctx.drawImage(spr,px,py);
+  }
+
+  // Draw gozo shadow
+  const gpx=Math.round(gozo.wx-cx2)+ox;
+  const gpy=Math.round(gozo.wy-cy2)+oy;
+  gctx.fillStyle='rgba(0,0,0,0.28)';
+  gctx.beginPath();gctx.ellipse(gpx,gpy+6,10,5,0,0,Math.PI*2);gctx.fill();
+
+  // Draw gozo sprite
+  const [frs,flip]=getSprFrames();
+  const fi=Math.min(gozo.frame,frs.length-1);
+  const spr=frs[fi];
+  const SW=spr.width,SH=spr.height;
+  gctx.save();
+  gctx.imageSmoothingEnabled=false;
+  if(flip){
+    gctx.translate(gpx+SW/2,gpy-SH/2);
+    gctx.scale(-1,1);
+    gctx.drawImage(spr,-SW/2,-SH/2);
+  } else {
+    gctx.drawImage(spr,gpx-SW/2,gpy-SH/2);
+  }
+  gctx.restore();
+
+  // Torchlight vignette
+  drawVignette();
+}
+
+function drawVignette(){
+  const g=gctx.createRadialGradient(cW/2,cH/2,cH*0.28,cW/2,cH/2,cH*0.9);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(0.7,'rgba(0,0,0,0.25)');
+  g.addColorStop(1,'rgba(0,0,0,0.75)');
+  gctx.fillStyle=g;gctx.fillRect(0,0,cW,cH);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════════════
+function onCanvasClick(e){
+  const rect=gc.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const wx=mx+camX,wy=my+camY;
+  const tx=Math.floor(wx/TILE),ty=Math.floor(wy/TILE);
+  const k=tx+','+ty;
+  if(rocks[k]){
+    gozo.mineTarget=k;
+    const adj=findAdj(tx,ty);
+    if(adj)gozo.clickDest={wx:adj.x*TILE+TILE/2,wy:adj.y*TILE+TILE/2};
+    else startMining();
+    gozo.state='walk';
+  } else if(worldMap[ty]?.[tx]===T_FLOOR){
+    gozo.mineTarget=null;
+    gozo.clickDest={wx,wy};
+    gozo.state='walk';
+  }
+}
+
+function findAdj(tx,ty){
+  for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){
+    const nx=tx+dx,ny=ty+dy;
+    if(worldMap[ny]?.[nx]===T_FLOOR&&!rocks[nx+','+ny])return{x:nx,y:ny};
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HIT / SMASH
+// ═══════════════════════════════════════════════════════════
+function doHit(key){
+  const r=rocks[key];if(!r)return;
+  let dmg=getDmg();let isCrit=false;
+  if(Math.random()<getCrit()){dmg*=3;isCrit=true;}
+  r.hp-=dmg;
+  const pct=r.hp/r.maxHp;
+  r.cracks=pct>.75?0:pct>.5?1:pct>.3?2:pct>.1?3:4;
+  shakeAmt=isCrit?5:3;
+
+  const sx=Math.round(r.tx*TILE+TILE/2-camX);
+  const sy=Math.round(r.ty*TILE+TILE/2-camY);
+  spawnDmg(sx,sy-16,isCrit?`CRIT ${dmg}`:`-${dmg}`,isCrit?'#f0c040':'#e0d0b0',isCrit?10:8);
+  spawnParticles(sx,sy,r.type);
+  if(r.hp<=0)smashRock(r);
+}
+
+function smashRock(r){
+  const key=r.tx+','+r.ty;
+  delete rocks[key];G.rocksSmashed++;
+  if(gozo.mineTarget===key){gozo.mineTarget=null;gozo.state='idle';}
+  const loot=rollLoot(r.type,G.floor);
+  const mag=getMag();
+  G.coins+=loot.coins*mag;G.iron+=loot.iron*mag;G.gold+=loot.gold*mag;G.diamond+=loot.diamond*mag;
+  const sx=Math.round(r.tx*TILE+TILE/2-camX);
+  const sy=Math.round(r.ty*TILE+TILE/2-camY);
+  if(loot.coins)  spawnDmg(sx-18,sy-14,`+${loot.coins*mag}g`,'#f0c840',8);
+  if(loot.iron)   spawnDmg(sx+6, sy-26,`+${loot.iron*mag} iron`,'#90c8d8',7);
+  if(loot.gold)   spawnDmg(sx-6, sy-38,`+${loot.gold*mag} gold`,'#f0d040',7);
+  if(loot.diamond)spawnDmg(sx,   sy-50,`+${loot.diamond*mag} diam`,'#80f0f0',9);
+  if(loot.ladder){
+    G.ladder++;
+    ladderTile={tx:r.tx,ty:r.ty};
+    spawnDmg(sx,sy-62,'🪜 LADDER!','#e0a040',9);
+  }
+  updateHud();
+  if(Object.keys(rocks).length===0)setTimeout(()=>toast('✨ Floor cleared! Find a ladder or buy TNT.'),400);
+}
+
+function rollLoot(type,fl){
+  const luck=getLuck(),helmB=G.upg.helmet.lv*.25;
+  const fm=1+(fl-1)*.14;
+  const res={coins:0,iron:0,gold:0,diamond:0,ladder:false};
+  res.coins=Math.floor((4+fl*2+Math.random()*8)*fm);
+  if(Math.random()<Math.min(.45,.06+fl*.003+luck*.6+helmB))res.ladder=true;
+  if(type==='iron'){res.iron=1+(Math.random()<.35+luck?1:0);res.coins+=12;}
+  else if(type==='gold'){res.gold=1+(Math.random()<.28+luck?1:0);res.coins+=35;}
+  else if(type==='diamond'){res.diamond=1+(Math.random()<.18+luck?1:0);res.coins+=90;}
+  else if(Math.random()<.25+luck)res.iron=1;
+  return res;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SELL / UPGRADE / FLOOR
+// ═══════════════════════════════════════════════════════════
+function sell(type){
+  const p={iron:15,gold:80,diamond:500};
+  const qty=G[type];if(!qty){toast('❌ No '+type+' to sell!');return;}
+  G.coins+=qty*p[type];G[type]=0;
+  toast(`💰 +${qty*p[type]}g from ${qty} ${type}!`);updateHud();
+}
+
+function buyUpgrade(id){
+  const u=G.upg[id];
+  if(u.unlock>G.floor){toast(`🔒 Requires floor ${u.unlock}!`);return;}
+  if(u.max!==-1&&u.lv>=u.max){toast('✅ Already MAX!');return;}
+  const cost=upgCost(id);
+  if(G.coins<cost){toast('❌ Not enough coins!');return;}
+  G.coins-=cost;u.lv++;
+  if(id==='tnt'){
+    let tc=0;
+    for(const k in rocks){const r=rocks[k];const l=rollLoot(r.type,G.floor);tc+=l.coins;G.iron+=l.iron;G.gold+=l.gold;G.diamond+=l.diamond;if(l.ladder)G.ladder++;}
+    G.coins+=tc;rocks={};gozo.state='idle';gozo.mineTarget=null;
+    toast(`💣 BOOM! +${tc}g`);
+  }
+  toast(`✅ ${id.toUpperCase()} LV${u.lv}!`);updateHud();
+}
+
+function goNextFloor(){
+  if(!G.ladder){toast('❌ No ladder in inventory!');closeLadder();return;}
+  G.ladder--;G.floor=Math.min(G.floor+1,MAX_FLOOR);
+  if(G.floor>G.maxFloor)G.maxFloor=G.floor;
+  closeLadder();
+  // Black fade
+  const fa=document.createElement('div');
+  fa.style.cssText='position:fixed;inset:0;background:#000;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;';
+  document.body.appendChild(fa);
+  requestAnimationFrame(()=>{fa.style.opacity='1';});
+  setTimeout(()=>{
+    genFloor(G.floor);updateHud();
+    fa.style.transition='opacity .5s';fa.style.opacity='0';
+    setTimeout(()=>fa.remove(),520);
+    toast(`🪜 Floor ${G.floor}! Rocks are tougher...`);
+  },320);
+}
+function closeLadder(){document.getElementById('lm').classList.remove('show');}
+function toggleUpgPanel(){document.getElementById('upg-panel').classList.toggle('open');}
+
+// ═══════════════════════════════════════════════════════════
+//  FX
+// ═══════════════════════════════════════════════════════════
+function spawnDmg(x,y,text,color,size){
+  const el=document.getElementById('fc').parentElement;
+  // Use fc canvas parent (game-wrap)
+  const d=document.createElement('div');
+  d.className='dmt';d.textContent=text;
+  Object.assign(d.style,{left:x+'px',top:y+'px',color:color||'#fff',fontSize:(size||8)+'px',position:'absolute',zIndex:40});
+  el.appendChild(d);setTimeout(()=>d.remove(),1200);
+}
+function spawnParticles(sx,sy,type){
+  const c={stone:['#7a6878','#a08898'],iron:['#506878','#90c8d8'],gold:['#e8c040','#806020'],diamond:['#80f0f0','#1c6068']};
+  const cs=c[type]||c.stone;
+  const el=document.getElementById('fc').parentElement;
+  for(let i=0;i<8;i++){
+    const p=document.createElement('div');
+    const a=Math.random()*Math.PI*2,d=16+Math.random()*28;
+    p.style.cssText=`position:absolute;width:4px;height:4px;border-radius:50%;background:${cs[Math.floor(Math.random()*cs.length)]};left:${sx}px;top:${sy}px;pointer-events:none;z-index:41;--dx:${Math.cos(a)*d}px;--dy:${Math.sin(a)*d-10}px;animation:pfly .5s ease-out forwards;image-rendering:pixelated;`;
+    el.appendChild(p);setTimeout(()=>p.remove(),600);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI
+// ═══════════════════════════════════════════════════════════
+function updateHud(){
+  document.getElementById('gh-coins').textContent=fmt(G.coins);
+  document.getElementById('fb-num').textContent=G.floor;
+  document.getElementById('hs-coins').textContent=fmt(G.coins);
+  document.getElementById('hs-iron').textContent=fmt(G.iron);
+  document.getElementById('hs-gold').textContent=fmt(G.gold);
+  document.getElementById('hs-diam').textContent=fmt(G.diamond);
+  document.getElementById('hs-rocks').textContent=Object.keys(rocks).length;
+  document.getElementById('lad-slot-qty').textContent=G.ladder;
+  updateUpgUI();
+}
+function updateUpgUI(){
+  for(const id in G.upg){
+    const u=G.upg[id];
+    const card=document.getElementById('upg-'+id);
+    const ce=document.getElementById('pc-'+id);
+    const pe=document.getElementById('pp-'+id);
+    const locked=u.unlock>G.floor,maxed=u.max!==-1&&u.lv>=u.max,cost=upgCost(id);
+    if(u.max>0){let h='';for(let i=0;i<Math.min(u.max,8);i++)h+=`<div class="pip${i<u.lv?' on':''}"></div>`;pe.innerHTML=h;}
+    else pe.innerHTML=`<span style="font-size:11px;color:#7a6040">×${u.lv}</span>`;
+    card.classList.toggle('ulk',locked);card.classList.toggle('umx',!locked&&maxed);
+    if(locked){ce.textContent=`🔒 Fl.${u.unlock}`;ce.className='uco';ce.style.color='#6a5030';}
+    else if(maxed){ce.textContent='✅ MAX';ce.className='uco';ce.style.color='#60e8e0';}
+    else{ce.textContent=`💰${fmt(cost)}`;ce.className=G.coins>=cost?'uco':'uco red';ce.style.color='';}
+  }
+}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.floor(n);}
+let tt;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ═══════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════
+function loop(){updateGozo();render();requestAnimationFrame(loop);}
+
+function initCanvas(){
+  const wrap=document.getElementById('game-wrap');
+  cW=wrap.clientWidth;cH=wrap.clientHeight;
+  gc=document.getElementById('gc');
+  gc.width=cW;gc.height=cH;
+  gctx=gc.getContext('2d');gctx.imageSmoothingEnabled=false;
+  gc.addEventListener('click',onCanvasClick);
+  fc=document.getElementById('fc');
+  fc.width=cW;fc.height=cH;
+  fctx=fc.getContext('2d');
+  window.addEventListener('resize',()=>{
+    cW=wrap.clientWidth;cH=wrap.clientHeight;
+    gc.width=cW;gc.height=cH;fc.width=cW;fc.height=cH;
+  });
+}
+
+document.addEventListener('keydown',e=>{
+  KEYS[e.key]=true;
+  if(e.key==='t'||e.key==='T')toggleUpgPanel();
+  if(e.code==='Space'){e.preventDefault();}
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
+});
+document.addEventListener('keyup',e=>{KEYS[e.key]=false;});
+
+function startGame(){
+  buildAllSprites();
+  buildTiles();
+  buildOreSprites();
+  const sp=document.getElementById('splash');
+  sp.style.transition='opacity .5s';sp.style.opacity='0';
+  setTimeout(()=>sp.style.display='none',520);
+  initCanvas();
+  genFloor(1);
+  updateHud();
+  toast('⛏ WASD / Arrow = move | Click rock = mine | T = upgrade');
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
