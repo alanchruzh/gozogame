@@ -156,6 +156,17 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   background:transparent;border:2px solid #e8c060;color:#e8c060;cursor:pointer;
   letter-spacing:1px;animation:bp 1.2s ease-in-out infinite;transition:background .15s;}
 #ss:hover{background:rgba(232,192,96,.15);}
+#ss-load{padding:10px 28px;font-family:'Press Start 2P',monospace;font-size:8px;
+  background:transparent;border:2px solid #60c890;color:#60c890;cursor:pointer;
+  letter-spacing:1px;transition:background .15s;margin-top:8px;}
+#ss-load:hover{background:rgba(96,200,144,.15);}
+#splash-btns{display:flex;flex-direction:column;align-items:center;gap:0;}
+#save-preview{
+  margin-top:12px;padding:8px 18px;
+  background:rgba(0,0,0,0.5);border:1px solid #4a3820;border-radius:3px;
+  font-family:'Press Start 2P',monospace;font-size:7px;color:#a08060;
+  text-align:center;line-height:2;
+}
 @keyframes bp{0%,100%{box-shadow:0 0 8px rgba(232,192,96,.3)}50%{box-shadow:0 0 24px rgba(232,192,96,.7)}}
 .hb{font-size:13px;color:#7a6040;border:1px solid #3a2810;padding:5px 14px;line-height:2.1;text-align:center;}
 
@@ -175,7 +186,11 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   <div id="spt">GOZO<br>MINING</div>
   <div class="ssb">Explore the mine dungeon with Gozo!<br>100 floors full of ore & mystery.</div>
   <div class="hb">🎮 WASD / Arrow = move<br>🖱 Click rock = auto mine<br>🪜 Find ladder → go deeper<br>[T] = open upgrade panel</div>
-  <button id="ss" onclick="startGame()">► ENTER MINE</button>
+  <div id="splash-btns">
+    <button id="ss" onclick="startNewGame()">► NEW GAME</button>
+    <button id="ss-load" onclick="loadGame()" style="display:none">📂 CONTINUE</button>
+  </div>
+  <div id="save-preview" style="display:none"></div>
 </div>
 
 <div id="toast"></div>
@@ -263,6 +278,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     <button class="hud-btn" onclick="sell('diamond')">💎 Sell Diam<br>+500💰 each</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn upg" onclick="toggleUpgPanel()">[T] UPGRADE</button>
+    <div style="width:2px;height:40px;background:#4a3010"></div>
+    <button class="hud-btn" onclick="saveGame()" style="border-color:#60c890;color:#60c890;">💾 SAVE</button>
   </div>
 </div>
 
@@ -569,63 +586,195 @@ function makeFloorTile(variant=0) {
   const oc = document.createElement('canvas');
   oc.width = TILE; oc.height = TILE;
   const cx = oc.getContext('2d');
-  // Base colors — warm sandy brown
+
+  // Base — warm sandy brown, slight variation per variant
   const bases = ['#c8a060','#c09858','#b89050','#c4a05c'];
   cx.fillStyle = bases[variant%4];
   cx.fillRect(0,0,TILE,TILE);
 
-  // Cobblestone/cell pattern
-  cx.strokeStyle = 'rgba(80,50,10,0.35)';
-  cx.lineWidth = 1;
-  // Draw hexagonal-ish pattern (like Stardew cave floor)
-  const pat = variant%2===0;
-  if(pat) {
-    // Horizontal ovals
-    cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,0,0,Math.PI*2); cx.stroke();
-    cx.beginPath(); cx.ellipse(0,0,6,4,0,0,Math.PI*2); cx.stroke();
-    cx.beginPath(); cx.ellipse(TILE,TILE,6,4,0,0,Math.PI*2); cx.stroke();
-  } else {
-    cx.beginPath(); cx.ellipse(TILE/2,TILE/2,TILE/2-2,TILE/2-3,Math.PI*0.2,0,Math.PI*2); cx.stroke();
-    cx.beginPath(); cx.ellipse(2,TILE-2,6,4,0,0,Math.PI*2); cx.stroke();
+  // Subtle color noise — small random darker/lighter patches
+  const seed = variant * 7919;
+  const rng = (n) => ((Math.sin(n+seed)*43758.5453)%1+1)%1;
+  for(let i=0;i<6;i++){
+    const px=Math.floor(rng(i*3)*TILE);
+    const py=Math.floor(rng(i*3+1)*TILE);
+    const sz=3+Math.floor(rng(i*3+2)*5);
+    cx.fillStyle=`rgba(0,0,0,${0.04+rng(i)*0.06})`;
+    cx.fillRect(px,py,sz,sz);
   }
-  // subtle shading
-  cx.fillStyle='rgba(0,0,0,0.06)';
-  cx.fillRect(0,TILE-4,TILE,4);
-  cx.fillStyle='rgba(255,255,255,0.06)';
-  cx.fillRect(0,0,TILE,3);
+
+  // Natural crack lines — short jagged strokes
+  cx.strokeStyle='rgba(70,40,5,0.28)';
+  cx.lineWidth=1;
+  cx.lineCap='round';
+
+  // Each variant gets different crack pattern
+  const cracks=[
+    [[4,10,10,14],[18,4,22,10],[8,22,14,26]],
+    [[20,8,26,12],[4,18,10,24],[14,14,20,18]],
+    [[6,6,12,10],[22,18,28,22],[10,24,16,28]],
+    [[2,14,8,18],[16,6,22,10],[20,22,26,26]],
+  ];
+  for(const[x1,y1,x2,y2] of cracks[variant%4]){
+    cx.beginPath();
+    // add slight jag midpoint
+    const mx=(x1+x2)/2+(rng(x1+y1)-0.5)*4;
+    const my=(y1+y2)/2+(rng(x2+y2)-0.5)*4;
+    cx.moveTo(x1,y1); cx.lineTo(mx,my); cx.lineTo(x2,y2);
+    cx.stroke();
+  }
+
+  // Subtle top highlight / bottom shadow for depth
+  cx.fillStyle='rgba(255,255,255,0.05)';
+  cx.fillRect(0,0,TILE,2);
+  cx.fillStyle='rgba(0,0,0,0.07)';
+  cx.fillRect(0,TILE-2,TILE,2);
+
   return oc;
 }
 
-// WALL tile — dark cave earth brown/tan
+// ── FLOOR TILE — darker earthy cave ground, cobble-ish texture ──
+function makeFloorTile(variant=0) {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = TILE;
+  const cx = oc.getContext('2d');
+  const seed = variant * 7919;
+  const rng = (n) => ((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  // Stardew cave floor: warm medium-dark sandy brown
+  const bases = ['#b8904a','#ae8844','#b89248','#a88040'];
+  cx.fillStyle = bases[variant%4];
+  cx.fillRect(0,0,TILE,TILE);
+
+  // Cobble cell lines — subtle polygon borders like Stardew
+  cx.strokeStyle = 'rgba(60,35,8,0.22)';
+  cx.lineWidth = 1; cx.lineCap = 'round';
+  // Each variant has a slightly different cobble pattern
+  const pats = [
+    [[0,11,16,9,32,11],[0,22,10,20,22,23,32,21]],
+    [[0,10,14,12,32,10],[0,21,12,19,24,22,32,20]],
+    [[0,12,18,10,32,13],[0,23,8,21,20,24,32,22]],
+    [[0,9,12,11,32,9],[0,20,14,18,26,21,32,19]],
+  ];
+  for(const line of pats[variant%4]){
+    cx.beginPath();
+    cx.moveTo(line[0],line[1]);
+    for(let i=2;i<line.length;i+=2) cx.lineTo(line[i],line[i+1]);
+    cx.stroke();
+  }
+  // Vertical dividers
+  const xd = [9+variant*3, 20+variant*2];
+  for(const x of xd){
+    cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x+rng(x)*2,TILE); cx.stroke();
+  }
+
+  // Small pebble dots
+  for(let i=0;i<3;i++){
+    const px=3+rng(i*6+1)*(TILE-6), py=3+rng(i*6+2)*(TILE-6);
+    const r=1+rng(i*6+3)*2;
+    cx.fillStyle=`rgba(80,50,15,${0.18+rng(i)*0.15})`;
+    cx.beginPath(); cx.arc(px,py,r,0,Math.PI*2); cx.fill();
+  }
+
+  // Subtle depth shading
+  cx.fillStyle='rgba(0,0,0,0.05)'; cx.fillRect(0,TILE-3,TILE,3);
+  cx.fillStyle='rgba(255,255,255,0.04)'; cx.fillRect(0,0,TILE,2);
+  return oc;
+}
+
+// ── WALL TILE — warm earthy brown cave rock (top surface) ──
 function makeWallTile(variant=0) {
   const oc = document.createElement('canvas');
   oc.width = TILE; oc.height = TILE;
   const cx = oc.getContext('2d');
-  const bases = ['#5a3c18','#4e3414','#6a4820','#543c1a'];
-  cx.fillStyle = bases[variant%4];
+  const seed = variant * 3571;
+  const rng = (n) => ((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  // Warm tan-brown cave rock — matches Stardew Valley wall color
+  const tops = ['#a07040','#96683a','#a87848','#8e6035'];
+  cx.fillStyle = tops[variant%4];
   cx.fillRect(0,0,TILE,TILE);
-  // rocky texture lines
-  cx.strokeStyle='rgba(0,0,0,0.25)'; cx.lineWidth=1;
-  cx.beginPath(); cx.moveTo(2,8); cx.lineTo(TILE-4,6); cx.stroke();
-  cx.beginPath(); cx.moveTo(0,18); cx.lineTo(TILE,16); cx.stroke();
-  cx.beginPath(); cx.moveTo(3,26); cx.lineTo(TILE-2,24); cx.stroke();
-  cx.fillStyle='rgba(255,255,255,0.05)';
-  cx.fillRect(0,0,TILE,4);
-  // darker bottom
-  cx.fillStyle='rgba(0,0,0,0.3)';
-  cx.fillRect(0,TILE-6,TILE,6);
+
+  // Organic rocky blobs for texture depth
+  for(let i=0;i<5;i++){
+    const px=rng(i*5)*TILE, py=rng(i*5+1)*TILE;
+    const rx=4+rng(i*5+2)*8, ry=3+rng(i*5+3)*6;
+    cx.fillStyle=`rgba(0,0,0,${0.07+rng(i)*0.13})`;
+    cx.beginPath(); cx.ellipse(px,py,rx,ry,rng(i)*Math.PI,0,Math.PI*2); cx.fill();
+  }
+  // Warm highlight patches
+  for(let i=0;i<3;i++){
+    const px=2+rng(i*7+20)*(TILE-4), py=2+rng(i*7+21)*(TILE-4);
+    cx.fillStyle=`rgba(255,200,100,${0.05+rng(i)*0.08})`;
+    cx.beginPath(); cx.ellipse(px,py,5+rng(i)*5,3+rng(i+1)*4,0,0,Math.PI*2); cx.fill();
+  }
+  // Fine crack lines
+  cx.strokeStyle='rgba(50,25,5,0.25)'; cx.lineWidth=1; cx.lineCap='round';
+  const cks=[[[4,6,9,12],[20,15,26,21]],[[12,4,17,10],[6,22,12,28]],
+             [[22,8,28,13],[4,18,10,24]],[[8,14,14,20],[24,4,29,9]]];
+  for(const[x1,y1,x2,y2] of cks[variant%4]){
+    const mx=(x1+x2)/2+(rng(x1+y2)-.5)*3, my=(y1+y2)/2+(rng(x2+y1)-.5)*3;
+    cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(mx,my); cx.lineTo(x2,y2); cx.stroke();
+  }
   return oc;
 }
 
-// WALL TOP (where cave wall meets floor — lighter top edge)
-function makeWallTopTile(variant=0) {
-  const oc = makeWallTile(variant);
+// ── WALL FACE — tall vertical cliff face, drawn below wall onto floor row ──
+// This is the KEY to the 2.5D look — tall dark face creates depth
+const FACE_H = TILE; // Full tile height face for dramatic cliff
+function makeWallFaceTile(variant=0) {
+  const oc = document.createElement('canvas');
+  oc.width = TILE; oc.height = FACE_H;
   const cx = oc.getContext('2d');
-  // bright highlight on top = stalactite-ish
-  cx.fillStyle='rgba(210,160,80,0.25)';
-  cx.fillRect(0,0,TILE,8);
+  const seed = variant * 2311;
+  const rng = (n) => ((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  // Vertical gradient: warm brown at top → very dark at bottom (deep shadow)
+  const grad = cx.createLinearGradient(0,0,0,FACE_H);
+  grad.addColorStop(0,   '#7a5228');  // warm rim at top
+  grad.addColorStop(0.15,'#5a3818');  // darker cliff face
+  grad.addColorStop(0.5, '#3e2510');
+  grad.addColorStop(1,   '#1e1008');  // deep shadow at bottom
+  cx.fillStyle = grad;
+  cx.fillRect(0,0,TILE,FACE_H);
+
+  // Horizontal strata — rock layering lines across the face
+  cx.strokeStyle='rgba(0,0,0,0.28)'; cx.lineWidth=1;
+  for(let y=4;y<FACE_H;y+=5+Math.floor(rng(y+variant)*3)){
+    const wobble = (rng(y*3+variant)-.5)*3;
+    cx.beginPath();
+    cx.moveTo(0, y+wobble);
+    cx.lineTo(TILE*0.38, y+(rng(y+1)-.5)*2+wobble);
+    cx.moveTo(TILE*0.44, y+(rng(y+2)-.5)*2+wobble);
+    cx.lineTo(TILE, y+(rng(y+3)-.5)*2+wobble);
+    cx.stroke();
+  }
+
+  // Subtle vertical crack on the face
+  cx.strokeStyle='rgba(15,8,2,0.35)'; cx.lineWidth=1;
+  const cx1=4+variant*7, startY=2;
+  cx.beginPath(); cx.moveTo(cx1, startY);
+  for(let y=startY;y<FACE_H;y+=4){
+    cx.lineTo(cx1+(rng(y+variant*3)-.5)*3, y+4);
+  }
+  cx.stroke();
+
+  // TOP RIM — bright warm highlight where wall top meets face
+  // This is the most important visual element of the 2.5D look
+  const rimGrad = cx.createLinearGradient(0,0,0,6);
+  rimGrad.addColorStop(0,'rgba(220,170,80,0.75)');
+  rimGrad.addColorStop(1,'rgba(220,170,80,0)');
+  cx.fillStyle = rimGrad;
+  cx.fillRect(0,0,TILE,6);
+
+  // Bottom: fully dark — merges into cave shadow
+  cx.fillStyle='rgba(0,0,0,0.55)';
+  cx.fillRect(0,FACE_H-6,TILE,6);
+
   return oc;
 }
+
+function makeWallTopTile(variant=0) { return makeWallTile(variant); }
 
 // BORDER (black void outside cave)
 function makeBorderTile() {
@@ -661,11 +810,12 @@ function makeLadderTile() {
 let TC = null;
 function buildTiles() {
   TC = {
-    floor: [0,1,2,3].map(makeFloorTile),
-    wall:  [0,1,2,3].map(makeWallTile),
-    wallTop:[0,1,2,3].map(makeWallTopTile),
-    border: makeBorderTile(),
-    ladder: makeLadderTile(),
+    floor:   [0,1,2,3].map(makeFloorTile),
+    wall:    [0,1,2,3].map(makeWallTile),
+    wallTop: [0,1,2,3].map(makeWallTopTile),
+    face:    [0,1,2,3].map(makeWallFaceTile),
+    border:  makeBorderTile(),
+    ladder:  makeLadderTile(),
   };
 }
 
@@ -765,22 +915,55 @@ let worldMap=[], rocks={}, ladderTile=null;
 let tileVariant=[];
 
 function genFloor(fl){
-  // Cellular automata cave gen
+  // Start with all walls
   let raw=[];
-  for(let y=0;y<MAP_H;y++){raw[y]=[];for(let x=0;x<MAP_W;x++){
-    raw[y][x]=(x<2||x>=MAP_W-2||y<2||y>=MAP_H-2)?T_WALL:Math.random()<0.45?T_WALL:T_FLOOR;
-  }}
-  for(let pass=0;pass<5;pass++){
-    const nxt=raw.map(r=>[...r]);
-    for(let y=2;y<MAP_H-2;y++)for(let x=2;x<MAP_W-2;x++){
-      let w=0;
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(raw[y+dy][x+dx]!==T_FLOOR)w++;
-      nxt[y][x]=w>=5?T_WALL:T_FLOOR;
+  for(let y=0;y<MAP_H;y++){raw[y]=[];for(let x=0;x<MAP_W;x++) raw[y][x]=T_WALL;}
+
+  // Drunkard's walk — carve organic cave tunnels
+  // Multiple walkers starting from center spread outward
+  const cx0=Math.floor(MAP_W/2), cy0=Math.floor(MAP_H/2);
+  const totalFloor = Math.floor(MAP_W*MAP_H*0.52); // target ~52% open
+  let floorCount=0;
+
+  const carve=(x,y,r=2)=>{
+    for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++){
+      const nx=x+dx, ny=y+dy;
+      if(nx<2||nx>=MAP_W-2||ny<2||ny>=MAP_H-2) continue;
+      if(dx*dx+dy*dy<=r*r+1){
+        if(raw[ny][nx]===T_WALL){raw[ny][nx]=T_FLOOR;floorCount++;}
+      }
     }
-    raw=nxt;
+  };
+
+  // Multiple walkers
+  const walkers=[{x:cx0,y:cy0},{x:cx0-6,y:cy0-4},{x:cx0+6,y:cy0+4},{x:cx0-4,y:cy0+6}];
+  const DIRS=[[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1]];
+  let iters=0;
+  while(floorCount<totalFloor && iters<8000){
+    iters++;
+    for(const w of walkers){
+      // Bias toward center to prevent disconnected caves
+      const toCx = cx0-w.x, toCy = cy0-w.y;
+      let [dx,dy] = DIRS[Math.floor(Math.random()*DIRS.length)];
+      // 25% chance pull toward center
+      if(Math.random()<0.25){ dx=Math.sign(toCx)||dx; dy=Math.sign(toCy)||dy; }
+      w.x = Math.max(2, Math.min(MAP_W-3, w.x+dx));
+      w.y = Math.max(2, Math.min(MAP_H-3, w.y+dy));
+      const r = Math.random()<0.15 ? 3 : Math.random()<0.4 ? 2 : 1;
+      carve(w.x, w.y, r);
+    }
   }
-  // Fill unreachable voids
-  worldMap=raw;
+
+  // One pass of smoothing to round jagged edges
+  const smooth=raw.map(r=>[...r]);
+  for(let y=1;y<MAP_H-1;y++) for(let x=1;x<MAP_W-1;x++){
+    if(raw[y][x]===T_WALL){
+      let walls=0;
+      for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if(raw[y+dy][x+dx]===T_WALL) walls++;
+      if(walls<=3) smooth[y][x]=T_FLOOR; // isolated wall pixel → floor
+    }
+  }
+  worldMap=smooth;
 
   // Tile variants (random once)
   tileVariant=[];
@@ -790,26 +973,26 @@ function genFloor(fl){
   const floors=[];
   for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)if(worldMap[y][x]===T_FLOOR)floors.push({x,y});
 
-  // Scatter rocks (~20% of floor)
+  // Scatter rocks (~10% of floor)
   rocks={};
-  const hp=baseHp(fl);
-  const numRocks=Math.floor(floors.length*0.20);
+  const floorMult = 1 + (fl - 1) * 0.20;
+  const baseHits = { stone: 4, iron: 8, gold: 16, diamond: 32 };
+  const numRocks=Math.floor(floors.length*0.10);
   const shuffled=[...floors].sort(()=>Math.random()-0.5);
   for(let i=0;i<Math.min(numRocks,shuffled.length);i++){
     const{x,y}=shuffled[i];
     const t=pickType(fl),def=ORE_DEF[t];
-    const mx=Math.ceil(hp*(t==='stone'?1:t==='iron'?1.6:t==='gold'?2.4:3.8));
+    const mx=Math.ceil(baseHits[t] * floorMult);
     rocks[x+','+y]={tx:x,ty:y,type:t,def,hp:mx,maxHp:mx,cracks:0};
   }
 
   // Gozo start near center, on empty floor
-  const cx=Math.floor(MAP_W/2),cy=Math.floor(MAP_H/2);
   let best=9999,sp=floors[0];
   for(const f of floors){
-    const d=Math.abs(f.x-cx)+Math.abs(f.y-cy);
+    const d=Math.abs(f.x-cx0)+Math.abs(f.y-cy0);
     if(d<best&&!rocks[f.x+','+f.y]){best=d;sp=f;}
   }
-  gozo.wx=sp.x*TILE+TILE/2; gozo.wy=sp.y*TILE+TILE/2;
+  gozo.wx=sp.x*TILE+TILE/2; gozo.wy=sp.y*TILE+TILE-4;
   gozo.state='idle';gozo.dir='S';gozo.frame=0;gozo.frameT=0;
   gozo.mineTarget=null;gozo.clickDest=null;
   ladderTile=null;
@@ -825,7 +1008,6 @@ function rockWeights(fl){
   return[10,22,30,38];
 }
 function pickType(fl){const w=rockWeights(fl);let r=Math.random()*100,s=0;for(let i=0;i<4;i++){s+=w[i];if(r<s)return typeKeys[i];}return'stone';}
-function baseHp(fl){return Math.max(10,Math.floor(20*Math.pow(1.32,fl-1)));}
 
 // ═══════════════════════════════════════════════════════════
 //  GOZO
@@ -915,8 +1097,12 @@ function updateGozo(){
 }
 
 function canWalk(wx,wy){
-  const pad=9;
-  for(const[cx,cy]of[[wx-pad,wy-pad],[wx+pad,wy-pad],[wx-pad,wy+pad],[wx+pad,wy+pad]]){
+  // wy = feet position. Check a small box around feet only.
+  const padX=8, padYup=4, padYdn=2;
+  for(const[cx,cy]of[
+    [wx-padX, wy-padYup],[wx+padX, wy-padYup],
+    [wx-padX, wy+padYdn],[wx+padX, wy+padYdn],
+  ]){
     const tx=Math.floor(cx/TILE),ty=Math.floor(cy/TILE);
     if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H||worldMap[ty][tx]!==T_FLOOR)return false;
     if(rocks[tx+','+ty])return false;
@@ -968,7 +1154,7 @@ function render(){
   const ex=Math.min(MAP_W,sx+Math.ceil(cW/TILE)+3);
   const ey=Math.min(MAP_H,sy+Math.ceil(cH/TILE)+3);
 
-  // Draw tiles
+  // Draw tiles — two passes: floor first, then wall faces on top
   for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
     for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
       const px=Math.round(tx2*TILE-cx2)+ox;
@@ -978,11 +1164,26 @@ function render(){
       if(t===T_FLOOR){
         gctx.drawImage(TC.floor[v],px,py);
       } else if(t===T_WALL){
-        // Check if tile below is floor (wall-top gets lighter highlight)
-        const below=worldMap[ty2+1]?.[tx2];
-        gctx.drawImage(below===T_FLOOR?TC.wallTop[v]:TC.wall[v],px,py);
+        gctx.drawImage(TC.wall[v],px,py);
       } else {
         gctx.drawImage(TC.border,px,py);
+      }
+    }
+  }
+
+  // Pass 2: draw front face of walls — on floor tiles that have a wall ABOVE them
+  // This creates the 2.5D cliff/ledge effect like Stardew Valley
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const t=worldMap[ty2]?.[tx2]??T_VOID;
+      if(t!==T_FLOOR) continue;
+      const above=worldMap[ty2-1]?.[tx2]??T_VOID;
+      if(above===T_WALL){
+        const px=Math.round(tx2*TILE-cx2)+ox;
+        const py=Math.round(ty2*TILE-cy2)+oy;
+        const v=tileVariant[ty2-1]?.[tx2]??0;
+        // Draw face at top of this floor tile (overlapping wall below)
+        gctx.drawImage(TC.face[v], px, py);
       }
     }
   }
@@ -1003,38 +1204,76 @@ function render(){
     gctx.drawImage(spr,px,py);
   }
 
-  // Draw gozo shadow
+  // Draw gozo shadow (at feet)
   const gpx=Math.round(gozo.wx-cx2)+ox;
-  const gpy=Math.round(gozo.wy-cy2)+oy;
+  const gpy=Math.round(gozo.wy-cx2)+oy; // will fix below
+  const gfx=Math.round(gozo.wx-cx2)+ox;  // feet X
+  const gfy=Math.round(gozo.wy-cy2)+oy;  // feet Y (world anchor)
   gctx.fillStyle='rgba(0,0,0,0.28)';
-  gctx.beginPath();gctx.ellipse(gpx,gpy+6,10,5,0,0,Math.PI*2);gctx.fill();
+  gctx.beginPath();gctx.ellipse(gfx,gfy+2,11,5,0,0,Math.PI*2);gctx.fill();
 
-  // Draw gozo sprite
+  // Draw gozo sprite — anchor bottom-center to feet position
   const [frs,flip]=getSprFrames();
   const fi=Math.min(gozo.frame,frs.length-1);
   const spr=frs[fi];
   const SW=spr.width,SH=spr.height;
+  // Sprite drawn so its bottom edge sits at gfy
+  const drawX = gfx - SW/2;
+  const drawY = gfy - SH + 4; // +4 so feet pixel row aligns to ground
   gctx.save();
   gctx.imageSmoothingEnabled=false;
   if(flip){
-    gctx.translate(gpx+SW/2,gpy-SH/2);
+    gctx.translate(gfx, drawY);
     gctx.scale(-1,1);
-    gctx.drawImage(spr,-SW/2,-SH/2);
+    gctx.drawImage(spr,-SW/2,0);
   } else {
-    gctx.drawImage(spr,gpx-SW/2,gpy-SH/2);
+    gctx.drawImage(spr, drawX, drawY);
   }
   gctx.restore();
 
-  // Torchlight vignette
-  drawVignette();
+  // Lighting passes
+  drawLighting(gfx, gfy);
 }
 
-function drawVignette(){
-  const g=gctx.createRadialGradient(cW/2,cH/2,cH*0.28,cW/2,cH/2,cH*0.9);
-  g.addColorStop(0,'rgba(0,0,0,0)');
-  g.addColorStop(0.7,'rgba(0,0,0,0.25)');
-  g.addColorStop(1,'rgba(0,0,0,0.75)');
-  gctx.fillStyle=g;gctx.fillRect(0,0,cW,cH);
+// Flickering torch light state
+let torchFlicker = 0, torchPhase = 0;
+
+function drawLighting(px, py){
+  // Animate flicker
+  torchPhase += 0.04;
+  torchFlicker = Math.sin(torchPhase)*0.018 + Math.sin(torchPhase*2.3)*0.012;
+
+  const lightR = cH * (0.52 + torchFlicker);   // radius of warm light pool
+  const cx2 = px, cy2 = py - 8; // light source slightly above feet
+
+  // ── Layer 1: warm point light (yellow-orange glow on the ground) ──
+  // Use 'multiply'-like effect by drawing warm color under darkness
+  const warm = gctx.createRadialGradient(cx2,cy2,0, cx2,cy2, lightR*0.7);
+  warm.addColorStop(0,   `rgba(255,200,80,${0.10+torchFlicker*2})`);
+  warm.addColorStop(0.35,`rgba(220,150,40,0.06)`);
+  warm.addColorStop(1,   'rgba(0,0,0,0)');
+  gctx.fillStyle=warm; gctx.fillRect(0,0,cW,cH);
+
+  // ── Layer 2: darkness mask — black with hole where torch shines ──
+  gctx.save();
+  gctx.globalCompositeOperation = 'source-over';
+
+  // Fill whole screen dark, then cut a lit circle
+  const dark = gctx.createRadialGradient(cx2,cy2, lightR*0.18, cx2,cy2, lightR);
+  dark.addColorStop(0,   'rgba(0,0,0,0)');       // fully lit center
+  dark.addColorStop(0.45,'rgba(0,0,0,0.08)');    // soft edge start
+  dark.addColorStop(0.7, 'rgba(0,0,0,0.45)');    // dim zone
+  dark.addColorStop(0.88,'rgba(0,0,0,0.72)');    // dark border
+  dark.addColorStop(1,   'rgba(0,0,0,0.92)');    // near-black corners
+  gctx.fillStyle=dark; gctx.fillRect(0,0,cW,cH);
+  gctx.restore();
+
+  // ── Layer 3: colored ambient — cool blue tint in far darkness ──
+  const ambient = gctx.createRadialGradient(cx2,cy2, lightR*0.6, cx2,cy2, cW*0.9);
+  ambient.addColorStop(0,   'rgba(0,0,0,0)');
+  ambient.addColorStop(0.5, 'rgba(10,15,40,0.08)');
+  ambient.addColorStop(1,   'rgba(10,15,50,0.30)');
+  gctx.fillStyle=ambient; gctx.fillRect(0,0,cW,cH);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1049,7 +1288,7 @@ function onCanvasClick(e){
   if(rocks[k]){
     gozo.mineTarget=k;
     const adj=findAdj(tx,ty);
-    if(adj)gozo.clickDest={wx:adj.x*TILE+TILE/2,wy:adj.y*TILE+TILE/2};
+    if(adj)gozo.clickDest={wx:adj.x*TILE+TILE/2,wy:adj.y*TILE+TILE-4};
     else startMining();
     gozo.state='walk';
   } else if(worldMap[ty]?.[tx]===T_FLOOR){
@@ -1068,6 +1307,92 @@ function findAdj(tx,ty){
 }
 
 // ═══════════════════════════════════════════════════════════
+//  AUDIO — Web Audio API procedural sounds
+// ═══════════════════════════════════════════════════════════
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playPickaxeHit(type, isCrit) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // --- Thud / impact transient ---
+    const bufSize = ctx.sampleRate * 0.12;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+
+    // Metallic click + stone thud layered together
+    for (let i = 0; i < bufSize; i++) {
+      const t = i / ctx.sampleRate;
+      // Sharp attack noise (click)
+      const click = (Math.random() * 2 - 1) * Math.exp(-t * 180);
+      // Low thud tone (different pitch per rock type)
+      const freqs = { stone: 180, iron: 280, gold: 220, diamond: 340 };
+      const freq = freqs[type] || 180;
+      const thud = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 35);
+      // High metallic ring for pickaxe metal
+      const ring = Math.sin(2 * Math.PI * 1800 * t) * Math.exp(-t * 120) * 0.3;
+      data[i] = (click * 0.5 + thud * 0.6 + ring) * (isCrit ? 1.3 : 1.0);
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+
+    // Slight pitch randomization so hits don't sound identical
+    src.playbackRate.value = 0.92 + Math.random() * 0.16;
+
+    // Small gain
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(isCrit ? 0.55 : 0.38, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+  } catch(e) {}
+}
+
+function playRockSmash(type) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+
+    // Longer crumble sound when rock breaks
+    const bufSize = ctx.sampleRate * 0.35;
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+
+    const freqs = { stone: 120, iron: 200, gold: 160, diamond: 260 };
+    const freq = freqs[type] || 120;
+
+    for (let i = 0; i < bufSize; i++) {
+      const t = i / ctx.sampleRate;
+      const noise = (Math.random() * 2 - 1) * Math.exp(-t * 18);
+      const tone  = Math.sin(2 * Math.PI * freq * t) * Math.exp(-t * 22) * 0.5;
+      const crack = Math.sin(2 * Math.PI * 900 * t) * Math.exp(-t * 60) * 0.25;
+      data[i] = noise * 0.55 + tone + crack;
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = 0.9 + Math.random() * 0.2;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.55, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
 //  HIT / SMASH
 // ═══════════════════════════════════════════════════════════
 function doHit(key){
@@ -1076,12 +1401,13 @@ function doHit(key){
   if(Math.random()<getCrit()){dmg*=3;isCrit=true;}
   r.hp-=dmg;
   const pct=r.hp/r.maxHp;
-  r.cracks=pct>.75?0:pct>.5?1:pct>.3?2:pct>.1?3:4;
+  r.cracks = pct > 0.75 ? 0 : pct > 0.50 ? 1 : pct > 0.25 ? 2 : pct > 0 ? 3 : 4;
   shakeAmt=isCrit?5:3;
+
+  playPickaxeHit(r.type, isCrit);
 
   const sx=Math.round(r.tx*TILE+TILE/2-camX);
   const sy=Math.round(r.ty*TILE+TILE/2-camY);
-  spawnDmg(sx,sy-16,isCrit?`CRIT ${dmg}`:`-${dmg}`,isCrit?'#f0c040':'#e0d0b0',isCrit?10:8);
   spawnParticles(sx,sy,r.type);
   if(r.hp<=0)smashRock(r);
 }
@@ -1090,12 +1416,12 @@ function smashRock(r){
   const key=r.tx+','+r.ty;
   delete rocks[key];G.rocksSmashed++;
   if(gozo.mineTarget===key){gozo.mineTarget=null;gozo.state='idle';}
+  playRockSmash(r.type);
   const loot=rollLoot(r.type,G.floor);
   const mag=getMag();
   G.coins+=loot.coins*mag;G.iron+=loot.iron*mag;G.gold+=loot.gold*mag;G.diamond+=loot.diamond*mag;
   const sx=Math.round(r.tx*TILE+TILE/2-camX);
   const sy=Math.round(r.ty*TILE+TILE/2-camY);
-  if(loot.coins)  spawnDmg(sx-18,sy-14,`+${loot.coins*mag}g`,'#f0c840',8);
   if(loot.iron)   spawnDmg(sx+6, sy-26,`+${loot.iron*mag} iron`,'#90c8d8',7);
   if(loot.gold)   spawnDmg(sx-6, sy-38,`+${loot.gold*mag} gold`,'#f0d040',7);
   if(loot.diamond)spawnDmg(sx,   sy-50,`+${loot.diamond*mag} diam`,'#80f0f0',9);
@@ -1110,14 +1436,13 @@ function smashRock(r){
 
 function rollLoot(type,fl){
   const luck=getLuck(),helmB=G.upg.helmet.lv*.25;
-  const fm=1+(fl-1)*.14;
   const res={coins:0,iron:0,gold:0,diamond:0,ladder:false};
-  res.coins=Math.floor((4+fl*2+Math.random()*8)*fm);
+  // No direct coins — player earns coins by selling minerals
   if(Math.random()<Math.min(.45,.06+fl*.003+luck*.6+helmB))res.ladder=true;
-  if(type==='iron'){res.iron=1+(Math.random()<.35+luck?1:0);res.coins+=12;}
-  else if(type==='gold'){res.gold=1+(Math.random()<.28+luck?1:0);res.coins+=35;}
-  else if(type==='diamond'){res.diamond=1+(Math.random()<.18+luck?1:0);res.coins+=90;}
-  else if(Math.random()<.25+luck)res.iron=1;
+  if(type==='iron'){res.iron=1+(Math.random()<.35+luck?1:0);}
+  else if(type==='gold'){res.gold=1+(Math.random()<.28+luck?1:0);}
+  else if(type==='diamond'){res.diamond=1+(Math.random()<.18+luck?1:0);}
+  else if(Math.random()<.40+luck)res.iron=1; // stone sometimes drops iron
   return res;
 }
 
@@ -1162,6 +1487,8 @@ function goNextFloor(){
     fa.style.transition='opacity .5s';fa.style.opacity='0';
     setTimeout(()=>fa.remove(),520);
     toast(`🪜 Floor ${G.floor}! Rocks are tougher...`);
+    // Auto-save on floor change
+    setTimeout(()=>saveGame(),600);
   },320);
 }
 function closeLadder(){document.getElementById('lm').classList.remove('show');}
@@ -1194,9 +1521,10 @@ function spawnParticles(sx,sy,type){
 //  UI
 // ═══════════════════════════════════════════════════════════
 function updateHud(){
-  document.getElementById('gh-coins').textContent=fmt(G.coins);
+  const c=fmt(G.coins);
+  document.getElementById('gh-coins').textContent=c;
   document.getElementById('fb-num').textContent=G.floor;
-  document.getElementById('hs-coins').textContent=fmt(G.coins);
+  document.getElementById('hs-coins').textContent=c;
   document.getElementById('hs-iron').textContent=fmt(G.iron);
   document.getElementById('hs-gold').textContent=fmt(G.gold);
   document.getElementById('hs-diam').textContent=fmt(G.diamond);
@@ -1251,7 +1579,53 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('keyup',e=>{KEYS[e.key]=false;});
 
-function startGame(){
+// ═══════════════════════════════════════════════════════════
+//  SAVE / LOAD
+// ═══════════════════════════════════════════════════════════
+const SAVE_KEY = 'gozo_mining_save';
+
+function saveGame(){
+  const data = {
+    version: 1,
+    timestamp: Date.now(),
+    G: JSON.parse(JSON.stringify(G)),
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    toast('💾 Game saved!');
+  } catch(e) {
+    toast('❌ Save failed!');
+  }
+}
+
+function getSaveData(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+
+function loadGame(){
+  const data = getSaveData();
+  if(!data){ toast('❌ No save found!'); return; }
+  getAudioCtx();
+  buildAllSprites();
+  buildTiles();
+  buildOreSprites();
+  // Restore G state
+  Object.assign(G, data.G);
+  const sp=document.getElementById('splash');
+  sp.style.transition='opacity .5s';sp.style.opacity='0';
+  setTimeout(()=>sp.style.display='none',520);
+  initCanvas();
+  genFloor(G.floor);
+  updateHud();
+  toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`);
+  requestAnimationFrame(loop);
+}
+
+function startNewGame(){
+  getAudioCtx();
   buildAllSprites();
   buildTiles();
   buildOreSprites();
@@ -1264,6 +1638,25 @@ function startGame(){
   toast('⛏ WASD / Arrow = move | Click rock = mine | T = upgrade');
   requestAnimationFrame(loop);
 }
+
+// Check for existing save on page load
+window.addEventListener('load', ()=>{
+  const data = getSaveData();
+  if(data){
+    const loadBtn = document.getElementById('ss-load');
+    const preview = document.getElementById('save-preview');
+    loadBtn.style.display = 'block';
+    const d = new Date(data.timestamp);
+    const timeStr = d.toLocaleDateString()+' '+d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    const G2 = data.G;
+    preview.style.display = 'block';
+    preview.innerHTML =
+      `SAVED: ${timeStr}<br>` +
+      `FLOOR ${G2.floor} &nbsp;|&nbsp; 💰 ${G2.coins}<br>` +
+      `⚙️ ${G2.iron} &nbsp; ✨ ${G2.gold} &nbsp; 💎 ${G2.diamond}`;
+  }
+});
+
 </script>
 </body>
 </html>
