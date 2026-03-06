@@ -389,7 +389,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <div class="qtitle">📋 DAILY QUEST</div>
     <div id="questDesc">Loading...</div>
     <div class="qbar"><div class="qfill" id="questFill" style="width:0%"></div></div>
-    <div id="questReward" style="font-size:4px;color:#aaa;margin-top:2px"></div>
+    <div id="questRewardCompact" style="font-size:4px;color:#aaa;margin-top:2px"></div>
   </div>
   <div class="topbar">
     <div class="tbrand">🎣 GOZO FISHING</div>
@@ -574,7 +574,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     <!-- Header -->
     <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
       <div style="font-size:8px;color:#FFD700">📖 FISH JOURNAL</div>
-      <div id="journalCount" style="font-size:6px;color:#aaa">0/50 DISCOVERED</div>
+      <div id="journalCount" style="font-size:6px;color:#aaa">0/200 DISCOVERED</div>
     </div>
     <!-- Zone tabs -->
     <div style="display:flex;border-bottom:1px solid #555;background:#030a03">
@@ -660,15 +660,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 <canvas id="catchFishAnim" width="120" height="120" style="image-rendering:pixelated"></canvas>
 
 <!-- FISH DETAIL POPUP -->
-<div id="fishDetail">
-  <div class="fdbox">
-    <canvas id="fdIcon" width="96" height="72" style="image-rendering:pixelated;"></canvas>
-    <div class="fdname" id="fdName">-</div>
-    <div class="fdrar" id="fdRar">-</div>
-    <div class="fdstats" id="fdStats">-</div>
-    <button class="fdclose" onclick="closeFishDetail()">✕ CLOSE</button>
-  </div>
-</div>
+
 
 <!-- ROD UNLOCK EFFECT -->
 <div id="rodUnlockFx">
@@ -679,68 +671,6 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
       style="image-rendering:pixelated;width:48px;height:72px;margin-top:10px"></canvas>
   </div>
 </div>
-
-<!-- FISH JOURNAL -->
-<div id="journalModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
-  <div style="max-width:520px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
-    <!-- Header -->
-    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-size:8px;color:#FFD700">📖 FISH JOURNAL</div>
-      <div id="journalCount" style="font-size:6px;color:#aaa">0/50 DISCOVERED</div>
-    </div>
-    <!-- Zone tabs -->
-    <div style="display:flex;border-bottom:1px solid #555;background:#030a03">
-      <button id="jZoneAll" onclick="jZone('all')" class="jtab active" style="flex:1;font-size:3.5px">ALL</button>
-      <button id="jZone0"   onclick="jZone('0')"   class="jtab" style="flex:1;font-size:3.5px">🌊 RIVER</button>
-      <button id="jZone1"   onclick="jZone('1')"   class="jtab" style="flex:1;font-size:3.5px">🏞️ LAKE</button>
-      <button id="jZone2"   onclick="jZone('2')"   class="jtab" style="flex:1;font-size:3.5px">🌀 RAPID</button>
-      <button id="jZone3"   onclick="jZone('3')"   class="jtab" style="flex:1;font-size:3.5px">⚓ OCEAN</button>
-    </div>
-    <!-- Rarity tabs -->
-    <div style="display:flex;border-bottom:1px solid #333;background:#050d05">
-      <button id="jTabAll"  onclick="jFilter('all')"  class="jtab active" style="flex:1">ALL</button>
-      <button id="jTabC"    onclick="jFilter('0')"    class="jtab">⬜ CMN</button>
-      <button id="jTabU"    onclick="jFilter('1')"    class="jtab">🟩 UNC</button>
-      <button id="jTabR"    onclick="jFilter('2')"    class="jtab">🟦 RARE</button>
-      <button id="jTabE"    onclick="jFilter('3')"    class="jtab">🟪 EPIC</button>
-      <button id="jTabL"    onclick="jFilter('4')"    class="jtab">🟨 LEG</button>
-    </div>
-    <!-- Grid -->
-    <div id="journalGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px"></div>
-    <!-- Detail panel -->
-    <div id="journalDetail" style="display:none;border-top:2px solid #333;padding:12px;background:#040c04">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <canvas id="jdCanvas" width="96" height="72" style="image-rendering:pixelated;flex-shrink:0"></canvas>
-        <div style="flex:1">
-          <div id="jdName" style="font-size:7px;color:#FFD700;margin-bottom:4px"></div>
-          <div id="jdRar"  style="font-size:5px;margin-bottom:6px"></div>
-          <div id="jdDesc" style="font-size:4.5px;color:#888;line-height:2;margin-bottom:6px"></div>
-          <div id="jdStats" style="font-size:4.5px;color:#aaa;line-height:2.5"></div>
-        </div>
-      </div>
-      <div id="jdRecord" style="margin-top:8px;font-size:4.5px;color:#FFD700;line-height:2.5"></div>
-    </div>
-    <button onclick="closeJournal()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
-  </div>
-</div>
-
-<!-- ACHIEVEMENTS -->
-<div id="achModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;overflow-y:auto">
-  <div style="max-width:480px;margin:20px auto;background:#060f06;border:2px solid #FFD700;font-family:'Press Start 2P',monospace">
-    <div style="background:#0a1a0a;border-bottom:2px solid #FFD700;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-      <div style="font-size:8px;color:#FFD700">🏅 ACHIEVEMENTS</div>
-      <div id="achCount" style="font-size:6px;color:#aaa">0/0</div>
-    </div>
-    <div id="achList" style="padding:10px;display:flex;flex-direction:column;gap:6px"></div>
-    <button onclick="closeAch()" style="width:100%;padding:8px;font-family:'Press Start 2P';font-size:5px;background:#1a0a0a;border:none;border-top:1px solid #333;color:#aaa;cursor:pointer">✕ CLOSE</button>
-  </div>
-</div>
-
-<!-- ACHIEVEMENT TOAST -->
-<div id="achToast" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);
-  background:#0a1a0a;border:2px solid #FFD700;padding:8px 16px;z-index:2000;
-  font-family:'Press Start 2P',monospace;font-size:6px;color:#FFD700;
-  text-align:center;min-width:220px;pointer-events:none"></div>
 
 <!-- LEADERBOARD MODAL -->
 <!-- TUTORIAL OVERLAY -->
@@ -3773,8 +3703,6 @@ let G={
   ripples:[],   // expanding rings in puddles + river
   // Catch jump FX
   jumpFx:[],
-  // Fireflies
-  fireflies:[],
   // Character expressions
   gzExpression:null,
   gzExpressionT:0,
@@ -4366,34 +4294,8 @@ function updateWeather(dt){
     });
   }
 
-  // ── FIREFLIES ──
-  const skyC = getSkyColors();
-  const isNight = skyC.starAlpha > 0.3;
-  if(isNight){
-    while(G.fireflies.length < 22){
-      G.fireflies.push(_newFirefly());
-    }
-  } else {
-    // Fade out during day
-    if(G.fireflies.length > 0 && Math.random()<0.02) G.fireflies.shift();
-  }
   }
 
-function _newFirefly(){
-  return {
-    x: G.camX + Math.random()*W,
-    y: SKY_H+20 + Math.random()*(GROUND_Y - SKY_H - 50),
-    angle: Math.random()*Math.PI*2,
-    spd: 0.3 + Math.random()*0.5,
-    wobble: 1.5+Math.random()*2,
-    phase: Math.random()*Math.PI*2,
-    pulseT: Math.random()*Math.PI*2,
-    pulseSpd: 0.04+Math.random()*0.06,
-    alpha: 0.6,
-    size: 1.5+Math.random()*1.5,
-    hue: 55+Math.floor(Math.random()*40), // gold-yellow-green
-  };
-}
 
 let _rainNode = null, _rainGainNode = null;
 function startRainAmbience(weather){
@@ -4503,30 +4405,6 @@ function drawRain(ctx){
     ctx.restore();
   }
 
-  // ── Fireflies ──
-  if(G.fireflies.length){
-    ctx.save();
-    G.fireflies.forEach(f=>{
-      const sx = Math.round(f.x - cx);
-      if(sx < -20 || sx > W+20) return;
-      // Glow halo
-      ctx.globalAlpha = f.alpha * 0.3;
-      const gr = ctx.createRadialGradient(sx,f.y,0,sx,f.y,f.size*5);
-      gr.addColorStop(0,`hsla(${f.hue},100%,75%,1)`);
-      gr.addColorStop(1,`hsla(${f.hue},100%,60%,0)`);
-      ctx.fillStyle=gr;
-      ctx.beginPath(); ctx.arc(sx,f.y,f.size*5,0,Math.PI*2); ctx.fill();
-      // Core dot
-      ctx.globalAlpha = f.alpha;
-      ctx.fillStyle=`hsl(${f.hue},100%,85%)`;
-      ctx.beginPath(); ctx.arc(sx,f.y,f.size,0,Math.PI*2); ctx.fill();
-      // Bright center
-      ctx.globalAlpha = f.alpha * 0.8;
-      ctx.fillStyle='#ffffff';
-      ctx.beginPath(); ctx.arc(sx,f.y,f.size*0.4,0,Math.PI*2); ctx.fill();
-    });
-    ctx.restore();
-  }
 }
 
 // ── Music state manager — called from update loop ──
@@ -5887,12 +5765,11 @@ function initClouds(){
 }
 
 function initFireflies(){
-  G.fireflies = [];
-  // Pre-spawn a few so they're ready at night
+  _fireflies = [];
+  // Pre-spawn if it's night already
   const h = new Date().getHours();
-  const isNight = h >= 20 || h < 6;
-  if(isNight){
-    for(let i=0;i<22;i++) G.fireflies.push(_newFirefly());
+  if(h >= 20 || h < 6){
+    for(let i=0; i<MAX_FIREFLIES; i++) _fireflies.push(spawnFirefly(true));
   }
 }
 
@@ -7375,7 +7252,7 @@ function handleCast(){
                   document.getElementById('achModal').classList.contains('show')||
                   document.getElementById('journalModal').classList.contains('show')||
                   document.getElementById('lbModal').classList.contains('show')||
-                  document.getElementById('fishDetailModal').style.display==='block';
+                  document.getElementById('fishDetailModal').classList.contains('show');
   if(modalOpen) return;
 
   if(G.waiting){ reel(); return; }
@@ -8210,7 +8087,7 @@ function invTab(tab){
 }
 function renderInvFish(){
   const u=Object.keys(G.caught).length;
-  document.getElementById('invSub').textContent=`${u}/50 species discovered`;
+  document.getElementById('invSub').textContent=`${u}/${FISH.length} species discovered`;
   const el=document.getElementById('invContent');
   el.innerHTML='<div class="invgrid" id="invGrid"></div>';
   const g=document.getElementById('invGrid');
@@ -8362,7 +8239,7 @@ window.addEventListener('keydown', e=>{
     {id:'achModal',     close:()=>closeAch&&closeAch()},
     {id:'lbModal',      close:()=>closeLb&&closeLb()},
     {id:'npcDialog',    close:()=>closeNpc&&closeNpc()},
-    {id:'fishDetailModal', close:()=>{ const m=document.getElementById('fishDetailModal'); if(m) m.style.display='none'; }},
+    {id:'fishDetailModal', close:()=>closeFishDetail&&closeFishDetail()},
     {id:'tutOverlay',   close:()=>closeTut&&closeTut()},
   ];
   for(const modal of modals){
@@ -8695,6 +8572,8 @@ function getSaveData(){
     achievements : G.achievements||{},
     zonesVisited : G.zonesVisited||[0],
     fishRecords  : G.fishRecords||{},
+    quests       : G.quests||[],
+    questDay     : G.questDay||'',
     pos          : { x: Math.round(G.gz.x), camX: Math.round(G.camX) },
   };
 }
@@ -8721,6 +8600,10 @@ function applySaveData(data){
   }
   if(data.fishRecords && typeof data.fishRecords === 'object'){
     G.fishRecords = data.fishRecords;
+  }
+  if(Array.isArray(data.quests) && data.quests.length > 0){
+    G.quests   = data.quests;
+    G.questDay = data.questDay || '';
   }
   if(data.pos){
     G.gz.x = data.pos.x || 220;
