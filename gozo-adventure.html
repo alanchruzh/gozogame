@@ -1013,6 +1013,7 @@
       <button class="inv-tab" onclick="switchInvTab('weapons')" id="tab-weapons">⚔️ WEAPONS</button>
       <button class="inv-tab" onclick="switchInvTab('armors')" id="tab-armors">🛡️ ARMORS</button>
       <button class="inv-tab" onclick="switchInvTab('all')" id="tab-all">📦 ALL DROPS</button>
+      <button class="inv-tab" onclick="switchInvTab('bag')" id="tab-bag" style="position:relative;">🎒 BAG <span id="bag-used-badge" style="font-size:5px;color:#FFD700;"></span></button>
     </div>
 
     <div style="padding:14px;">
@@ -1099,6 +1100,19 @@
       </div>
 
 
+
+      <!-- BAG TAB — 90 Slot Grid Inventory -->
+      <div class="inv-panel" id="panel-bag">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:7px;color:#888;">🎒 BAG — <span id="bag-slot-count">0</span>/90 slots</div>
+          <div style="display:flex;gap:4px;">
+            <button class="inv-btn" style="font-size:5px;padding:3px 6px;border-color:#f0a030;color:#f0a030;" onclick="bagSellRarity('Common')">Sell Common</button>
+            <button class="inv-btn" style="font-size:5px;padding:3px 6px;border-color:#4db34d;color:#4db34d;" onclick="bagSellRarity('Uncommon')">Sell Uncommon</button>
+          </div>
+        </div>
+        <div class="bag-grid" id="bag-grid"></div>
+        <div class="bag-detail hidden" id="bag-detail"></div>
+      </div>
         </div><!-- /padding -->
   </div><!-- /max-width -->
 </div>
@@ -6721,7 +6735,7 @@ function battleAction(action){
       const healMult = partner.healMult || 1;
       const heal=Math.round((40+Math.floor(Math.random()*20))*healMult);
       p.hp=Math.min(p.maxHp,p.hp+heal);
-      showDmgPopup(heal,true);
+      showDmgPopup(heal,true,true);
       flashArena('rgba(50,255,100,0.2)');
       spawnBattleParticles(6,['💚','✨','🍃'],280,160);
       // dualAction: also deal damage
@@ -6776,7 +6790,7 @@ function battleAction(action){
       if(partner&&partner.lifesteal){
         const ls=Math.floor(dmg*partner.lifesteal);
         p.hp=Math.min(p.maxHp,p.hp+ls);
-        showDmgPopup(ls,true);
+        showDmgPopup(ls,true,true);
         log+=` 💧 Lifesteal +${ls}HP`;
       }
     }
@@ -6807,7 +6821,7 @@ function battleAction(action){
       if(p.hp>=p.maxHp){setBattleLog(`❌ HP already full! ${partner.skill2Name} wasted!`);specialCooldown2=0;setBattleButtons(true);return;} // refund cooldown
       const healAmt = Math.floor(p.maxHp * (partner.skill2HealPct || 0.25));
       p.hp = Math.min(p.maxHp, p.hp + healAmt);
-      showDmgPopup(healAmt, true);
+      showDmgPopup(healAmt, true, true);
       if(partner.skill2Cleanse){ playerStatus.poison=0; playerStatus.burn=0; }
       log = `${partner.skill2Name}! HP +${healAmt}!${partner.skill2Cleanse?' 🧹 Status cleared!':''}`;
     }
@@ -6835,7 +6849,7 @@ function battleAction(action){
     p.hp=Math.min(p.maxHp,p.hp+heal);
     p[potKey]--;
     playSoundHeal();
-    showDmgPopup(heal,true);
+    showDmgPopup(heal,true,true);
     if(questState) questState.stats.potionsUsed++;
     log=`${potIcon} Used ${potName}! HP +${heal}! (Left: ${p[potKey]})`;
 
@@ -7832,7 +7846,7 @@ function renderEquippedPanel(){
     if(w){
       iew.className = 'inv-equipped-card has-item';
       iew.innerHTML = `
-        <span style="font-size:32px;filter:drop-shadow(0 2px 6px ${c[w.rarity]}88)">${w.emoji}</span>
+        <canvas id="eq-cv-weapon" width="44" height="44" style="image-rendering:pixelated;flex-shrink:0;"></canvas>
         <div style="flex:1;">
           <div style="font-size:9px;color:${c[w.rarity]};margin-bottom:2px;">${w.name}</div>
           <div style="font-size:7px;color:#888;">T${w.t} · ⚔️ ATK +${w.atk} · ${w.rarity}</div>
@@ -7852,7 +7866,7 @@ function renderEquippedPanel(){
     if(a){
       iea.className = 'inv-equipped-card has-item';
       iea.innerHTML = `
-        <span style="font-size:32px;filter:drop-shadow(0 2px 6px ${c[a.rarity]}88)">${a.emoji}</span>
+        <canvas id="eq-cv-armor" width="44" height="44" style="image-rendering:pixelated;flex-shrink:0;"></canvas>
         <div style="flex:1;">
           <div style="font-size:9px;color:${c[a.rarity]};margin-bottom:2px;">${a.name}</div>
           <div style="font-size:7px;color:#888;">T${a.t} · 🛡️ DEF +${a.def} · ❤️ HP +${a.hp} · ${a.rarity}</div>
@@ -7865,6 +7879,11 @@ function renderEquippedPanel(){
       iea.innerHTML = '<span style="color:#333;font-size:7px">— No armor equipped. Go to 🛡️ ARMORS tab —</span>';
     }
   }
+  // Draw equipped item canvases
+  requestAnimationFrame(()=>{
+    if(equipped.weapon){ const cv=document.getElementById('eq-cv-weapon'); if(cv) drawDropItem(cv,equipped.weapon); }
+    if(equipped.armor){  const cv=document.getElementById('eq-cv-armor');  if(cv) drawDropItem(cv,equipped.armor);  }
+  });
 }
 
 function unequipItem(type){
@@ -7922,7 +7941,7 @@ function renderWeaponList(){
     div.className = 'inv-item' + (isEq?' equipped':'');
     div.style.animation = 'invSlideIn .2s ease both';
     div.innerHTML = `
-      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${w.emoji}</span>
+      <canvas id="wlcv_${origIdx}" width="44" height="44" style="image-rendering:pixelated;flex-shrink:0;border-radius:2px;"></canvas>
       <div class="inv-item-info">
         <div class="inv-item-name" style="color:${col}">${w.name}</div>
         <div class="inv-item-stats">T${w.t} &nbsp;⚔️ ATK <b style="color:#ff8844">+${w.atk}</b> &nbsp;${w.element?'['+w.element.toUpperCase()+']':''} &nbsp;<span style="color:${col}">${w.rarity}</span></div>
@@ -7934,6 +7953,7 @@ function renderWeaponList(){
         ${!isEq?`<button class="inv-btn" style="border-color:#f0a030;color:#f0a030;font-size:6px;padding:3px 6px;" onclick="sellItem('weapon',${origIdx})">💰 ${getSellPrice(w)}g</button>`:''}
       </div>`;
     wList.appendChild(div);
+    (()=>{ const cv=document.getElementById('wlcv_'+origIdx); if(cv) drawDropItem(cv,w); })();
   });
 }
 
@@ -7959,7 +7979,7 @@ function renderArmorList(){
     div.className = 'inv-item' + (isEq?' equipped':'');
     div.style.animation = 'invSlideIn .2s ease both';
     div.innerHTML = `
-      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${a.emoji}</span>
+      <canvas id="alcv_${origIdx}" width="44" height="44" style="image-rendering:pixelated;flex-shrink:0;border-radius:2px;"></canvas>
       <div class="inv-item-info">
         <div class="inv-item-name" style="color:${col}">${a.name}</div>
         <div class="inv-item-stats">T${a.t} &nbsp;🛡️ DEF <b style="color:#44aaff">+${a.def}</b> &nbsp;❤️ HP <b style="color:#44ff88">+${a.hp}</b> &nbsp;${a.element?'['+a.element.toUpperCase()+']':''} &nbsp;<span style="color:${col}">${a.rarity}</span></div>
@@ -7971,6 +7991,7 @@ function renderArmorList(){
         ${!isEq?`<button class="inv-btn" style="border-color:#f0a030;color:#f0a030;font-size:6px;padding:3px 6px;" onclick="sellItem('armor',${origIdx})">💰 ${getSellPrice(a)}g</button>`:''}
       </div>`;
     aList.appendChild(div);
+    (()=>{ const cv=document.getElementById('alcv_'+origIdx); if(cv) drawDropItem(cv,a); })();
   });
 }
 
@@ -7993,7 +8014,7 @@ function renderAllDrops(){
     div.className = 'inv-item' + (isEq?' equipped':'');
     div.style.animation = 'invSlideIn .2s ease both';
     div.innerHTML = `
-      <span style="font-size:26px;filter:drop-shadow(0 2px 6px ${col}66)">${item.emoji}</span>
+      <canvas id="adcv_${di}" width="44" height="44" style="image-rendering:pixelated;flex-shrink:0;border-radius:2px;"></canvas>
       <div class="inv-item-info">
         <div class="inv-item-name" style="color:${col}">${item.name} <span style="font-size:6px;color:#444">${item.type==='weapon'?'⚔️':'🛡️'}</span></div>
         <div class="inv-item-stats">T${item.t} &nbsp;${item.type==='weapon'?'ATK +'+item.atk:'DEF +'+item.def+' HP +'+item.hp} &nbsp;<span style="color:${col}">${item.rarity}</span></div>
@@ -8006,6 +8027,7 @@ function renderAllDrops(){
         ${!inBag ? '<span style="font-size:6px;color:#444">sold/discarded</span>' : ''}
       </div>`;
     list.appendChild(div);
+    (()=>{ const cv=document.getElementById('adcv_'+di); if(cv) drawDropItem(cv,item); })();
   });
 }
 
@@ -8050,7 +8072,7 @@ function showDropPopup(item){
   el.style.borderColor = isLeg ? '#ffaa00' : col;
   el.innerHTML = `
     <div style="font-size:8px;color:${col};margin-bottom:4px;font-family:'Press Start 2P',monospace;">🎁 ITEM DROPPED!</div>
-    <div style="font-size:36px;filter:drop-shadow(0 0 12px ${col})">${item.emoji}</div>
+    <canvas id="drop-popup-cv" width="64" height="64" style="image-rendering:pixelated;display:block;margin:0 auto;"></canvas>
     <div style="color:${col};font-size:10px;margin-top:6px;font-family:'Press Start 2P',monospace;">${item.name}</div>
     <div style="color:#888;font-size:7px;margin-top:3px;">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+'  ❤️ HP +'+item.hp}</div>
     <div style="color:${col};font-size:7px;margin-top:2px;">${item.rarity} · T${item.t}</div>
@@ -8060,6 +8082,9 @@ function showDropPopup(item){
       <button class="inv-btn" style="border-color:#555;color:#555" onclick="document.getElementById('drop-popup').style.display='none'">✓ OK</button>
     </div>`;
   window._lastDrop = item;
+  // Draw pixel art in drop popup
+  const _dpcv = document.getElementById('drop-popup-cv');
+  if(_dpcv) drawDropItem(_dpcv, item);
   // Show notification dot on toolbar BAG button
   const bagDot = document.getElementById('bag-dot-tb');
   if(bagDot) bagDot.style.display = 'block';
@@ -10749,125 +10774,420 @@ function px(ctx, x, y, s, color) {
   ctx.fillRect(x*s, y*s, s, s);
 }
 
-function drawPixelWeapon(ctx, item, p, W, H) {
-  const s = Math.floor(W / 16);
-  const ox = Math.floor((W - 16*s)/2), oy = Math.floor((H - 16*s)/2);
-  const $ = (x,y,c) => { ctx.fillStyle=c; ctx.fillRect(ox+x*s, oy+y*s, s, s); };
 
-  // Glow aura
-  if(item.rarity==='Legendary'||item.rarity==='Epic'){
-    const grad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2);
-    grad.addColorStop(0, p[2]+'33');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,W,H);
-  }
+// ═══════════════════════════════════════════════════════════════
+// PIXEL ART 2.5D ITEM RENDERER  — element-based shapes
+// ═══════════════════════════════════════════════════════════════
+const ITEM_ELEMENT_PAL = {
+  fire:     ['#0d0200','#4a0e00','#c43000','#ff6a00','#ff9d3a','#ffeeaa'],
+  water:    ['#000d1a','#002244','#0055bb','#1199ff','#66ccff','#ddf5ff'],
+  grass:    ['#010d00','#0a3000','#1a7500','#33cc11','#88ee44','#e0ffcc'],
+  electric: ['#0a0a00','#222200','#777700','#dddd00','#ffff33','#ffffbb'],
+  ice:      ['#000a12','#001e35','#004d7a','#33aacc','#99ddee','#e8f7ff'],
+  dark:     ['#08000f','#1a0033','#3d0075','#8822cc','#cc77ff','#f0ddff'],
+  earth:    ['#0d0700','#2a1500','#5c3500','#997722','#ccaa44','#eedd99'],
+  wind:     ['#030608','#0a1520','#193344','#3377aa','#88bbcc','#ccecec'],
+  light:    ['#10100a','#2e2c00','#6e6600','#ccaa00','#ffdd33','#fffbcc'],
+  null:     ['#080810','#18182a','#363660','#6868a8','#aaaacc','#ffffff'],
+};
 
-  if(item.id==='mw1') { // Void Reaper — curved scythe
-    [2,3,4,5,6,7,8,9,10,11].forEach(x => $(x,1,p[1]));
-    $(12,2,p[2]); $(13,2,p[2]); $(12,3,p[3]);
-    [1,2,3,4,5].forEach((_,i) => $(11-i, 3+i, p[2]));
-    $(6,8,p[4]); $(7,9,p[3]); $(8,10,p[2]); $(9,11,p[1]);
-    [0,1,2,3,4,5].forEach((_,i) => $(10+i, 7+i, p[4]));
-    $(8,7,p[5]); $(9,8,p[5]);
-    for(let i=0;i<6;i++) $(7+i,13-i,p[1]);
-    $(8,14,p[0]); $(9,13,p[0]);
-  } else if(item.id==='mw2') { // Solar Blade — straight longsword
-    [7,8].forEach(x => { for(let y=1;y<13;y++) $(x,y, y<3?p[5]:y<6?p[4]:y<10?p[3]:p[2]); });
-    $(6,13,p[1]); $(9,13,p[1]); $(7,13,p[2]); $(8,13,p[2]);
-    $(6,14,p[0]); $(7,14,p[1]); $(8,14,p[1]); $(9,14,p[0]);
-    for(let x=3;x<13;x++) $(x,9,p[3]);
-    $(7,1,p[5]); $(8,1,p[5]); // tip glow
-  } else if(item.id==='mw3') { // Storm Fang — zigzag lightning sword
-    [[7,1],[8,2],[7,3],[8,4],[7,5],[8,6],[7,7],[8,8],[7,9],[8,10]].forEach(([x,y])=>$(x,y,p[4]));
-    [[6,1],[9,2],[6,3],[9,4],[6,5],[9,6],[6,7],[9,8],[6,9],[9,10]].forEach(([x,y])=>$(x,y,p[2]));
-    for(let x=4;x<12;x++) $(x,11,p[1]);
-    $(7,12,p[1]); $(8,12,p[1]); $(7,13,p[0]); $(8,13,p[0]);
-    // sparks
-    [[4,3],[11,5],[3,7],[12,8],[5,1],[10,2]].forEach(([x,y])=>$(x,y,p[5]));
-  } else if(item.id==='mw4') { // Crimson Edge — broad sword
-    for(let y=1;y<9;y++) { $(6,y,p[3]); $(7,y,p[4]); $(8,y,p[4]); $(9,y,p[3]); }
-    $(7,9,p[2]); $(8,9,p[2]);
-    for(let x=4;x<12;x++) $(x,10,p[1]);
-    $(7,11,p[2]); $(8,11,p[2]); $(7,12,p[1]); $(8,12,p[1]);
-    $(7,1,p[5]); $(8,1,p[5]); $(6,2,p[5]); $(9,2,p[5]);
-    [[5,4],[10,5],[5,6],[10,7]].forEach(([x,y])=>$(x,y,p[2]));
-  } else { // mw5 Abyssal Lance — spear
-    for(let y=0;y<14;y++) $(7,y, y<3?p[4]:y<5?p[3]:p[2]);
-    for(let y=5;y<14;y++) $(8,y,p[1]);
-    $(5,3,p[3]); $(6,2,p[4]); $(8,2,p[4]); $(9,3,p[3]);
-    $(5,4,p[2]); $(9,4,p[2]);
-    $(6,14,p[0]); $(7,14,p[1]); $(8,14,p[1]); $(9,14,p[0]);
-  }
-
-  // Rarity shimmer dots
-  if(item.rarity==='Legendary') {
-    [[2,2],[13,3],[1,10],[14,11],[7,15],[8,0]].forEach(([x,y])=>{$(x,y,p[5]);});
-  } else if(item.rarity==='Epic') {
-    [[3,2],[12,4],[2,11],[13,12]].forEach(([x,y])=>{$(x,y,p[4]);});
-  }
+function getItemPal(item){
+  return ITEM_ELEMENT_PAL[item.element||'null']||ITEM_ELEMENT_PAL['null'];
 }
 
-function drawPixelArmor(ctx, item, p, W, H) {
-  const s = Math.floor(W / 16);
-  const ox = Math.floor((W - 16*s)/2), oy = Math.floor((H - 16*s)/2);
-  const $ = (x,y,c) => { ctx.fillStyle=c; ctx.fillRect(ox+x*s, oy+y*s, s, s); };
+// Main entry: draw any dropped/inventory item onto a canvas
+function drawDropItem(canvas, item){
+  if(!canvas||!item) return;
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const p = item.palette || getItemPal(item);
+  if(item.type==='weapon') _drawWeapon2d5(ctx,item,p,W,H);
+  else                     _drawArmor2d5(ctx,item,p,W,H);
+}
 
+// Create a fresh canvas with item drawn
+function makeDropCanvas(item, sz){
+  sz = sz||48;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = sz;
+  cv.style.imageRendering = 'pixelated';
+  drawDropItem(cv, item);
+  return cv;
+}
+
+/* ── 2.5D WEAPON RENDERER ── */
+function _drawWeapon2d5(ctx, item, p, W, H){
+  const S  = Math.max(2, Math.floor(W/18));
+  const ox = Math.floor((W-18*S)/2);
+  const oy = Math.floor((H-18*S)/2);
+  const px = (x,y,col)=>{ctx.fillStyle=col;ctx.fillRect(ox+x*S,oy+y*S,S,S);};
+  const rx = (x,y,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(ox+x*S,oy+y*S,w*S,h*S);};
+  const el = item.element||'null';
+  const t  = item.t||1;
+
+  // Rarity aura
   if(item.rarity==='Legendary'||item.rarity==='Epic'){
-    const grad = ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,W/2);
-    grad.addColorStop(0, p[2]+'44');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0,0,W,H);
+    const g=ctx.createRadialGradient(W/2,H*.45,0,W/2,H*.45,W*.55);
+    g.addColorStop(0,p[4]+(item.rarity==='Legendary'?'55':'33'));
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
   }
 
-  if(item.id==='ma1') { // Void Mantle — flowing robe
-    for(let y=2;y<5;y++) for(let x=5;x<11;x++) $(x,y,p[1]);
-    for(let y=5;y<12;y++) for(let x=4+Math.floor((y-5)/2);x<12-Math.floor((y-5)/2);x++) $(x,y,p[2]);
-    [[7,2],[8,2],[7,3],[8,3]].forEach(([x,y])=>$(x,y,p[4]));
-    for(let x=3;x<13;x++) $(x,12,p[1]);
-    [[5,13],[6,13],[9,13],[10,13]].forEach(([x,y])=>$(x,y,p[0]));
-    [[6,6],[9,7],[7,9],[8,5]].forEach(([x,y])=>$(x,y,p[5]));
-  } else if(item.id==='ma2') { // Phoenix Plate — chest armor
-    for(let x=4;x<12;x++) $(x,2,p[1]);
-    for(let y=3;y<10;y++) for(let x=3;x<13;x++) $(x,y,y<6?p[2]:y<8?p[3]:p[1]);
-    $(5,2,p[4]); $(6,2,p[4]); $(9,2,p[4]); $(10,2,p[4]);
-    for(let x=3;x<13;x++) $(x,10,p[1]);
-    $(4,11,p[0]); $(5,11,p[1]); $(10,11,p[1]); $(11,11,p[0]);
-    [[7,4],[8,4],[7,5],[8,5]].forEach(([x,y])=>$(x,y,p[5]));
-    [[5,7],[10,7],[6,3],[9,3]].forEach(([x,y])=>$(x,y,p[4]));
-    // wings hint
-    [[1,5],[2,4],[2,5],[2,6],[13,5],[14,4],[14,5],[14,6]].forEach(([x,y])=>$(x,y,p[3]));
-  } else if(item.id==='ma3') { // Aegis of Storms — tower shield
-    for(let y=1;y<14;y++) for(let x=4;x<12;x++) $(x,y,y<3||y>11?p[1]:x<5||x>10?p[1]:p[2]);
-    [[7,2],[8,2]].forEach(([x,y])=>$(x,y,p[4]));
-    for(let x=4;x<12;x++) $(x,7,p[3]);
-    for(let y=8;y<12;y++) $(7,y,p[3]);
-    [[6,13],[7,13],[8,13],[9,13]].forEach(([x,y])=>$(x,y,p[1]));
-    [[7,13],[8,13]].forEach(([x,y])=>$(x,y,p[0]));
-    [[5,4],[10,4],[5,10],[10,10]].forEach(([x,y])=>$(x,y,p[5]));
-  } else if(item.id==='ma4') { // Bloodstone Mail — chainmail
-    for(let y=2;y<12;y++) for(let x=4;x<12;x++) {
-      $(x,y, (x+y)%2===0 ? p[2] : p[1]);
+  if(el==='fire'||el==='light'){
+    // STAFF — long rod + orb top + ember motes
+    // Shaft (isometric 2.5D: left face darker, right face mid, top highlight)
+    rx(8,5,1,10,p[1]); rx(9,5,1,10,p[2]); rx(9,5,1,1,p[3]); // isometric shaft
+    rx(7,4,3,1,p[2]); px(7,4,p[3]); px(9,4,p[1]);              // shaft collar
+    // Orb
+    rx(6,0,6,1,p[2]); rx(5,1,8,2,p[3]); rx(5,1,2,2,p[4]);    // orb body
+    rx(6,2,2,1,p[5]); px(6,1,p[5]); px(7,1,p[5]);              // orb highlight
+    rx(4,2,10,1,p[2]); rx(5,3,8,1,p[1]);                        // orb lower
+    // Bands
+    rx(7,7,3,1,p[3]); rx(7,10,3,1,p[3]); rx(7,13,3,1,p[3]);
+    // Butt cap
+    rx(7,15,3,1,p[2]); rx(8,16,1,1,p[3]);
+    // Ember sparkles
+    [[4,2,p[5]],[11,3,p[5]],[3,5,p[4]],[14,2,p[4]],[5,4,p[3]],[12,4,p[3]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='water'||el==='ice'){
+    // TRIDENT — 3 prongs + long handle + water droplets
+    // Center prong (tallest)
+    rx(8,0,2,6,p[4]); rx(8,0,1,6,p[5]); rx(9,0,1,6,p[3]);
+    // Left prong
+    rx(5,2,2,4,p[3]); rx(5,2,1,4,p[4]); px(5,1,p[4]);
+    // Right prong
+    rx(11,2,2,4,p[3]); px(12,2,p[4]); px(12,1,p[3]);
+    // Crossbar
+    rx(4,6,10,1,p[3]); rx(4,7,10,1,p[2]); px(4,6,p[4]); px(13,6,p[1]);
+    // Handle — isometric round pole
+    rx(8,7,2,8,p[2]); rx(8,7,1,8,p[3]); rx(9,7,1,8,p[1]);
+    // Butt spear
+    rx(8,15,2,1,p[3]); px(8,16,p[2]); px(9,16,p[1]);
+    // Droplet accents
+    [[3,3,p[4]],[14,4,p[4]],[3,8,p[3]],[14,9,p[3]],[7,1,p[5]],[10,1,p[5]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='grass'){
+    // BOW — curved limbs, taut string, arrow nocked
+    // Left limb (curved)
+    [[4,1],[3,2],[3,3],[3,4],[4,5],[4,6],[4,7],[3,8],[3,9],[4,10],[4,11],[5,12]].forEach(([x,y])=>{px(x,y,p[2]);px(x+1,y,p[3]);});
+    // Right string — vertical
+    for(let y=1;y<=12;y++) px(12,y,p[3]);
+    // Arrow on string
+    rx(5,6,7,1,p[4]); rx(11,5,1,3,p[2]);  // shaft + fletching
+    px(13,6,p[5]); px(12,6,p[4]);           // arrowhead
+    // Grip wrap
+    rx(4,6,2,4,p[1]); rx(5,7,1,2,p[0]);
+    // Limb tips (carved notches)
+    px(4,0,p[4]); px(5,13,p[4]);
+    // Leaf vein details
+    [[2,4,p[4]],[2,9,p[4]],[15,4,p[3]],[15,8,p[3]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='earth'){
+    // WAR AXE — wide 2.5D axe head, isometric handle
+    // Handle (isometric diagonal rod)
+    for(let i=0;i<7;i++){rx(4+i,9+i,2,1,p[1]);px(5+i,9+i,p[0]);}
+    // Axe head — 2.5D top face
+    rx(5,2,8,5,p[2]);  rx(5,2,1,5,p[3]);  rx(12,2,1,5,p[1]); // body
+    rx(4,3,10,3,p[3]); rx(4,3,1,3,p[4]);  rx(13,3,1,3,p[0]); // isometric face
+    // Top bevel
+    rx(5,2,8,1,p[4]); px(5,2,p[5]); px(12,2,p[3]);
+    // Bottom edge (blade)
+    rx(5,6,8,1,p[1]); rx(6,7,7,1,p[0]);
+    // Blade highlight
+    for(let x=5;x<13;x++) px(x,6,p[4]);
+    // Back spike
+    rx(3,3,2,3,p[3]); px(2,4,p[4]); px(3,4,p[2]);
+    // Rivets
+    px(7,4,p[5]); px(10,4,p[5]);
+
+  } else if(el==='dark'){
+    // SCYTHE — curved blade, long pole, shadow wisps
+    // Pole (diagonal)
+    for(let i=0;i<8;i++){rx(3+i,8+i,2,1,p[1]);px(4+i,8+i,p[0]);}
+    // Blade outer arc
+    rx(6,1,9,1,p[2]); rx(9,2,6,1,p[3]); rx(11,3,5,1,p[3]);
+    rx(12,4,4,1,p[3]); px(15,4,p[4]); rx(13,5,3,1,p[2]); rx(12,6,2,1,p[2]);
+    rx(11,7,2,1,p[3]); rx(10,7,3,1,p[4]);
+    // Blade inner edge (concave)
+    rx(6,2,3,1,p[4]); rx(7,3,3,1,p[3]); px(8,4,p[3]); px(8,5,p[4]); px(9,6,p[4]); px(9,7,p[5]);
+    // Blade tip
+    px(14,3,p[5]); px(15,3,p[5]);
+    // Shadow wisps
+    [[2,6,p[3]],[1,9,p[2]],[0,12,p[1]],[15,7,p[3]],[16,9,p[2]]].forEach(([x,y,c])=>px(x,y,c));
+    // Gem on blade joint
+    px(6,2,p[5]); px(7,1,p[4]);
+
+  } else if(el==='electric'){
+    // LIGHTNING SWORD — jagged zigzag blade + electrical arcs
+    const zag=[[8,0],[8,1],[9,2],[7,3],[9,4],[7,5],[9,6],[7,7],[9,8],[8,9],[8,10]];
+    zag.forEach(([x,y])=>{px(x,y,p[5]);px(x-1,y,p[3]);px(x+1,y,p[2]);px(x+2,y,p[1]);});
+    // Guard
+    rx(4,11,10,1,p[3]); rx(4,12,10,1,p[2]); px(4,11,p[4]); px(13,11,p[1]);
+    // Handle
+    rx(7,12,4,5,p[2]); rx(7,12,2,5,p[1]); rx(8,12,1,5,p[3]);
+    // Pommel
+    rx(6,17,6,1,p[2]); rx(7,17,4,1,p[3]);
+    // Arc sparks
+    [[2,3,p[5]],[14,5,p[5]],[2,7,p[4]],[15,8,p[4]],[3,10,p[4]],[14,2,p[4]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='wind'){
+    // DUAL KODACHI — two short blades fanned out
+    // Left blade (angled)
+    rx(2,3,3,9,p[3]); rx(2,3,1,9,p[4]); rx(4,3,1,9,p[2]);
+    px(2,2,p[4]); px(3,2,p[5]); px(3,1,p[4]); // tip
+    // Right blade (angled opposite)
+    rx(12,3,3,9,p[3]); rx(12,3,1,9,p[4]); rx(14,3,1,9,p[2]);
+    px(13,2,p[5]); px(14,2,p[4]); px(14,1,p[4]);
+    // Center connector
+    rx(5,9,8,1,p[3]); rx(5,10,8,1,p[2]);
+    // Handle
+    rx(7,10,4,5,p[2]); rx(8,10,2,5,p[3]);
+    // Wind trail arcs
+    [[1,6,p[3]],[0,9,p[2]],[17,5,p[3]],[16,8,p[2]],[1,12,p[1]],[17,11,p[1]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='light'&&false){ /* handled above */ } else if(t<=2){
+    // SHORT SWORD / DAGGER — compact, thin blade
+    rx(8,2,2,9,p[3]); rx(8,2,1,9,p[4]); rx(9,2,1,9,p[2]); // blade
+    px(8,1,p[5]); px(8,0,p[4]);                              // point
+    rx(5,11,8,1,p[3]); rx(5,12,8,1,p[2]); px(5,11,p[4]); px(12,11,p[1]); // guard
+    rx(7,12,4,1,p[1]); // wrap
+    rx(8,13,2,4,p[2]); rx(9,13,1,4,p[1]);  // handle
+    rx(7,17,4,1,p[3]); // pommel
+    // Fuller
+    for(let y=3;y<10;y++) px(9,y,p[2]);
+
+  } else {
+    // LONGSWORD — classic 2.5D knight sword with bevel
+    // Blade — 2.5D: left edge bright, right dark, center mid
+    for(let y=1;y<12;y++){
+      px(7,y,p[5]); px(8,y,p[4]); px(9,y,p[3]); px(10,y,p[2]);
     }
-    [[6,3],[9,3],[6,9],[9,9],[7,6],[8,6]].forEach(([x,y])=>$(x,y,p[4]));
-    [[7,3],[8,3],[7,9],[8,9]].forEach(([x,y])=>$(x,y,p[5]));
-    for(let x=4;x<12;x++) $(x,12,p[0]);
-    $(4,2,p[1]); $(11,2,p[1]);
-  } else { // ma5 Coral Guard
-    for(let y=2;y<11;y++) for(let x=4;x<12;x++) $(x,y, p[y%3===0?2:1]);
-    [[6,2],[9,2],[7,2],[8,2]].forEach(([x,y])=>$(x,y,p[3]));
-    [[4,5],[11,5],[4,8],[11,8]].forEach(([x,y])=>$(x,y,p[2]));
-    for(let x=4;x<12;x++) $(x,11,p[0]);
-    [[5,3],[7,4],[9,3],[6,7],[10,6]].forEach(([x,y])=>$(x,y,p[4]));
-    // coral spikes
-    [[3,4],[3,7],[12,5],[12,8],[6,1],[9,1]].forEach(([x,y])=>$(x,y,p[3]));
+    px(8,0,p[5]); px(9,0,p[4]); // tip
+    // Ricasso (thicker lower blade)
+    rx(7,10,4,2,p[3]); rx(7,10,2,2,p[4]); rx(9,10,2,2,p[2]);
+    // Guard — 2.5D wide crossguard
+    rx(3,12,12,1,p[3]); rx(3,13,12,1,p[2]); rx(3,14,12,1,p[1]);
+    px(3,12,p[4]); px(14,12,p[1]); px(3,14,p[3]); px(14,14,p[0]);
+    // Handle with wrap
+    rx(8,14,3,4,p[1]); for(let y=14;y<18;y+=2) rx(8,y,3,1,p[2]);
+    // Pommel jewel
+    rx(7,17,4,1,p[3]); rx(8,17,2,1,p[4]); px(8,17,p[5]);
+    // Blade fuller groove
+    for(let y=2;y<10;y++) px(9,y,p[2]);
   }
 
-  if(item.rarity==='Legendary') {
-    [[2,2],[13,3],[1,10],[14,11]].forEach(([x,y])=>$(x,y,p[5]));
-  }
+  // Tier sparkles — more stars per tier
+  const stars=[[1,1],[16,2],[0,10],[17,11],[9,17],[8,0],[16,9],[0,6],[4,16],[14,16]];
+  const sc=Math.min(t-1,6); // t1=0 stars, t6+=6 stars
+  stars.slice(0,sc).forEach(([x,y])=>px(x,y,p[5]));
 }
+
+/* ── 2.5D ARMOR RENDERER ── */
+function _drawArmor2d5(ctx, item, p, W, H){
+  const S  = Math.max(2, Math.floor(W/18));
+  const ox = Math.floor((W-18*S)/2);
+  const oy = Math.floor((H-18*S)/2);
+  const px = (x,y,col)=>{ctx.fillStyle=col;ctx.fillRect(ox+x*S,oy+y*S,S,S);};
+  const rx = (x,y,w,h,col)=>{ctx.fillStyle=col;ctx.fillRect(ox+x*S,oy+y*S,w*S,h*S);};
+  const el = item.element||'null';
+  const t  = item.t||1;
+
+  if(item.rarity==='Legendary'||item.rarity==='Epic'){
+    const g=ctx.createRadialGradient(W/2,H*.5,0,W/2,H*.5,W*.55);
+    g.addColorStop(0,p[4]+(item.rarity==='Legendary'?'55':'33'));
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  }
+
+  if(el==='fire'||el==='light'){
+    // HEAVY PLATE ARMOR — 2.5D perspective (top lit, sides dark)
+    // Left pauldron
+    rx(1,3,5,4,p[2]); rx(1,3,5,1,p[3]); rx(1,6,5,1,p[0]);
+    px(1,3,p[3]); px(5,3,p[1]);
+    // Right pauldron
+    rx(12,3,5,4,p[1]); rx(12,3,5,1,p[2]); rx(12,6,5,1,p[0]);
+    // Chest plate — 2.5D box
+    rx(5,2,8,10,p[2]);  // front face
+    rx(5,2,1,10,p[3]);  // left edge highlight
+    rx(12,2,1,10,p[1]); // right edge shadow
+    rx(5,2,8,1,p[3]);   // top edge
+    rx(5,11,8,1,p[0]);  // bottom edge
+    // Center ridge
+    rx(8,3,2,8,p[3]); rx(8,3,1,8,p[4]); rx(9,3,1,8,p[2]);
+    // Ab lines (2.5D horizontal bands)
+    rx(6,6,6,1,p[1]); rx(6,8,6,1,p[1]); rx(6,10,6,1,p[1]);
+    rx(6,5,6,1,p[3]); rx(6,7,6,1,p[3]); rx(6,9,6,1,p[3]);
+    // Neck gorget
+    rx(6,2,6,1,p[3]); rx(7,1,4,1,p[2]);
+    // Chest gem
+    rx(8,4,2,2,p[5]); rx(8,4,1,2,p[5]); rx(9,4,1,2,p[4]);
+    // Tassets (2.5D skirt plates)
+    rx(5,12,3,3,p[2]); rx(5,12,1,3,p[3]); rx(7,12,1,3,p[0]);
+    rx(10,12,3,3,p[1]); rx(10,12,1,3,p[2]); rx(12,12,1,3,p[0]);
+
+  } else if(el==='water'||el==='ice'){
+    // SCALE MAIL — fish scale pattern with 2.5D sheen
+    // Body silhouette
+    rx(4,2,10,11,p[1]); rx(4,2,1,11,p[2]); rx(13,2,1,11,p[0]);
+    rx(4,2,10,1,p[2]); rx(4,12,10,1,p[0]);
+    // Scales (offset rows)
+    for(let row=0;row<5;row++){
+      const y=3+row*2;
+      const off=row%2;
+      for(let col=0;col<4;col++){
+        const x=5+col*2+off;
+        if(x>12) continue;
+        rx(x,y,2,1,p[3]); rx(x,y+1,2,1,p[2]);
+        px(x,y,p[4]); px(x+1,y,p[3]);
+      }
+    }
+    // Shoulder armor (rounded)
+    rx(1,2,4,3,p[2]); rx(1,2,4,1,p[3]); rx(1,4,4,1,p[0]);
+    px(1,2,p[3]); px(4,2,p[1]);
+    rx(13,2,4,3,p[1]); rx(13,2,4,1,p[2]); rx(13,4,4,1,p[0]);
+    // Neck gem
+    rx(7,2,4,1,p[4]); px(8,2,p[5]); px(9,2,p[4]);
+    // Hem (bottom flare)
+    rx(3,13,12,1,p[2]); rx(3,14,12,1,p[1]);
+
+  } else if(el==='grass'){
+    // DRUIDIC LEATHER + LEAF ARMOR
+    // Body
+    rx(5,2,8,10,p[1]); rx(5,2,1,10,p[2]); rx(12,2,1,10,p[0]);
+    // Leaf overlay patches
+    [[5,3,3,2],[7,2,3,2],[9,3,3,2],[5,6,2,3],[9,6,2,3],[6,9,4,2]].forEach(([x,y,w,h])=>{
+      rx(x,y,w,h,p[3]); rx(x,y,1,h,p[4]); rx(x,y,w,1,p[4]);
+    });
+    // Vine trim (sides)
+    for(let y=3;y<12;y+=2){px(4,y,p[3]);px(4,y+1,p[2]);}
+    for(let y=3;y<12;y+=2){px(13,y,p[2]);px(13,y+1,p[1]);}
+    // Collar with leaf motif
+    rx(6,2,6,1,p[3]); px(8,2,p[5]); px(9,2,p[4]);
+    // Shoulder leaves
+    rx(2,3,3,4,p[3]); rx(2,3,3,1,p[4]); rx(2,6,3,1,p[1]);
+    rx(13,3,3,4,p[2]); rx(13,3,3,1,p[3]);
+    // Sash/belt
+    rx(5,9,8,1,p[3]); rx(5,10,8,1,p[4]);
+    // Acorn buttons
+    px(8,5,p[5]); px(9,5,p[4]);
+
+  } else if(el==='earth'){
+    // STONE PLATE — angular blocky 2.5D chunks
+    // Main body (rough stone look)
+    rx(4,2,10,11,p[2]); rx(4,2,1,11,p[3]); rx(13,2,1,11,p[0]);
+    rx(4,2,10,1,p[3]); rx(4,12,10,1,p[0]);
+    // Stone block texture (irregular)
+    [[5,3,3,3],[8,3,4,2],[5,6,4,2],[9,6,3,3],[5,9,2,2],[8,9,4,2]].forEach(([x,y,w,h])=>{
+      rx(x,y,w,h,p[1]); rx(x,y,w,1,p[2]); rx(x,y,1,h,p[2]); px(x+w-1,y+h-1,p[0]);
+    });
+    // Boulder shoulders
+    rx(1,2,4,5,p[3]); rx(1,2,4,1,p[4]); rx(1,6,4,1,p[1]);
+    rx(13,2,4,5,p[2]); rx(13,2,4,1,p[3]); rx(13,6,4,1,p[0]);
+    // Neck
+    rx(6,2,6,1,p[3]); rx(7,1,4,1,p[2]);
+    // Crystal core
+    rx(8,5,2,3,p[4]); rx(8,5,1,3,p[5]); px(9,7,p[3]);
+    // Crack lines
+    for(let y=4;y<11;y+=3) rx(6,y,6,1,p[0]);
+
+  } else if(el==='dark'){
+    // VOID ROBE — billowing with shadow magic
+    // Hood
+    rx(5,0,8,1,p[2]); rx(4,1,10,2,p[2]); rx(4,1,1,2,p[3]); rx(13,1,1,2,p[0]);
+    rx(6,1,6,1,p[0]); // face shadow void
+    // Robe body (flares out at bottom)
+    for(let y=3;y<14;y++){
+      const fl=Math.floor((y-3)/3);
+      const lx=5-fl, w=8+fl*2;
+      rx(lx,y,w,1,p[2]); px(lx,y,p[3]); px(lx+w-1,y,p[0]);
+    }
+    // Magical rune glyphs
+    [[7,3,p[4]],[10,3,p[4]],[7,6,p[5]],[10,6,p[5]],[6,9,p[4]],[11,9,p[5]]].forEach(([x,y,c])=>px(x,y,c));
+    // Tattered hem
+    rx(3,14,3,1,p[1]); rx(7,14,2,1,p[2]); rx(10,14,2,1,p[1]); rx(13,14,3,1,p[0]);
+    // Shoulder wisps
+    [[2,4,p[2]],[1,6,p[1]],[15,4,p[2]],[16,6,p[1]]].forEach(([x,y,c])=>px(x,y,c));
+    // Sash gem
+    rx(8,8,2,1,p[5]); px(8,8,p[5]);
+
+  } else if(el==='electric'){
+    // THUNDER VEST — sleek lightning-motif armor
+    // Body
+    rx(5,2,8,10,p[1]); rx(5,2,1,10,p[2]); rx(12,2,1,10,p[0]);
+    // Lightning bolt emblem (front)
+    rx(9,2,2,3,p[4]); rx(7,5,5,1,p[4]); rx(8,6,2,3,p[4]);
+    rx(9,2,1,3,p[5]); rx(7,5,1,1,p[5]); rx(8,6,1,3,p[5]);
+    // Circuit lines etched on surface
+    for(let y=3;y<11;y+=2){px(4,y,p[3]);px(13,y,p[2]);}
+    rx(5,4,3,1,p[3]); rx(10,7,3,1,p[3]); rx(5,10,3,1,p[3]);
+    // Shoulder pads (angular)
+    rx(1,2,4,3,p[2]); rx(1,2,4,1,p[3]); rx(1,4,4,1,p[0]); rx(3,3,2,1,p[4]);
+    rx(13,2,4,3,p[1]); rx(13,2,4,1,p[2]); rx(13,4,4,1,p[0]);
+    // Core battery gem
+    rx(7,5,4,3,p[3]); rx(8,5,2,3,p[5]); rx(8,5,2,1,p[5]);
+    // Arc sparks
+    [[2,5,p[5]],[15,6,p[5]],[2,9,p[4]],[15,9,p[4]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(el==='wind'){
+    // FLOWING SILK ROBE — graceful wind-swept
+    // Flowing robe body (asymmetric wind-blown)
+    rx(5,2,8,10,p[1]); rx(5,2,1,10,p[2]); rx(12,2,1,10,p[0]);
+    // Wind flow lines
+    for(let y=3;y<11;y++){
+      const shift=Math.floor(Math.sin(y*0.9)*1.5);
+      rx(6+shift,y,4,1,p[2]); rx(7+shift,y,2,1,p[3]);
+    }
+    // Wide billowing sleeves
+    rx(1,3,4,6,p[1]); rx(1,3,4,1,p[2]); rx(1,8,4,1,p[0]); rx(1,4,1,4,p[2]);
+    rx(13,3,4,6,p[0]); rx(13,3,4,1,p[1]); rx(13,8,4,1,p[0]); rx(16,4,1,4,p[1]);
+    // Collar with gem
+    rx(6,2,6,1,p[2]); rx(7,1,4,1,p[3]); px(8,1,p[5]); px(9,1,p[4]);
+    // Sash (belt)
+    rx(5,9,8,1,p[3]); rx(5,10,8,1,p[2]);
+    // Wind mote particles
+    [[2,6,p[4]],[1,10,p[3]],[15,5,p[4]],[16,8,p[3]],[3,13,p[3]],[15,12,p[2]]].forEach(([x,y,c])=>px(x,y,c));
+
+  } else if(t<=2){
+    // SIMPLE CLOTH TUNIC
+    rx(5,2,8,10,p[1]); rx(5,2,1,10,p[2]); rx(12,2,1,10,p[0]);
+    rx(5,2,8,1,p[2]); rx(5,11,8,1,p[0]);
+    // Center seam
+    rx(8,2,2,10,p[2]); rx(9,2,1,10,p[0]);
+    // Simple collar
+    rx(6,2,6,1,p[3]); rx(7,1,4,1,p[2]);
+    // Single button
+    px(8,6,p[4]); px(9,6,p[3]);
+    // Shoulders
+    rx(3,3,3,2,p[2]); rx(3,3,3,1,p[3]);
+    rx(12,3,3,2,p[1]); rx(12,3,3,1,p[2]);
+
+  } else {
+    // CHAINMAIL HAUBERK — interlocking rings, 2.5D
+    rx(4,2,10,11,p[1]); rx(4,2,1,11,p[2]); rx(13,2,1,11,p[0]);
+    // Chain ring texture
+    for(let row=0;row<5;row++) for(let col=0;col<4;col++){
+      const x=5+col*2+(row%2), y=3+row*2;
+      if(x>12||y>12) continue;
+      rx(x,y,2,1,p[2]); px(x,y,p[3]); px(x+1,y+1,p[0]);
+    }
+    rx(4,2,10,1,p[2]); rx(4,12,10,1,p[0]);
+    // Collar ring
+    rx(6,2,6,1,p[3]); rx(7,1,4,1,p[2]); px(8,1,p[4]);
+    // Coif shoulders
+    rx(1,2,4,4,p[2]); rx(1,2,4,1,p[3]); rx(1,5,4,1,p[0]);
+    rx(13,2,4,4,p[1]); rx(13,2,4,1,p[2]); rx(13,5,4,1,p[0]);
+    // Buckle
+    rx(7,6,4,3,p[3]); rx(8,7,2,1,p[5]); rx(7,6,1,3,p[2]); rx(10,6,1,3,p[0]);
+    // Lower hem flare
+    rx(3,13,12,1,p[2]); rx(3,14,12,1,p[1]);
+  }
+
+  const stars=[[1,1],[16,2],[0,10],[17,11],[9,17],[8,0],[16,9],[0,6],[4,16],[14,16]];
+  const sc=Math.min(t-1,6);
+  stars.slice(0,sc).forEach(([x,y])=>px(x,y,p[5]));
+}
+
 
 // ── OPEN MARKET ──
 function openMarket() {
@@ -11163,15 +11483,20 @@ function renderBagGrid(){
       if(!show) slot.style.opacity='0.18';
 
       slot.innerHTML = `
-        <span style="line-height:1;">${item.emoji||'⚔️'}</span>
+        <span style="line-height:1;"></span>
         <div class="slot-rarity-dot" style="background:${col};"></div>
         ${isEq?'<div class="slot-eq-badge">✓</div>':''}
         <div class="slot-sell-flash" id="sflash-${displayIdx}"></div>`;
       slot.onclick = () => bagSelectSlot(displayIdx, slotIdx, item);
+      // Draw pixel art canvas into slot
+      const _bcv = makeDropCanvas(item, slot.clientWidth||40);
+      _bcv.style.cssText = 'position:absolute;inset:3px;width:calc(100% - 6px);height:calc(100% - 6px);image-rendering:pixelated;pointer-events:none;';
+      slot.insertBefore(_bcv, slot.firstChild);
     } else {
       slot.innerHTML = '<span style="color:#1a1a2a;font-size:10px;">·</span>';
     }
     grid.appendChild(slot);
+    if(item){ (()=>{ const cv=document.getElementById('invcv_'+slotIdx); if(cv) drawDropItem(cv,item); })(); }
   });
 
   // Re-render detail if something selected
@@ -11398,13 +11723,14 @@ function invsysRender(){
     if(show) slot.style.borderColor = col + '44';
 
     slot.innerHTML = `
-      <span style="line-height:1;filter:drop-shadow(0 0 3px ${col}66);">${item.emoji || (item.type==='weapon'?'⚔️':'🛡️')}</span>
+      <canvas id="invcv_${slotIdx}" width="38" height="38" style="image-rendering:pixelated;position:absolute;inset:2px;width:calc(100% - 4px);height:calc(100% - 4px);pointer-events:none;"></canvas>
       <div class="invsys-rdot" style="background:${col};box-shadow:0 0 3px ${col};"></div>
       ${isEq ? '<div class="invsys-eqbadge">✓</div>' : ''}
       <div class="invsys-typebadge">${item.type==='weapon'?'⚔':'🛡'}</div>`;
 
     slot.onclick = () => invsysSelectSlot(slotIdx);
     grid.appendChild(slot);
+    if(item){ (()=>{ const cv=document.getElementById('invcv_'+slotIdx); if(cv) drawDropItem(cv,item); })(); }
   });
 
   // Re-draw detail if something selected
@@ -11465,7 +11791,7 @@ function invsysShowDetail(slotIdx){
 
   d.innerHTML = `
     <div style="text-align:center;padding:8px 0 4px;">
-      <div class="det-icon" style="filter:drop-shadow(0 0 10px ${col}88);">${item.emoji||'⚔️'}</div>
+      <canvas id="det-icon-cv" width="56" height="56" style="image-rendering:pixelated;display:block;margin:0 auto;"></canvas>
       <div class="det-name" style="color:${col};margin-top:6px;">${item.name}</div>
       <div class="det-rarity" style="color:${col}88;margin-top:2px;">${item.rarity.toUpperCase()}</div>
     </div>
@@ -11483,7 +11809,8 @@ function invsysShowDetail(slotIdx){
         : ''}
       <button class="det-btn" style="font-size:5px;" onclick="_invsysSel=-1;invsysClearDetail();invsysRender();">✕ DESELECT</button>
     </div>`;
-}
+
+  requestAnimationFrame(()=>{ const _dtcv=document.getElementById('det-icon-cv'); if(_dtcv) drawDropItem(_dtcv,item); });}
 
 function invsysClearDetail(){
   const d = document.getElementById('invsys-detail');
