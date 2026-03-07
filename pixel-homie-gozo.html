@@ -423,7 +423,7 @@
      GATE SCREEN
 ══════════════════════════════════════════ -->
 <div id="gate" class="screen active">
-  <div class="gate-logo">⬡ MONAD CHAIN</div>
+  <div class="gate-logo">⬡ HYPEREVM CHAIN</div>
   <div class="gate-title">PIXEL HOMIE</div>
   <div class="gate-sub">BURN 10 $GOZO TO PLAY</div>
 
@@ -438,7 +438,7 @@
     </div>
     <div class="info-row">
       <span class="label">CONTRACT</span>
-      <span class="val" style="font-size:0.28rem;color:#555">0xc655…7777</span>
+      <span class="val" style="font-size:0.28rem;color:#555">0xB252…1B35</span>
     </div>
     <div class="info-row">
       <span class="label">NETWORK</span>
@@ -512,7 +512,7 @@
       </div>
       <div class="hdr-monad">
         <span class="hdr-monad-dot"></span>
-        MONAD MAINNET
+        HYPEREVM MAINNET
       </div>
     </div>
 
@@ -543,7 +543,7 @@
     <span><kbd>← →</kbd> MOVE</span>
     <span><kbd>↑</kbd> / <kbd>SPC</kbd> JUMP</span>
     <span><kbd>Z</kbd> ATTACK</span>
-    <span class="footer-contract">CA: 0xc655…7777</span>
+    <span class="footer-contract">CA: 0xB252…1B35</span>
   </div>
 
 </div>
@@ -552,12 +552,12 @@
 // ══════════════════════════════════════════════════════
 //  WEB3 CONFIG
 // ══════════════════════════════════════════════════════
-const GOZO_ADDRESS   = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const GOZO_ADDRESS   = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
 const BURN_ADDRESS   = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x8F'; // 143 = Monad Mainnet
-const MONAD_CHAIN_ID_DEC = 143;
+const MONAD_CHAIN_ID = '0x3E7'; // 999 = HyperEVM Mainnet
+const MONAD_CHAIN_ID_DEC = 999;
 const BURN_AMOUNT_WEI = '10000000000000000000'; // 10 * 10^18
-const EXPLORER_URL   = 'https://monadvision.com/tx/';
+const EXPLORER_URL   = 'https://www.hyperscan.xyz/tx/';
 
 // Minimal ERC20 ABI — only what we need
 const ERC20_ABI = [
@@ -838,7 +838,7 @@ async function ensureMonadNetwork() {
   if (chainId.toLowerCase() === targetId) {
     // Already on Monad
     document.getElementById('netBadge').className = 'net-badge';
-    document.getElementById('netName').textContent = 'MONAD';
+    document.getElementById('netName').textContent = 'HYPEREVM';
     return;
   }
 
@@ -858,10 +858,10 @@ async function ensureMonadNetwork() {
         method: 'wallet_addEthereumChain',
         params: [{
           chainId: MONAD_CHAIN_ID,
-          chainName: 'Monad Mainnet',
-          nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-          rpcUrls: ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz'],
-          blockExplorerUrls: ['https://monadvision.com', 'https://monadscan.com'],
+          chainName: 'HyperEVM',
+          nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+          rpcUrls: ['https://rpc.hyperliquid.xyz/evm'],
+          blockExplorerUrls: ['https://www.hyperscan.xyz'],
         }],
       });
     } else {
@@ -876,7 +876,7 @@ async function ensureMonadNetwork() {
   }
 
   document.getElementById('netBadge').className = 'net-badge';
-  document.getElementById('netName').textContent = 'MONAD';
+  document.getElementById('netName').textContent = 'HYPEREVM';
 }
 
 async function updateBalance() {
