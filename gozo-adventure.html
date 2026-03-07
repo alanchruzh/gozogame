@@ -6495,6 +6495,11 @@ function startBattle(enemy){
   specialCooldown = 0;  // reset skill 1 cooldown at battle start
   specialCooldown2 = 0; // reset skill 2 cooldown at battle start
   resetCombo();         // reset combo so it doesn't carry over from previous battle
+  // Reset skill button labels immediately so they don't show stale ⏳ from last battle
+  const _spBtnReset = document.getElementById('btn-special');
+  if(_spBtnReset) _spBtnReset.textContent = partner ? partner.specialName : '⚡ SKILL 1';
+  const _sp2BtnReset = document.getElementById('btn-special2');
+  if(_sp2BtnReset) _sp2BtnReset.textContent = partner && partner.skill2Name ? partner.skill2Name : '✨ SKILL 2';
   if(questState) questState.stats.battles++;
   bgmFadeTo('battle');
   trackDexEncounter(enemy);
