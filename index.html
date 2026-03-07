@@ -1040,9 +1040,9 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-text">
-    <div class="hero-tag">🔥 NOW ON MONAD</div>
+    <div class="hero-tag">⚡ NOW ON HYPEREVM</div>
     <h1>PLAY WITH<br>GOZO!</h1>
-    <p>Join the coolest yellow kid on Monad! Spend GOZO tokens to play Flappy Gozo or Tower Defense and earn bragging rights on the blockchain.</p>
+    <p>Join the coolest yellow kid on HyperEVM! Spend GOZO tokens to play Flappy Gozo or Tower Defense and earn bragging rights on the blockchain.</p>
     <div class="hero-btns">
       <a href="#game-section" class="btn-primary">🎮 PLAY NOW</a>
       <button class="btn-secondary" onclick="showTokenModal()">💎 GET GOZO</button>
@@ -1180,7 +1180,7 @@
 <!-- TOKENOMICS -->
 <section id="tokenomics">
   <div class="section-title">GOZO TOKEN</div>
-  <div class="section-sub">Powered by Monad • Ethereum Compatible</div>
+  <div class="section-sub">Powered by HyperEVM • Ethereum Compatible</div>
 
   <div class="token-grid">
     <div class="token-card">
@@ -1195,8 +1195,8 @@
     </div>
     <div class="token-card">
       <div class="icon">🔗</div>
-      <h3>Monad Native</h3>
-      <p>Built on Monad for ultra-fast transactions and minimal gas fees. Chain ID: 143 (Mainnet).</p>
+      <h3>HyperEVM Native</h3>
+      <p>Built on HyperEVM for ultra-fast transactions and minimal gas fees. Chain ID: 999 (Mainnet).</p>
     </div>
     <div class="token-card">
       <div class="icon">💎</div>
@@ -1207,7 +1207,7 @@
 
   <div class="contract-box">
     <div class="contract-label">CONTRACT:</div>
-    <div class="contract-addr" id="contractAddr">0xc655797B4FDdE40B4c68CA41C29aadd672d77777</div>
+    <div class="contract-addr" id="contractAddr">0xB2525F5997e38c23475a124CD5bdbb650b001B35</div>
     <button class="copy-btn" onclick="copyContract()">📋 COPY</button>
   </div>
 </section>
@@ -1218,8 +1218,8 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-logo">GOZO</div>
-  <p>© 2025 GOZO Token. On Monad. Play responsibly.</p>
-  <p style="margin-top:0.5rem; font-size:0.8rem;">Contract: 0xc655797B4FDdE40B4c68CA41C29aadd672d77777</p>
+  <p>© 2025 GOZO Token. On HyperEVM. Play responsibly.</p>
+  <p style="margin-top:0.5rem; font-size:0.8rem;">Contract: 0xB2525F5997e38c23475a124CD5bdbb650b001B35</p>
 </footer>
 
 <!-- MODAL -->
@@ -1227,11 +1227,11 @@
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <h2>GET GOZO</h2>
-    <div class="network-badge">⚡ Monad Network</div>
-    <p>To play Flappy Gozo, you need GOZO tokens on the Monad network (Chain ID: 143 Mainnet).</p>
+    <div class="network-badge">⚡ HyperEVM Network</div>
+    <p>To play Flappy Gozo, you need GOZO tokens on the HyperEVM network (Chain ID: 999 Mainnet).</p>
     <div style="background:rgba(255,215,0,0.1); border:2px solid rgba(255,215,0,0.3); border-radius:12px; padding:1rem; margin-bottom:1.5rem; text-align:left;">
       <div style="font-size:0.8rem; color:rgba(255,255,255,0.5); margin-bottom:0.5rem;">Contract Address</div>
-      <div style="font-family:monospace; font-size:0.85rem; color:var(--yellow); word-break:break-all;">0xc655797B4FDdE40B4c68CA41C29aadd672d77777</div>
+      <div style="font-family:monospace; font-size:0.85rem; color:var(--yellow); word-break:break-all;">0xB2525F5997e38c23475a124CD5bdbb650b001B35</div>
     </div>
     <button class="btn-primary" onclick="addGozoToken()" style="width:100%; text-align:center; border:none;">➕ Add GOZO to MetaMask</button>
   </div>
@@ -1242,14 +1242,14 @@
 
 <script>
 // ===================== WALLET =====================
-const GOZO_CONTRACT = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
-const HYPEREVM_CHAIN_ID = '0x8F'; // Monad Mainnet 143
+const GOZO_CONTRACT = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
+const HYPEREVM_CHAIN_ID = '0x3e7'; // HyperEVM Mainnet 143
 const HYPEREVM_CHAIN = {
   chainId: HYPEREVM_CHAIN_ID,
-  chainName: 'Monad',
+  chainName: 'HyperEVM',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-  rpcUrls: ['https://rpc.monad.xyz'],
-  blockExplorerUrls: ['https://monadscan.com']
+  rpcUrls: ['https://rpc.hyperliquid.xyz/evm'],
+  blockExplorerUrls: ['https://explorer.hyperlend.finance']
 };
 
 let walletAddress = null;
@@ -2898,7 +2898,7 @@ function renderBurnHistory(burns) {
   container.innerHTML = burns.map(function(burn) {
     var txShort = burn.txHash.slice(0, 10) + '...' + burn.txHash.slice(-6);
     var fromShort = burn.from.slice(0, 8) + '...' + burn.from.slice(-4);
-    var explorerUrl = 'https://monadscan.com/tx/' + burn.txHash;
+    var explorerUrl = 'https://explorer.hyperlend.finance/tx/' + burn.txHash;
     return '<div class="burn-history-row">' +
       '<div class="burn-tx"><a href="' + explorerUrl + '" target="_blank" rel="noopener">' + txShort + '</a></div>' +
       '<div class="burn-from" title="' + burn.from + '">From: ' + fromShort + '</div>' +
