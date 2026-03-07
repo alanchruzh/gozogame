@@ -9053,6 +9053,9 @@ async function buyRod(id){
     shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} $GOZO, have ${have.toLocaleString()}`, 'err');
     rodBuying=false; return;
   }
+  shopSetStatus('Switching to HyperEVM...','');
+  const onChain = await gEnsureChain();
+  if(!onChain){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); rodBuying=false; return; }
   shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} $GOZO...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
@@ -9111,6 +9114,9 @@ async function buyBait(i){
     document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
     shopBuying=false; return;
   }
+  shopSetStatus('Switching to HyperEVM...','');
+  const onChainB = await gEnsureChain();
+  if(!onChainB){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false); shopBuying=false; return; }
   shopSetStatus(`Confirm in wallet — send ${bait.gozo} $GOZO...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
@@ -9399,12 +9405,12 @@ window.addEventListener('load',()=>{
 //  WEB3 CONFIG  — for Gold Market
 // ═══════════════════════════════════════════════════════
 const W3 = {
-  GOZO_ADDR    : '0xc655797B4FDdE40B4c68CA41C29aadd672d77777',
+  GOZO_ADDR    : '0xB2525F5997e38c23475a124CD5bdbb650b001B35',
   BURN_ADDR    : '0x000000000000000000000000000000000000dEaD',
-  CHAIN_ID     : '0x8F',
-  CHAIN_ID_DEC : 143,
-  EXPLORER     : 'https://monadvision.com/tx/',
-  RPC_URLS     : ['https://rpc.monad.xyz', 'https://rpc1.monad.xyz'],
+  CHAIN_ID     : '0xFDE8',
+  CHAIN_ID_DEC : 64984,
+  EXPLORER     : 'https://explorer.hyperlend.finance/tx/',
+  RPC_URLS     : ['https://rpc.hyperliquid.xyz/evm'],
 };
 
 const FNS = {
@@ -9445,6 +9451,35 @@ async function gConnectWallet(){
   } catch(e){
     showSaveToast('❌ Wallet not connected.', true);
     return null;
+  }
+}
+
+// Ensure wallet is on HyperEVM; prompt switch/add if not
+async function gEnsureChain(){
+  if(!gProvider) return false;
+  const chainId = await gProvider.request({method:'eth_chainId'});
+  if(chainId === W3.CHAIN_ID) return true;
+  try {
+    await gProvider.request({method:'wallet_switchEthereumChain', params:[{chainId:W3.CHAIN_ID}]});
+    return true;
+  } catch(e){
+    // 4902 = chain not added yet
+    if(e.code===4902||e.code===-32603){
+      try {
+        await gProvider.request({
+          method:'wallet_addEthereumChain',
+          params:[{
+            chainId        : W3.CHAIN_ID,
+            chainName      : 'HyperEVM',
+            nativeCurrency : {name:'HYPE', symbol:'HYPE', decimals:18},
+            rpcUrls        : W3.RPC_URLS,
+            blockExplorerUrls: ['https://explorer.hyperlend.finance'],
+          }],
+        });
+        return true;
+      } catch(e2){ return false; }
+    }
+    return false;
   }
 }
 
