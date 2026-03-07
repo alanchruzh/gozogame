@@ -9483,10 +9483,21 @@ async function gEnsureChain(){
   }
 }
 
+async function gRpcCall(method, params){
+  // Always query HyperEVM RPC directly — avoids MetaMask chain mismatch
+  const body = JSON.stringify({jsonrpc:'2.0',id:1,method,params});
+  const res = await fetch(W3.RPC_URLS[0], {
+    method:'POST', headers:{'Content-Type':'application/json'}, body
+  });
+  const json = await res.json();
+  if(json.error) throw new Error(json.error.message||'RPC error');
+  return json.result;
+}
+
 async function gFetchBalance(){
-  if(!gWallet||!gProvider) return 0n;
+  if(!gWallet) return 0n;
   const data='0x'+FNS.balanceOf+gAddr(gWallet);
-  const res=await gProvider.request({method:'eth_call',params:[{to:W3.GOZO_ADDR,data},'latest']});
+  const res = await gRpcCall('eth_call',[{to:W3.GOZO_ADDR,data},'latest']);
   return res&&res!=='0x'?BigInt(res):0n;
 }
 
@@ -9494,7 +9505,7 @@ async function gWaitTx(hash, maxTries=60){
   for(let i=0;i<maxTries;i++){
     await new Promise(r=>setTimeout(r,2000));
     try{
-      const r=await gProvider.request({method:'eth_getTransactionReceipt',params:[hash]});
+      const r=await gRpcCall('eth_getTransactionReceipt',[hash]);
       if(r&&r.blockNumber){
         if(r.status==='0x0') throw new Error('Transaction reverted');
         return r;
