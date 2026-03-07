@@ -282,6 +282,28 @@
   @keyframes particleBurst{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--px),var(--py)) scale(0.3)}}
   @keyframes resultPop{0%{opacity:0;transform:scale(0.3) rotate(-8deg)}60%{transform:scale(1.15) rotate(3deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
   @keyframes arenaShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-5px,3px)}40%{transform:translate(5px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(3px,-2px)}}
+
+  /* ═══════════════════════════════════════
+     SKILL ANIMATION CANVAS
+  ═══════════════════════════════════════ */
+  #skill-anim-canvas{
+    position:absolute;inset:0;width:100%;height:100%;
+    pointer-events:none;z-index:49;
+  }
+  .skill-name-banner{
+    position:absolute;left:50%;transform:translateX(-50%);
+    font-family:'Press Start 2P',monospace;font-size:11px;
+    color:#fff;text-shadow:0 0 12px currentColor, 2px 2px 0 #000;
+    pointer-events:none;z-index:52;white-space:nowrap;
+    animation:skillBannerPop .5s cubic-bezier(.36,.07,.19,.97) forwards;
+  }
+  @keyframes skillBannerPop{
+    0%{opacity:0;transform:translateX(-50%) scale(0.4);}
+    50%{opacity:1;transform:translateX(-50%) scale(1.12);}
+    80%{opacity:1;transform:translateX(-50%) scale(0.97);}
+    100%{opacity:0;transform:translateX(-50%) scale(1);}
+  }
+
   @keyframes questPop{0%{opacity:0;transform:translateX(-50%) translateY(-20px)}60%{transform:translateX(-50%) translateY(4px)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
   @keyframes questFadeOut{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-16px)}}
   @keyframes npcBreathe{0%,100%{transform:scaleY(1) translateY(0)}50%{transform:scaleY(0.97) translateY(1px)}}
@@ -846,7 +868,9 @@
 
   <!-- ARENA: sky top 55%, ground bottom 45% -->
   <div class="battle-arena" id="battle-arena">
-    <div id="battle-flash"></div>
+    <canvas id="skill-anim-canvas"></canvas>
+  <canvas id="skill-anim-canvas"></canvas>
+  <div id="battle-flash"></div>
     <div id="battle-result"></div>
 
     <!-- ENEMY SIDE — left, elevated on sky half -->
@@ -6713,6 +6737,7 @@ function battleAction(action){
     if(questState) questState.stats.maxCombo = Math.max(questState.stats.maxCombo||0, comboCount);
     playSoundAttack();
     attackLungePlayer();
+    playSkillAnim(equipped.weapon?.element || pType || 'null', false, null);
     setTimeout(()=>{
       playSoundHit();
       showDmgPopup(dmg,false);
@@ -6737,6 +6762,7 @@ function battleAction(action){
       p.hp=Math.min(p.maxHp,p.hp+heal);
       showDmgPopup(heal,true,true);
       flashArena('rgba(50,255,100,0.2)');
+      playSkillAnim('heal', false, partner.specialName);
       spawnBattleParticles(6,['💚','✨','🍃'],280,160);
       // dualAction: also deal damage
       if(partner.dualAction){
@@ -6776,6 +6802,7 @@ function battleAction(action){
       }
       e.hp-=dmg;
       showDmgPopup(dmg,false);
+      playSkillAnim(pType||'null', false, partner?partner.specialName:null);
       setTimeout(()=>{
         shakeSprite('enemy-battle-sprite');
         flashArena('rgba(150,80,255,0.3)');
@@ -6803,6 +6830,7 @@ function battleAction(action){
     playSoundSkill(partner.name);
     flashArena('rgba(180,80,255,0.25)');
     spawnBattleParticles(6,['✨','💫','⭐'],280,160);
+    const _sk2t = partner?.skill2Type||''; playSkillAnim(_sk2t.includes('heal')?'heal':_sk2t.includes('burn')?'burn':_sk2t.includes('poison')?'poison':_sk2t.includes('slow')?'slow':pType||'null', false, partner?.skill2Name);
 
     if(sk2.includes('burn')){
       e._burned = (partner.stage||1) >= 3 ? 5 : 3;
@@ -6895,6 +6923,7 @@ function enemyTurn(){
     if(m==='heal' && bossMechanicTurn%3===0){
       e.hp=Math.min(e.maxHp||e.hp, e.hp+20);
       mechLog=' 💚 Boss healed 20 HP!'; flashArena('rgba(0,255,100,0.2)');
+      playSkillAnim('heal', true, '💚 BOSS HEAL');
     }
     if(m==='shield' && bossMechanicTurn%4===0){
       e._shielded=1; mechLog=' 🛡️ Boss is shielded this turn!'; skipAtk=true;
@@ -6904,6 +6933,7 @@ function enemyTurn(){
     if(m==='drain'){
       const drain=10; p.hp=Math.max(0,p.hp-drain); e.hp=Math.min(e.maxHp||999,e.hp+drain);
       mechLog=` 🌑 Boss drained ${drain} HP from you!`;
+      playSkillAnim('drain', true, '🌑 SOUL DRAIN');
     }
     if(m==='burn'){
       bossBurnActive=true; bossBurnTurns=3;
@@ -6916,6 +6946,7 @@ function enemyTurn(){
     if(m==='overload' && bossMechanicTurn%5===0){
       // Triple damage this turn - handled in dmg calc below
       e._overload=true; mechLog=' ⚡ OVERLOAD — incoming mega strike!';
+      playSkillAnim('electric', true, '⚡ OVERLOAD');
     }
   }
 
@@ -6951,6 +6982,7 @@ function enemyTurn(){
         if(SETTINGS.showDamageNumbers) showDmgPopup(special.dmg, false, true);
         shakeSprite('player-battle-sprite');
         flashArena('rgba(255,80,80,0.35)');
+        playSkillAnim(e.element||'null', true, ENEMY_SPECIALS[e.element]?.name||null);
         updateBattleHP(); updateStatusHUD();
         setBattleLog(log);
         if(p.hp<=0){ p.hp=0; updateBattleHP(); setBattleLog('💀 Gozo fainted...'); setTimeout(loseBattle,1500); return; }
@@ -6986,6 +7018,7 @@ function enemyTurn(){
       if(SETTINGS.showDamageNumbers) showDmgPopup(dmg,false,true);
       shakeSprite('player-battle-sprite');
       flashArena('rgba(255,50,50,0.3)');
+      playSkillAnim(e.element||'null', true, null);
       if(dmg>=30 && SETTINGS.screenShake) arenaShake();
     }
   }
@@ -7326,6 +7359,664 @@ function spawnBattleParticles(count, emojis, cx, cy){
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════
+//  SKILL ANIMATION ENGINE
+//  playSkillAnim(type, fromEnemy)
+//  type: element name OR skill type key
+// ═══════════════════════════════════════════════════════════
+
+let _animRaf = null;  // current animation frame
+
+function getSkillCanvas(){
+  const cv = document.getElementById('skill-anim-canvas');
+  const arena = document.getElementById('battle-arena');
+  if(!cv || !arena) return null;
+  cv.width  = arena.offsetWidth  || 600;
+  cv.height = arena.offsetHeight || 280;
+  return cv;
+}
+
+function showSkillBanner(text, color, arena){
+  const b = document.createElement('div');
+  b.className = 'skill-name-banner';
+  b.textContent = text;
+  b.style.color = color;
+  b.style.top = '38%';
+  arena.appendChild(b);
+  setTimeout(()=> b.remove(), 900);
+}
+
+// Main entry — call this whenever a skill fires
+function playSkillAnim(type, fromEnemy, skillName){
+  const cv  = getSkillCanvas();
+  if(!cv) return;
+  const arena = document.getElementById('battle-arena');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+
+  // Stop previous animation
+  if(_animRaf){ cancelAnimationFrame(_animRaf); _animRaf=null; }
+  ctx.clearRect(0,0,W,H);
+
+  // Banner
+  if(skillName && arena){
+    const cols = {
+      fire:'#ff6600',water:'#00aaff',grass:'#44cc22',electric:'#ffff00',
+      ice:'#88eeff',dark:'#cc44ff',earth:'#cc8833',wind:'#88ddcc',
+      light:'#ffee44',heal:'#44ffaa',burn:'#ff8833',poison:'#88ff44',
+      slow:'#88bbff',blind:'#ffaaff',drain:'#ff44aa',
+    };
+    const c = cols[type] || '#ffffff';
+    showSkillBanner(skillName, c, arena);
+  }
+
+  // Dispatch to element animator
+  const animMap = {
+    fire:     animFire,
+    water:    animWater,
+    grass:    animGrass,
+    electric: animElectric,
+    ice:      animIce,
+    dark:     animDark,
+    earth:    animEarth,
+    wind:     animWind,
+    light:    animLight,
+    heal:     animHeal,
+    burn:     animBurn,
+    poison:   animPoison,
+    slow:     animSlow,
+    drain:    animDrain,
+  };
+  const fn = animMap[type] || animDefault;
+  fn(ctx, W, H, fromEnemy);
+}
+
+// ── Shared helpers ──────────────────────────────────────────
+
+function animRunFor(ms, drawFn, ctx, W, H){
+  const start = performance.now();
+  function loop(now){
+    const t = Math.min(1, (now - start) / ms);
+    ctx.clearRect(0,0,W,H);
+    drawFn(ctx, W, H, t);
+    if(t < 1) _animRaf = requestAnimationFrame(loop);
+    else { ctx.clearRect(0,0,W,H); _animRaf=null; }
+  }
+  _animRaf = requestAnimationFrame(loop);
+}
+
+// projectile: from source X → target X, arc + trail
+function drawProjectile(ctx, sx, sy, tx, ty, t, radius, color, glowColor, trailLen){
+  const cx = sx + (tx-sx)*t;
+  const cy = sy + (ty-sy)*t - Math.sin(t*Math.PI)*40;
+  // trail
+  for(let i=1;i<=trailLen;i++){
+    const tt = Math.max(0, t - i*0.04);
+    const px = sx + (tx-sx)*tt;
+    const py = sy + (ty-sy)*tt - Math.sin(tt*Math.PI)*40;
+    const a  = (1 - i/trailLen) * 0.5;
+    ctx.beginPath(); ctx.arc(px,py,radius*(1-i/trailLen*0.6),0,Math.PI*2);
+    ctx.fillStyle = glowColor.replace(')',`,${a})`).replace('rgb(','rgba(');
+    ctx.fill();
+  }
+  // glow
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,radius*2.5);
+  g.addColorStop(0, color); g.addColorStop(1,'transparent');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,radius*2.5,0,Math.PI*2); ctx.fill();
+  // core
+  ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+}
+
+// wave sweep from one side
+function drawWaveSweep(ctx, W, H, t, fromEnemy, color, waveH, lines){
+  const startX = fromEnemy ? 0 : W;
+  const endX   = fromEnemy ? W : 0;
+  const head   = startX + (endX-startX)*t;
+  for(let i=0;i<lines;i++){
+    const yo = (i/(lines-1)) * H*0.6 + H*0.2;
+    const amp = waveH * Math.sin(t*Math.PI);
+    ctx.beginPath();
+    ctx.moveTo(fromEnemy?0:W, yo);
+    for(let x=0;x<=W;x+=4){
+      const d = fromEnemy ? x : W-x;
+      const progress = d/(Math.abs(head - startX)+1);
+      if(progress>1){ ctx.lineTo(x, yo); continue; }
+      const y = yo + Math.sin(x*0.08 + t*8)*amp * progress;
+      ctx.lineTo(x,y);
+    }
+    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.globalAlpha=0.7*(1-Math.max(0,t-0.6)/0.4); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+
+// shockwave ring expand
+function drawShockwave(ctx, cx, cy, t, color, maxR){
+  const r = maxR * t;
+  const a = 1 - t;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle=color; ctx.lineWidth=3*a+1; ctx.globalAlpha=a*0.9; ctx.stroke();
+  ctx.globalAlpha=1;
+}
+
+// ── Per-element animators ──────────────────────────────────
+
+function animFire(ctx, W, H, fromEnemy){
+  // Fireball projectile + explosion burst
+  const sx = fromEnemy ? W*0.12 : W*0.82, sy = H*0.35;
+  const tx = fromEnemy ? W*0.82 : W*0.12, ty = H*0.45;
+  const particles = Array.from({length:22}, ()=>({
+    x:0,y:0,vx:(Math.random()-0.5)*4,vy:-(Math.random()*3+1),
+    r:Math.random()*8+4, life:Math.random()*0.4+0.6, dead:false
+  }));
+  animRunFor(800, (ctx,W,H,t)=>{
+    if(t < 0.55){
+      // projectile phase
+      const pt = t/0.55;
+      // flame trail
+      for(let i=3;i>=0;i--){
+        const tt=Math.max(0,pt-i*0.07);
+        const px=sx+(tx-sx)*tt, py=sy+(ty-sy)*tt-Math.sin(tt*Math.PI)*30;
+        const a=(1-i/4)*0.6, r=14*(1-i*0.15);
+        const g=ctx.createRadialGradient(px,py,0,px,py,r*2);
+        g.addColorStop(0,`rgba(255,200,50,${a})`);
+        g.addColorStop(0.4,`rgba(255,80,0,${a*0.6})`);
+        g.addColorStop(1,'transparent');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(px,py,r*2,0,Math.PI*2); ctx.fill();
+      }
+      const cx=sx+(tx-sx)*pt, cy=sy+(ty-sy)*pt-Math.sin(pt*Math.PI)*30;
+      // inner core
+      ctx.beginPath(); ctx.arc(cx,cy,9,0,Math.PI*2);
+      ctx.fillStyle='#fff9aa'; ctx.fill();
+    } else {
+      // explosion phase
+      const et=(t-0.55)/0.45;
+      if(et<0.05){ particles.forEach(p=>{p.x=tx;p.y=ty;}); }
+      particles.forEach(p=>{
+        p.x+=p.vx*2.5; p.y+=p.vy*2.5; p.vy+=0.12;
+        const a=Math.max(0,(p.life-et)/p.life);
+        const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+        g.addColorStop(0,`rgba(255,230,100,${a})`);
+        g.addColorStop(0.5,`rgba(255,80,0,${a*0.7})`);
+        g.addColorStop(1,'transparent');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+      });
+      drawShockwave(ctx,tx,ty,et,'rgba(255,120,0,0.8)',60);
+      // screen flash at impact
+      if(et<0.15){
+        ctx.fillStyle=`rgba(255,160,0,${0.35*(1-et/0.15)})`;
+        ctx.fillRect(0,0,W,H);
+      }
+    }
+  }, ctx,W,H);
+  flashArena('rgba(255,80,0,0.35)');
+}
+
+function animWater(ctx, W, H, fromEnemy){
+  // Wave sweep + splash droplets
+  const tx = fromEnemy ? W*0.82 : W*0.12;
+  const ty = H*0.42;
+  const drops = Array.from({length:16}, ()=>({
+    x:tx,y:ty,vx:(Math.random()-0.5)*6,vy:-(Math.random()*5+2),
+    r:Math.random()*5+2
+  }));
+  animRunFor(850, (ctx,W,H,t)=>{
+    // Wave lines sweep
+    drawWaveSweep(ctx,W,H,t,fromEnemy,'rgba(0,160,255,0.7)',18,4);
+    drawWaveSweep(ctx,W,H,t+0.05,fromEnemy,'rgba(100,220,255,0.45)',10,3);
+    if(t>0.5){
+      const et=(t-0.5)/0.5;
+      drops.forEach(d=>{
+        d.x+=d.vx*0.4; d.y+=d.vy*0.4; d.vy+=0.18;
+        const a=Math.max(0,1-et);
+        ctx.beginPath(); ctx.ellipse(d.x,d.y,d.r*0.6,d.r,0,0,Math.PI*2);
+        ctx.fillStyle=`rgba(80,200,255,${a*0.8})`; ctx.fill();
+      });
+      drawShockwave(ctx,tx,ty,et,'rgba(0,180,255,0.7)',55);
+    }
+  }, ctx,W,H);
+  flashArena('rgba(0,100,255,0.25)');
+}
+
+function animGrass(ctx, W, H, fromEnemy){
+  // Leaves + vines spreading
+  const cx = fromEnemy ? W*0.82 : W*0.12, cy = H*0.45;
+  const leaves = Array.from({length:20}, (_,i)=>({
+    angle: (i/20)*Math.PI*2 + Math.random()*0.5,
+    dist: Math.random()*70+20, size:Math.random()*10+6,
+    spin:Math.random()*0.3-0.15
+  }));
+  animRunFor(900, (ctx,W,H,t)=>{
+    const progress = Math.min(1, t/0.7);
+    leaves.forEach(l=>{
+      const d = l.dist*progress;
+      const lx = cx + Math.cos(l.angle)*d;
+      const ly = cy + Math.sin(l.angle)*d - d*0.3;
+      const a = progress>0.7 ? 1-(progress-0.7)/0.3 : 1;
+      ctx.save();
+      ctx.translate(lx,ly);
+      ctx.rotate(l.angle + l.spin*t*10);
+      ctx.globalAlpha = a*0.9;
+      // leaf shape
+      ctx.beginPath();
+      ctx.ellipse(0,0,l.size*0.5,l.size,0,0,Math.PI*2);
+      ctx.fillStyle='#55dd33'; ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0,0,l.size*0.2,l.size,0,0,Math.PI*2);
+      ctx.fillStyle='#88ff55'; ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.restore();
+    });
+    // center burst
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,40*progress);
+    g.addColorStop(0,`rgba(100,255,80,${0.5*(1-t)})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,40*progress,0,Math.PI*2); ctx.fill();
+  }, ctx,W,H);
+  flashArena('rgba(50,200,50,0.2)');
+}
+
+function animElectric(ctx, W, H, fromEnemy){
+  // Lightning bolt zigzag from sky + arc sparks
+  const tx = fromEnemy ? W*0.75 : W*0.2, ty=H*0.5;
+  const bolts = Array.from({length:3},(_,i)=>({
+    segs: Array.from({length:10},(_,j)=>({
+      x: tx + (Math.random()-0.5)*(i*8+6)*(j/10),
+      y: -20 + (ty+20)*j/9
+    }))
+  }));
+  animRunFor(700, (ctx,W,H,t)=>{
+    if(t<0.6){
+      // lightning strike phase
+      const lt=t/0.6;
+      bolts.forEach((bolt,bi)=>{
+        const a=bi===0?1:0.5;
+        const segsVisible=Math.ceil(lt*bolt.segs.length);
+        ctx.beginPath();
+        ctx.moveTo(bolt.segs[0].x, bolt.segs[0].y);
+        bolt.segs.slice(0,segsVisible).forEach(s=>ctx.lineTo(s.x,s.y));
+        ctx.strokeStyle=bi===0?'#ffffff':'#aaddff';
+        ctx.lineWidth=bi===0?3:1.5;
+        ctx.globalAlpha=a*0.9*(0.7+Math.random()*0.3);
+        ctx.shadowColor='#88ccff'; ctx.shadowBlur=12;
+        ctx.stroke();
+        ctx.shadowBlur=0; ctx.globalAlpha=1;
+      });
+    }
+    // sparks scatter
+    if(t>0.3){
+      const st=(t-0.3)/0.7;
+      for(let i=0;i<8;i++){
+        const angle=(i/8)*Math.PI*2+t*5;
+        const d=50*st;
+        const sx=tx+Math.cos(angle)*d, sy=ty+Math.sin(angle)*d*0.5;
+        ctx.beginPath(); ctx.moveTo(tx,ty); ctx.lineTo(sx,sy);
+        ctx.strokeStyle='#ffff88'; ctx.lineWidth=1.5;
+        ctx.globalAlpha=(1-st)*0.8; ctx.stroke(); ctx.globalAlpha=1;
+      }
+      drawShockwave(ctx,tx,ty,st,'rgba(180,220,255,0.9)',50);
+    }
+    if(t<0.3){
+      ctx.fillStyle=`rgba(200,230,255,${(0.3-t)/0.3*0.3})`;
+      ctx.fillRect(0,0,W,H);
+    }
+  }, ctx,W,H);
+  flashArena('rgba(150,200,255,0.4)');
+}
+
+function animIce(ctx, W, H, fromEnemy){
+  // Ice shard projectiles fan + freeze crystals
+  const sx = fromEnemy ? W*0.12 : W*0.82, sy=H*0.38;
+  const tx = fromEnemy ? W*0.82 : W*0.12, ty=H*0.45;
+  const shards = Array.from({length:7},(_,i)=>({
+    angle: (i-3)*0.18, speed:1+Math.random()*0.3
+  }));
+  animRunFor(850, (ctx,W,H,t)=>{
+    if(t<0.65){
+      const pt=t/0.65;
+      shards.forEach(sh=>{
+        const dist = (tx-sx)*pt*sh.speed;
+        const px=sx+dist*Math.cos(sh.angle), py=sy+dist*Math.sin(sh.angle)*0.6-dist*0.1;
+        ctx.save(); ctx.translate(px,py); ctx.rotate(sh.angle+t*4);
+        const r=7;
+        // hexagonal shard
+        ctx.beginPath();
+        for(let j=0;j<6;j++){
+          const a=j/6*Math.PI*2;
+          j===0?ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r):ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+        }
+        ctx.closePath();
+        ctx.fillStyle='rgba(160,230,255,0.85)'; ctx.fill();
+        ctx.strokeStyle='#ffffff'; ctx.lineWidth=1; ctx.stroke();
+        // glint
+        ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.fillRect(-1,-1,2,2);
+        ctx.restore();
+      });
+    } else {
+      // Freeze burst
+      const et=(t-0.65)/0.35;
+      for(let i=0;i<12;i++){
+        const a=(i/12)*Math.PI*2;
+        const d=(30+i*4)*et;
+        const px=tx+Math.cos(a)*d, py=ty+Math.sin(a)*d*0.7;
+        ctx.save(); ctx.translate(px,py); ctx.rotate(a);
+        ctx.fillStyle=`rgba(180,240,255,${(1-et)*0.9})`;
+        ctx.fillRect(-1,-7,2,14); ctx.fillRect(-7,-1,14,2);
+        ctx.restore();
+      }
+      drawShockwave(ctx,tx,ty,et,'rgba(180,240,255,0.8)',65);
+      ctx.fillStyle=`rgba(200,240,255,${(1-et)*0.2})`;
+      ctx.fillRect(0,0,W,H);
+    }
+  }, ctx,W,H);
+  flashArena('rgba(100,200,255,0.3)');
+}
+
+function animDark(ctx, W, H, fromEnemy){
+  // Dark orb + shadow tendrils
+  const sx=fromEnemy?W*0.12:W*0.82, sy=H*0.38;
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.44;
+  animRunFor(900, (ctx,W,H,t)=>{
+    if(t<0.55){
+      const pt=t/0.55;
+      const cx2=sx+(tx-sx)*pt, cy2=sy+(ty-sy)*pt-Math.sin(pt*Math.PI)*25;
+      // tendrils trail
+      for(let i=0;i<5;i++){
+        const tt=Math.max(0,pt-i*0.06);
+        const px=sx+(tx-sx)*tt, py=sy+(ty-sy)*tt-Math.sin(tt*Math.PI)*25;
+        ctx.beginPath(); ctx.arc(px,py,10*(1-i*0.15),0,Math.PI*2);
+        ctx.fillStyle=`rgba(100,0,180,${(1-i/5)*0.5})`; ctx.fill();
+      }
+      // orb
+      const g=ctx.createRadialGradient(cx2,cy2,0,cx2,cy2,16);
+      g.addColorStop(0,'rgba(220,180,255,0.95)');
+      g.addColorStop(0.4,'rgba(120,0,200,0.8)');
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx2,cy2,16,0,Math.PI*2); ctx.fill();
+    } else {
+      const et=(t-0.55)/0.45;
+      // Shadow explosion tendrils
+      for(let i=0;i<12;i++){
+        const a=(i/12)*Math.PI*2+t*2;
+        const len=(80+i*5)*et;
+        ctx.beginPath(); ctx.moveTo(tx,ty);
+        ctx.lineTo(tx+Math.cos(a)*len, ty+Math.sin(a)*len*0.7);
+        ctx.strokeStyle=`rgba(160,80,255,${(1-et)*0.8})`;
+        ctx.lineWidth=3*(1-et)+1; ctx.stroke();
+      }
+      const g2=ctx.createRadialGradient(tx,ty,0,tx,ty,70*et);
+      g2.addColorStop(0,`rgba(80,0,120,${(1-et)*0.6})`);
+      g2.addColorStop(1,'transparent');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(tx,ty,70*et,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=`rgba(20,0,40,${(1-et)*0.25})`; ctx.fillRect(0,0,W,H);
+    }
+  }, ctx,W,H);
+  flashArena('rgba(80,0,150,0.35)');
+}
+
+function animEarth(ctx, W, H, fromEnemy){
+  // Rocks raining + ground rupture
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.46;
+  const rocks=Array.from({length:12},(_,i)=>({
+    x:tx+(Math.random()-0.5)*100, y:-20,
+    vx:(Math.random()-0.5)*3, vy:Math.random()*2+3,
+    r:Math.random()*9+4, rot:Math.random()*Math.PI*2, vr:Math.random()*0.2-0.1
+  }));
+  animRunFor(850, (ctx,W,H,t)=>{
+    rocks.forEach(r=>{
+      if(t>r.vy*0.02) return; // stagger
+      r.x+=r.vx*3; r.y+=r.vy*4; r.rot+=r.vr;
+    });
+    // ground cracks
+    if(t>0.4){
+      const gt=(t-0.4)/0.6;
+      for(let i=0;i<6;i++){
+        const a=((i/6)*Math.PI*1.4)-Math.PI*0.7;
+        const len=70*gt;
+        ctx.beginPath(); ctx.moveTo(tx,ty);
+        ctx.lineTo(tx+Math.cos(a)*len, ty+Math.sin(a)*len*0.4+20);
+        ctx.strokeStyle=`rgba(180,130,60,${(1-gt)*0.9})`;
+        ctx.lineWidth=3*(1-gt)+1; ctx.stroke();
+      }
+      drawShockwave(ctx,tx,ty+20,gt,'rgba(160,100,40,0.8)',70);
+    }
+    // rocks
+    rocks.forEach(r=>{
+      const ry = Math.min(ty, r.y + t*H*1.5);
+      ctx.save(); ctx.translate(r.x, ry); ctx.rotate(r.rot+t*5);
+      ctx.fillStyle='#aa7733';
+      ctx.beginPath();
+      ctx.moveTo(0,-r.r); ctx.lineTo(r.r*0.7,r.r*0.5);
+      ctx.lineTo(-r.r*0.5,r.r*0.8); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#cc9944';
+      ctx.fillRect(-r.r*0.3,-r.r*0.3,r.r*0.4,r.r*0.4);
+      ctx.restore();
+    });
+    if(t<0.2){ctx.fillStyle=`rgba(100,60,20,${(0.2-t)/0.2*0.2})`; ctx.fillRect(0,0,W,H);}
+  }, ctx,W,H);
+  flashArena('rgba(120,80,30,0.3)');
+}
+
+function animWind(ctx, W, H, fromEnemy){
+  // Cyclone swirl + wind slashes
+  const cx=fromEnemy?W*0.82:W*0.12, cy=H*0.43;
+  animRunFor(800, (ctx,W,H,t)=>{
+    const r=70*Math.min(1,t/0.5);
+    const speed=t*Math.PI*8;
+    // swirling arcs
+    for(let ring=0;ring<5;ring++){
+      const rr=r*(0.3+ring*0.18);
+      const startA=speed+ring*1.2;
+      const arc=Math.PI*(0.8+ring*0.1);
+      ctx.beginPath();
+      ctx.arc(cx,cy,rr,startA,startA+arc);
+      const a=Math.max(0,1-t*1.1)*(ring===0?0.9:0.5);
+      ctx.strokeStyle=`rgba(150,230,220,${a})`;
+      ctx.lineWidth=3-ring*0.4; ctx.stroke();
+    }
+    // wind slash lines
+    if(t>0.3){
+      const st=(t-0.3)/0.7;
+      for(let i=0;i<6;i++){
+        const a=(i/6)*Math.PI*2+speed*0.5;
+        const d=80*st;
+        const lx=cx+Math.cos(a)*d, ly=cy+Math.sin(a)*d*0.6;
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(lx,ly);
+        ctx.strokeStyle=`rgba(200,255,240,${(1-st)*0.7})`;
+        ctx.lineWidth=2; ctx.stroke();
+      }
+    }
+  }, ctx,W,H);
+  flashArena('rgba(100,200,180,0.2)');
+}
+
+function animLight(ctx, W, H, fromEnemy){
+  // Solar beam + holy rays
+  const sx=fromEnemy?W*0.12:W*0.82, sy=H*0.15;
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.44;
+  animRunFor(800, (ctx,W,H,t)=>{
+    // ray beams from above
+    for(let i=0;i<8;i++){
+      const bx=tx+(i-3.5)*18;
+      const by=-10;
+      const len=H*0.8;
+      const a=Math.max(0,(0.6-Math.abs(t-0.3)/0.3)*0.5);
+      const g=ctx.createLinearGradient(bx,by,bx,by+len);
+      g.addColorStop(0,`rgba(255,240,150,${a})`);
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.fillRect(bx-4,by,8,len);
+    }
+    // central beam
+    if(t<0.6){
+      const pt=t/0.6;
+      const g=ctx.createLinearGradient(sx,sy,tx,ty);
+      g.addColorStop(0,'rgba(255,255,200,0.9)');
+      g.addColorStop(1,`rgba(255,220,80,${1-pt})`);
+      ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(tx,ty);
+      ctx.strokeStyle=g; ctx.lineWidth=6*(1-pt*0.5); ctx.globalAlpha=1-pt*0.5;
+      ctx.stroke(); ctx.globalAlpha=1;
+    }
+    // burst
+    if(t>0.45){
+      const et=(t-0.45)/0.55;
+      const g2=ctx.createRadialGradient(tx,ty,0,tx,ty,80*et);
+      g2.addColorStop(0,`rgba(255,255,200,${(1-et)*0.7})`);
+      g2.addColorStop(1,'transparent');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(tx,ty,80*et,0,Math.PI*2); ctx.fill();
+      drawShockwave(ctx,tx,ty,et,'rgba(255,240,100,0.9)',70);
+    }
+  }, ctx,W,H);
+  flashArena('rgba(255,230,100,0.4)');
+}
+
+function animHeal(ctx, W, H, fromEnemy){
+  // Green sparkles rising on player side
+  const cx=W*0.82, cy=H*0.5;
+  const sparks=Array.from({length:20},()=>({
+    x:cx+(Math.random()-0.5)*60, y:cy+Math.random()*40,
+    vy:-(Math.random()*2+1.5), vx:(Math.random()-0.5)*0.8,
+    r:Math.random()*5+3, phase:Math.random()*Math.PI*2
+  }));
+  animRunFor(900, (ctx,W,H,t)=>{
+    sparks.forEach(s=>{
+      const sy2=s.y-s.vy*t*120;
+      const a=Math.max(0,1-t*1.1);
+      const pulse=0.8+Math.sin(s.phase+t*10)*0.2;
+      const g=ctx.createRadialGradient(s.x,sy2,0,s.x,sy2,s.r*pulse*2);
+      g.addColorStop(0,`rgba(150,255,180,${a})`);
+      g.addColorStop(0.5,`rgba(50,200,100,${a*0.6})`);
+      g.addColorStop(1,'transparent');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,sy2,s.r*pulse*2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=`rgba(200,255,220,${a})`; ctx.beginPath(); ctx.arc(s.x,sy2,s.r*0.4,0,Math.PI*2); ctx.fill();
+    });
+    // big heal aura
+    const g2=ctx.createRadialGradient(cx,cy,0,cx,cy,80);
+    g2.addColorStop(0,`rgba(50,255,120,${0.15*(1-t)})`);
+    g2.addColorStop(1,'transparent');
+    ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(cx,cy,80,0,Math.PI*2); ctx.fill();
+  }, ctx,W,H);
+  flashArena('rgba(30,200,80,0.2)');
+}
+
+function animBurn(ctx, W, H, fromEnemy){
+  // Fire particles raining on target + burn glow
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.44;
+  const embers=Array.from({length:25},()=>({
+    x:tx+(Math.random()-0.5)*80, y:-20,
+    vx:(Math.random()-0.5)*1.5, vy:Math.random()*3+2,
+    r:Math.random()*4+2, col:Math.random()<0.5?'255,120,0':'255,60,0'
+  }));
+  animRunFor(900, (ctx,W,H,t)=>{
+    embers.forEach(e=>{
+      const ey=e.y+e.vy*t*100;
+      const ex=e.x+e.vx*t*40;
+      const a=Math.max(0,1-Math.max(0,t-0.5)/0.5);
+      ctx.beginPath(); ctx.arc(ex,ey,e.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${e.col},${a})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(ex,ey-e.r*1.5,e.r*0.4,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,220,100,${a*0.7})`; ctx.fill();
+    });
+    // burn aura on target
+    const g=ctx.createRadialGradient(tx,ty,0,tx,ty,50);
+    g.addColorStop(0,`rgba(255,80,0,${0.3*Math.sin(t*Math.PI)})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(tx,ty,50,0,Math.PI*2); ctx.fill();
+  }, ctx,W,H);
+  flashArena('rgba(255,60,0,0.25)');
+}
+
+function animPoison(ctx, W, H, fromEnemy){
+  // Purple toxic bubbles
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.44;
+  const bubbles=Array.from({length:18},()=>({
+    x:tx+(Math.random()-0.5)*60, y:ty+20,
+    vy:-(Math.random()*1.5+1), r:Math.random()*8+4,
+    phase:Math.random()*Math.PI*2, vx:(Math.random()-0.5)*0.6
+  }));
+  animRunFor(900, (ctx,W,H,t)=>{
+    bubbles.forEach(b=>{
+      const by=b.y+b.vy*t*100;
+      const bx=b.x+b.vx*t*40+Math.sin(b.phase+t*5)*8;
+      const a=Math.max(0,1-t*1.1);
+      const r=b.r*(1+Math.sin(b.phase+t*8)*0.1);
+      ctx.beginPath(); ctx.arc(bx,by,r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(150,80,255,${a*0.9})`; ctx.lineWidth=1.5; ctx.stroke();
+      ctx.fillStyle=`rgba(100,30,180,${a*0.3})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(bx-r*0.25,by-r*0.25,r*0.2,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,150,255,${a*0.7})`; ctx.fill();
+    });
+    const g=ctx.createRadialGradient(tx,ty,0,tx,ty,55);
+    g.addColorStop(0,`rgba(120,0,200,${0.25*Math.sin(t*Math.PI)})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(tx,ty,55,0,Math.PI*2); ctx.fill();
+  }, ctx,W,H);
+  flashArena('rgba(100,0,180,0.25)');
+}
+
+function animSlow(ctx, W, H, fromEnemy){
+  // Blue ice rings expanding + freeze overlay
+  const tx=fromEnemy?W*0.82:W*0.12, ty=H*0.44;
+  animRunFor(800, (ctx,W,H,t)=>{
+    for(let i=0;i<4;i++){
+      const rt=(t+i*0.2)%1;
+      const r=90*rt;
+      const a=(1-rt)*0.7;
+      ctx.beginPath(); ctx.arc(tx,ty,r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(100,200,255,${a})`; ctx.lineWidth=3*(1-rt)+1; ctx.stroke();
+    }
+    // snowflake arms
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2;
+      const len=30*Math.min(1,t*3);
+      ctx.beginPath(); ctx.moveTo(tx,ty);
+      ctx.lineTo(tx+Math.cos(a)*len, ty+Math.sin(a)*len);
+      ctx.strokeStyle=`rgba(200,240,255,${Math.max(0,1-t*2)*0.8})`;
+      ctx.lineWidth=2; ctx.stroke();
+    }
+    // freeze tint
+    ctx.fillStyle=`rgba(180,230,255,${Math.max(0,1-t*2)*0.15})`; ctx.fillRect(0,0,W,H);
+  }, ctx,W,H);
+  flashArena('rgba(100,200,255,0.3)');
+}
+
+function animDrain(ctx, W, H, fromEnemy){
+  // Life drain orbs sucking from player to enemy
+  const srcX=W*0.82, srcY=H*0.44;
+  const dstX=fromEnemy?W*0.12:W*0.82, dstY=H*0.38;
+  const orbs=Array.from({length:8},(_,i)=>({delay:i/8}));
+  animRunFor(900, (ctx,W,H,t)=>{
+    orbs.forEach(orb=>{
+      const lt=Math.max(0,(t-orb.delay)/(1-orb.delay));
+      if(lt<=0) return;
+      const ox=srcX+(dstX-srcX)*lt;
+      const oy=srcY+(dstY-srcY)*lt - Math.sin(lt*Math.PI)*30;
+      const a=lt<0.5?lt*2:2-lt*2;
+      ctx.beginPath(); ctx.arc(ox,oy,6,0,Math.PI*2);
+      ctx.fillStyle=`rgba(180,80,255,${a*0.9})`; ctx.fill();
+      ctx.beginPath(); ctx.arc(ox,oy,3,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,200,255,${a})`; ctx.fill();
+    });
+    // drain connection line
+    const a=Math.max(0,1-t*1.5)*0.5;
+    ctx.beginPath(); ctx.moveTo(srcX,srcY); ctx.lineTo(dstX,dstY);
+    ctx.strokeStyle=`rgba(150,50,220,${a})`; ctx.lineWidth=2; ctx.stroke();
+  }, ctx,W,H);
+  flashArena('rgba(100,0,160,0.25)');
+}
+
+function animDefault(ctx, W, H, fromEnemy){
+  const cx=fromEnemy?W*0.82:W*0.12, cy=H*0.44;
+  animRunFor(600, (ctx,W,H,t)=>{
+    drawShockwave(ctx,cx,cy,t,'rgba(255,215,0,0.8)',60);
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,50*t);
+    g.addColorStop(0,`rgba(255,215,0,${(1-t)*0.4})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,50*t,0,Math.PI*2); ctx.fill();
+  }, ctx,W,H);
+}
+
 function showDmgPopup(amt,isHeal,onPlayer=false){
   const arena=document.getElementById('battle-arena');
   if(!arena) return;
@@ -7333,8 +8024,13 @@ function showDmgPopup(amt,isHeal,onPlayer=false){
   const big = amt >= 50;
   el.className='dmg-popup'+(isHeal?' heal':'')+(big?' big':'');
   el.textContent=(isHeal?'+':'-')+amt;
-  el.style.left=(onPlayer?200:60)+Math.random()*80+'px';
-  el.style.top=(onPlayer?160:80)+Math.random()*40+'px';
+  // Use % of arena width so it works on any screen size
+  const aW = arena.offsetWidth || 600;
+  const aH = arena.offsetHeight || 280;
+  const baseX = onPlayer ? aW * 0.72 : aW * 0.08;
+  const baseY = onPlayer ? aH * 0.45 : aH * 0.20;
+  el.style.left = (baseX + Math.random()*60) + 'px';
+  el.style.top  = (baseY + Math.random()*40) + 'px';
   arena.appendChild(el);
   setTimeout(()=>el.remove(),1000);
 }
