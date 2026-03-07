@@ -8802,7 +8802,7 @@ function showDropPopup(item){
 
 
 // ==============================================
-// SAVE SYSTEM — Monad Chain Mainnet (Chain ID 143)
+// SAVE SYSTEM — HyperEVM Mainnet (Chain ID 999)
 // Strategy: encode save data as hex in tx calldata
 // sent to player's own address. Load by scanning
 // last N txs from the wallet via eth_getTransactionByHash.
@@ -11396,15 +11396,15 @@ function renderQuestScreen(){
 // ==============================================
 // 🛒 GOZO MARKET — Web3 Pixel Art Shop
 // ==============================================
-const GOZO_TOKEN = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const GOZO_TOKEN = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = '0x8f'; // 143 decimal = Monad Mainnet
+const MONAD_CHAIN_ID = '0x3e7'; // 999 decimal = HyperEVM
 const MONAD_CHAIN = {
   chainId: MONAD_CHAIN_ID,
-  chainName: 'Monad',
-  nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-  rpcUrls: ['https://rpc.monad.xyz'],
-  blockExplorerUrls: ['https://explorer.monad.xyz']
+  chainName: 'HyperEVM',
+  nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+  rpcUrls: ['https://rpc.hyperliquid.xyz/evm'],
+  blockExplorerUrls: ['https://purrsec.com/explorer/hyperevm']
 };
 
 // ERC20 transfer ABI
@@ -11920,7 +11920,7 @@ function renderMarket() {
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
         <div>
           <div class="mkt-title">⚔ GOZO MARKET</div>
-          <div class="mkt-subtitle">MONAD CHAIN · PAY WITH GOZO TOKEN · BURN TO DEAD ADDRESS</div>
+          <div class="mkt-subtitle">HYPEREVM CHAIN · PAY WITH GOZO TOKEN · BURN TO DEAD ADDRESS</div>
         </div>
         <button class="mkt-close-btn" onclick="closeMarket()">✕ CLOSE</button>
       </div>
