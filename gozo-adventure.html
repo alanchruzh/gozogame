@@ -6601,6 +6601,7 @@ function startBattle(enemy){
     else if(partner.weak.includes(enemy.element))intro+='⚠️ Type disadvantage!';
   }
   updateBattleHP();
+  requestAnimationFrame(()=>updateBattleHP()); // re-run after DOM paints
   setBattleLog(intro);
   // Show weather effect hint
   showWeatherBattleHint();
@@ -7263,6 +7264,8 @@ function updateHUD(){
   setEl('hud-exp', `${p.exp}/${p.expToLevel}`);
   setEl('hud-coins', p.coins);
   setEl('hud-stats', `HP: ${p.hp}/${p.maxHp}`);
+  setEl('hud-atk', p.attack);
+  setEl('hud-def', p.defense);
   setEl('hud-potions', `💊${p.potions} 🧪${p.potionsMed||0} 🫙${p.potionsLrg||0}`);
   if(p.critChance) setEl('hud-crit', `🎯 CRIT ${Math.round(p.critChance*100)}%`);
 
