@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GOZO Burn Dashboard</title>
+  <title>GOZO Burn Dashboard — HyperEVM</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -251,12 +251,12 @@
 <body>
 
   <h1>🔥 GOZO Burn Dashboard</h1>
-  <p class="subtitle">Live data from Monad Mainnet</p>
+  <p class="subtitle">Live data from HyperEVM Mainnet (Chain ID: 999)</p>
 
   <!-- RPC URL input for CORS issues -->
   <div class="rpc-bar">
     <label>RPC URL:</label>
-    <input type="text" id="rpcInput" value="https://rpc.monad.xyz" placeholder="Enter RPC URL..." />
+    <input type="text" id="rpcInput" value="https://rpc.hyperliquid.xyz/evm" placeholder="Enter RPC URL..." />
     <button class="refresh-btn" style="margin:0;padding:8px 16px;" onclick="fetchBurnData()">Fetch</button>
   </div>
 
@@ -315,7 +315,7 @@
       </li>
       <li>Atau gunakan browser extension seperti <strong>CORS Unblock</strong></li>
       <li>Atau deploy ke server yang punya backend proxy ke <code>rpc.monad.xyz</code></li>
-      <li>Coba RPC alternatif: <code>https://monad-mainnet.g.alchemy.com/v2/YOUR_KEY</code></li>
+      <li>Coba RPC alternatif: <code>https://rpc.hyperliquid.xyz/evm</code></li>
     </ul>
   </div>
 
@@ -327,7 +327,7 @@
   </div>
 
 <script>
-  const GOZO_CONTRACT = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+  const GOZO_CONTRACT = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
   const BURN_ADDRESS  = '0x000000000000000000000000000000000000dEaD';
   const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
   let callId = 1;
@@ -430,9 +430,9 @@
         tbody.innerHTML = recentBurns.map((b, i) => `
           <tr>
             <td style="color:#555;">${i + 1}</td>
-            <td><a href="https://monadexplorer.com/tx/${b.txHash}" target="_blank" title="${b.txHash}">${shortAddr(b.txHash)}</a></td>
+            <td><a href="https://explorer.hyperliquid.xyz/tx/${b.txHash}" target="_blank" title="${b.txHash}">${shortAddr(b.txHash)}</a></td>
             <td>${b.blockNumber.toLocaleString()}</td>
-            <td><a href="https://monadexplorer.com/address/${b.from}" target="_blank" title="${b.from}">${shortAddr(b.from)}</a></td>
+            <td><a href="https://explorer.hyperliquid.xyz/address/${b.from}" target="_blank" title="${b.from}">${shortAddr(b.from)}</a></td>
             <td class="badge-amount">${fmt(b.amount)} GOZO</td>
           </tr>
         `).join('');
