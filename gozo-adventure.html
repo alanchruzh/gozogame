@@ -511,6 +511,103 @@
   @keyframes mktSpin { to { transform:rotate(360deg); } }
   .mkt-spinner { width:32px; height:32px; border:3px solid #FFD70033;
     border-top-color:#FFD700; border-radius:50%; animation:mktSpin .8s linear infinite; margin:0 auto; }
+  /* ═══════════════════════════════════════
+     90-SLOT INVENTORY BAG SYSTEM
+  ═══════════════════════════════════════ */
+  #panel-bag { display:none; }
+  #panel-bag.active { display:block; }
+  .bag-header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:6px; }
+  .bag-cap-bar { width:100%; height:4px; background:#111; margin-bottom:2px; border-radius:2px; overflow:hidden; }
+  .bag-cap-fill { height:100%; background:linear-gradient(90deg,#44ff88,#FFD700,#ff4444); transition:width .4s; }
+  .bag-grid { display:grid; grid-template-columns:repeat(9,1fr); gap:3px; width:100%; }
+  .bag-slot { aspect-ratio:1; background:#0a0a14; border:1px solid #1a1a2a; position:relative;
+    cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center;
+    font-size:clamp(14px,3.5vw,22px); overflow:hidden; }
+  .bag-slot:hover { border-color:#444; background:#0f0f20; }
+  .bag-slot.empty { cursor:default; }
+  .bag-slot.empty:hover { border-color:#1a1a2a; background:#0a0a14; }
+  .bag-slot.sel { border-color:#FFD700 !important; background:#1a1500 !important; box-shadow:0 0 8px #FFD70066; }
+  .bag-slot.equipped-slot { border-color:#44ff8866 !important; }
+  .bag-slot .slot-rarity-dot { position:absolute; bottom:2px; right:2px; width:4px; height:4px; border-radius:50%; }
+  .bag-slot .slot-eq-badge { position:absolute; top:1px; left:1px; font-size:5px; line-height:1; }
+  .bag-slot .slot-sell-flash { position:absolute; inset:0; background:#FFD70033; pointer-events:none;
+    opacity:0; transition:opacity .2s; }
+  @keyframes bagSlotIn { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+  .bag-slot.just-added { animation:bagSlotIn .25s ease forwards; }
+  .bag-detail { background:#0d0d1a; border:1px solid #222; padding:12px; margin-top:10px; min-height:90px; position:relative; }
+  .bag-detail.hidden { display:none; }
+  .bag-detail-name { font-size:10px; margin-bottom:4px; }
+  .bag-detail-stats { font-size:7px; color:#888; margin-bottom:6px; line-height:1.9; }
+  .bag-detail-desc { font-size:6px; color:#444; font-style:italic; margin-bottom:10px; }
+  .bag-detail-btns { display:flex; gap:6px; flex-wrap:wrap; }
+  .bag-sell-all-btn { font-family:'Press Start 2P',monospace; font-size:6px; padding:6px 10px;
+    background:none; border:1px solid #f0a030; color:#f0a030; cursor:pointer; }
+  .bag-sell-all-btn:hover { background:#f0a03022; }
+  .bag-filter-row { display:flex; gap:3px; flex-wrap:wrap; margin-bottom:8px; align-items:center; }
+  .bag-filter-pill { font-family:'Press Start 2P',monospace; font-size:5px; padding:3px 7px;
+    background:none; border:1px solid #222; color:#444; cursor:pointer; transition:all .15s; }
+  .bag-filter-pill.on { border-color:#FFD700; color:#FFD700; background:#FFD70011; }
+
+  /* ═══════════════════════════════════════
+     INVENTORY SYSTEM — Standalone 90-slot
+  ═══════════════════════════════════════ */
+  .invsys-pill {
+    font-family:'Press Start 2P',monospace; font-size:5px; padding:4px 8px;
+    background:none; border:1px solid #1a1a2a; color:#444; cursor:pointer; transition:all .12s;
+  }
+  .invsys-pill:hover { border-color:#444; color:#888; }
+  .invsys-pill.on  { border-color:#FFD700; color:#FFD700; background:#FFD70011; }
+  .invsys-pill.on2 { border-color:#44aaff; color:#44aaff; background:#44aaff11; }
+  .invsys-sell-btn {
+    font-family:'Press Start 2P',monospace; font-size:5px; padding:4px 8px;
+    background:none; border:1px solid #333; color:#555; cursor:pointer;
+  }
+  .invsys-sell-btn:hover { opacity:.8; }
+  /* Slot grid */
+  .invsys-slot {
+    aspect-ratio:1; background:#070712; border:1px solid #0f0f1e;
+    position:relative; cursor:pointer; transition:border-color .1s, background .1s;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    font-size:clamp(12px,3vw,20px);
+  }
+  .invsys-slot:hover:not(.invsys-empty) { border-color:#333; background:#0c0c22; }
+  .invsys-slot.invsys-empty { cursor:default; }
+  .invsys-slot.invsys-sel { border-color:#FFD700 !important; background:#12100a !important; box-shadow:inset 0 0 6px #FFD70033; }
+  .invsys-slot.invsys-equipped { border-color:#44ff8855 !important; }
+  .invsys-slot.invsys-dimmed { opacity:.15; }
+  .invsys-rdot { position:absolute; bottom:2px; right:2px; width:4px; height:4px; border-radius:50%; }
+  .invsys-eqbadge { position:absolute; top:1px; left:2px; font-size:5px; color:#44ff88; line-height:1; }
+  .invsys-typebadge { position:absolute; top:1px; right:2px; font-size:5px; line-height:1; opacity:.5; }
+  @keyframes invsysSlotIn { from{transform:scale(.4) rotate(-10deg);opacity:0} to{transform:scale(1) rotate(0deg);opacity:1} }
+  .invsys-slot.just-added { animation:invsysSlotIn .2s ease forwards; }
+  /* Detail panel */
+  #invsys-detail .det-icon { font-size:40px; text-align:center; }
+  #invsys-detail .det-name { font-size:9px; line-height:1.4; }
+  #invsys-detail .det-rarity { font-size:6px; letter-spacing:2px; }
+  #invsys-detail .det-stat { font-size:6px; color:#666; line-height:2; }
+  #invsys-detail .det-desc { font-size:6px; color:#333; font-style:italic; }
+  #invsys-detail .det-btn {
+    font-family:'Press Start 2P',monospace; font-size:6px; padding:8px 6px;
+    background:none; border:1px solid #333; color:#555; cursor:pointer; width:100%; text-align:center;
+  }
+  #invsys-detail .det-btn:hover { border-color:#666; color:#999; }
+  #invsys-detail .det-btn.equip { border-color:#44ff8888; color:#44ff88; }
+  #invsys-detail .det-btn.equip:hover { background:#44ff8811; }
+  #invsys-detail .det-btn.sell { border-color:#f0a03088; color:#f0a030; }
+  #invsys-detail .det-btn.sell:hover { background:#f0a03011; }
+  #invsys-detail .det-btn.danger { border-color:#cc444488; color:#cc4444; }
+  #invsys-detail .det-btn.danger:hover { background:#cc444411; }
+  /* Rarity glow on slot */
+  .invsys-slot[data-rarity="Legendary"] { box-shadow:inset 0 0 4px #ffaa0011; }
+  .invsys-slot[data-rarity="Legendary"].invsys-sel { box-shadow:inset 0 0 10px #ffaa0033, 0 0 12px #ffaa0033; }
+  .invsys-slot[data-rarity="Epic"] { box-shadow:inset 0 0 4px #cc44ff11; }
+  .invsys-slot[data-rarity="Epic"].invsys-sel { box-shadow:inset 0 0 10px #cc44ff33, 0 0 12px #cc44ff33; }
+  /* Responsive: stack on small screens */
+  @media (max-width: 480px) {
+    #invsys-detail { width:100%; min-width:0; border-left:none; border-top:1px solid #0f0f20; max-height:180px; }
+    #inventory-screen > div:last-child { flex-direction:column; }
+  }
+
 </style>
 </head>
 <body>
@@ -1001,7 +1098,8 @@
         <div id="inv-all-list" style="display:flex;flex-direction:column;gap:5px;"></div>
       </div>
 
-    </div><!-- /padding -->
+
+        </div><!-- /padding -->
   </div><!-- /max-width -->
 </div>
 
@@ -4856,6 +4954,20 @@ function initGame(fromLoad){
       if(saved.ainv && saved.ainv.length){
         inventory.armors = saved.ainv.map(id=>ARMORS.find(a=>a.id===id)).filter(Boolean);
       }
+      if(saved.bag && saved.bag.length){
+        inventory.bag = new Array(90).fill(null);
+        saved.bag.forEach((entry,i)=>{
+          if(!entry||i>=90) return;
+          const item = entry.type==='weapon'?WEAPONS.find(w=>w.id===entry.id):ARMORS.find(a=>a.id===entry.id);
+          if(item) inventory.bag[i]=item;
+        });
+      } else {
+        // Migrate legacy inventory to bag on first load
+        inventory.bag = new Array(90).fill(null);
+        let si=0;
+        inventory.weapons.forEach(w=>{ if(si<90) inventory.bag[si++]=w; });
+        inventory.armors.forEach(a=>{ if(si<90) inventory.bag[si++]=a; });
+      }
       if(saved.weq){
         const w = WEAPONS.find(x=>x.id===saved.weq);
         if(w) equipped.weapon = w; // don't add w.atk — already in p.attack from save
@@ -7539,7 +7651,8 @@ const ARMORS = [
 ];
 
 // Inventory & equipped items
-const inventory = { weapons:[], armors:[] };
+const inventory = { weapons:[], armors:[], bag: new Array(90).fill(null) };
+const INV_BAG_SIZE = 90;
 const equipped   = { weapon:null, armor:null };
 
 // Pick a random drop for a monster of given tier
@@ -7581,14 +7694,20 @@ function rollDrop(tier){
   return { ...item, type: isWeapon ? 'weapon' : 'armor' };
 }
 
-// Add item to inventory
+// Add item to inventory — goes to both legacy arrays AND new 90-slot bag
 function addToInventory(item){
   if(!item) return;
+  // Legacy arrays (for equip/sell UI)
   if(item.type==='weapon') inventory.weapons.push(item);
   else inventory.armors.push(item);
-  if(inventory.weapons.length > 30) inventory.weapons.shift();
-  if(inventory.armors.length > 30) inventory.armors.shift();
+  if(inventory.weapons.length > 45) inventory.weapons.shift();
+  if(inventory.armors.length > 45) inventory.armors.shift();
+  // Add to 90-slot bag
+  bagAddItem(item);
   questTrackDrop(item.rarity);
+  // Update bag badge + inventory dot
+  updateBagBadge();
+  invsysNotifyNewItem();
 }
 
 // Equip an item — updates player stats
@@ -7642,7 +7761,7 @@ function closeInventory(){
 
 function switchInvTab(tab){
   _invTab = tab;
-  ['equipped','weapons','armors','all'].forEach(t => {
+  ['equipped','weapons','armors','all','bag'].forEach(t => {
     const btn = document.getElementById('tab-'+t);
     const panel = document.getElementById('panel-'+t);
     if(btn) btn.classList.toggle('active', t===tab);
@@ -7651,6 +7770,7 @@ function switchInvTab(tab){
   if(tab==='weapons') renderWeaponList();
   else if(tab==='armors') renderArmorList();
   else if(tab==='all') renderAllDrops();
+  else if(tab==='bag') renderBagGrid();
   else renderEquippedPanel();
 }
 
@@ -7915,6 +8035,8 @@ function showDropPopup(item){
   // Add to drop log (newest first)
   dropLog.unshift(item);
   if(dropLog.length > 100) dropLog.pop();
+  // Auto-add to inventory bag + legacy arrays
+  addToInventory(item);
 
   const el = document.getElementById('drop-popup');
   if(!el) return;
@@ -7928,7 +8050,8 @@ function showDropPopup(item){
     <div style="color:#888;font-size:7px;margin-top:3px;">${item.type==='weapon'?'⚔️ ATK +'+item.atk:'🛡️ DEF +'+item.def+'  ❤️ HP +'+item.hp}</div>
     <div style="color:${col};font-size:7px;margin-top:2px;">${item.rarity} · T${item.t}</div>
     <div style="display:flex;gap:6px;margin-top:10px">
-      <button class="inv-btn" onclick="(function(){const it=window._lastDrop;if(!it)return;const inv=it.type==='weapon'?inventory.weapons:inventory.armors;if(!inv.includes(it))addToInventory(it);equipItem(it);document.getElementById('drop-popup').style.display='none';})()">⚡ EQUIP</button>
+      <button class="inv-btn" onclick="(function(){const it=window._lastDrop;if(!it)return;equipItem(it);document.getElementById('drop-popup').style.display='none';})()">⚡ EQUIP</button>
+      <button class="inv-btn" style="border-color:#44ff88;color:#44ff88" onclick="(function(){openInventoryScreen();document.getElementById('drop-popup').style.display='none';})()">📦 INVENTORY</button>
       <button class="inv-btn" style="border-color:#555;color:#555" onclick="document.getElementById('drop-popup').style.display='none'">✓ OK</button>
     </div>`;
   window._lastDrop = item;
@@ -7998,8 +8121,9 @@ function buildSaveData(){
     bossIdx: bossIndex,
     weq: equipped.weapon ? equipped.weapon.id : null,
     aeq: equipped.armor  ? equipped.armor.id  : null,
-    winv: inventory.weapons.slice(-30).map(w=>w.id),
-    ainv: inventory.armors.slice(-30).map(a=>a.id),
+    winv: inventory.weapons.slice(-45).map(w=>w.id),
+    ainv: inventory.armors.slice(-45).map(a=>a.id),
+    bag: inventory.bag.map(i=>i?{id:i.id,type:i.type}:null),
     skills: skillState,
     ach: achievementState,
     prestige: prestigeState,
@@ -10940,6 +11064,496 @@ async function mktBuyItem(itemId) {
   }
 }
 
+
+// ==============================================
+// 🎒 90-SLOT BAG INVENTORY SYSTEM
+// ==============================================
+let _bagFilter = 'all';
+let _bagSort   = 'new';
+let _bagSelIdx = -1; // currently selected slot index
+
+// ── Core bag helpers ──
+function bagFirstEmpty(){
+  return inventory.bag.indexOf(null);
+}
+function bagUsed(){
+  return inventory.bag.filter(Boolean).length;
+}
+function bagAddItem(item){
+  if(!item) return false;
+  // If already in bag (same object ref), skip
+  if(inventory.bag.includes(item)) return true;
+  const idx = bagFirstEmpty();
+  if(idx === -1){
+    showSellToast('⚠️ Bag full! (90/90) — sell items first.','#ff4444');
+    return false;
+  }
+  inventory.bag[idx] = item;
+  updateBagBadge();
+  return true;
+}
+function bagRemoveItem(item){
+  const idx = inventory.bag.indexOf(item);
+  if(idx !== -1) inventory.bag[idx] = null;
+  updateBagBadge();
+}
+function updateBagBadge(){
+  const used = bagUsed();
+  const el = document.getElementById('bag-used-badge');
+  if(el) el.textContent = used > 0 ? used+'/90' : '';
+}
+
+// ── Render 90-slot grid ──
+function renderBagGrid(){
+  const grid = document.getElementById('bag-grid');
+  const capFill = document.getElementById('bag-cap-fill');
+  const capLabel = document.getElementById('bag-cap-label');
+  const slotCount = document.getElementById('bag-slot-count');
+  if(!grid) return;
+
+  const used = bagUsed();
+  if(capFill) capFill.style.width = (used/90*100)+'%';
+  if(capLabel) capLabel.textContent = used+' / 90 slots used';
+  if(slotCount) slotCount.textContent = used+'/90';
+  updateBagBadge();
+
+  // Build filtered ordered list of (slotIndex, item) pairs
+  let pairs = inventory.bag.map((item,i)=>({i,item}));
+
+  // Apply filter to dim non-matching (still show all slots for positional clarity)
+  const filter = _bagFilter;
+
+  // Sort: rearrange filled slots by sort mode, preserve empties at end
+  let filled = pairs.filter(p=>p.item);
+  let empties = pairs.filter(p=>!p.item);
+
+  if(_bagSort === 'tier') filled.sort((a,b)=>(b.item.t||0)-(a.item.t||0));
+  else if(_bagSort === 'rarity'){
+    const RO = {Common:0,Uncommon:1,Rare:2,Epic:3,Legendary:4};
+    filled.sort((a,b)=>(RO[b.item.rarity]||0)-(RO[a.item.rarity]||0));
+  }
+  // 'new' = original insertion order (no sort)
+
+  const sorted = [...filled, ...empties];
+
+  const RC = {Common:'#888',Uncommon:'#44dd44',Rare:'#4488ff',Epic:'#cc44ff',Legendary:'#ffaa00'};
+
+  grid.innerHTML = '';
+  sorted.forEach(({i: slotIdx, item}, displayIdx) => {
+    const slot = document.createElement('div');
+    slot.className = 'bag-slot' + (item?'':' empty');
+
+    if(item){
+      const col = RC[item.rarity]||'#888';
+      const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+      if(isEq) slot.classList.add('equipped-slot');
+      if(displayIdx === _bagSelIdx) slot.classList.add('sel');
+
+      // Rarity filter dimming
+      const show = filter==='all' ||
+        filter===item.type ||
+        (filter==='Rare' && ['Rare','Epic','Legendary'].includes(item.rarity)) ||
+        (filter==='Epic' && ['Epic','Legendary'].includes(item.rarity)) ||
+        filter===item.rarity;
+      if(!show) slot.style.opacity='0.18';
+
+      slot.innerHTML = `
+        <span style="line-height:1;">${item.emoji||'⚔️'}</span>
+        <div class="slot-rarity-dot" style="background:${col};"></div>
+        ${isEq?'<div class="slot-eq-badge">✓</div>':''}
+        <div class="slot-sell-flash" id="sflash-${displayIdx}"></div>`;
+      slot.onclick = () => bagSelectSlot(displayIdx, slotIdx, item);
+    } else {
+      slot.innerHTML = '<span style="color:#1a1a2a;font-size:10px;">·</span>';
+    }
+    grid.appendChild(slot);
+  });
+
+  // Re-render detail if something selected
+  if(_bagSelIdx >= 0 && sorted[_bagSelIdx]?.item){
+    showBagDetail(sorted[_bagSelIdx].i, sorted[_bagSelIdx].item);
+  } else {
+    hideBagDetail();
+  }
+}
+
+function bagSelectSlot(displayIdx, slotIdx, item){
+  if(_bagSelIdx === displayIdx){
+    _bagSelIdx = -1;
+    hideBagDetail();
+    renderBagGrid();
+    return;
+  }
+  _bagSelIdx = displayIdx;
+  renderBagGrid();
+  showBagDetail(slotIdx, item);
+}
+
+function showBagDetail(slotIdx, item){
+  const d = document.getElementById('bag-detail');
+  if(!d) return;
+  const col = {Common:'#888',Uncommon:'#44dd44',Rare:'#4488ff',Epic:'#cc44ff',Legendary:'#ffaa00'}[item.rarity]||'#888';
+  const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+  const sellPrice = getSellPrice(item);
+  const stats = item.type==='weapon'
+    ? `⚔️ ATK +${item.atk}  ·  SPD +${item.spd||0}  ·  Tier ${item.t}  ${item.element?'· ['+item.element.toUpperCase()+']':''}`
+    : `🛡️ DEF +${item.def}  ·  ❤️ HP +${item.hp}  ·  Tier ${item.t}`;
+
+  d.className = 'bag-detail';
+  d.innerHTML = `
+    <div style="display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:36px;filter:drop-shadow(0 0 8px ${col}88);">${item.emoji||'⚔️'}</span>
+      <div style="flex:1;">
+        <div class="bag-detail-name" style="color:${col};">${item.name}</div>
+        <div style="font-size:6px;color:${col}88;letter-spacing:2px;margin-bottom:4px;">${item.rarity.toUpperCase()} ${item.type.toUpperCase()}</div>
+        <div class="bag-detail-stats">${stats}</div>
+        <div class="bag-detail-desc">"${item.desc||''}"</div>
+      </div>
+    </div>
+    <div class="bag-detail-btns">
+      ${!isEq
+        ? `<button class="inv-btn" onclick="bagEquipItem(${slotIdx})">⚡ EQUIP</button>`
+        : `<button class="inv-btn danger" onclick="unequipItem('${item.type}');renderBagGrid();">✓ UNEQUIP</button>`}
+      ${!isEq
+        ? `<button class="inv-btn" style="border-color:#f0a030;color:#f0a030;" onclick="bagSellSlot(${slotIdx})">💰 SELL for ${sellPrice}g</button>`
+        : ''}
+      <button class="inv-btn" style="border-color:#333;color:#444;font-size:6px;" onclick="_bagSelIdx=-1;hideBagDetail();renderBagGrid();">✕</button>
+    </div>`;
+}
+
+function hideBagDetail(){
+  const d = document.getElementById('bag-detail');
+  if(d){ d.className='bag-detail hidden'; d.innerHTML=''; }
+}
+
+function bagEquipItem(slotIdx){
+  const item = inventory.bag[slotIdx];
+  if(!item) return;
+  // Make sure it's in legacy arrays for equip system
+  if(item.type==='weapon' && !inventory.weapons.includes(item)) inventory.weapons.push(item);
+  if(item.type==='armor'  && !inventory.armors.includes(item))  inventory.armors.push(item);
+  equipItem(item);
+  _bagSelIdx = -1;
+  renderBagGrid();
+  renderEquippedPanel();
+}
+
+function bagSellSlot(slotIdx){
+  const item = inventory.bag[slotIdx];
+  if(!item) return;
+  const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+  if(isEq){ showSellToast('⚠️ Unequip first!','#ff8844'); return; }
+  const price = getSellPrice(item);
+  state.player.coins += price;
+  // Remove from bag
+  inventory.bag[slotIdx] = null;
+  // Remove from legacy arrays
+  const wa = item.type==='weapon'?inventory.weapons:inventory.armors;
+  const li = wa.indexOf(item);
+  if(li !== -1) wa.splice(li, 1);
+  // Remove from dropLog
+  const di = dropLog.indexOf(item);
+  if(di !== -1) dropLog.splice(di, 1);
+  showSellToast('💰 Sold '+item.name+' for '+price+'g','#f0a030');
+  _bagSelIdx = -1;
+  updateHUD();
+  renderBagGrid();
+}
+
+function bagSellAll(rarity){
+  let sold = 0, coins = 0;
+  inventory.bag.forEach((item, i) => {
+    if(!item) return;
+    if(item.rarity !== rarity) return;
+    const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+    if(isEq) return;
+    coins += getSellPrice(item);
+    // Remove from legacy
+    const wa = item.type==='weapon'?inventory.weapons:inventory.armors;
+    const li = wa.indexOf(item); if(li!==-1) wa.splice(li,1);
+    const di = dropLog.indexOf(item); if(di!==-1) dropLog.splice(di,1);
+    inventory.bag[i] = null;
+    sold++;
+  });
+  if(sold === 0){ showSellToast('No '+rarity+' items to sell','#888'); return; }
+  state.player.coins += coins;
+  _bagSelIdx = -1;
+  updateHUD();
+  renderBagGrid();
+  showSellToast('💰 Sold '+sold+' '+rarity+' items for '+coins+'g','#f0a030');
+}
+
+function setBagFilter(f, btn){
+  _bagFilter = f;
+  document.querySelectorAll('.bag-filter-pill').forEach(b=>b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  renderBagGrid();
+}
+
+function bagSortBy(s){
+  _bagSort = s;
+  document.querySelectorAll('[id^=bsort-]').forEach(b=>b.classList.remove('on'));
+  const el = document.getElementById('bsort-'+s);
+  if(el) el.classList.add('on');
+  _bagSelIdx = -1;
+  renderBagGrid();
+}
+
+// Auto-open to bag tab shortcut
+function openBag(){ openInventory('bag'); }
+
+
+
+// ══════════════════════════════════════════════════
+// 📦 INVENTORY SYSTEM — Standalone 90-slot screen
+// ══════════════════════════════════════════════════
+let _invsysFilter = 'all';
+let _invsysSort   = 'new';
+let _invsysSel    = -1;  // selected real slot index in inventory.bag
+
+function openInventoryScreen(){
+  const sc = document.getElementById('inventory-screen');
+  if(!sc) return;
+  sc.style.display = 'flex';
+  _invsysSel = -1;
+  invsysRender();
+  // Clear new-item dot
+  const dot = document.getElementById('invsys-dot-tb');
+  if(dot) dot.style.display = 'none';
+}
+
+function closeInventoryScreen(){
+  const sc = document.getElementById('inventory-screen');
+  if(sc) sc.style.display = 'none';
+}
+
+// ── Main render ──────────────────────────────────
+function invsysRender(){
+  const grid = document.getElementById('invsys-grid');
+  if(!grid) return;
+
+  // Update header numbers
+  const used = inventory.bag.filter(Boolean).length;
+  const el_used = document.getElementById('invsys-used');
+  const el_cap  = document.getElementById('invsys-capbar');
+  const el_coin = document.getElementById('invsys-coins-val');
+  if(el_used) el_used.textContent = used;
+  if(el_cap)  el_cap.style.width  = (used / 90 * 100) + '%';
+  if(el_coin) el_coin.textContent = (state?.player?.coins || 0).toLocaleString();
+
+  // Build display list
+  const RC = {Common:'#666',Uncommon:'#44dd44',Rare:'#4488ff',Epic:'#cc44ff',Legendary:'#ffaa00'};
+  const RORDER = {Common:0,Uncommon:1,Rare:2,Epic:3,Legendary:4};
+
+  // Collect filled pairs + empties
+  let filled = [];
+  let empties = [];
+  inventory.bag.forEach((item, i) => {
+    if(item) filled.push({i, item});
+    else empties.push({i, item:null});
+  });
+
+  // Sort filled
+  if(_invsysSort === 'tier')   filled.sort((a,b)=>(b.item.t||0)-(a.item.t||0));
+  else if(_invsysSort === 'rarity') filled.sort((a,b)=>(RORDER[b.item.rarity]||0)-(RORDER[a.item.rarity]||0));
+  // 'new' = insertion order
+
+  const pairs = [...filled, ...empties];
+
+  grid.innerHTML = '';
+
+  pairs.forEach(({i: slotIdx, item}) => {
+    const slot = document.createElement('div');
+
+    if(!item){
+      slot.className = 'invsys-slot invsys-empty';
+      slot.innerHTML = '<span style="color:#0d0d1e;font-size:9px;">·</span>';
+      grid.appendChild(slot);
+      return;
+    }
+
+    const col = RC[item.rarity] || '#888';
+    const isEq = (item.type==='weapon' && equipped.weapon===item) ||
+                 (item.type==='armor'  && equipped.armor===item);
+
+    // Filter
+    const show = _invsysFilter === 'all'
+      || _invsysFilter === item.type
+      || (_invsysFilter === 'Rare'      && ['Rare','Epic','Legendary'].includes(item.rarity))
+      || (_invsysFilter === 'Epic'      && ['Epic','Legendary'].includes(item.rarity))
+      || _invsysFilter === item.rarity;
+
+    slot.className = 'invsys-slot'
+      + (isEq       ? ' invsys-equipped' : '')
+      + (!show      ? ' invsys-dimmed'   : '')
+      + (slotIdx === _invsysSel ? ' invsys-sel' : '');
+    slot.dataset.rarity = item.rarity;
+
+    // Rarity glow border override
+    if(show) slot.style.borderColor = col + '44';
+
+    slot.innerHTML = `
+      <span style="line-height:1;filter:drop-shadow(0 0 3px ${col}66);">${item.emoji || (item.type==='weapon'?'⚔️':'🛡️')}</span>
+      <div class="invsys-rdot" style="background:${col};box-shadow:0 0 3px ${col};"></div>
+      ${isEq ? '<div class="invsys-eqbadge">✓</div>' : ''}
+      <div class="invsys-typebadge">${item.type==='weapon'?'⚔':'🛡'}</div>`;
+
+    slot.onclick = () => invsysSelectSlot(slotIdx);
+    grid.appendChild(slot);
+  });
+
+  // Re-draw detail if something selected
+  if(_invsysSel >= 0 && inventory.bag[_invsysSel]){
+    invsysShowDetail(_invsysSel);
+  } else {
+    invsysClearDetail();
+  }
+}
+
+// ── Slot selection ────────────────────────────────
+function invsysSelectSlot(slotIdx){
+  if(_invsysSel === slotIdx){
+    _invsysSel = -1;
+    invsysClearDetail();
+    invsysRender();
+    return;
+  }
+  _invsysSel = slotIdx;
+  invsysRender();
+  invsysShowDetail(slotIdx);
+}
+
+// ── Detail panel ─────────────────────────────────
+function invsysShowDetail(slotIdx){
+  const item = inventory.bag[slotIdx];
+  const d    = document.getElementById('invsys-detail');
+  if(!item || !d) return;
+
+  const RC  = {Common:'#666',Uncommon:'#44dd44',Rare:'#4488ff',Epic:'#cc44ff',Legendary:'#ffaa00'};
+  const col = RC[item.rarity] || '#888';
+  const isEq = (item.type==='weapon' && equipped.weapon===item) ||
+               (item.type==='armor'  && equipped.armor===item);
+  const price = getSellPrice(item);
+
+  const stats = item.type === 'weapon'
+    ? `<div class="det-stat">⚔️ ATK <b style="color:#ff8844">+${item.atk}</b></div>
+       <div class="det-stat">⚡ SPD <b style="color:#88aaff">+${item.spd||0}</b></div>
+       <div class="det-stat">🏷️ Tier <b style="color:#aaa">${item.t}</b></div>
+       ${item.element ? `<div class="det-stat">🌀 ${item.element.toUpperCase()}</div>` : ''}`
+    : `<div class="det-stat">🛡️ DEF <b style="color:#44aaff">+${item.def}</b></div>
+       <div class="det-stat">❤️ HP <b style="color:#44ff88">+${item.hp}</b></div>
+       <div class="det-stat">🏷️ Tier <b style="color:#aaa">${item.t}</b></div>`;
+
+  // Compare vs equipped
+  let cmpHtml = '';
+  if(item.type==='weapon' && equipped.weapon && equipped.weapon !== item){
+    const diff = item.atk - equipped.weapon.atk;
+    const arrow = diff > 0 ? `<span style="color:#44ff88">▲+${diff}</span>` : `<span style="color:#ff4444">▼${diff}</span>`;
+    cmpHtml = `<div style="font-size:6px;color:#555;margin-top:6px;border-top:1px solid #111;padding-top:6px;">vs ${equipped.weapon.name}<br>ATK ${arrow}</div>`;
+  } else if(item.type==='armor' && equipped.armor && equipped.armor !== item){
+    const ddiff = item.def - equipped.armor.def;
+    const hdiff = item.hp - equipped.armor.hp;
+    const da = ddiff>0?`<span style="color:#44ff88">▲+${ddiff}</span>`:`<span style="color:#ff4444">▼${ddiff}</span>`;
+    const ha = hdiff>0?`<span style="color:#44ff88">▲+${hdiff}</span>`:`<span style="color:#ff4444">▼${hdiff}</span>`;
+    cmpHtml = `<div style="font-size:6px;color:#555;margin-top:6px;border-top:1px solid #111;padding-top:6px;">vs ${equipped.armor.name}<br>DEF ${da} &nbsp; HP ${ha}</div>`;
+  }
+
+  d.innerHTML = `
+    <div style="text-align:center;padding:8px 0 4px;">
+      <div class="det-icon" style="filter:drop-shadow(0 0 10px ${col}88);">${item.emoji||'⚔️'}</div>
+      <div class="det-name" style="color:${col};margin-top:6px;">${item.name}</div>
+      <div class="det-rarity" style="color:${col}88;margin-top:2px;">${item.rarity.toUpperCase()}</div>
+    </div>
+    <div style="border-top:1px solid #0f0f1e;padding-top:8px;">
+      ${stats}
+    </div>
+    <div class="det-desc" style="margin-top:6px;">"${item.desc||''}"</div>
+    ${cmpHtml}
+    <div style="margin-top:auto;padding-top:10px;display:flex;flex-direction:column;gap:5px;">
+      ${!isEq
+        ? `<button class="det-btn equip" onclick="invsysEquip(${slotIdx})">⚡ EQUIP</button>`
+        : `<button class="det-btn danger" onclick="unequipItem('${item.type}');invsysRender();">UNEQUIP</button>`}
+      ${!isEq
+        ? `<button class="det-btn sell" onclick="invsysSell(${slotIdx})">💰 SELL  ${price}g</button>`
+        : ''}
+      <button class="det-btn" style="font-size:5px;" onclick="_invsysSel=-1;invsysClearDetail();invsysRender();">✕ DESELECT</button>
+    </div>`;
+}
+
+function invsysClearDetail(){
+  const d = document.getElementById('invsys-detail');
+  if(d) d.innerHTML = '<div style="font-size:6px;color:#1a1a2a;text-align:center;margin-top:40%;font-family:\'Press Start 2P\',monospace;line-height:2;">SELECT AN<br>ITEM SLOT</div>';
+}
+
+// ── Actions ──────────────────────────────────────
+function invsysEquip(slotIdx){
+  const item = inventory.bag[slotIdx];
+  if(!item) return;
+  if(item.type==='weapon' && !inventory.weapons.includes(item)) inventory.weapons.push(item);
+  if(item.type==='armor'  && !inventory.armors.includes(item))  inventory.armors.push(item);
+  equipItem(item);
+  invsysRender();
+}
+
+function invsysSell(slotIdx){
+  const item = inventory.bag[slotIdx];
+  if(!item) return;
+  const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+  if(isEq){ showSellToast('⚠️ Unequip first!','#ff8844'); return; }
+  const price = getSellPrice(item);
+  state.player.coins += price;
+  inventory.bag[slotIdx] = null;
+  const wa = item.type==='weapon' ? inventory.weapons : inventory.armors;
+  const li = wa.indexOf(item); if(li!==-1) wa.splice(li,1);
+  const di = dropLog.indexOf(item); if(di!==-1) dropLog.splice(di,1);
+  showSellToast('💰 Sold ' + item.name + ' for ' + price + 'g', '#f0a030');
+  _invsysSel = -1;
+  updateHUD();
+  invsysRender();
+}
+
+function invsysSellRarity(rarity){
+  let sold = 0, coins = 0;
+  inventory.bag.forEach((item, i) => {
+    if(!item || item.rarity !== rarity) return;
+    const isEq = (item.type==='weapon'&&equipped.weapon===item)||(item.type==='armor'&&equipped.armor===item);
+    if(isEq) return;
+    coins += getSellPrice(item);
+    const wa = item.type==='weapon'?inventory.weapons:inventory.armors;
+    const li = wa.indexOf(item); if(li!==-1) wa.splice(li,1);
+    const di = dropLog.indexOf(item); if(di!==-1) dropLog.splice(di,1);
+    inventory.bag[i] = null;
+    sold++;
+  });
+  if(!sold){ showSellToast('No ' + rarity + ' items to sell','#888'); return; }
+  state.player.coins += coins;
+  _invsysSel = -1;
+  updateHUD();
+  invsysRender();
+  showSellToast('💰 Sold ' + sold + ' × ' + rarity + ' for ' + coins + 'g', '#f0a030');
+}
+
+function invsysFilter(f, btn){
+  _invsysFilter = f;
+  document.querySelectorAll('.invsys-pill').forEach(b => b.classList.remove('on'));
+  if(btn) btn.classList.add('on');
+  invsysRender();
+}
+
+function invsysSort(s, btn){
+  _invsysSort = s;
+  document.querySelectorAll('[id^=invsort-]').forEach(b => b.classList.remove('on2'));
+  if(btn) btn.classList.add('on2');
+  _invsysSel = -1;
+  invsysRender();
+}
+
+// Show notification dot when new item drops
+function invsysNotifyNewItem(){
+  const dot = document.getElementById('invsys-dot-tb');
+  if(dot){ dot.style.display='block'; }
+}
+
 </script>
 <!-- UNIFIED TOOLBAR -->
 <div id="toolbar">
@@ -10953,6 +11567,10 @@ async function mktBuyItem(itemId) {
   <button class="tb-btn" id="tb-bag" onclick="openInventory();playSoundUIClick()">
     <span class="tb-icon">🎒</span>BAG
     <span class="tb-dot" id="bag-dot-tb"></span>
+  </button>
+  <button class="tb-btn" id="tb-invsys" onclick="openInventoryScreen();playSoundUIClick()">
+    <span class="tb-icon">📦</span>INV
+    <span class="tb-dot" id="invsys-dot-tb" style="display:none;"></span>
   </button>
   <button class="tb-btn" id="tb-travel" onclick="openFastTravel();playSoundUIClick()">
     <span class="tb-icon">🗺️</span>TRAVEL
@@ -11003,6 +11621,68 @@ async function mktBuyItem(itemId) {
 <div id="settings-screen"></div>
 <div id="bestiary-screen"></div>
 <div id="storyev-screen"></div>
+
+
+<!-- INVENTORY SYSTEM — 90 Slot Grid -->
+<div id="inventory-screen" style="display:none;position:fixed;inset:0;z-index:95;flex-direction:column;background:#04040e;">
+
+  <!-- Scanline overlay -->
+  <div style="position:absolute;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 4px);"></div>
+
+  <!-- Header -->
+  <div style="position:sticky;top:0;z-index:10;background:#04040e;border-bottom:2px solid #FFD70033;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:0;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:clamp(12px,3.5vw,20px);background:linear-gradient(135deg,#FFD700,#ff8c00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 12px #FFD70044);letter-spacing:2px;">⬡ INVENTORY</div>
+      <div style="font-size:5px;color:#333;margin-top:2px;letter-spacing:3px;">ITEM STORAGE SYSTEM · 90 SLOTS</div>
+    </div>
+    <!-- Stat pills -->
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+      <div id="invsys-coins" style="font-size:7px;color:#FFD700;background:#FFD70011;border:1px solid #FFD70033;padding:4px 8px;">🪙 <span id="invsys-coins-val">0</span></div>
+      <div id="invsys-capacity" style="font-size:7px;color:#44ff88;background:#44ff8811;border:1px solid #44ff8833;padding:4px 8px;"><span id="invsys-used">0</span>/90</div>
+    </div>
+    <button onclick="closeInventoryScreen()" style="font-family:'Press Start 2P',monospace;font-size:7px;background:none;border:2px solid #cc4444;color:#cc4444;padding:6px 12px;cursor:pointer;">✖ CLOSE</button>
+  </div>
+
+  <!-- Capacity bar -->
+  <div style="height:3px;background:#0a0a18;width:100%;">
+    <div id="invsys-capbar" style="height:100%;background:linear-gradient(90deg,#44ff88,#FFD700,#ff4444);width:0%;transition:width .4s;"></div>
+  </div>
+
+  <!-- Controls row -->
+  <div style="padding:8px 14px;background:#060612;border-bottom:1px solid #0f0f20;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:5px;color:#333;font-family:'Press Start 2P',monospace;">FILTER:</span>
+    <button class="invsys-pill on" onclick="invsysFilter('all',this)">ALL</button>
+    <button class="invsys-pill" onclick="invsysFilter('weapon',this)">⚔️ WPN</button>
+    <button class="invsys-pill" onclick="invsysFilter('armor',this)">🛡️ ARM</button>
+    <button class="invsys-pill" style="color:#4488ff;border-color:#4488ff44;" onclick="invsysFilter('Rare',this)">RARE+</button>
+    <button class="invsys-pill" style="color:#cc44ff;border-color:#cc44ff44;" onclick="invsysFilter('Epic',this)">EPIC+</button>
+    <button class="invsys-pill" style="color:#ffaa00;border-color:#ffaa0044;" onclick="invsysFilter('Legendary',this)">LEG</button>
+    <div style="width:1px;height:14px;background:#1a1a2a;margin:0 2px;"></div>
+    <span style="font-size:5px;color:#333;font-family:'Press Start 2P',monospace;">SORT:</span>
+    <button class="invsys-pill on2" id="invsort-new" onclick="invsysSort('new',this)">NEW▼</button>
+    <button class="invsys-pill" id="invsort-tier" onclick="invsysSort('tier',this)">TIER</button>
+    <button class="invsys-pill" id="invsort-rarity" onclick="invsysSort('rarity',this)">RARITY</button>
+    <div style="flex:1;min-width:10px;"></div>
+    <button class="invsys-sell-btn" onclick="invsysSellRarity('Common')" style="color:#888;border-color:#33333388;">SELL CMN</button>
+    <button class="invsys-sell-btn" onclick="invsysSellRarity('Uncommon')" style="color:#44dd44;border-color:#44dd4444;">SELL UNC</button>
+  </div>
+
+  <!-- Main area: grid + detail panel -->
+  <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+
+    <!-- Grid -->
+    <div style="flex:1;overflow-y:auto;padding:10px 12px;">
+      <div id="invsys-grid" style="display:grid;grid-template-columns:repeat(9,1fr);gap:4px;"></div>
+    </div>
+
+    <!-- Detail panel (right side on wide, bottom on narrow) -->
+    <div id="invsys-detail" style="width:200px;min-width:200px;background:#06060f;border-left:1px solid #0f0f20;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;">
+      <div style="font-size:6px;color:#222;text-align:center;margin-top:40%;font-family:'Press Start 2P',monospace;line-height:2;">SELECT AN<br>ITEM SLOT</div>
+    </div>
+
+  </div>
+
+</div>
 
 <!-- GOZO MARKET SCREEN -->
 <div id="market-screen" style="display:none;position:fixed;inset:0;background:#020208;z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;"></div>
