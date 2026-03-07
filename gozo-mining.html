@@ -114,7 +114,131 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 .pip.on{background:#e8c060;border-color:#e8c060;}
 .uco{font-size:13px;color:#f0c840;} .uco.red{color:#e04848;}
 
-/* LADDER MODAL */
+/* VILLAGE SHOP MODAL */
+#shop-panel{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:400;background:rgba(8,5,2,.97);
+  border:3px solid #c08030;border-radius:4px;
+  padding:0;display:none;width:440px;max-height:85vh;
+  overflow:hidden;flex-direction:column;
+}
+#shop-panel.open{display:flex;}
+#shop-header{
+  background:linear-gradient(180deg,#3a2010,#2a1808);
+  padding:12px 16px 10px;border-bottom:2px solid #6a4020;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#shop-title{font-family:'Press Start 2P',monospace;font-size:9px;color:#f0c840;}
+#shop-npc-name{font-family:'Press Start 2P',monospace;font-size:6px;color:#c08040;margin-top:3px;}
+#shop-close-btn{
+  background:none;border:1px solid #6a4020;color:#e0a040;
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:4px 8px;cursor:pointer;border-radius:2px;
+}
+#shop-close-btn:hover{border-color:#f0c840;color:#f0c840;}
+#shop-tabs{
+  display:flex;border-bottom:2px solid #3a2010;background:#1a0e06;
+}
+.shop-tab{
+  flex:1;padding:7px 4px;font-family:'Press Start 2P',monospace;font-size:6px;
+  color:#7a5030;cursor:pointer;text-align:center;border:none;
+  background:none;border-right:1px solid #2a1808;transition:all .1s;
+}
+.shop-tab.active{color:#f0c840;background:rgba(240,200,64,.08);border-bottom:2px solid #f0c840;margin-bottom:-2px;}
+.shop-tab:hover:not(.active){color:#c08040;background:rgba(255,255,255,.04);}
+#shop-body{
+  display:flex;flex:1;overflow:hidden;
+}
+#shop-items{
+  flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;
+  align-content:start;
+}
+.shop-item{
+  border:1px solid #3a2010;border-radius:2px;padding:7px;
+  background:rgba(255,255,255,.03);cursor:pointer;transition:all .1s;
+  display:flex;flex-direction:column;gap:3px;
+}
+.shop-item:hover{border-color:#c08030;background:rgba(192,128,48,.1);}
+.shop-item.selected{border-color:#f0c840;background:rgba(240,200,64,.12);}
+.si-top{display:flex;align-items:center;gap:6px;}
+.si-icon{font-size:20px;line-height:1;flex-shrink:0;}
+.si-name{font-family:'Press Start 2P',monospace;font-size:5px;color:#e0c090;line-height:1.5;}
+.si-tier{font-family:'Press Start 2P',monospace;font-size:4px;margin-top:1px;}
+.si-price{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;}
+.si-sell{font-family:'Press Start 2P',monospace;font-size:5px;color:#80e890;}
+#shop-action{
+  width:140px;border-left:2px solid #2a1808;padding:12px;
+  display:flex;flex-direction:column;gap:8px;background:#120a04;
+}
+#shop-item-detail{flex:1;}
+#shop-item-icon{font-size:32px;text-align:center;margin-bottom:6px;}
+#shop-item-title{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;margin-bottom:4px;line-height:1.5;}
+#shop-item-desc{font-family:'Press Start 2P',monospace;font-size:5px;color:#907050;line-height:1.6;}
+#shop-buy-btn,#shop-sell-btn{
+  width:100%;padding:7px 4px;font-family:'Press Start 2P',monospace;font-size:6px;
+  cursor:pointer;border-radius:2px;border:1px solid;transition:all .1s;
+}
+#shop-buy-btn{background:rgba(240,200,64,.12);border-color:#c08030;color:#f0c840;}
+#shop-buy-btn:hover:not(:disabled){background:rgba(240,200,64,.25);border-color:#f0c840;}
+#shop-buy-btn:disabled{opacity:.4;cursor:not-allowed;}
+#shop-sell-btn{background:rgba(96,220,120,.1);border-color:#40c060;color:#60e880;}
+#shop-sell-btn:hover:not(:disabled){background:rgba(96,220,120,.2);}
+#shop-sell-btn:disabled{opacity:.4;cursor:not-allowed;}
+#shop-gold-bar{
+  font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;
+  padding:6px;background:rgba(240,200,64,.08);border:1px solid #4a3010;
+  border-radius:2px;text-align:center;
+}
+/* MINER NPC styles */
+.miner-npc{ position:absolute; pointer-events:none; }
+
+/* PORTAL panel update for floor 0 */
+.pfl.village{ border-color:#c08030!important; color:#f0c840!important; cursor:pointer!important; background:rgba(192,128,48,.2)!important; }
+.pfl.village:hover{ background:rgba(240,180,60,.35)!important; }
+
+
+#portal-panel{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:350;background:rgba(10,5,20,.97);
+  border:3px solid #8050c0;border-radius:4px;
+  padding:14px;display:none;min-width:320px;max-width:480px;
+}
+#portal-panel.open{display:block;}
+#portal-panel h3{
+  font-family:'Press Start 2P',monospace;font-size:8px;color:#c080ff;
+  text-align:center;margin-bottom:10px;padding-bottom:8px;
+  border-bottom:1px solid #4a2080;
+}
+#portal-grid{
+  display:grid;grid-template-columns:repeat(10,1fr);gap:3px;
+  max-height:320px;overflow-y:auto;margin-bottom:10px;
+}
+.pfl{
+  width:28px;height:28px;border:1px solid #3a2060;border-radius:2px;
+  background:rgba(255,255,255,.04);
+  font-family:'Press Start 2P',monospace;font-size:5px;
+  color:#6a5080;cursor:not-allowed;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;transition:all .1s;
+}
+.pfl.visited{
+  border-color:#6040a0;color:#c080ff;cursor:pointer;
+  background:rgba(120,60,200,.15);
+}
+.pfl.visited:hover{background:rgba(160,80,255,.3);border-color:#c080ff;}
+.pfl.current{border-color:#f0c840!important;color:#f0c840!important;background:rgba(240,200,64,.2)!important;cursor:default;}
+.pfl .pfl-biome{font-size:8px;line-height:1;}
+.pfl .pfl-num{font-size:4px;margin-top:1px;}
+#portal-close{
+  width:100%;padding:5px;background:transparent;
+  border:1px solid #6a4820;color:#e0c080;
+  font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;
+}
+#portal-close:hover{border-color:#c080ff;color:#c080ff;}
+#portal-info{
+  font-family:'Press Start 2P',monospace;font-size:6px;color:#a080c0;
+  text-align:center;margin-bottom:8px;min-height:14px;
+}
 #lm{position:absolute;top:50%;left:50%;transform:translate(-50%,-55%);
   z-index:300;background:rgba(16,8,2,.97);border:3px solid #e8c060;border-radius:3px;
   padding:22px 30px;text-align:center;display:none;}
@@ -223,8 +347,34 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   color:#e8c060;z-index:999;pointer-events:none;opacity:0;transition:opacity .25s;white-space:nowrap;}
 #toast.show{opacity:1;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.1/ethers.umd.min.js"></script>
 </head>
 <body>
+
+<!-- LEGENDARY SHOP MODAL -->
+<div id="legend-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:2000;display:none;align-items:center;justify-content:center;">
+  <div style="background:#0a0810;border:2px solid #ffdd00;border-radius:8px;width:420px;max-width:95vw;padding:20px;font-family:'Press Start 2P',monospace;color:#fff;max-height:90vh;overflow-y:auto;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:24px;margin-bottom:4px;">🌟</div>
+      <div style="color:#ffdd00;font-size:10px;letter-spacing:2px;">ZAEL THE LEGEND</div>
+      <div style="color:#aaa;font-size:6px;margin-top:4px;">Legendary Weapons — GOZO Token Only</div>
+      <div style="color:#555;font-size:5px;margin-top:2px;">Monad Mainnet · Purchased GOZO is burned forever</div>
+    </div>
+
+    <!-- Wallet status -->
+    <div id="legend-wallet-bar" style="background:#111;border:1px solid #333;border-radius:4px;padding:8px;margin-bottom:12px;font-size:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span id="legend-wallet-status" style="color:#e06040;">⬤ Not connected</span>
+      <span id="legend-wallet-addr" style="color:#888;flex:1;word-break:break-all;"></span>
+      <span id="legend-gozo-bal" style="color:#ffdd00;"></span>
+      <button id="legend-connect-btn" onclick="legendConnectWallet()" style="background:#1a1030;border:1px solid #8844ff;color:#cc88ff;padding:4px 8px;font-family:'Press Start 2P',monospace;font-size:5px;cursor:pointer;border-radius:3px;">CONNECT</button>
+    </div>
+
+    <!-- Items grid -->
+    <div id="legend-items" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+    <button onclick="closeLegendShop()" style="width:100%;margin-top:16px;background:#1a0808;border:1px solid #553333;color:#886666;padding:8px;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;border-radius:4px;">✕ CLOSE</button>
+  </div>
+</div>
 
 <!-- SPLASH -->
 <div id="splash">
@@ -257,9 +407,16 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 
   <!-- Inventory Panel -->
   <div id="inv-panel">
-    <h3>🎒 INVENTORY (I)</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #4a3010;padding-bottom:6px;margin-bottom:10px;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f0c840;">🎒 INVENTORY (I)</span>
+      <span id="inv-slot-count" style="font-family:'Press Start 2P',monospace;font-size:6px;color:#a08060;"></span>
+    </div>
     <div id="inv-grid"></div>
-    <div id="inv-info">Click item for details. Drag weapons to equip.</div>
+    <div id="inv-expand-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:6px;background:rgba(0,0,0,0.3);border:1px solid #3a2810;border-radius:2px;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#a08060;">+6 SLOTS</span>
+      <button onclick="expandInventory()" id="inv-expand-btn" style="padding:4px 10px;background:#1a1208;border:2px solid #c08020;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 BUY</button>
+    </div>
+    <div id="inv-info" style="margin-top:6px;">Click item for details.</div>
     <button id="inv-close" onclick="toggleInv()">✕ CLOSE</button>
   </div>
   <div id="lm">
@@ -312,30 +469,59 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   </div>
 </div>
 
+<!-- SHOP PANEL -->
+<div id="shop-panel">
+  <div id="shop-header">
+    <div>
+      <div id="shop-title">🏪 SHOP</div>
+      <div id="shop-npc-name">NPC</div>
+    </div>
+    <button id="shop-close-btn" onclick="closeShop()">✕ CLOSE</button>
+  </div>
+  <div id="shop-tabs"></div>
+  <div id="shop-body">
+    <div id="shop-items"></div>
+    <div id="shop-action">
+      <div id="shop-item-detail">
+        <div id="shop-item-icon">🛒</div>
+        <div id="shop-item-title">Select an item</div>
+        <div id="shop-item-desc">Browse items on the left to buy or sell.</div>
+      </div>
+      <div id="shop-gold-bar">💰 <span id="shop-gold-amt">0</span>g</div>
+      <button id="shop-buy-btn" disabled onclick="shopBuy()">BUY</button>
+      <button id="shop-sell-btn" disabled onclick="shopSell()">SELL</button>
+    </div>
+  </div>
+</div>
+
+<!-- PORTAL PANEL -->
+<div id="portal-panel">
+  <h3>🌀 FLOOR PORTAL</h3>
+  <div id="portal-info">Select a visited floor to warp there.</div>
+  <div id="portal-grid"></div>
+  <button id="portal-close" onclick="togglePortal()">✕ CLOSE</button>
+</div>
+
 <!-- HUD bottom -->
 <div id="hud">
   <!-- Hotbar -->
   <div class="hotbar">
     <div class="hslot active" id="slot-pick" title="Pickaxe" onclick="equipSlot('pick')"><span class="slot-num">1</span><span class="slot-icon">⛏️</span></div>
     <div class="hslot" id="slot-weapon" title="Weapon" onclick="equipSlot('weapon')"><span class="slot-num">2</span><span id="weapon-icon" class="slot-icon">👊</span></div>
-    <div class="hslot" title="TNT" id="slot-tnt"><span class="slot-num">3</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
-    <div class="hslot" title="Ladder"><span class="slot-num">4</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
+    <div class="hslot" title="Bomb — Click to use!" id="slot-tnt" onclick="useBomb()" onmouseenter="G._showBombRadius=true" onmouseleave="G._showBombRadius=false" style="cursor:pointer;"><span class="slot-num">3</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
+    <div class="hslot" title="Ladder — Click to deploy!" id="slot-ladder" onclick="deployLadder()" style="cursor:pointer;"><span class="slot-num">4</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
   </div>
   <!-- Stats -->
   <div class="hud-stats">
     <div class="stat-box"><div class="stat-label">COINS</div><div class="stat-val sv-coin" id="hs-coins">0</div></div>
-    <div class="stat-box"><div class="stat-label">IRON</div><div class="stat-val sv-iron" id="hs-iron">0</div></div>
-    <div class="stat-box"><div class="stat-label">GOLD</div><div class="stat-val sv-gold" id="hs-gold">0</div></div>
-    <div class="stat-box"><div class="stat-label">DIAMOND</div><div class="stat-val sv-diam" id="hs-diam">0</div></div>
-    <div class="stat-box"><div class="stat-label">ROCKS</div><div class="stat-val" style="color:#c0a080" id="hs-rocks">0</div></div>
   </div>
   <!-- Right buttons -->
   <div class="hud-right">
-    <button class="hud-btn" onclick="sell('iron')">⚙️ Sell Iron<br>+15💰 each</button>
-    <button class="hud-btn" onclick="sell('gold')">✨ Sell Gold<br>+80💰 each</button>
-    <button class="hud-btn" onclick="sell('diamond')">💎 Sell Diam<br>+500💰 each</button>
+    <button class="hud-btn" onclick="returnToVillage()" style="border-color:#c08030;color:#f0c840;">🏘 VILLAGE</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn upg" onclick="toggleUpgPanel()">[T] UPGRADE</button>
+    <div style="width:2px;height:40px;background:#4a3010"></div>
+    <button class="hud-btn" onclick="togglePortal()" style="border-color:#8050c0;color:#c080ff;">[M] MAP</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="toggleInv()" style="border-color:#a060c0;color:#c080e0;">[I] BAG</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
@@ -956,12 +1142,15 @@ function buildOreSprites(){
 // ═══════════════════════════════════════════════════════════
 const G={
   floor:1,maxFloor:1,
+  visitedFloors:[0,1],
   coins:0,ladder:0,iron:0,gold:0,diamond:0,
   rocksSmashed:0,
   tntCount:0,
   hp:100, maxHp:100,
-  equippedWeapon:null, // weapon id string or null
-  inventory:Array(30).fill(null), // 30 slots: {type:'ore'|'weapon', id, qty}
+  equippedWeapon:null,
+  equippedPickaxe:'wooden_pick',
+  inventory:Array(30).fill(null),
+  invSlots:30, // current max slots (expandable)
   upg:{
     pick:  {lv:0,max:10,cost:50, mult:1.65,unlock:1},
     crit:  {lv:0,max:5, cost:150,mult:1.9, unlock:1},
@@ -972,12 +1161,158 @@ const G={
     helmet:{lv:0,max:3, cost:600,mult:2.3, unlock:10},
   },
 };
-const getDmg  =()=>1+G.upg.pick.lv*3;
+const getDmg  =()=>{
+  const pick = G.equippedPickaxe ? PICKAXES[G.equippedPickaxe] : PICKAXES['wooden_pick'];
+  return (pick?pick.dmg:1) + G.upg.pick.lv*3;
+};
 const getCrit =()=>G.upg.crit.lv*0.10;
-const getLuck =()=>G.upg.lucky.lv*0.09;
+const getLuck =()=>G.upg.lucky.lv*0.09+((typeof BUFFS!=='undefined'&&BUFFS.luck>0)?0.15:0);
 const getMag  =()=>G.upg.magnet.lv>=1?2:1;
-const getSpd  =()=>2.2+G.upg.speed.lv*0.5;
+const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1);
 const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
+
+// ═══════════════════════════════════════════════════════════
+//  PICKAXES — 5 tiers, drop from monsters
+// ═══════════════════════════════════════════════════════════
+const PICKAXES = {
+  wooden_pick:  {name:'Wooden Pickaxe',  tier:'Common',    dmg:2,  color:'#c8a060', handleCol:'#a06830', headCol:'#c8a060', gemCol:null,      dropChance:0.25, tierIdx:0},
+  stone_pick:   {name:'Stone Pickaxe',   tier:'Uncommon',  dmg:6,  color:'#8090a0', handleCol:'#7a5030', headCol:'#909aaa', gemCol:null,      dropChance:0.15, tierIdx:1},
+  iron_pick:    {name:'Iron Pickaxe',    tier:'Rare',      dmg:14, color:'#70c0d8', handleCol:'#6a4020', headCol:'#70c0d8', gemCol:'#40e0f0', dropChance:0.08, tierIdx:2},
+  gold_pick:    {name:'Golden Pickaxe',  tier:'Epic',      dmg:28, color:'#f0d040', handleCol:'#804020', headCol:'#f0d040', gemCol:'#ff8800', dropChance:0.04, tierIdx:3},
+  diamond_pick: {name:'Diamond Pickaxe', tier:'Legendary', dmg:55, color:'#a0f8ff', handleCol:'#501080', headCol:'#a0f8ff', gemCol:'#ffffff', dropChance:0.01, tierIdx:4},
+};
+
+// Tier colors for UI
+const TIER_COLOR = {Common:'#c0c0c0', Uncommon:'#40d040', Rare:'#4080ff', Epic:'#c040f0', Legendary:'#ff8c00'};
+
+// ── Draw pickaxe pixel art sprite (48×48) — 2.5D isometric style ──
+const PICK_SPR = {};
+function buildPickaxeSprite(id){
+  const p = PICKAXES[id];
+  const oc = document.createElement('canvas');
+  oc.width=40; oc.height=40;
+  const cx = oc.getContext('2d');
+  cx.imageSmoothingEnabled=false;
+
+  const hc  = p.handleCol;   // handle wood color
+  const hcl = lighten(hc,30);
+  const mc  = p.headCol;     // metal head color
+  const mcl = lighten(mc,40);
+  const mcd = darken(mc,30);
+  const gc  = p.gemCol;
+
+  // ── Handle — diagonal rod bottom-left to center ──
+  // Shadow under handle
+  cx.fillStyle='rgba(0,0,0,0.25)';
+  for(let i=0;i<14;i++) cx.fillRect(8+i+1, 28-i+1, 3, 3);
+  // Handle body (3px wide diagonal)
+  cx.fillStyle=hc;
+  for(let i=0;i<14;i++) cx.fillRect(8+i, 28-i, 3, 3);
+  // Handle highlight (top edge)
+  cx.fillStyle=hcl;
+  for(let i=0;i<14;i++) cx.fillRect(8+i, 28-i, 3, 1);
+  // Handle end cap
+  cx.fillStyle=darken(hc,20);
+  cx.fillRect(8,28,4,4);
+  cx.fillStyle=hcl; cx.fillRect(9,29,2,1);
+
+  // ── Pickaxe head — 2.5D isometric block ──
+  // Top face (lighter — facing up)
+  cx.fillStyle=mcl;
+  cx.beginPath();
+  cx.moveTo(18,8); cx.lineTo(32,8); cx.lineTo(28,14); cx.lineTo(14,14);
+  cx.closePath(); cx.fill();
+
+  // Left face (medium — side)
+  cx.fillStyle=mc;
+  cx.beginPath();
+  cx.moveTo(14,14); cx.lineTo(18,8); cx.lineTo(18,20); cx.lineTo(14,26);
+  cx.closePath(); cx.fill();
+
+  // Right face (darkest — shadow side)
+  cx.fillStyle=mcd;
+  cx.beginPath();
+  cx.moveTo(28,8); cx.lineTo(32,8); cx.lineTo(32,20); cx.lineTo(28,20);
+  cx.closePath(); cx.fill();
+
+  // Front face (main visible face)
+  cx.fillStyle=mc;
+  cx.beginPath();
+  cx.moveTo(14,14); cx.lineTo(28,14); cx.lineTo(28,20); cx.lineTo(14,26);
+  cx.closePath(); cx.fill();
+
+  // Bottom face edge
+  cx.fillStyle=mcd;
+  cx.beginPath();
+  cx.moveTo(14,26); cx.lineTo(28,20); cx.lineTo(32,20); cx.lineTo(18,26);
+  cx.closePath(); cx.fill();
+
+  // ── Pick point — sharp tip ──
+  // Top spike (mine upward)
+  cx.fillStyle=mcl;
+  cx.beginPath(); cx.moveTo(32,8); cx.lineTo(38,4); cx.lineTo(36,12); cx.lineTo(32,14); cx.closePath(); cx.fill();
+  cx.fillStyle=mcd;
+  cx.beginPath(); cx.moveTo(32,14); cx.lineTo(36,12); cx.lineTo(38,14); cx.lineTo(32,20); cx.closePath(); cx.fill();
+  // Tip glint
+  cx.fillStyle='#ffffff'; cx.fillRect(36,5,2,2);
+
+  // Bottom spike
+  cx.fillStyle=mcl;
+  cx.beginPath(); cx.moveTo(14,14); cx.lineTo(8,12); cx.lineTo(10,20); cx.lineTo(14,22); cx.closePath(); cx.fill();
+  cx.fillStyle=mcd;
+  cx.beginPath(); cx.moveTo(14,22); cx.lineTo(10,20); cx.lineTo(12,26); cx.lineTo(14,26); cx.closePath(); cx.fill();
+  cx.fillStyle='#ffffff'; cx.fillRect(8,13,2,2);
+
+  // ── Edge outline pixels — crisp 2.5D border ──
+  cx.fillStyle='rgba(0,0,0,0.55)';
+  // Top outline
+  for(let x=18;x<=32;x++) cx.fillRect(x,7,1,1);
+  // Left outline
+  cx.fillRect(13,14,1,12);
+  // Spike outlines
+  cx.fillRect(37,3,1,1); cx.fillRect(7,11,1,1);
+
+  // ── Gem/crystal on head (rare+) ──
+  if(gc){
+    // Gem facets
+    cx.fillStyle=gc;
+    cx.beginPath(); cx.moveTo(22,10); cx.lineTo(26,10); cx.lineTo(25,15); cx.lineTo(21,15); cx.closePath(); cx.fill();
+    cx.fillStyle=lighten(gc,50); cx.fillRect(22,10,2,2);
+    cx.fillStyle='rgba(0,0,0,0.3)'; cx.fillRect(24,13,2,2);
+    // Sparkle
+    if(p.tierIdx>=4){ // legendary — extra sparkles
+      cx.fillStyle='#ffffff';
+      cx.fillRect(21,9,1,1); cx.fillRect(27,9,1,1);
+      cx.fillRect(23,16,1,1);
+    }
+  }
+
+  // ── Tier aura glow (epic/legendary) ──
+  if(p.tierIdx>=3){
+    const grd=cx.createRadialGradient(22,16,2,22,16,18);
+    grd.addColorStop(0, mc+'44');
+    grd.addColorStop(1, 'transparent');
+    cx.fillStyle=grd;
+    cx.fillRect(0,0,40,40);
+  }
+
+  return oc;
+}
+
+function lighten(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.min(255,r+amt);g=Math.min(255,g+amt);b=Math.min(255,b+amt);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function darken(hex,amt){
+  let r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  r=Math.max(0,r-amt);g=Math.max(0,g-amt);b=Math.max(0,b-amt);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+function buildAllPickaxeSprites(){
+  for(const id in PICKAXES) PICK_SPR[id]=buildPickaxeSprite(id);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  WEAPONS — 20 unique weapons, tiered by floor
@@ -1008,12 +1343,301 @@ const WEAPONS = {
   starfire_bow:  {name:'Starfire Bow',  dmg:55, spd:1.8, range:3.5, tier:5, icon:'🏹',  color:'#f0c040', floorMin:90},
   abyss_blade:   {name:'Abyss Blade',   dmg:70, spd:1.3, range:2.0, tier:5, icon:'🗡️',  color:'#6000c0', floorMin:95},
   omega_hammer:  {name:'Ω Hammer',      dmg:100,spd:0.5, range:1.3, tier:5, icon:'🔨',  color:'#ff80ff', floorMin:98},
+  // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
+  gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
+  monad_lance:   {name:'Monad Lance',        dmg:140,spd:1.9, range:3.0, tier:6, icon:'⚡', color:'#8844ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
+  void_sovereign:{name:'Void Sovereign',     dmg:180,spd:0.9, range:1.8, tier:6, icon:'🔨', color:'#00ffcc', floorMin:0, legendary:true, gozoPrice:12000, goldSell:18000},
+  abyss_throne:  {name:'Abyss Throne Blade', dmg:200,spd:1.1, range:2.5, tier:6, icon:'⚔️', color:'#ff8800', floorMin:0, legendary:true, gozoPrice:20000, goldSell:30000},
+  genesis_reaper:{name:'Genesis Reaper',     dmg:250,spd:1.4, range:2.8, tier:6, icon:'⚔️', color:'#ffff00', floorMin:0, legendary:true, gozoPrice:50000, goldSell:75000},
 };
 
 // Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
 const WEAPON_SPR = {};
+const LEGEND_SPR = {}; // animated frames for legendary weapons
+
+// ── LEGENDARY PIXEL ART SPRITES (48×48, 2.5D style, 8 animation frames) ──
+function buildLegendarySprite(id){
+  const w = WEAPONS[id];
+  const frames = [];
+  for(let fr=0; fr<8; fr++){
+    const oc = document.createElement('canvas');
+    oc.width=48; oc.height=48;
+    const cx = oc.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    const t = fr/8; // 0..1 animation phase
+    const pulse = 0.5+0.5*Math.sin(t*Math.PI*2);
+    const pulse2 = 0.5+0.5*Math.cos(t*Math.PI*2);
+
+    if(id==='gozo_fang'){
+      // ── GOZO'S FANG: Crimson twin-edge dagger with serrated blade ──
+      // Drop shadow
+      cx.fillStyle='rgba(0,0,0,0.4)'; cx.fillRect(20,44,10,3);
+      // Handle wrap
+      cx.fillStyle='#3a1008'; cx.fillRect(20,30,8,16);
+      cx.fillStyle='#6a2010'; cx.fillRect(21,31,6,14);
+      // Handle diamond grip
+      for(let i=0;i<3;i++){
+        cx.fillStyle=i%2?'#ff2200':'#8a1800';
+        cx.fillRect(21,32+i*4,6,3);
+      }
+      // Pommel
+      cx.fillStyle='#cc2200'; cx.fillRect(19,44,10,4);
+      cx.fillStyle='#ff4422'; cx.fillRect(20,45,8,2);
+      // Guard (cross)
+      cx.fillStyle='#880800'; cx.fillRect(14,28,20,4);
+      cx.fillStyle='#cc1800'; cx.fillRect(15,29,18,2);
+      // Light on guard
+      cx.fillStyle='rgba(255,80,40,0.6)'; cx.fillRect(16,29,4,1);
+      // Main blade (2.5D angle)
+      cx.fillStyle='#1a0808'; cx.fillRect(21,6,6,24);
+      cx.fillStyle='#cc0000'; cx.fillRect(22,7,4,22);
+      cx.fillStyle='#ff4444'; cx.fillRect(23,7,2,18);
+      cx.fillStyle='#ff8866'; cx.fillRect(23,7,1,10);
+      // Serrations left
+      cx.fillStyle='#ff2200';
+      for(let i=0;i<4;i++){ cx.fillRect(20,10+i*5,2,3); }
+      // Serrations right
+      for(let i=0;i<4;i++){ cx.fillRect(26,12+i*5,2,3); }
+      // Blade tip
+      cx.fillStyle='#ff6644'; cx.fillRect(22,4,4,4);
+      cx.fillStyle='#ffaa88'; cx.fillRect(23,3,2,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(24,2,1,2);
+      // ── GLOW ANIMATION ──
+      const grd=cx.createRadialGradient(24,16,0,24,16,14+pulse*6);
+      grd.addColorStop(0,`rgba(255,60,0,${0.4*pulse})`);
+      grd.addColorStop(0.5,`rgba(180,0,0,${0.2*pulse})`);
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grd; cx.fillRect(0,0,48,48);
+      // Spark particles
+      for(let s=0;s<3;s++){
+        const sa=(t*Math.PI*2+s*2.1); const sr=8+s*3;
+        const sx=24+Math.cos(sa)*sr, sy=16+Math.sin(sa)*sr*0.4;
+        cx.fillStyle=`rgba(255,${100+s*50},0,${pulse})`;
+        cx.fillRect(sx-1,sy-1,2,2);
+      }
+
+    } else if(id==='monad_lance'){
+      // ── MONAD LANCE: Purple-violet energy spear with rune markings ──
+      // Handle
+      cx.fillStyle='#0a0018'; cx.fillRect(20,24,8,22);
+      cx.fillStyle='#220044'; cx.fillRect(21,25,6,20);
+      // Rune markings on handle
+      cx.fillStyle='#8844ff';
+      cx.fillRect(21,28,2,2); cx.fillRect(25,33,2,2); cx.fillRect(21,38,2,2);
+      // Handle end cap
+      cx.fillStyle='#6622cc'; cx.fillRect(19,44,10,4);
+      cx.fillStyle='#aa66ff'; cx.fillRect(20,45,8,2);
+      // Guard ring
+      cx.fillStyle='#4400aa'; cx.fillRect(15,22,18,4);
+      cx.fillStyle='#8844ff'; cx.fillRect(16,23,16,2);
+      cx.fillStyle='rgba(180,100,255,0.5)'; cx.fillRect(17,23,4,1);
+      // Shaft
+      cx.fillStyle='#110022'; cx.fillRect(22,6,4,18);
+      cx.fillStyle='#4400aa'; cx.fillRect(23,7,2,16);
+      // Lance head
+      cx.fillStyle='#1a0044'; cx.fillRect(20,2,8,8);
+      cx.fillStyle='#6622cc'; cx.fillRect(21,3,6,6);
+      cx.fillStyle='#aa66ff'; cx.fillRect(22,3,4,4);
+      cx.fillStyle='#ddaaff'; cx.fillRect(23,2,2,4);
+      // Side blades
+      cx.fillStyle='#8844ff'; cx.fillRect(16,6,6,4); cx.fillRect(26,6,6,4);
+      cx.fillStyle='#4400aa'; cx.fillRect(15,7,4,2); cx.fillRect(29,7,4,2);
+      // Tip gleam
+      cx.fillStyle='#ffffff'; cx.fillRect(23,1,2,2);
+      // Energy orb at guard
+      const orbR=3+pulse*2;
+      const grdOrb=cx.createRadialGradient(24,24,0,24,24,orbR);
+      grdOrb.addColorStop(0,`rgba(220,160,255,${0.9*pulse})`);
+      grdOrb.addColorStop(1,'rgba(80,0,180,0)');
+      cx.fillStyle=grdOrb; cx.beginPath(); cx.arc(24,24,orbR+4,0,Math.PI*2); cx.fill();
+      // ── GLOW ──
+      const grd2=cx.createRadialGradient(24,12,0,24,12,16+pulse*6);
+      grd2.addColorStop(0,`rgba(160,80,255,${0.5*pulse})`);
+      grd2.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grd2; cx.fillRect(0,0,48,48);
+      // Rune sparkles orbit
+      for(let s=0;s<4;s++){
+        const sa=(t*Math.PI*2+s*1.57);
+        const sx=24+Math.cos(sa)*10, sy=14+Math.sin(sa)*4;
+        cx.fillStyle=`rgba(200,150,255,${0.6+0.4*Math.sin(t*Math.PI*2+s)})`;
+        cx.fillRect(sx,sy,2,2);
+      }
+
+    } else if(id==='void_sovereign'){
+      // ── VOID SOVEREIGN: Giant cyan-teal war hammer from the abyss ──
+      // Handle
+      cx.fillStyle='#001a18'; cx.fillRect(21,18,6,28);
+      cx.fillStyle='#003028'; cx.fillRect(22,19,4,26);
+      // Handle bindings
+      cx.fillStyle='#00ffcc';
+      for(let i=0;i<4;i++) cx.fillRect(21,21+i*6,6,2);
+      // End cap
+      cx.fillStyle='#006655'; cx.fillRect(19,44,10,4);
+      cx.fillStyle='#00ffcc'; cx.fillRect(20,45,8,2);
+      // Hammer head — massive 2.5D block
+      cx.fillStyle='#001a18'; cx.fillRect(6,4,36,16);
+      cx.fillStyle='#004040'; cx.fillRect(7,5,34,14);
+      cx.fillStyle='#006655'; cx.fillRect(8,5,32,10);
+      // Face highlight (2.5D top face)
+      cx.fillStyle='#00aa88'; cx.fillRect(8,5,32,4);
+      cx.fillStyle='#00ffcc'; cx.fillRect(9,6,30,2);
+      cx.fillStyle='rgba(200,255,245,0.6)'; cx.fillRect(10,6,8,1);
+      // Side face (3D right)
+      cx.fillStyle='#003030'; cx.fillRect(38,5,4,14);
+      cx.fillStyle='#004848'; cx.fillRect(38,6,3,12);
+      // Void cracks
+      cx.fillStyle='#00ffcc';
+      cx.fillRect(10,8,2,6); cx.fillRect(16,7,1,8); cx.fillRect(22,9,2,5);
+      cx.fillRect(30,8,1,7); cx.fillRect(36,7,2,6);
+      // Void eye in center
+      cx.fillStyle='#001a18'; cx.fillRect(20,9,8,6);
+      cx.fillStyle='#00ffcc'; cx.fillRect(21,10,6,4);
+      cx.fillStyle='rgba(0,255,200,0.8)'; cx.fillRect(22,11,4,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,11,2,1);
+      // ── GLOW ──
+      const grd3=cx.createRadialGradient(24,12,0,24,12,20+pulse*8);
+      grd3.addColorStop(0,`rgba(0,255,200,${0.4*pulse})`);
+      grd3.addColorStop(0.5,`rgba(0,100,80,${0.2*pulse})`);
+      grd3.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grd3; cx.fillRect(0,0,48,48);
+      // Void particles
+      for(let s=0;s<5;s++){
+        const sa=(t*Math.PI*2+s*1.26);
+        const sx=24+Math.cos(sa)*(12+s*2), sy=12+Math.sin(sa)*(4+s);
+        cx.fillStyle=`rgba(0,255,200,${0.5+0.5*pulse2})`;
+        cx.fillRect(sx-1,sy-1,2+Math.floor(pulse),2);
+      }
+
+    } else if(id==='abyss_throne'){
+      // ── ABYSS THRONE BLADE: Massive orange greatsword with throne motif ──
+      // Handle
+      cx.fillStyle='#1a0800'; cx.fillRect(20,28,8,18);
+      cx.fillStyle='#3a1400'; cx.fillRect(21,29,6,16);
+      // Throne motif on handle
+      cx.fillStyle='#ff8800';
+      cx.fillRect(21,30,2,4); cx.fillRect(25,30,2,4); // pillars
+      cx.fillRect(21,30,6,2); // top bar
+      // Pommel — crown shape
+      cx.fillStyle='#cc6600'; cx.fillRect(19,44,10,4);
+      cx.fillStyle='#ff8800';
+      cx.fillRect(19,43,2,2); cx.fillRect(23,42,2,3); cx.fillRect(27,43,2,2);
+      cx.fillStyle='#ffcc44'; cx.fillRect(23,41,2,2);
+      // Wide cross-guard
+      cx.fillStyle='#8a3300'; cx.fillRect(10,26,28,4);
+      cx.fillStyle='#cc5500'; cx.fillRect(11,27,26,2);
+      // Guard details
+      cx.fillStyle='#ff8800'; cx.fillRect(11,27,3,2); cx.fillRect(34,27,3,2);
+      cx.fillStyle='#ffcc44'; cx.fillRect(12,27,1,1); cx.fillRect(35,27,1,1);
+      // Blade — wide greatsword 2.5D
+      cx.fillStyle='#1a0800'; cx.fillRect(18,4,12,24);
+      cx.fillStyle='#cc4400'; cx.fillRect(19,5,10,22);
+      cx.fillStyle='#ff6600'; cx.fillRect(20,5,8,20);
+      cx.fillStyle='#ff8844'; cx.fillRect(21,5,6,16);
+      // Center fuller
+      cx.fillStyle='#ff4400'; cx.fillRect(23,6,2,18);
+      // Edge gleam
+      cx.fillStyle='#ffaa66'; cx.fillRect(20,5,2,12);
+      cx.fillStyle='#ffffff'; cx.fillRect(20,5,1,6);
+      // Tip
+      cx.fillStyle='#ff6600'; cx.fillRect(20,3,8,4);
+      cx.fillStyle='#ffaa44'; cx.fillRect(21,2,6,3);
+      cx.fillStyle='#ffdd88'; cx.fillRect(23,1,2,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,0,2,2);
+      // ── THRONE FIRE GLOW ──
+      const grd4=cx.createRadialGradient(24,14,0,24,14,18+pulse*8);
+      grd4.addColorStop(0,`rgba(255,140,0,${0.5*pulse})`);
+      grd4.addColorStop(0.4,`rgba(200,60,0,${0.25*pulse})`);
+      grd4.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grd4; cx.fillRect(0,0,48,48);
+      // Fire sparks rising
+      for(let s=0;s<4;s++){
+        const sy=12-s*4-pulse*6;
+        const sx=21+s*2;
+        cx.fillStyle=`rgba(255,${160+s*20},0,${0.7-s*0.15})`;
+        cx.fillRect(sx,sy,2,3-Math.floor(s*0.5));
+      }
+      // Orbiting embers
+      for(let s=0;s<3;s++){
+        const sa=(t*Math.PI*2+s*2.09);
+        const sr=10+s*3;
+        cx.fillStyle=`rgba(255,100,0,${0.6*pulse})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,14+Math.sin(sa)*sr*0.3-1,2,2);
+      }
+
+    } else if(id==='genesis_reaper'){
+      // ── GENESIS REAPER: Cosmic dual-scythe, gold & void energy ──
+      // Central staff
+      cx.fillStyle='#0a0800'; cx.fillRect(22,8,4,38);
+      cx.fillStyle='#2a2000'; cx.fillRect(23,9,2,36);
+      // Gold inlays on staff
+      cx.fillStyle='#ffdd00';
+      for(let i=0;i<5;i++) cx.fillRect(22,12+i*7,4,2);
+      // Staff caps
+      cx.fillStyle='#ccaa00'; cx.fillRect(20,44,8,4);
+      cx.fillStyle='#ffee44'; cx.fillRect(21,45,6,2);
+      cx.fillStyle='#ccaa00'; cx.fillRect(20,6,8,4);
+      cx.fillStyle='#ffee44'; cx.fillRect(21,7,6,2);
+      // LEFT scythe blade
+      cx.fillStyle='#1a1400'; cx.fillRect(4,8,18,10);
+      cx.fillStyle='#554400'; cx.fillRect(5,9,16,8);
+      cx.fillStyle='#aa8800'; cx.fillRect(6,9,14,6);
+      cx.fillStyle='#ffdd00'; cx.fillRect(7,9,12,4);
+      cx.fillStyle='#ffee88'; cx.fillRect(7,9,5,2);
+      // LEFT blade tip curve
+      cx.fillStyle='#ccaa00'; cx.fillRect(4,14,6,4);
+      cx.fillStyle='#aa8800'; cx.fillRect(4,16,4,3);
+      cx.fillStyle='#ffdd00'; cx.fillRect(4,14,2,4);
+      // RIGHT scythe blade (mirrored)
+      cx.fillStyle='#1a1400'; cx.fillRect(26,8,18,10);
+      cx.fillStyle='#554400'; cx.fillRect(27,9,16,8);
+      cx.fillStyle='#aa8800'; cx.fillRect(28,9,14,6);
+      cx.fillStyle='#ffdd00'; cx.fillRect(29,9,12,4);
+      cx.fillStyle='#ffee88'; cx.fillRect(36,9,5,2);
+      // RIGHT tip
+      cx.fillStyle='#ccaa00'; cx.fillRect(38,14,6,4);
+      cx.fillStyle='#aa8800'; cx.fillRect(40,16,4,3);
+      cx.fillStyle='#ffdd00'; cx.fillRect(42,14,2,4);
+      // Center cosmic orb
+      const orbGrd=cx.createRadialGradient(24,16,0,24,16,6+pulse*3);
+      orbGrd.addColorStop(0,'rgba(255,255,200,0.95)');
+      orbGrd.addColorStop(0.4,`rgba(255,220,0,${0.8})`);
+      orbGrd.addColorStop(1,'rgba(100,80,0,0)');
+      cx.fillStyle=orbGrd; cx.beginPath(); cx.arc(24,16,8+pulse*2,0,Math.PI*2); cx.fill();
+      // Orb bright center
+      cx.fillStyle='#ffffff'; cx.fillRect(22,15,4,3); cx.fillRect(23,14,2,5);
+      // ── COSMIC GLOW ──
+      const grd5=cx.createRadialGradient(24,16,0,24,16,22+pulse*10);
+      grd5.addColorStop(0,`rgba(255,240,0,${0.55*pulse})`);
+      grd5.addColorStop(0.3,`rgba(180,140,0,${0.25*pulse})`);
+      grd5.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grd5; cx.fillRect(0,0,48,48);
+      // Cosmic stars orbiting
+      for(let s=0;s<6;s++){
+        const sa=(t*Math.PI*2+s*1.047);
+        const sr=14+s*2;
+        const bri=0.4+0.6*Math.sin(t*Math.PI*4+s);
+        cx.fillStyle=`rgba(255,${200+s*8},0,${bri})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,16+Math.sin(sa)*sr*0.4-1,2,2);
+      }
+      // Secondary ring
+      for(let s=0;s<8;s++){
+        const sa=(-t*Math.PI*2+s*0.785);
+        const sr2=6+pulse*4;
+        cx.fillStyle=`rgba(255,255,180,${0.5*pulse2})`;
+        cx.fillRect(24+Math.cos(sa)*sr2-1,16+Math.sin(sa)*sr2*0.5-1,1,1);
+      }
+    }
+
+    frames.push(oc);
+  }
+  LEGEND_SPR[id] = frames;
+}
+
 function buildWeaponSprite(id) {
   const w = WEAPONS[id];
+  // Legendary weapons get their own animated sprite
+  if(w.legendary){ buildLegendarySprite(id); return LEGEND_SPR[id][0]; }
+
   const oc = document.createElement('canvas');
   oc.width=32; oc.height=32;
   const cx = oc.getContext('2d');
@@ -1084,7 +1708,11 @@ function buildWeaponSprite(id) {
   return oc;
 }
 function buildAllWeaponSprites(){
-  for(const id in WEAPONS) WEAPON_SPR[id]=buildWeaponSprite(id);
+  for(const id in WEAPONS){
+    const w=WEAPONS[id];
+    if(w.legendary) buildLegendarySprite(id);
+    else WEAPON_SPR[id]=buildWeaponSprite(id);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1385,35 +2013,516 @@ function buildAllMonsterSprites(){
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MONSTER STATE
+//  POTIONS
 // ═══════════════════════════════════════════════════════════
+const POTIONS = {
+  hp_small:  {name:'Health Potion',  color:'#e03060', glowCol:'#ff6090', effect:'heal',   value:30,  desc:'Restore 30 HP',          dropW:30},
+  hp_medium: {name:'Super Health',   color:'#d01848', glowCol:'#ff4080', effect:'heal',   value:80,  desc:'Restore 80 HP',          dropW:15},
+  hp_large:  {name:'Full Heal',      color:'#a00030', glowCol:'#ff0050', effect:'heal',   value:999, desc:'Fully restore HP',       dropW:6},
+  str_pot:   {name:'Strength Brew',  color:'#e06010', glowCol:'#ff9020', effect:'str',    value:2,   desc:'+2× DMG (30s)',          dropW:18},
+  speed_pot: {name:'Swift Potion',   color:'#10c0a0', glowCol:'#40ffe0', effect:'speed',  value:2,   desc:'+2× Speed (25s)',        dropW:16},
+  shield_pot:{name:'Iron Skin',      color:'#5070c0', glowCol:'#80b0ff', effect:'shield', value:50,  desc:'Block 50 DMG',           dropW:12},
+  luck_pot:  {name:'Lucky Brew',     color:'#30b010', glowCol:'#70ff30', effect:'luck',   value:2,   desc:'+2× Drop Luck (40s)',    dropW:14},
+  bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'Destroy all monsters!',  dropW:4},
+  maxhp_pot: {name:'Elixir of Life', color:'#c060e0', glowCol:'#f0a0ff', effect:'maxhp',  value:20,  desc:'+20 Max HP permanently', dropW:3},
+};
+
+// Active potion buffs (remaining frames)
+const BUFFS = {str:0, speed:0, luck:0, shield:0};
+
+// Pixel art potion bottle sprite
+const POTION_SPR = {};
+function buildPotionSprite(id){
+  const p = POTIONS[id];
+  const oc = document.createElement('canvas');
+  oc.width=32; oc.height=32; oc.imageSmoothingEnabled=false;
+  const cx = oc.getContext('2d');
+  cx.imageSmoothingEnabled=false;
+  const c=p.color, g=p.glowCol;
+
+  // Outer glow
+  cx.fillStyle=g+'2a';
+  cx.beginPath(); cx.arc(16,19,12,0,Math.PI*2); cx.fill();
+
+  // Bottle body — rounded flask shape
+  cx.fillStyle=darken(c,15);
+  cx.beginPath();
+  cx.moveTo(11,21); cx.lineTo(10,27); cx.lineTo(22,27); cx.lineTo(21,21);
+  cx.bezierCurveTo(23,19,23,13,16,12);
+  cx.bezierCurveTo(9,13,9,19,11,21);
+  cx.closePath(); cx.fill();
+
+  // Liquid fill (lighter, inside)
+  cx.fillStyle=c;
+  cx.beginPath();
+  cx.moveTo(12,22); cx.lineTo(11,26); cx.lineTo(21,26); cx.lineTo(20,22);
+  cx.bezierCurveTo(22,20,22,14,16,13);
+  cx.bezierCurveTo(10,14,10,20,12,22);
+  cx.closePath(); cx.fill();
+
+  // Shine highlight left
+  cx.fillStyle='rgba(255,255,255,0.38)';
+  cx.beginPath();
+  cx.moveTo(12,21); cx.lineTo(11,25); cx.lineTo(14,25); cx.lineTo(14,21);
+  cx.bezierCurveTo(14,16,12,14,12,15);
+  cx.bezierCurveTo(10,16,11,20,12,21);
+  cx.closePath(); cx.fill();
+
+  // Bubbles inside
+  cx.fillStyle='rgba(255,255,255,0.22)';
+  cx.beginPath(); cx.arc(18,22,2,0,Math.PI*2); cx.fill();
+  cx.beginPath(); cx.arc(14,18,1,0,Math.PI*2); cx.fill();
+
+  // Neck
+  cx.fillStyle=darken(c,25);
+  cx.fillRect(13,8,6,5);
+  cx.fillStyle='rgba(255,255,255,0.25)'; cx.fillRect(14,9,2,3);
+
+  // Cork
+  cx.fillStyle='#b89050'; cx.fillRect(12,5,8,4);
+  cx.fillStyle='#d4aa60'; cx.fillRect(13,5,4,1);
+  cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(12,8,8,1);
+
+  // Glowing center dot label
+  cx.fillStyle=g;
+  cx.beginPath(); cx.arc(16,21,3,0,Math.PI*2); cx.fill();
+  cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(15,20,1,1);
+
+  // Drop shadow
+  cx.fillStyle='rgba(0,0,0,0.22)';
+  cx.beginPath(); cx.ellipse(16,28,5,2,0,0,Math.PI*2); cx.fill();
+
+  return oc;
+}
+
+function buildAllPotionSprites(){
+  for(const id in POTIONS) POTION_SPR[id]=buildPotionSprite(id);
+}
+
+// Apply potion effect
+function usePotion(slot){
+  const s=G.inventory[slot];
+  if(!s||s.type!=='potion')return;
+  const p=POTIONS[s.id];
+  const FPS=60;
+  const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-30);
+
+  if(p.effect==='heal'){
+    const was=G.hp; G.hp=Math.min(G.maxHp,G.hp+p.value);
+    const gained=G.hp-was; updateGozoHpBar();
+    toast(`🧪 ${p.name}! +${gained} HP`);
+    spawnDmg(sx,sy,`+${gained} HP`,'#ff6090',9);
+  } else if(p.effect==='str'){
+    BUFFS.str=Math.max(BUFFS.str, 30*FPS);
+    BUFFS.strMult=p.value;
+    toast(`⚗️ ${p.name}! ATK ×${p.value} for 30s`);
+    spawnDmg(sx,sy,`ATK ×${p.value}`,'#ff9020',9);
+  } else if(p.effect==='speed'){
+    BUFFS.speed=Math.max(BUFFS.speed, 25*FPS);
+    toast(`💧 ${p.name}! Speed ×2 for 25s`);
+    spawnDmg(sx,sy,'FAST!','#40ffe0',9);
+  } else if(p.effect==='shield'){
+    BUFFS.shield+=p.value;
+    toast(`💧 ${p.name}! Shield +${p.value}`);
+    spawnDmg(sx,sy,`🛡+${p.value}`,'#80b0ff',9);
+  } else if(p.effect==='luck'){
+    BUFFS.luck=Math.max(BUFFS.luck, 40*FPS);
+    toast(`⚗️ ${p.name}! Drop luck ×2 for 40s`);
+    spawnDmg(sx,sy,'LUCKY!','#70ff30',9);
+  } else if(p.effect==='bomb'){
+    const count=Object.keys(monsters).length;
+    for(const mid in {...monsters}) killMonster(mid);
+    toast(`💥 Bomb Potion! ${count} monsters destroyed!`);
+    spawnDmg(sx,sy,'BOOM!','#ffcc00',12);
+  } else if(p.effect==='maxhp'){
+    G.maxHp+=p.value; G.hp=Math.min(G.hp+p.value,G.maxHp);
+    updateGozoHpBar();
+    toast(`✨ ${p.name}! Max HP +${p.value} → ${G.maxHp}`);
+    spawnDmg(sx,sy,`♥+${p.value}`,'#f0a0ff',9);
+  }
+  removeFromInventory(slot,1);
+}
+
+// Tick buffs each frame
+function tickBuffs(){
+  if(BUFFS.str>0){ BUFFS.str--; if(BUFFS.str===0) BUFFS.strMult=1; }
+  if(BUFFS.speed>0) BUFFS.speed--;
+  if(BUFFS.luck>0)  BUFFS.luck--;
+}
+
+// Draw active buff icons above HUD
+function drawBuffHud(){
+  const active=[];
+  if(BUFFS.str>0)    active.push({label:'💪',val:Math.ceil(BUFFS.str/60)+'s', col:'#ff9020'});
+  if(BUFFS.speed>0)  active.push({label:'💨',val:Math.ceil(BUFFS.speed/60)+'s',col:'#40ffe0'});
+  if(BUFFS.luck>0)   active.push({label:'🍀',val:Math.ceil(BUFFS.luck/60)+'s', col:'#70ff30'});
+  if(BUFFS.shield>0) active.push({label:'🛡',val:BUFFS.shield+'',              col:'#80b0ff'});
+  active.forEach((b,i)=>{
+    const bx=8+i*56, by=cH-82;
+    gctx.fillStyle='rgba(0,0,0,0.65)';
+    gctx.beginPath(); gctx.roundRect(bx,by,50,18,3); gctx.fill();
+    gctx.fillStyle=b.col; gctx.font='bold 10px monospace';
+    gctx.fillText(`${b.label} ${b.val}`,bx+4,by+13);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  BIOME SYSTEM
+// ═══════════════════════════════════════════════════════════
+const BIOMES = {
+  cave:   { name:'Cave',         floors:[],    bgColor:'#050302', ambientRgb:'10,15,50',  warmRgb:'255,200,80',  fogRgb:'10,15,50'  },
+  ice:    { name:'Ice Cavern',   floors:[],    bgColor:'#010814', ambientRgb:'20,60,120', warmRgb:'120,200,255', fogRgb:'20,60,140' },
+  desert: { name:'Desert Ruins', floors:[],    bgColor:'#100804', ambientRgb:'60,30,5',   warmRgb:'255,160,40',  fogRgb:'60,30,5'   },
+  forest: { name:'Crystal Forest',floors:[],   bgColor:'#010802', ambientRgb:'10,50,20',  warmRgb:'120,255,80',  fogRgb:'10,50,15'  },
+  lava:   { name:'Lava Caves',   floors:[],    bgColor:'#100000', ambientRgb:'80,10,0',   warmRgb:'255,80,20',   fogRgb:'80,10,0'   },
+};
+
+// Determine biome by floor
+function getBiome(fl){
+  const cycle = ((fl-1) % 50); // repeats every 50 floors
+  if(cycle>=10&&cycle<20) return 'ice';
+  if(cycle>=20&&cycle<30) return 'desert';
+  if(cycle>=30&&cycle<40) return 'forest';
+  if(cycle>=40&&cycle<50) return 'lava';
+  return 'cave';
+}
+
+let currentBiome = 'cave';
+
+// ── Biome Floor Tiles ──
+function makeFloorTileBiome(variant, biome){
+  const oc=document.createElement('canvas'); oc.width=TILE; oc.height=TILE;
+  const cx=oc.getContext('2d');
+  const seed=variant*7919+biome.length*31;
+  const rng=(n)=>((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  if(biome==='ice'){
+    const bases=['#a8cce0','#b0d4e8','#98c0d8','#aac8e0'];
+    cx.fillStyle=bases[variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Ice crack lines
+    cx.strokeStyle='rgba(160,200,240,0.5)'; cx.lineWidth=1;
+    for(let i=0;i<3;i++){
+      cx.beginPath(); cx.moveTo(rng(i)*TILE,rng(i+1)*TILE);
+      cx.lineTo(rng(i+2)*TILE,rng(i+3)*TILE); cx.stroke();
+    }
+    // Snow patches
+    cx.fillStyle='rgba(255,255,255,0.25)';
+    for(let i=0;i<2;i++) cx.fillRect(rng(i*4)*20,rng(i*4+1)*20,4+rng(i*4+2)*6,3);
+    // Frost sparkle
+    cx.fillStyle='rgba(200,240,255,0.6)';
+    cx.fillRect(rng(10)*TILE,rng(11)*TILE,2,2);
+    cx.fillRect(rng(12)*TILE,rng(13)*TILE,1,1);
+    // Depth
+    cx.fillStyle='rgba(0,0,40,0.07)'; cx.fillRect(0,TILE-3,TILE,3);
+
+  } else if(biome==='desert'){
+    const bases=['#d4a855','#c89840','#dab060','#c8a048'];
+    cx.fillStyle=bases[variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Sand ripple lines
+    cx.strokeStyle='rgba(160,110,20,0.2)'; cx.lineWidth=1;
+    for(let i=0;i<3;i++){
+      const y=6+i*9+rng(i)*3;
+      cx.beginPath(); cx.moveTo(0,y); cx.lineTo(TILE,y+rng(i+4)*3-1); cx.stroke();
+    }
+    // Sand grains
+    cx.fillStyle='rgba(180,130,30,0.3)';
+    for(let i=0;i<4;i++) cx.fillRect(rng(i*3)*TILE,rng(i*3+1)*TILE,1,1);
+    // Stone slab cracks
+    cx.strokeStyle='rgba(120,80,20,0.18)'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(0,14+variant*2); cx.lineTo(TILE,16+variant); cx.stroke();
+
+  } else if(biome==='forest'){
+    const bases=['#3a6830','#2e5828','#406835','#345c2c'];
+    cx.fillStyle=bases[variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Grass blades
+    cx.strokeStyle='rgba(80,160,40,0.35)'; cx.lineWidth=1;
+    for(let i=0;i<5;i++){
+      const bx=rng(i*4)*TILE; const by=rng(i*4+1)*TILE;
+      cx.beginPath(); cx.moveTo(bx,by); cx.lineTo(bx+rng(i+2)*4-2,by-4); cx.stroke();
+    }
+    // Mossy patches
+    cx.fillStyle='rgba(60,140,30,0.2)';
+    cx.beginPath(); cx.ellipse(rng(20)*TILE,rng(21)*TILE,5,3,0,0,Math.PI*2); cx.fill();
+    // Small flowers
+    if(rng(30+variant)>0.5){ cx.fillStyle='rgba(255,200,80,0.6)'; cx.fillRect(rng(31)*TILE,rng(32)*TILE,2,2); }
+    // Dark earth depth
+    cx.fillStyle='rgba(0,10,0,0.08)'; cx.fillRect(0,TILE-3,TILE,3);
+
+  } else if(biome==='lava'){
+    const bases=['#2a1008','#320c04','#280c06','#300e06'];
+    cx.fillStyle=bases[variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Lava crack glow
+    const lc=rng(40+variant);
+    cx.strokeStyle=`rgba(255,${60+lc*80},0,0.35)`; cx.lineWidth=1;
+    for(let i=0;i<2;i++){
+      cx.beginPath();
+      cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);
+      cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE); cx.stroke();
+    }
+    // Hot spots glow
+    cx.fillStyle=`rgba(255,80,0,${0.08+rng(50+variant)*0.12})`;
+    cx.beginPath(); cx.ellipse(rng(55)*TILE,rng(56)*TILE,4,3,0,0,Math.PI*2); cx.fill();
+    // Ash dust
+    cx.fillStyle='rgba(60,30,20,0.15)';
+    for(let i=0;i<3;i++) cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,2,1);
+
+  } else { // default cave
+    return makeFloorTile(variant);
+  }
+  return oc;
+}
+
+function makeWallTileBiome(variant, biome){
+  if(biome==='cave') return makeWallTile(variant);
+  const oc=document.createElement('canvas'); oc.width=TILE; oc.height=TILE;
+  const cx=oc.getContext('2d');
+  const seed=variant*3571+biome.length*17;
+  const rng=(n)=>((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  if(biome==='ice'){
+    cx.fillStyle=['#6090b8','#5888b0','#6898c0','#5080a8'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle='rgba(140,200,240,0.3)';
+    for(let i=0;i<3;i++){cx.beginPath();cx.ellipse(rng(i*5)*TILE,rng(i*5+1)*TILE,5+rng(i*5+2)*6,4,0,0,Math.PI*2);cx.fill();}
+    cx.strokeStyle='rgba(180,220,255,0.3)'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(rng(20)*TILE,0); cx.lineTo(rng(21)*TILE,TILE); cx.stroke();
+  } else if(biome==='desert'){
+    cx.fillStyle=['#c08830','#b07828','#c89038','#b88030'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle='rgba(160,100,20,0.3)';
+    for(let i=0;i<4;i++){cx.fillRect(rng(i*4)*TILE,rng(i*4+1)*TILE,3+rng(i*4+2)*5,2);}
+    cx.strokeStyle='rgba(80,50,10,0.25)'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(0,rng(30)*TILE); cx.lineTo(TILE,rng(31)*TILE); cx.stroke();
+  } else if(biome==='forest'){
+    cx.fillStyle=['#2a5020','#1e4018','#305828','#244a1c'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle='rgba(60,120,30,0.25)';
+    for(let i=0;i<4;i++){cx.beginPath();cx.ellipse(rng(i*5)*TILE,rng(i*5+1)*TILE,4+rng(i*5+2)*5,3,0,0,Math.PI*2);cx.fill();}
+    // Vine lines
+    cx.strokeStyle='rgba(40,100,20,0.4)'; cx.lineWidth=2;
+    cx.beginPath(); cx.moveTo(rng(40)*TILE,0); cx.lineTo(rng(41)*TILE,TILE); cx.stroke();
+  } else if(biome==='lava'){
+    cx.fillStyle=['#401008','#380c06','#480e08','#3c1006'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle='rgba(255,60,0,0.15)';
+    for(let i=0;i<3;i++){cx.beginPath();cx.ellipse(rng(i*5)*TILE,rng(i*5+1)*TILE,4+rng(i*5+2)*6,3,0,0,Math.PI*2);cx.fill();}
+    cx.strokeStyle='rgba(255,80,0,0.2)'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(rng(20)*TILE,0); cx.lineTo(rng(21)*TILE,TILE); cx.stroke();
+  }
+  return oc;
+}
+
+function makeWallFaceTileBiome(variant, biome){
+  if(biome==='cave') return makeWallFaceTile(variant);
+  const oc=document.createElement('canvas'); oc.width=TILE; oc.height=TILE;
+  const cx=oc.getContext('2d');
+  const seed=variant*2311+biome.length*41;
+  const rng=(n)=>((Math.sin(n+seed)*43758.5453)%1+1)%1;
+
+  const configs={
+    ice:    {top:'#5888b0', bot:'#080e1a', rim:'rgba(180,220,255,0.6)', strata:'rgba(0,0,40,0.18)'},
+    desert: {top:'#b07828', bot:'#180c02', rim:'rgba(220,160,60,0.65)', strata:'rgba(0,0,0,0.15)'},
+    forest: {top:'#2a5020', bot:'#030802', rim:'rgba(80,180,40,0.55)',  strata:'rgba(0,20,0,0.18)'},
+    lava:   {top:'#500808', bot:'#0a0000', rim:'rgba(255,80,0,0.7)',    strata:'rgba(40,0,0,0.2)'},
+  };
+  const cfg=configs[biome]||configs.lava;
+  const grad=cx.createLinearGradient(0,0,0,TILE);
+  grad.addColorStop(0,cfg.top); grad.addColorStop(0.3,'#2a1a0a'); grad.addColorStop(1,cfg.bot);
+  cx.fillStyle=grad; cx.fillRect(0,0,TILE,TILE);
+  cx.strokeStyle=cfg.strata; cx.lineWidth=1;
+  for(let y=6;y<TILE;y+=5+Math.floor(rng(y+variant)*3)){
+    cx.beginPath(); cx.moveTo(0,y+(rng(y*3+variant)-.5)*2); cx.lineTo(TILE,y+(rng(y+3)-.5)*2); cx.stroke();
+  }
+  const rim=cx.createLinearGradient(0,0,0,5);
+  rim.addColorStop(0,cfg.rim); rim.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=rim; cx.fillRect(0,0,TILE,5);
+  return oc;
+}
+
+// Cached biome tile sets
+const BIOME_TC = {};
+function buildBiomeTiles(biome){
+  if(biome==='cave'){BIOME_TC[biome]=null;return;} // use TC (default)
+  BIOME_TC[biome]={
+    floor: [0,1,2,3].map(v=>makeFloorTileBiome(v,biome)),
+    wall:  [0,1,2,3].map(v=>makeWallTileBiome(v,biome)),
+    face:  [0,1,2,3].map(v=>makeWallFaceTileBiome(v,biome)),
+  };
+}
+
+// ── Biome-specific monsters ──
+const BIOME_MOBS = {
+  ice: [
+    {n:'Frost Bat',   cl:'#a0c8e8',hl:'#e0f4ff',hp:60, dmg:12,spd:1.6,shape:0,drop:'iron_sword'},
+    {n:'Ice Slime',   cl:'#80b0d0',hl:'#c0e8f8',hp:90, dmg:14,spd:0.6,shape:1,drop:'stone_dagger'},
+    {n:'Frost Golem', cl:'#9ab8d0',hl:'#d0ecff',hp:180,dmg:18,spd:0.4,shape:3,drop:'iron_axe'},
+    {n:'Yeti',        cl:'#d8eaf8',hl:'#ffffff', hp:280,dmg:24,spd:0.5,shape:3,drop:'silver_sword'},
+    {n:'Ice Drake',   cl:'#70a8d0',hl:'#b0dcf8',hp:220,dmg:20,spd:0.8,shape:4,drop:'crossbow'},
+    {n:'Blizzard Lich',cl:'#b0d0f0',hl:'#e8f8ff',hp:260,dmg:22,spd:0.9,shape:5,drop:'enchanted_bow'},
+    {n:'Snow Yeti',   cl:'#f0f8ff',hl:'#ffffff', hp:400,dmg:30,spd:0.4,shape:3,drop:'crystal_blade'},
+    {n:'Frost Wyrm',  cl:'#60a0c8',hl:'#a0d8f8',hp:380,dmg:28,spd:0.7,shape:4,drop:'thunder_spear'},
+    {n:'Glacial Titan',cl:'#b8d8f0',hl:'#e0f4ff',hp:600,dmg:38,spd:0.3,shape:3,drop:'void_hammer'},
+    {n:'Arctic God',  cl:'#e0f0ff',hl:'#ffffff', hp:900,dmg:50,spd:0.5,shape:5,drop:'omega_hammer'},
+  ],
+  desert: [
+    {n:'Sand Crab',   cl:'#d4a855',hl:'#f0cc70',hp:55, dmg:11,spd:0.8,shape:2,drop:'stone_dagger'},
+    {n:'Scarab',      cl:'#c89040',hl:'#f0c030',hp:70, dmg:13,spd:1.2,shape:2,drop:'wooden_sword'},
+    {n:'Desert Bat',  cl:'#c09840',hl:'#e8cc60',hp:65, dmg:12,spd:1.5,shape:0,drop:'iron_sword'},
+    {n:'Mummy',       cl:'#d8c898',hl:'#f0e8c0',hp:160,dmg:18,spd:0.5,shape:3,drop:'gold_sword'},
+    {n:'Sand Drake',  cl:'#c89040',hl:'#f0c030',hp:200,dmg:22,spd:0.7,shape:4,drop:'enchanted_bow'},
+    {n:'Tomb Lich',   cl:'#b8a060',hl:'#e0cc80',hp:240,dmg:24,spd:0.8,shape:5,drop:'crystal_blade'},
+    {n:'Ancient Mummy',cl:'#f0e0b0',hl:'#fff8e0',hp:380,dmg:32,spd:0.4,shape:3,drop:'lava_axe'},
+    {n:'Sand Titan',  cl:'#d4aa50',hl:'#f8d870',hp:500,dmg:40,spd:0.4,shape:3,drop:'shadow_blade'},
+    {n:'Pharaoh Golem',cl:'#f0c840',hl:'#ffd700',hp:700,dmg:50,spd:0.3,shape:3,drop:'dragon_sword'},
+    {n:'Desert God',  cl:'#ffe080',hl:'#ffff80',hp:1000,dmg:60,spd:0.5,shape:5,drop:'omega_hammer'},
+  ],
+  forest: [
+    {n:'Vine Bat',    cl:'#508040',hl:'#90d060',hp:50, dmg:10,spd:1.6,shape:0,drop:'wooden_sword'},
+    {n:'Moss Slime',  cl:'#406030',hl:'#70a850',hp:85, dmg:13,spd:0.7,shape:1,drop:'stone_dagger'},
+    {n:'Forest Spider',cl:'#304828',hl:'#60a040',hp:100,dmg:15,spd:1.0,shape:2,drop:'iron_sword'},
+    {n:'Tiger',       cl:'#e08020',hl:'#f0b030',hp:200,dmg:25,spd:1.3,shape:4,drop:'silver_sword'},
+    {n:'Forest Drake',cl:'#408030',hl:'#70c050',hp:240,dmg:22,spd:0.8,shape:4,drop:'enchanted_bow'},
+    {n:'Wood Golem',  cl:'#5a4030',hl:'#9a7050',hp:300,dmg:26,spd:0.4,shape:3,drop:'crystal_blade'},
+    {n:'White Tiger', cl:'#f0f0e0',hl:'#ffffff', hp:420,dmg:36,spd:1.4,shape:4,drop:'shadow_blade'},
+    {n:'Ancient Tree',cl:'#3a5828',hl:'#70a840',hp:600,dmg:44,spd:0.2,shape:3,drop:'dragon_sword'},
+    {n:'Forest Titan',cl:'#285020',hl:'#50a030',hp:800,dmg:55,spd:0.3,shape:3,drop:'soul_reaper'},
+    {n:'Forest God',  cl:'#60c840',hl:'#a0f060',hp:1200,dmg:70,spd:0.4,shape:5,drop:'omega_hammer'},
+  ],
+  lava: [
+    {n:'Ember Bat',   cl:'#c04010',hl:'#ff8030',hp:65, dmg:14,spd:1.5,shape:0,drop:'iron_sword'},
+    {n:'Lava Slime',  cl:'#d04000',hl:'#ff6020',hp:100,dmg:16,spd:0.6,shape:1,drop:'club'},
+    {n:'Magma Crab',  cl:'#b03010',hl:'#e05020',hp:120,dmg:18,spd:0.7,shape:2,drop:'iron_axe'},
+    {n:'Lava Golem',  cl:'#801808',hl:'#ff4010',hp:260,dmg:26,spd:0.4,shape:3,drop:'lava_axe'},
+    {n:'Fire Drake',  cl:'#c03010',hl:'#ff6020',hp:300,dmg:28,spd:0.8,shape:4,drop:'gold_sword'},
+    {n:'Inferno Lich',cl:'#a02000',hl:'#ff4000',hp:280,dmg:30,spd:0.9,shape:5,drop:'shadow_blade'},
+    {n:'Magma Titan', cl:'#902010',hl:'#ff5000',hp:500,dmg:42,spd:0.3,shape:3,drop:'void_hammer'},
+    {n:'Flame Drake', cl:'#d04000',hl:'#ff8000',hp:600,dmg:50,spd:0.7,shape:4,drop:'dragon_sword'},
+    {n:'Volcano God', cl:'#800010',hl:'#ff2000',hp:900,dmg:65,spd:0.4,shape:3,drop:'soul_reaper'},
+    {n:'Lava Overlord',cl:'#ff2000',hl:'#ffff00',hp:1500,dmg:80,spd:0.5,shape:5,drop:'omega_hammer'},
+  ],
+};
+
+// Build biome monster sprites using same shape system but different colors
+const BIOME_MOB_SPR = {};
+function buildBiomeMonsterSprite(mobDef, key){
+  const oc=document.createElement('canvas'); oc.width=32; oc.height=32;
+  const cx=oc.getContext('2d');
+  cx.imageSmoothingEnabled=false;
+  const shape=mobDef.shape, cl=mobDef.cl, hl=mobDef.hl;
+
+  // Reuse same drawing code from buildMonsterSprite but pass shape/color directly
+  const frame=0;
+  const bob=0, wingAng=0;
+  if(shape===0){
+    cx.fillStyle=cl;
+    cx.save();cx.translate(10,18);cx.rotate(-wingAng);
+    cx.beginPath();cx.moveTo(0,0);cx.lineTo(-7,-8);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
+    cx.save();cx.translate(22,18);cx.rotate(wingAng);
+    cx.beginPath();cx.moveTo(0,0);cx.lineTo(7,-8);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
+    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,18,7,5,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle=hl;cx.fillRect(12,13,3,3);cx.fillRect(18,13,3,3);
+    cx.fillStyle=hl;cx.fillRect(13,17,3,2);cx.fillRect(18,17,3,2);
+  } else if(shape===1){
+    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,20,10,8,0,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.ellipse(16,13,7,6,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle=hl;cx.globalAlpha=0.4;cx.beginPath();cx.ellipse(13,12,3,4,Math.PI*0.3,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+    cx.fillStyle='#ffffff';cx.fillRect(12,13,4,3);cx.fillRect(17,13,4,3);
+    cx.fillStyle=hl;cx.fillRect(13,14,2,2);cx.fillRect(18,14,2,2);
+    cx.fillStyle=cl;cx.beginPath();cx.moveTo(13,25);cx.lineTo(16,28);cx.lineTo(19,25);cx.fill();
+  } else if(shape===2){
+    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,18,9,7,0,0,Math.PI*2);cx.fill();
+    for(let i=0;i<4;i++){cx.fillRect(4+i*2,18,2,6);cx.fillRect(24-i*2,18,2,6);}
+    cx.fillStyle=hl;cx.fillRect(4,16,4,4);cx.fillRect(24,16,4,4);
+    cx.fillStyle=cl;cx.fillRect(12,12,3,5);cx.fillRect(18,12,3,5);
+    cx.fillStyle='#ffffff';cx.fillRect(12,11,3,3);cx.fillRect(18,11,3,3);
+    cx.fillStyle=hl;cx.fillRect(13,12,1,1);cx.fillRect(19,12,1,1);
+  } else if(shape===3){
+    cx.fillStyle=cl;cx.fillRect(10,8,12,16);cx.fillRect(11,3,10,7);
+    cx.fillRect(5,10,6,8);cx.fillRect(21,10,6,8);
+    cx.fillRect(11,22,4,8);cx.fillRect(17,22,4,8);
+    cx.fillStyle='rgba(0,0,0,0.3)';cx.fillRect(10,8,12,3);cx.fillRect(5,10,6,3);
+    cx.fillStyle=hl;cx.fillRect(12,5,3,2);cx.fillRect(17,5,3,2);
+    cx.fillStyle='rgba(0,0,0,0.4)';cx.fillRect(15,9,2,6);cx.fillRect(12,12,4,2);
+  } else if(shape===4){
+    cx.fillStyle=cl;
+    cx.beginPath();cx.moveTo(4,22);cx.lineTo(2,26);cx.lineTo(8,20);cx.closePath();cx.fill();
+    cx.beginPath();cx.ellipse(14,18,10,7,0,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.ellipse(22,11,6,5,Math.PI*0.1,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.ellipse(26,8,5,4,0,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.moveTo(14,14);cx.lineTo(6,4);cx.lineTo(16,10);cx.closePath();cx.fill();
+    cx.fillStyle=hl;cx.globalAlpha=0.3;cx.beginPath();cx.ellipse(14,18,7,4,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+    cx.fillStyle=hl;cx.fillRect(25,7,2,2);cx.fillRect(28,7,2,2);
+  } else {
+    cx.fillStyle=cl;cx.globalAlpha=0.85;cx.beginPath();cx.ellipse(16,18,8,11,0,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.ellipse(16,9,7,7,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+    cx.fillStyle=hl;cx.fillRect(11,8,5,3);cx.fillRect(17,8,5,3);
+    cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(13,13,6,2);
+    cx.fillStyle=hl;cx.globalAlpha=0.5;
+    cx.beginPath();cx.ellipse(7,22,3,5,Math.PI*0.2,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.ellipse(25,23,3,5,Math.PI*0.8,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  }
+
+  // Biome aura
+  const auraColors={ice:'rgba(180,220,255,0.25)',desert:'rgba(255,200,60,0.25)',forest:'rgba(80,200,40,0.25)',lava:'rgba(255,80,0,0.3)'};
+  const biomeKey=key.split('_')[0];
+  if(auraColors[biomeKey]){
+    cx.fillStyle=auraColors[biomeKey];
+    cx.beginPath();cx.arc(16,16,14,0,Math.PI*2);cx.fill();
+  }
+  return [oc,oc,oc,oc]; // static frames for biome monsters (can animate later)
+}
+
+function buildAllBiomeMonsterSprites(){
+  for(const biome in BIOME_MOBS){
+    BIOME_MOB_SPR[biome]=[];
+    BIOME_MOBS[biome].forEach((def,i)=>{
+      BIOME_MOB_SPR[biome].push(buildBiomeMonsterSprite(def,biome+'_'+i));
+    });
+  }
+}
 let monsters = {};   // key = "x,y" world pos, value = mob object
 let mobIdCtr = 0;
 
 function spawnMonsters(fl){
   monsters={};
-  const def = MOB_DEFS[Math.min(fl-1, 99)];
+  const biome = currentBiome;
   const floorMult = 1+(fl-1)*0.15;
-  // 5-10 monsters per floor, scaling with depth
   const count = 5 + Math.min(5, Math.floor(fl/12));
+
+  // Choose monster pool — biome monsters if in biome floor, else MOB_DEFS
+  const isBiomeFloor = biome !== 'cave';
+  const biomePool = isBiomeFloor ? BIOME_MOBS[biome] : null;
+
   const floors=[];
   for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)
     if(worldMap[y][x]===T_FLOOR&&!rocks[x+','+y])floors.push({x,y});
   const gx=Math.floor(gozo.wx/TILE), gy=Math.floor(gozo.wy/TILE);
   const cands=floors.filter(f=>Math.abs(f.x-gx)+Math.abs(f.y-gy)>8);
   const shuffled=[...cands].sort(()=>Math.random()-0.5);
+
   for(let i=0;i<Math.min(count,shuffled.length);i++){
     const{x,y}=shuffled[i];
     const id=++mobIdCtr;
-    const maxHp=Math.ceil(def.hp*floorMult);
-    monsters[id]={
-      id, defIdx:Math.min(fl-1,99),
-      wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
-      hp:maxHp, maxHp, state:'wander',
-      dir:'S', frameT:0, frame:0,
-      atkCd:0, wanderT:0,
-      tx:x, ty:y,
-    };
+
+    if(biomePool){
+      // Pick random mob from biome pool (weighted toward harder ones at deeper floors)
+      const poolIdx = Math.min(biomePool.length-1, Math.floor(Math.random()*biomePool.length*(0.4+fl/100)));
+      const def = biomePool[poolIdx];
+      const maxHp = Math.ceil(def.hp*floorMult);
+      monsters[id]={
+        id, defIdx:-1, biome, biomeMobIdx:poolIdx,
+        wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander',
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:x, ty:y,
+      };
+    } else {
+      const def = MOB_DEFS[Math.min(fl-1, 99)];
+      const maxHp = Math.ceil(def.hp*floorMult);
+      monsters[id]={
+        id, defIdx:Math.min(fl-1,99), biome:null, biomeMobIdx:-1,
+        wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander',
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:x, ty:y,
+      };
+    }
   }
 }
 
@@ -1437,10 +2546,15 @@ function updateMonsters(){
   } else if(anyNear){
     G._regenT=0; // reset regen timer when monster nearby
   }
-  const now=Date.now();
+  // Clear attackTarget if monster died
+  if(gozo.attackTarget && !monsters[gozo.attackTarget]) gozo.attackTarget=null;
+
   for(const id in monsters){
     const m=monsters[id];
-    const def=MOB_DEFS[m.defIdx];
+    // Get monster def — either biome or normal
+    const def = m.biome && m.biomeMobIdx>=0
+      ? BIOME_MOBS[m.biome][m.biomeMobIdx]
+      : MOB_DEFS[m.defIdx];
     const flMult=1+(G.floor-1)*0.15;
     m.atkCd=Math.max(0,m.atkCd-1);
 
@@ -1459,7 +2573,12 @@ function updateMonsters(){
         if(canWalk(m.wx,ny)&&!mobCollidesAt(m.wx,ny,id))m.wy=ny;
       } else if(m.atkCd<=0){
         // Attack Gozo
-        const dmg=Math.ceil(def.dmg*flMult);
+        let dmg=Math.ceil(def.dmg*flMult);
+        if(BUFFS.shield>0){
+          const absorbed=Math.min(BUFFS.shield,dmg);
+          BUFFS.shield-=absorbed; dmg-=absorbed;
+          if(absorbed>0) spawnDmg(Math.round(gozo.wx-camX),Math.round(gozo.wy-camY-30),`🛡${absorbed}`,'#80b0ff',7);
+        }
         G.hp=Math.max(0,G.hp-dmg);
         m.atkCd=60;
         updateGozoHpBar();
@@ -1501,7 +2620,8 @@ function hitMonster(id){
   if(!m)return;
   const wep=G.equippedWeapon?WEAPONS[G.equippedWeapon]:null;
   const baseDmg=wep?wep.dmg:getDmg();
-  let dmg=baseDmg;
+  const strMult = BUFFS.str>0 ? (BUFFS.strMult||2) : 1;
+  let dmg=Math.floor(baseDmg*strMult);
   let isCrit=false;
   if(Math.random()<getCrit()){dmg=Math.floor(dmg*3);isCrit=true;}
   m.hp-=dmg;
@@ -1515,15 +2635,60 @@ function hitMonster(id){
 function killMonster(id){
   const m=monsters[id];
   if(!m)return;
-  const def=MOB_DEFS[m.defIdx];
+  const def = m.biome && m.biomeMobIdx>=0
+    ? BIOME_MOBS[m.biome][m.biomeMobIdx]
+    : MOB_DEFS[m.defIdx];
   const sx=Math.round(m.wx-camX), sy=Math.round(m.wy-camY);
   spawnDmg(sx,sy-10,'💀 DEFEATED','#f0c840',8);
-  // Drop weapon
+
+  // Drop weapon (35% chance)
   if(Math.random()<0.35&&def.drop){
     const wid=def.drop;
     const added=addToInventory({type:'weapon',id:wid,qty:1});
     if(added)spawnDmg(sx,sy-28,`⚔️ ${WEAPONS[wid].name}`,'#f08040',7);
   }
+  // Drop pickaxe (tiered chance based on floor)
+  const pickRoll = Math.random();
+  const fl = G.floor;
+  let droppedPick = null;
+  if     (fl>=40 && pickRoll<0.012) droppedPick='diamond_pick';
+  else if(fl>=20 && pickRoll<0.04)  droppedPick='gold_pick';
+  else if(fl>=10 && pickRoll<0.09)  droppedPick='iron_pick';
+  else if(fl>=4  && pickRoll<0.16)  droppedPick='stone_pick';
+  else if(           pickRoll<0.25) droppedPick='wooden_pick';
+  if(droppedPick){
+    const pk=PICKAXES[droppedPick];
+    const added=addToInventory({type:'pickaxe',id:droppedPick,qty:1});
+    const tc=TIER_COLOR[pk.tier];
+    if(added)spawnDmg(sx,sy-42,`⛏ ${pk.name}`||'Pickaxe',tc,7);
+  }
+  // Drop potion (20% total chance, weighted by rarity)
+  if(Math.random()<0.20){
+    const totalW = Object.values(POTIONS).reduce((s,p)=>s+p.dropW,0);
+    let roll=Math.random()*totalW;
+    let droppedPot=null;
+    for(const pid in POTIONS){
+      roll-=POTIONS[pid].dropW;
+      if(roll<=0){droppedPot=pid;break;}
+    }
+    if(!droppedPot) droppedPot='hp_small';
+    const added=addToInventory({type:'potion',id:droppedPot,qty:1});
+    if(added) spawnDmg(sx,sy-56,`🧪 ${POTIONS[droppedPot].name}`,POTIONS[droppedPot].glowCol,7);
+  }
+  // Drop bomb (15% chance)
+  if(Math.random()<0.15){
+    G.tntCount=(G.tntCount||0)+1;
+    updateHud();
+    spawnDmg(sx,sy-42,'💣 BOMB!','#f04040',7);
+  }
+  // Drop ladder (10% chance, scales slightly with floor)
+  const ladChance=0.10+Math.min(0.10, G.floor*0.001);
+  if(Math.random()<ladChance){
+    G.ladder++;
+    updateHud();
+    spawnDmg(sx,sy-56,'🪜 LADDER!','#e0a040',7);
+  }
+
   delete monsters[id];
 }
 
@@ -1536,30 +2701,33 @@ function handleGozoDeath(){
 
 function updateGozoHpBar(){
   const pct=Math.max(0,G.hp/G.maxHp*100);
-  document.getElementById('gozo-hp-inner').style.width=pct+'%';
-  document.getElementById('gozo-hp-txt').textContent=G.hp;
+  const inner=document.getElementById('gozo-hp-inner');
+  const txt=document.getElementById('gozo-hp-txt');
+  if(!inner||!txt)return;
+  inner.style.width=pct+'%';
+  txt.textContent=G.hp;
   const c=pct>50?'#c02020':pct>25?'#e06020':'#f04040';
-  document.getElementById('gozo-hp-inner').style.background=`linear-gradient(90deg,${c},#f06060)`;
+  inner.style.background=`linear-gradient(90deg,${c},#f06060)`;
 }
 
 // ═══════════════════════════════════════════════════════════
 //  INVENTORY SYSTEM
 // ═══════════════════════════════════════════════════════════
 function addToInventory(item){
-  // Try to stack ore/same items
-  if(item.type==='ore'){
-    for(let i=0;i<30;i++){
+  const slots = G.invSlots || 30;
+  // Stack ore AND potions
+  if(item.type==='ore' || item.type==='potion'){
+    for(let i=0;i<slots;i++){
       const s=G.inventory[i];
-      if(s&&s.type==='ore'&&s.id===item.id&&s.qty<99){
+      if(s&&s.type===item.type&&s.id===item.id&&s.qty<99){
         s.qty+=item.qty; renderInventory(); return true;
       }
     }
   }
-  // Find empty slot
-  for(let i=0;i<30;i++){
+  for(let i=0;i<slots;i++){
     if(!G.inventory[i]){ G.inventory[i]={...item}; renderInventory(); return true; }
   }
-  toast('🎒 Inventory full!'); return false;
+  toast('🎒 Bag full! Buy more slots with [I]'); return false;
 }
 
 function removeFromInventory(slot, qty=1){
@@ -1570,23 +2738,139 @@ function removeFromInventory(slot, qty=1){
   renderInventory();
 }
 
+// Slot expansion — cost doubles each time, +6 slots per purchase
+function getExpandCost(){
+  const extra = G.invSlots - 30; // slots bought so far
+  return 200 * Math.pow(2, Math.floor(extra/6));
+}
+
+function expandInventory(){
+  const maxSlots = 90; // hard cap
+  if(G.invSlots >= maxSlots){ toast('🎒 Inventory is MAX size!'); return; }
+  const cost = getExpandCost();
+  if(G.coins < cost){ toast(`❌ Need 💰${fmt(cost)} to expand!`); return; }
+  G.coins -= cost;
+  G.invSlots += 6;
+  // Grow inventory array
+  while(G.inventory.length < G.invSlots) G.inventory.push(null);
+  updateHud();
+  renderInventory();
+  toast(`🎒 +6 slots! Now ${G.invSlots} total.`);
+}
+
 function renderInventory(){
   const grid=document.getElementById('inv-grid');
   if(!grid)return;
   grid.innerHTML='';
+
+  // Update slot count label
+  const used = G.inventory.filter(s=>s!==null).length;
+  const slotLabel = document.getElementById('inv-slot-count');
+  if(slotLabel) slotLabel.textContent=`${used}/${G.invSlots}`;
+
+  // Update expand button cost
+  const expandBtn = document.getElementById('inv-expand-btn');
+  const expandRow = document.getElementById('inv-expand-row');
+  if(expandBtn && expandRow){
+    if(G.invSlots>=90){
+      expandRow.style.opacity='0.4';
+      expandBtn.textContent='MAX';
+      expandBtn.style.borderColor='#606060';
+      expandBtn.style.color='#808080';
+    } else {
+      const cost=getExpandCost();
+      expandRow.style.opacity='1';
+      expandBtn.textContent=`💰${fmt(cost)}`;
+      expandBtn.style.borderColor=G.coins>=cost?'#c08020':'#802010';
+      expandBtn.style.color=G.coins>=cost?'#f0c040':'#f04040';
+    }
+  }
+
   const oreEmoji={stone:'🪨',iron:'⚙️',gold:'✨',diamond:'💎'};
-  for(let i=0;i<30;i++){
+  const slots = G.invSlots || 30;
+  for(let i=0;i<slots;i++){
     const s=G.inventory[i];
     const div=document.createElement('div');
-    div.className='inv-slot'+(s&&s.type==='weapon'?' weapon-item':'');
+    div.className='inv-slot'+(s&&(s.type==='weapon'||s.type==='pickaxe')?' weapon-item':'');
     if(s){
       let icon='',name='',qty='';
       if(s.type==='ore'){
         icon=oreEmoji[s.id]||'📦'; name=s.id; qty=s.qty>1?s.qty:'';
       } else if(s.type==='weapon'){
-        icon=WEAPONS[s.id]?WEAPONS[s.id].icon:'⚔️';
-        name=WEAPONS[s.id]?WEAPONS[s.id].name.split(' ').slice(-1)[0]:'Wpn';
-        qty='';
+        const w=WEAPONS[s.id];
+        const cvs=document.createElement('canvas');
+        cvs.width=36; cvs.height=36;
+        cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;';
+        const wctx=cvs.getContext('2d');
+        wctx.imageSmoothingEnabled=false;
+        if(w.legendary && LEGEND_SPR[s.id]){
+          // Animated legendary — run loop
+          div.style.borderColor=w.color;
+          div.style.boxShadow=`0 0 8px ${w.color}88`;
+          let af=null;
+          function animSlot(){
+            const frames=LEGEND_SPR[s.id];
+            const fi=Math.floor(Date.now()/120)%frames.length;
+            wctx.clearRect(0,0,36,36);
+            wctx.drawImage(frames[fi],0,0,36,36);
+            af=requestAnimationFrame(animSlot);
+          }
+          animSlot();
+          cvs._stopAnim=()=>{ if(af) cancelAnimationFrame(af); };
+          div.appendChild(cvs);
+          const nm=document.createElement('span');
+          nm.className='inv-name'; nm.style.color=w.color;
+          nm.textContent='★'+w.name.split(' ')[0];
+          div.appendChild(nm);
+        } else {
+          const spr=WEAPON_SPR[s.id];
+          if(spr) wctx.drawImage(spr,2,2,32,32);
+          div.style.borderColor=(w.color||'#c0a040')+'99';
+          div.appendChild(cvs);
+          const nm=document.createElement('span');
+          nm.className='inv-name';
+          nm.textContent=w.name.split(' ').slice(-1)[0];
+          div.appendChild(nm);
+        }
+        div.onclick=()=>onInvClick(i);
+        grid.appendChild(div);
+        continue;
+      } else if(s.type==='potion'){
+        const pt=POTIONS[s.id];
+        const cvs=document.createElement('canvas');
+        cvs.width=32;cvs.height=32;
+        const pctx=cvs.getContext('2d');
+        pctx.imageSmoothingEnabled=false;
+        const spr=POTION_SPR[s.id];
+        if(spr)pctx.drawImage(spr,0,0,32,32);
+        div.style.borderColor=pt.glowCol+'99';
+        div.appendChild(cvs);
+        if(s.qty>1){
+          const qsp=document.createElement('span');
+          qsp.className='inv-qty';qsp.textContent=s.qty;div.appendChild(qsp);
+        }
+        div.onclick=()=>onInvClick(i);
+        grid.appendChild(div);
+        continue;
+      } else if(s.type==='pickaxe'){
+        const pk=PICKAXES[s.id];
+        const cvs=document.createElement('canvas');
+        cvs.width=36;cvs.height=36;
+        const pctx=cvs.getContext('2d');
+        pctx.imageSmoothingEnabled=false;
+        const spr=PICK_SPR[s.id];
+        if(spr)pctx.drawImage(spr,0,0,36,36);
+        const tierC=TIER_COLOR[pk.tier]||'#c0c0c0';
+        div.style.borderColor=tierC;
+        div.appendChild(cvs);
+        const nm=document.createElement('span');
+        nm.className='inv-name';
+        nm.style.color=tierC;
+        nm.textContent=pk.tier;
+        div.appendChild(nm);
+        div.onclick=()=>onInvClick(i);
+        grid.appendChild(div);
+        continue;
       }
       div.innerHTML=`<span style="font-size:20px">${icon}</span><span class="inv-name">${name}</span>${qty?`<span class="inv-qty">${qty}</span>`:''}`;
       div.onclick=()=>onInvClick(i);
@@ -1595,44 +2879,232 @@ function renderInventory(){
   }
 }
 
+// Weapon sell prices by tier
+const WEAPON_SELL = {1:30, 2:80, 3:200, 4:500, 5:1500};
+const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200};
+
 function onInvClick(i){
   const s=G.inventory[i];
   const info=document.getElementById('inv-info');
-  if(!s){info.textContent='Empty slot.';return;}
+  info.dataset.pending='';
+  if(!s){info.innerHTML='<span style="color:#6a5040">Empty slot.</span>';return;}
+
+  // Sell button helper — only allowed when correct NPC shop is open
+  function sellBtn(type, coins, label, removeAll=false){
+    const {allowed, hint}=canSellToNpc(type);
+    if(allowed){
+      return `<button onclick="invSellItem(${i},${coins},'${label}'${removeAll?',true':''})" style="flex:1;padding:4px;background:#1a0a08;border:1px solid #c04020;color:#f06040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 SELL +${coins}g</button>`;
+    } else {
+      return `<button disabled title="${hint}" style="flex:1;padding:4px;background:#111;border:1px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:6px;cursor:not-allowed;opacity:0.5;" onclick="invSellItem(${i},${coins},'${label}'${removeAll?',true':''})">🔒 ${hint}</button>`;
+    }
+  }
+
+  if(s.type==='potion'){
+    const p=POTIONS[s.id];
+    info.innerHTML=`
+      <b style="color:${p.glowCol}">${p.name}</b> ×${s.qty}<br>
+      <span style="color:#a0c0d0">${p.desc}</span><br>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button onclick="usePotion(${i})" style="flex:1;padding:4px;background:#0a1a10;border:1px solid ${p.glowCol};color:${p.glowCol};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">🧪 USE NOW</button>
+        ${sellBtn('potion',10,p.name)}
+      </div>`;
+    return;
+  }
   if(s.type==='weapon'){
     const w=WEAPONS[s.id];
-    info.innerHTML=`<b style="color:#f0c840">${w.name}</b><br>DMG: ${w.dmg} | SPD: ${w.spd}x | RNG: ${w.range}x<br><span style="color:#a080c0">Click again to EQUIP</span>`;
-    if(info.dataset.pending===String(i)){
-      equipWeapon(s.id,i); info.dataset.pending='';
-    } else { info.dataset.pending=String(i); }
+    // Legendary weapon — special display + gold sell
+    if(w.legendary){
+      const isEquipped=G.equippedWeapon===s.id;
+      const {allowed,hint}=canSellToNpc('legendary');
+      const sellGold=w.goldSell||0;
+      const sellBtnHtml=allowed
+        ? `<button onclick="invSellLegendary(${i})" style="flex:1;padding:4px;background:#1a0a08;border:1px solid #f0c040;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:5px;cursor:pointer;">💛 SELL ${sellGold.toLocaleString()}g GOLD</button>`
+        : `<button disabled title="${hint}" style="flex:1;padding:4px;background:#111;border:1px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:5px;cursor:not-allowed;opacity:0.5;">🔒 ${hint}</button>`;
+      info.innerHTML=`
+        <b style="color:${w.color};text-shadow:0 0 8px ${w.color};">🌟 [LEGENDARY] ${w.name}</b><br>
+        <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
+        <span style="color:#ffdd00;font-size:5px;">Purchased with GOZO token · Sell for gold only</span><br>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⚔️ EQUIP'}</button>
+          ${sellBtnHtml}
+        </div>`;
+      return;
+    }
+    const sellVal=WEAPON_SELL[w.tier]||30;
+    const isEquipped=G.equippedWeapon===s.id;
+    info.innerHTML=`
+      <b style="color:#f0c840">${w.name}</b><br>
+      <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⚔️ EQUIP'}</button>
+        ${sellBtn('weapon',sellVal,w.name)}
+      </div>`;
+  } else if(s.type==='pickaxe'){
+    const pk=PICKAXES[s.id];
+    const tc=TIER_COLOR[pk.tier];
+    const sellVal=PICK_SELL[pk.tierIdx]||20;
+    const isEquipped=G.equippedPickaxe===s.id;
+    info.innerHTML=`
+      <b style="color:${tc}">[${pk.tier}] ${pk.name}</b><br>
+      <span style="color:#a0c0d0">Mine DMG: +${pk.dmg}</span><br>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button onclick="invEquipPickaxe(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⛏ EQUIP'}</button>
+        ${sellBtn('pickaxe',sellVal,pk.name)}
+      </div>`;
   } else if(s.type==='ore'){
     const prices={stone:0,iron:15,gold:80,diamond:500};
-    info.innerHTML=`<b style="color:#f0c840">${s.id.toUpperCase()}</b> ×${s.qty}<br>Sell value: 💰${prices[s.id]||0} each<br><span style="color:#60e890">Click again to SELL ALL</span>`;
-    if(info.dataset.pending===String(i)){
-      const p=prices[s.id]||0; G.coins+=p*s.qty;
-      toast(`💰 Sold ${s.qty} ${s.id} for ${p*s.qty}g!`);
-      removeFromInventory(i,s.qty); updateHud(); info.dataset.pending='';
-    } else { info.dataset.pending=String(i); }
+    const p=prices[s.id]||0;
+    const total=p*s.qty;
+    info.innerHTML=`
+      <b style="color:#f0c840">${s.id.toUpperCase()}</b> ×${s.qty}<br>
+      <span style="color:#a0c0d0">💰 ${p}g each &nbsp;=&nbsp; ${total}g total</span><br>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        ${sellBtn('ore',total,`${s.qty} ${s.id}`,true)}
+      </div>`;
   }
 }
 
-function equipWeapon(wid, slotIdx){
+function invEquipWeapon(i){
+  const s=G.inventory[i]; if(!s||s.type!=='weapon')return;
+  equipWeapon(s.id,i);
+  onInvClick(i); // refresh panel
+}
+function invEquipPickaxe(i){
+  const s=G.inventory[i]; if(!s||s.type!=='pickaxe')return;
+  equipPickaxe(s.id);
+  onInvClick(i);
+}
+function invSellLegendary(i){
+  const s=G.inventory[i]; if(!s||s.type!=='weapon') return;
+  const w=WEAPONS[s.id]; if(!w||!w.legendary) return;
+  const {allowed,hint}=canSellToNpc('legendary');
+  if(!allowed){ toast('🔒 '+hint); return; }
+  const goldGain=w.goldSell||0;
+  G.coins+=goldGain;
+  if(G.equippedWeapon===s.id){ G.equippedWeapon=null; setText('weapon-icon','👊'); setText('eq-name','Fists'); }
+  removeFromInventory(i,1);
+  updateHud();
+  toast(`💛 Sold ${w.name} to Gareth for ${goldGain.toLocaleString()}g gold!`);
+  const info=document.getElementById('inv-info');
+  if(info) info.innerHTML='<span style="color:#f0c040">Legendary sold for gold!</span>';
+}
+function invSellItem(i, coins, label, removeAll=false){
+  const s=G.inventory[i];
+  if(!s) return;
+  const {allowed, hint}=canSellToNpc(s.type);
+  if(!allowed){
+    toast(`🔒 ${hint}`);
+    return;
+  }
+  G.coins+=coins;
+  toast(`💰 Sold ${label} for ${coins}g!`);
+  // If selling equipped pickaxe/weapon, unequip first
+  if(s.type==='pickaxe'&&G.equippedPickaxe===s.id){
+    G.equippedPickaxe='wooden_pick';
+    equipPickaxe('wooden_pick');
+  }
+  if(s.type==='weapon'&&G.equippedWeapon===s.id){
+    G.equippedWeapon=null;
+    setText('weapon-icon','👊');
+    setText('eq-name','Fists');
+  }
+  removeFromInventory(i, removeAll?99:1);
+  updateHud();
+  const info=document.getElementById('inv-info');
+  info.innerHTML='<span style="color:#60e890">Item sold!</span>';
+}
+
+// Safe element helpers
+const el=id=>document.getElementById(id);
+const setText=(id,v)=>{const e=el(id);if(e)e.textContent=v;};
+const setStyle=(id,prop,v)=>{const e=el(id);if(e)e.style[prop]=v;};
+const addClass=(id,cls)=>{const e=el(id);if(e)e.classList.add(cls);};
+const remClass=(id,cls)=>{const e=el(id);if(e)e.classList.remove(cls);};
+
+function equipPickaxe(pid){
+  if(!PICKAXES[pid])return;
+  G.equippedPickaxe=pid;
+  const pk=PICKAXES[pid];
+  const tc=TIER_COLOR[pk.tier];
+  const slot=el('slot-pick');
+  if(slot){
+    slot.innerHTML=`<span class="slot-num">1</span>`;
+    const cvs=document.createElement('canvas');
+    cvs.width=40;cvs.height=40;
+    cvs.style.cssText='image-rendering:pixelated;width:40px;height:40px;';
+    const pctx=cvs.getContext('2d');
+    pctx.imageSmoothingEnabled=false;
+    const spr=PICK_SPR[pid];
+    if(spr)pctx.drawImage(spr,0,0,40,40);
+    slot.appendChild(cvs);
+    slot.style.borderColor=tc;
+    slot.classList.add('active');
+  }
+  remClass('slot-weapon','active');
+  G.equippedWeapon=null;
+  setText('weapon-icon','👊');
+  setText('eq-name',`${pk.name} [${pk.tier}]`);
+  setStyle('equipped-weapon','borderColor',tc);
+  setStyle('eq-name','color',tc);
+  toast(`⛏ Equipped ${pk.name}!`);
+  renderInventory();
+}
+
+function equipWeapon(wid,slotIdx){
   G.equippedWeapon=wid;
-  document.getElementById('weapon-icon').textContent=WEAPONS[wid].icon;
-  document.getElementById('eq-name').textContent=WEAPONS[wid].name;
-  document.getElementById('slot-weapon').classList.add('active');
-  document.getElementById('slot-pick').classList.remove('active');
-  toast(`⚔️ Equipped ${WEAPONS[wid].name}!`);
+  const w=WEAPONS[wid];
+  const slotEl=document.getElementById('slot-weapon');
+
+  if(w.legendary && LEGEND_SPR[wid]){
+    // Animated legendary in HUD slot
+    slotEl.innerHTML='<span class="slot-num">2</span>';
+    const cvs=document.createElement('canvas');
+    cvs.width=40; cvs.height=40;
+    cvs.style.cssText='image-rendering:pixelated;width:40px;height:40px;position:absolute;top:0;left:0;';
+    const lctx=cvs.getContext('2d');
+    lctx.imageSmoothingEnabled=false;
+    slotEl.style.position='relative';
+    slotEl.appendChild(cvs);
+    // Kill old anim
+    if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); }
+    function animHudSlot(){
+      const frames=LEGEND_SPR[wid];
+      if(!frames||G.equippedWeapon!==wid){ slotEl._legendAnim=null; return; }
+      const fi=Math.floor(Date.now()/120)%frames.length;
+      lctx.clearRect(0,0,40,40);
+      lctx.drawImage(frames[fi],0,0,40,40);
+      slotEl._legendAnim=requestAnimationFrame(animHudSlot);
+    }
+    animHudSlot();
+    slotEl.style.borderColor=w.color;
+    slotEl.style.boxShadow=`0 0 10px ${w.color}cc, 0 0 20px ${w.color}44`;
+    setText('weapon-icon','');
+    setText('eq-name','★ '+w.name);
+    setStyle('eq-name','color',w.color);
+    setStyle('eq-name','textShadow',`0 0 8px ${w.color}`);
+  } else {
+    // Stop any legendary anim
+    if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); slotEl._legendAnim=null; }
+    slotEl.style.boxShadow='';
+    slotEl.style.borderColor='';
+    setText('weapon-icon',w.icon);
+    setText('eq-name',w.name);
+    setStyle('eq-name','color','');
+    setStyle('eq-name','textShadow','');
+  }
+  addClass('slot-weapon','active');
+  remClass('slot-pick','active');
+  toast(`⚔️ Equipped ${w.name}!`);
   renderInventory();
 }
 
 function equipSlot(slot){
   if(slot==='pick'){
     G.equippedWeapon=null;
-    document.getElementById('weapon-icon').textContent='👊';
-    document.getElementById('eq-name').textContent='Fists';
-    document.getElementById('slot-pick').classList.add('active');
-    document.getElementById('slot-weapon').classList.remove('active');
+    setText('weapon-icon','👊');
+    setText('eq-name','Fists');
+    addClass('slot-pick','active');
+    remClass('slot-weapon','active');
   }
 }
 
@@ -1648,13 +3120,1631 @@ function giveStarterWeapon(){
 }
 
 // ═══════════════════════════════════════════════════════════
-//  WORLD MAP
+//  VILLAGE (FLOOR 0) — Mining Village
 // ═══════════════════════════════════════════════════════════
+
+const VILLAGE_NPCS = [
+  { id:'weaponsmith', name:'Gareth the Blacksmith', icon:'⚔️', shop:'weapon',
+    x:10, y:8,  color:'#e87040', desc:'Weapons & Combat Gear' },
+  { id:'alchemist',  name:'Lyra the Alchemist',    icon:'🧪', shop:'potion',
+    x:22, y:8,  color:'#a040e0', desc:'Potions & Elixirs' },
+  { id:'pickaxeman', name:'Brom the Forger',        icon:'⛏', shop:'pickaxe',
+    x:34, y:8,  color:'#40b0e0', desc:'Pickaxes & Mining Tools' },
+  { id:'bomber',     name:'Fizz the Demolitionist', icon:'💣', shop:'bomb',
+    x:10, y:26, color:'#e04040', desc:'Bombs & Explosives' },
+  { id:'oretrader',  name:'Mira the Ore Merchant',  icon:'💎', shop:'ore',
+    x:34, y:26, color:'#40e090', desc:'Buy & Sell Ores' },
+  { id:'legend',     name:'Zael the Legend',        icon:'🌟', shop:'legendary',
+    x:22, y:26, color:'#ffdd00', desc:'Legendary Weapons (GOZO token)' },
+];
+
+// Shop buy prices (cost to player)
+const SHOP_BUY = {
+  // Weapons — cost by tier
+  wooden_sword:80, stone_sword:180, iron_sword:420, gold_sword:1000, diamond_sword:2800,
+  wooden_axe:90,   stone_axe:200,   iron_axe:480,   gold_axe:1100,  diamond_axe:3200,
+  wooden_dagger:70,stone_dagger:160,iron_dagger:380, gold_dagger:900,diamond_dagger:2500,
+  wooden_spear:100,stone_spear:220, iron_spear:520,  gold_spear:1200,diamond_spear:3500,
+  // Pickaxes
+  wooden_pick:60,  stone_pick:180,  iron_pick:480,  gold_pick:1200, diamond_pick:3500,
+  // Potions
+  hp_small:40,    hp_medium:100,  hp_large:280,
+  str_pot:120,    speed_pot:100,  shield_pot:90,
+  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,
+  // Bombs
+  bomb:200,
+  // Ores (buy)
+  iron:20, gold:100, diamond:600,
+};
+// Shop sell prices (player sells to NPC) — ~60% of buy
+const SHOP_SELL = {
+  iron:15,gold:80,diamond:500,
+};
+
+let shopState = { npc:null, tab:'buy', selectedItem:null };
+
+// Which NPC shop type accepts each item type for selling
+const SELL_NPC_MAP = { weapon:'weapon', pickaxe:'pickaxe', potion:'potion', ore:'ore', legendary:'weapon' };
+function canSellToNpc(itemType){
+  // For legendary weapons, map to weapon shop (Gareth)
+  const lookupType = itemType==='legendary' ? 'legendary' : itemType;
+  const required = SELL_NPC_MAP[lookupType];
+  if(!required) return {allowed:false, hint:'Cannot be sold'};
+  const npc=shopState.npc;
+  if(!npc){
+    const target=VILLAGE_NPCS.find(n=>n.shop===required);
+    return {allowed:false, hint:`Talk to ${target?target.icon+' '+target.name.split(' ')[0]:'the NPC'} to sell`};
+  }
+  if(npc.shop===required) return {allowed:true, hint:npc.name};
+  const target=VILLAGE_NPCS.find(n=>n.shop===required);
+  return {allowed:false, hint:`Only ${target?target.icon+' '+target.name.split(' ')[0]:'another NPC'} buys this`};
+}
+
+// Miner NPCs that roam the dungeon floors
+const MINER_NAMES = [
+  'Grak','Tura','Finn','Bolo','Mira','Cobb','Zara','Oren','Pika','Dren'
+];
+const MINER_COLORS = [
+  '#e87030','#40b0e0','#e040a0','#40e080','#e0c040','#a040e0','#e05030','#40d0c0','#d0e040','#c08060'
+];
+const MINER_PICKS = ['wooden_pick','stone_pick','iron_pick','gold_pick','diamond_pick'];
+const MINER_WPNS  = ['wooden_sword','stone_sword','iron_sword','gold_sword','wooden_axe','stone_axe'];
+let minerNPCs = {}; // id -> miner state (current floor only)
+let allMinerNPCs = {}; // persists: id -> {floor, wx, wy, ...}
+let nextMinerId = 0;
+
+// Build a simple miner sprite (pixel art, 32x40)
+const MINER_SPR = {};
+function buildMinerSprite(colorHex, pickId, wepId){
+  const key = colorHex+pickId;
+  if(MINER_SPR[key]) return MINER_SPR[key];
+  const frames = [];
+  for(let fr=0;fr<4;fr++){
+    const c=document.createElement('canvas');
+    c.width=32; c.height=40;
+    const cx=c.getContext('2d');
+    cx.imageSmoothingEnabled=false;
+    const bobY = (fr===1||fr===3)?1:0;
+    const h=colorHex;
+    // Body
+    cx.fillStyle=h; cx.fillRect(10,14+bobY,12,12);
+    // Head
+    cx.fillStyle='#f0c890'; cx.fillRect(11,6+bobY,10,10);
+    // Hair
+    cx.fillStyle='#5a3010'; cx.fillRect(11,6+bobY,10,3);
+    // Eyes
+    cx.fillStyle='#000'; cx.fillRect(13,10+bobY,2,2); cx.fillRect(17,10+bobY,2,2);
+    // Helmet
+    cx.fillStyle=darken(h,20); cx.fillRect(10,5+bobY,12,4);
+    cx.fillStyle=lighten(h,30); cx.fillRect(11,4+bobY,10,2);
+    // Legs
+    cx.fillStyle='#404060';
+    const legOff = fr===0?0:fr===1?1:fr===2?0:-1;
+    cx.fillRect(10,26+bobY,5,8); cx.fillRect(17,26+bobY,5,8);
+    cx.fillRect(10+legOff,26+bobY,5,8);
+    // Boots
+    cx.fillStyle='#302030'; cx.fillRect(9,32+bobY,6,4); cx.fillRect(17,32+bobY,6,4);
+    // Pickaxe arm
+    const armSwing = (fr%2===0)?0:2;
+    cx.fillStyle='#c8a060';
+    cx.fillRect(22+armSwing,16+bobY,4,2);
+    cx.fillRect(24+armSwing,12+bobY,2,6);
+    // Pick head
+    const pk=PICKAXES[pickId]||PICKAXES.wooden_pick;
+    cx.fillStyle=pk.headCol;
+    cx.fillRect(25+armSwing,10+bobY,5,3);
+    cx.fillRect(24+armSwing,13+bobY,2,2);
+    frames.push(c);
+  }
+  MINER_SPR[key]=frames;
+  return frames;
+}
+
+// Called once on new game — distribute 10 miners across floors 1..20
+function initAllMiners(maxFloor){
+  allMinerNPCs={};
+  nextMinerId=0;
+  const count=10;
+  for(let i=0;i<count;i++){
+    const id=nextMinerId++;
+    // Random floor 1..min(maxFloor,20), biased toward lower floors
+    const fl=1+Math.floor(Math.pow(Math.random(),1.5)*(Math.min(maxFloor,20)));
+    const pick=MINER_PICKS[Math.min(Math.floor(fl/8),4)];
+    const wep=MINER_WPNS[Math.min(Math.floor(fl/15),5)];
+    const col=MINER_COLORS[i%MINER_COLORS.length];
+    buildMinerSprite(col,pick,wep);
+    allMinerNPCs[id]={
+      id, name:MINER_NAMES[i%MINER_NAMES.length], col,
+      floor:fl, pick, wep,
+      wx:-1, wy:-1, // -1 = not yet placed on a map (placed when floor loaded)
+      state:'wander', dir:'S', frame:0, animT:0,
+      wanderT:Math.floor(Math.random()*80),
+      mineTarget:null, mineT:0,
+      bag:{stone:0,iron:0,gold:0,diamond:0}, // collected minerals
+      bagMax:8, // carry capacity
+      restT:0, // resting timer
+      speech:null, speechT:0, // chat bubble
+    };
+  }
+}
+
+function spawnMinerNPCs(fl){
+  // Build minerNPCs from allMinerNPCs for this floor
+  minerNPCs={};
+  if(fl===0) return;
+  const floors=[];
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++)
+    if(worldMap[y][x]===T_FLOOR && !rocks[x+','+y]) floors.push({x,y});
+  const gx=Math.floor(gozo.wx/TILE), gy=Math.floor(gozo.wy/TILE);
+  const cands=floors.filter(f=>Math.abs(f.x-gx)+Math.abs(f.y-gy)>6)
+                    .sort(()=>Math.random()-0.5);
+  let ci=0;
+  for(const id in allMinerNPCs){
+    const m=allMinerNPCs[id];
+    if(m.floor!==fl) continue;
+    // Place on map if not already placed
+    if(m.wx<0){
+      if(ci>=cands.length) continue;
+      const {x,y}=cands[ci++];
+      m.wx=x*TILE+TILE/2; m.wy=y*TILE+TILE-4;
+    }
+    minerNPCs[id]=m;
+  }
+}
+
+const MINER_SPEECHES=['Time to dig!','Found some ore!','Good veins here.','Watch out monsters!',
+  'Almost full bag.','Need a ladder...','Deep caves are rich.','Mining pays well!',
+  'Careful out there.','Found iron!','Gold? Lucky me!','Stone everywhere...'];
+
+function updateMinerNPCs(){
+  if(G.floor===0) return;
+  for(const id in minerNPCs){
+    const m=minerNPCs[id];
+    m.animT++; m.frame=Math.floor(m.animT/12)%4;
+
+    // Speech bubble timer
+    if(m.speechT>0){ m.speechT--; if(m.speechT<=0) m.speech=null; }
+    // Random speech
+    if(Math.random()<0.0005){ m.speech=MINER_SPEECHES[Math.floor(Math.random()*MINER_SPEECHES.length)]; m.speechT=180; }
+
+    // Resting
+    if(m.restT>0){ m.restT--; continue; }
+
+    // Bag full → rest and "deposit" (just clear bag with a speech)
+    const bagTotal=m.bag.stone+m.bag.iron+m.bag.gold+m.bag.diamond;
+    if(bagTotal>=m.bagMax){
+      m.speech='Bag full! Heading back...'; m.speechT=120;
+      m.bag={stone:0,iron:0,gold:0,diamond:0};
+      m.restT=120+Math.floor(Math.random()*80);
+      m.mineTarget=null;
+      continue;
+    }
+
+    // Currently mining a rock
+    if(m.mineTarget){
+      m.state='mine';
+      m.mineT++;
+      if(m.mineT>30){
+        m.mineT=0;
+        if(rocks[m.mineTarget]){
+          rocks[m.mineTarget].hp-=3;
+          if(rocks[m.mineTarget].hp<=0){
+            // Collect mineral
+            const rtype=rocks[m.mineTarget].type;
+            m.bag[rtype]=(m.bag[rtype]||0)+1;
+            m.speech='Got '+rtype+'!'; m.speechT=80;
+            delete rocks[m.mineTarget];
+            m.mineTarget=null;
+            m.state='wander';
+            m.restT=30;
+          }
+        } else { m.mineTarget=null; m.state='wander'; }
+      }
+      continue;
+    }
+
+    // Wander or seek rock
+    m.wanderT--;
+    if(m.wanderT<=0){
+      m.wanderT=40+Math.floor(Math.random()*60);
+      const mx=Math.floor(m.wx/TILE), my=Math.floor(m.wy/TILE);
+
+      // 60% chance — scan nearby rocks (radius 5)
+      if(Math.random()<0.6){
+        let bestRk=null, bestDist=999;
+        for(const rk in rocks){
+          const r=rocks[rk];
+          const d=Math.abs(r.tx-mx)+Math.abs(r.ty-my);
+          if(d<bestDist && d<=5){ bestDist=d; bestRk=rk; }
+        }
+        if(bestRk){
+          // Walk toward rock first
+          const r=rocks[bestRk];
+          const dx=r.tx-mx, dy=r.ty-my;
+          if(Math.abs(dx)<=1 && Math.abs(dy)<=1){
+            // Adjacent — start mining
+            m.mineTarget=bestRk; m.mineT=0;
+            m.dir=dx>0?'E':dx<0?'W':dy>0?'S':'N';
+          } else {
+            // Step toward rock
+            const sx=Math.sign(dx), sy=Math.sign(dy);
+            const nx=m.wx+(sx||0)*TILE, ny=m.wy+(sy||0)*TILE;
+            if(canWalk(nx,m.wy)){ m.wx=nx; m.dir=sx>0?'E':'W'; m.state='walk'; }
+            else if(canWalk(m.wx,ny)){ m.wy=ny; m.dir=sy>0?'S':'N'; m.state='walk'; }
+          }
+          continue;
+        }
+      }
+
+      // Random wander step
+      m.state='walk';
+      const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+      const [ddx,ddy]=dirs[Math.floor(Math.random()*4)];
+      const nx=m.wx+ddx*TILE*2, ny=m.wy+ddy*TILE*2;
+      if(canWalk(nx,ny)){ m.wx=nx; m.wy=ny; m.dir=ddx>0?'E':ddx<0?'W':ddy>0?'S':'N'; }
+      else { m.state='idle'; }
+    }
+  }
+}
+
+// ── VILLAGE GENERATION ──────────────────────────────────────
+const VILLAGE_W=48, VILLAGE_H=36;
+let villageMap=[], villageTileV=[];
+let villageNPCState={}; // proximity-based interaction flags
+
+function buildVillageSprites(){
+  if(!TC._grassBuilt){
+    TC._grassBuilt=true;
+
+    // ── GRASS tiles ──
+    TC.grass=[];
+    for(let v=0;v<4;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=['#8aaa50','#90b055','#86a44c','#8cac52'][v]; cx.fillRect(0,0,TILE,TILE);
+      cx.fillStyle='rgba(0,0,0,0.06)'; cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
+      for(let i=0;i<4;i++){
+        const gx=4+Math.floor((i*11)%28),gy=4+Math.floor((i*7)%24);
+        cx.fillStyle='#6a8a38'; cx.fillRect(gx,gy,2,3); cx.fillRect(gx+1,gy-1,1,2);
+      }
+      TC.grass.push(c);
+    }
+
+    // ── PATH tiles ──
+    TC.path=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=v===0?'#b8905a':'#b08850'; cx.fillRect(0,0,TILE,TILE);
+      cx.fillStyle='rgba(0,0,0,0.08)'; cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
+      cx.fillStyle='#9a7a48';
+      for(let i=0;i<5;i++) cx.fillRect(3+i*6,3+((i*7)%26),2,2);
+      TC.path.push(c);
+    }
+
+    // ── CEMENT WALL tile (exterior) ──
+    TC.cementWall=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      // Base cement grey
+      cx.fillStyle=v===0?'#7a8090':'#727888'; cx.fillRect(0,0,TILE,TILE);
+      // Brick pattern
+      const brickH=8, brickW=16;
+      for(let row=0;row<TILE/brickH;row++){
+        const off=(row%2===0)?0:brickW/2;
+        for(let col=-1;col<TILE/brickW+1;col++){
+          cx.fillStyle='rgba(0,0,0,0.18)';
+          cx.fillRect(off+col*brickW,row*brickH,1,brickH); // vertical joint
+          cx.fillRect(0,row*brickH,TILE,1); // horizontal joint
+        }
+      }
+      // Highlight top edge
+      cx.fillStyle='rgba(255,255,255,0.12)'; cx.fillRect(0,0,TILE,2);
+      TC.cementWall.push(c);
+    }
+
+    // ── CEMENT WALL FACE (front face below wall top) ──
+    TC.cementFace=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE/2;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=v===0?'#606870':'#585e68'; cx.fillRect(0,0,TILE,TILE/2);
+      for(let row=0;row<2;row++){
+        const off=(row%2===0)?0:8;
+        for(let col=-1;col<3;col++){
+          cx.fillStyle='rgba(0,0,0,0.22)';
+          cx.fillRect(off+col*16,row*8,1,8);
+          cx.fillRect(0,row*8,TILE,1);
+        }
+      }
+      cx.fillStyle='rgba(0,0,0,0.35)'; cx.fillRect(0,TILE/2-2,TILE,2);
+      TC.cementFace.push(c);
+    }
+
+    // ── WOOD FLOOR tile (interior) ──
+    TC.woodFloor=[];
+    for(let v=0;v<4;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=['#c8904a','#c08040','#ca9450','#be8845'][v]; cx.fillRect(0,0,TILE,TILE);
+      // Wood plank lines
+      for(let i=0;i<4;i++){
+        cx.fillStyle='rgba(0,0,0,0.12)'; cx.fillRect(0,i*8,TILE,1);
+        cx.fillStyle='rgba(255,255,255,0.06)'; cx.fillRect(0,i*8+1,TILE,1);
+      }
+      // Grain detail
+      cx.fillStyle='rgba(0,0,0,0.07)';
+      for(let i=0;i<3;i++) cx.fillRect(4+i*10,2+v*2,2,28);
+      TC.woodFloor.push(c);
+    }
+
+    // ── TILE FLOOR (bathroom/kitchen) ──
+    TC.tileFloor=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      const cols=['#c8d0d8','#d0d8e0'];
+      cx.fillStyle=cols[v]; cx.fillRect(0,0,TILE,TILE);
+      for(let ty2=0;ty2<4;ty2++) for(let tx2=0;tx2<4;tx2++){
+        cx.fillStyle=(tx2+ty2)%2===0?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.08)';
+        cx.fillRect(tx2*8,ty2*8,8,8);
+        cx.fillStyle='rgba(0,0,0,0.15)';
+        cx.fillRect(tx2*8,ty2*8,8,1); cx.fillRect(tx2*8,ty2*8,1,8);
+      }
+      TC.tileFloor.push(c);
+    }
+
+    // ── CARPET tile (bedroom) ──
+    TC.carpet=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=v===0?'#7060a8':'#6858a0'; cx.fillRect(0,0,TILE,TILE);
+      // Pattern
+      cx.fillStyle='rgba(255,255,255,0.08)';
+      for(let i=0;i<4;i++) cx.fillRect(i*8,0,1,TILE);
+      for(let i=0;i<4;i++) cx.fillRect(0,i*8,TILE,1);
+      cx.fillStyle='rgba(255,255,255,0.12)';
+      cx.fillRect(4,4,TILE-8,TILE-8);
+      cx.fillStyle='rgba(255,255,255,0)'; // clear
+      cx.fillStyle='rgba(255,200,100,0.1)'; cx.fillRect(8,8,TILE-16,TILE-16);
+      TC.carpet.push(c);
+    }
+
+    // ── INNER WALL (room divider) ──
+    TC.innerWall=[];
+    for(let v=0;v<2;v++){
+      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
+      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=v===0?'#d4c8a8':'#ccc0a0'; cx.fillRect(0,0,TILE,TILE);
+      cx.fillStyle='rgba(0,0,0,0.08)'; cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
+      cx.fillStyle='rgba(0,0,0,0.05)'; cx.fillRect(0,TILE-2,TILE,2);
+      TC.innerWall.push(c);
+    }
+
+    // Legacy (keep for compatibility)
+    TC.houseWall=TC.cementWall[0];
+    TC.houseDoor=TC.woodFloor[0];
+
+    // ── TREE ──
+    TC.tree=document.createElement('canvas');TC.tree.width=TILE;TC.tree.height=TILE*2;
+    const tc3=TC.tree.getContext('2d');tc3.imageSmoothingEnabled=false;
+    tc3.fillStyle='#604020'; tc3.fillRect(13,TILE,6,TILE-2);
+    tc3.fillStyle='#38802a'; tc3.beginPath();tc3.arc(TILE/2,TILE/2,14,0,Math.PI*2);tc3.fill();
+    tc3.fillStyle='#48a034'; tc3.beginPath();tc3.arc(TILE/2-4,TILE/2-4,9,0,Math.PI*2);tc3.fill();
+
+    // ── SIGN ──
+    TC.sign=document.createElement('canvas');TC.sign.width=TILE;TC.sign.height=TILE;
+    const sc=TC.sign.getContext('2d');sc.imageSmoothingEnabled=false;
+    sc.fillStyle='#a07840'; sc.fillRect(12,4,20,14); sc.fillRect(20,18,4,12);
+    sc.fillStyle='#c0a060'; sc.fillRect(13,5,18,12);
+    sc.fillStyle='#604020'; sc.fillRect(12,4,20,2);
+  }
+}
+
+// Tile type constants for village interior rooms
+const T_GRASS=10,T_PATH=11,T_HOUSE=12,T_FENCE=13,T_TREE=14,T_WOOD=15,T_TILE=16,T_CARPET=17,T_IWALL=18;
+let villageDeco=[];
+// houseFurniture[houseIdx] = [{type, wx, wy}] — pixel-space furniture items
+let houseFurniture=[];
+let houseDefs=[];
+
+// ── FURNITURE DRAW FUNCTIONS ──────────────────────────────
+function drawFurniture(cx,item,ox,oy){
+  const{type,px,py}=item; // px,py already in screen coords
+  const x=px+ox, y=py+oy;
+  cx.imageSmoothingEnabled=false;
+
+  if(type==='table'){
+    cx.fillStyle='#8a6030'; cx.fillRect(x,y,28,20);
+    cx.fillStyle='#c09050'; cx.fillRect(x+1,y+1,26,4);
+    cx.fillStyle='#a07040'; cx.fillRect(x,y+4,28,1);
+    // Legs
+    cx.fillStyle='#6a4820'; cx.fillRect(x+2,y+16,4,8); cx.fillRect(x+22,y+16,4,8);
+  }
+  else if(type==='chair'){
+    cx.fillStyle='#7a5028'; cx.fillRect(x+2,y+8,16,12);
+    cx.fillStyle='#c08040'; cx.fillRect(x+2,y+8,16,4);
+    cx.fillStyle='#7a5028'; cx.fillRect(x+4,y,4,10); cx.fillRect(x+12,y,4,10);
+    cx.fillStyle='#6a4020'; cx.fillRect(x+2,y+18,4,6); cx.fillRect(x+14,y+18,4,6);
+  }
+  else if(type==='bed'){
+    // Frame
+    cx.fillStyle='#704020'; cx.fillRect(x,y,TILE*1.5,TILE*2);
+    // Mattress
+    cx.fillStyle='#e8e0d0'; cx.fillRect(x+3,y+4,TILE*1.5-6,TILE*2-8);
+    // Pillow
+    cx.fillStyle='#ffffff'; cx.fillRect(x+4,y+5,18,10);
+    cx.fillStyle='#e0e0ff'; cx.fillRect(x+5,y+6,16,8);
+    // Blanket
+    cx.fillStyle='#8060b0'; cx.fillRect(x+4,y+18,TILE*1.5-8,TILE-10);
+    cx.fillStyle='#a080d0'; cx.fillRect(x+4,y+18,TILE*1.5-8,4);
+    // Headboard
+    cx.fillStyle='#904030'; cx.fillRect(x,y,TILE*1.5,6);
+    cx.fillStyle='#c06040'; cx.fillRect(x+2,y+1,TILE*1.5-4,3);
+  }
+  else if(type==='wardrobe'){
+    cx.fillStyle='#6a4020'; cx.fillRect(x,y,28,36);
+    cx.fillStyle='#9a6030'; cx.fillRect(x+1,y+1,26,34);
+    cx.fillStyle='#6a4020'; cx.fillRect(x+13,y,2,36);
+    // Handles
+    cx.fillStyle='#e0c060'; cx.fillRect(x+7,y+16,3,5); cx.fillRect(x+18,y+16,3,5);
+    // Top trim
+    cx.fillStyle='#8a5028'; cx.fillRect(x,y,28,4); cx.fillRect(x,y+32,28,4);
+  }
+  else if(type==='bookshelf'){
+    cx.fillStyle='#7a5028'; cx.fillRect(x,y,28,36);
+    // Shelves
+    for(let sh=0;sh<3;sh++){
+      cx.fillStyle='#a07040'; cx.fillRect(x+1,y+2+sh*11,26,2);
+      // Books
+      const bookColors=['#e04040','#4060e0','#40a040','#e0c040','#a040e0','#e08040'];
+      let bx=x+2;
+      for(let b=0;b<5;b++){
+        cx.fillStyle=bookColors[(sh*5+b)%bookColors.length];
+        cx.fillRect(bx,y+4+sh*11,4,8);
+        bx+=5;
+      }
+    }
+    // Frame
+    cx.fillStyle='#6a4020'; cx.fillRect(x,y,2,36); cx.fillRect(x+26,y,2,36);
+    cx.fillRect(x,y,28,2); cx.fillRect(x,y+34,28,2);
+  }
+  else if(type==='desk'){
+    // Desktop
+    cx.fillStyle='#a07040'; cx.fillRect(x,y,36,6);
+    cx.fillStyle='#c09050'; cx.fillRect(x+1,y+1,34,3);
+    // Body
+    cx.fillStyle='#8a6030'; cx.fillRect(x,y+6,36,22);
+    // Drawer
+    cx.fillStyle='#704020'; cx.fillRect(x+4,y+8,14,10);
+    cx.fillStyle='#e0c060'; cx.fillRect(x+9,y+12,4,3);
+    // Legs
+    cx.fillStyle='#6a4020'; cx.fillRect(x+2,y+26,4,8); cx.fillRect(x+30,y+26,4,8);
+  }
+  else if(type==='lamp'){
+    cx.fillStyle='#c8a060'; cx.fillRect(x+6,y+18,4,16); // pole
+    cx.fillStyle='#404040'; cx.fillRect(x+4,y+32,8,2); // base
+    // Shade
+    cx.fillStyle='#f0e0a0'; cx.fillRect(x+2,y+8,12,12);
+    cx.fillStyle='rgba(255,220,80,0.4)'; cx.fillRect(x,y+6,16,16);
+    cx.fillStyle='#e0c060'; cx.fillRect(x+4,y+8,8,3);
+  }
+  else if(type==='plant'){
+    cx.fillStyle='#604020'; cx.fillRect(x+6,y+18,8,8); // pot
+    cx.fillStyle='#804030'; cx.fillRect(x+4,y+22,12,6);
+    // Leaves
+    cx.fillStyle='#2a8020'; cx.fillRect(x+6,y+10,8,10);
+    cx.fillStyle='#38a030'; cx.fillRect(x+4,y+8,6,8); cx.fillRect(x+10,y+8,6,8);
+    cx.fillStyle='#48c040'; cx.fillRect(x+7,y+6,6,6);
+    cx.fillStyle='#60d050'; cx.fillRect(x+4,y+12,4,4); cx.fillRect(x+12,y+12,4,4);
+  }
+  else if(type==='stove'){
+    cx.fillStyle='#606060'; cx.fillRect(x,y,28,28);
+    cx.fillStyle='#808080'; cx.fillRect(x+2,y+2,24,16);
+    // Burners
+    for(let b=0;b<4;b++){
+      const bx2=x+5+(b%2)*14, by=y+5+(Math.floor(b/2))*7;
+      cx.fillStyle='#303030'; cx.beginPath();cx.arc(bx2+2,by+2,4,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#404040'; cx.beginPath();cx.arc(bx2+2,by+2,2,0,Math.PI*2);cx.fill();
+    }
+    // Knobs
+    cx.fillStyle='#404040'; cx.fillRect(x+4,y+20,6,4); cx.fillRect(x+18,y+20,6,4);
+    cx.fillStyle='#909090'; cx.fillRect(x+5,y+21,4,2); cx.fillRect(x+19,y+21,4,2);
+    // Front panel
+    cx.fillStyle='#505050'; cx.fillRect(x+2,y+18,24,8);
+  }
+  else if(type==='sink'){
+    cx.fillStyle='#808890'; cx.fillRect(x,y,24,20);
+    cx.fillStyle='#a0b0c0'; cx.fillRect(x+2,y+4,20,14);
+    cx.fillStyle='#c8d8e8'; cx.fillRect(x+3,y+5,18,12); // basin
+    cx.fillStyle='#303040'; cx.fillRect(x+9,y+12,6,3); // drain
+    // Faucet
+    cx.fillStyle='#b0b0c0'; cx.fillRect(x+9,y,6,6);
+    cx.fillStyle='#c8c8d8'; cx.fillRect(x+8,y+4,8,3);
+    // Handles
+    cx.fillStyle='#6090b0'; cx.fillRect(x+4,y+2,4,3); cx.fillRect(x+16,y+2,4,3);
+  }
+  else if(type==='toilet'){
+    // Tank
+    cx.fillStyle='#d0d8e0'; cx.fillRect(x+4,y,16,14);
+    cx.fillStyle='#e0e8f0'; cx.fillRect(x+5,y+1,14,12);
+    cx.fillStyle='#b0b8c0'; cx.fillRect(x+4,y+12,16,2);
+    // Bowl
+    cx.fillStyle='#c8d0d8'; cx.fillRect(x+2,y+14,20,16);
+    cx.fillStyle='#d8e0e8'; cx.fillRect(x+4,y+15,16,13);
+    cx.fillStyle='#b0c0c8'; cx.fillRect(x+6,y+22,12,6); // water
+    cx.fillStyle='#a0b0b8'; cx.fillRect(x+2,y+28,20,3); // base
+  }
+  else if(type==='bathtub'){
+    cx.fillStyle='#b8c8d8'; cx.fillRect(x,y+6,TILE+10,24);
+    cx.fillStyle='#c8d8e8'; cx.fillRect(x+2,y+8,TILE+6,20);
+    cx.fillStyle='#90c8e8'; cx.fillRect(x+3,y+12,TILE+4,14); // water
+    cx.fillStyle='#b0d8f0'; cx.fillRect(x+3,y+12,TILE+4,4);
+    // Faucet
+    cx.fillStyle='#a0a8b8'; cx.fillRect(x+4,y,6,8); cx.fillRect(x+TILE,y,6,8);
+    cx.fillStyle='#c0c8d8'; cx.fillRect(x+2,y+6,10,4); cx.fillRect(x+TILE-2,y+6,10,4);
+    // Drain
+    cx.fillStyle='#607080'; cx.fillRect(x+TILE/2+2,y+24,6,4);
+  }
+  else if(type==='counter'){ // kitchen counter
+    cx.fillStyle='#c0b890'; cx.fillRect(x,y,TILE,TILE/2);
+    cx.fillStyle='#d0c8a0'; cx.fillRect(x+1,y+1,TILE-2,4);
+    cx.fillStyle='#a09870'; cx.fillRect(x,y+TILE/2,TILE,4);
+    // Cabinet below
+    cx.fillStyle='#9a8060'; cx.fillRect(x,y+TILE/2+4,TILE,TILE/2-4);
+    cx.fillStyle='#c0a070'; cx.fillRect(x+2,y+TILE/2+5,TILE-4,TILE/2-8);
+    cx.fillStyle='#e0c060'; cx.fillRect(x+TILE/2-2,y+TILE/2+10,4,4); // handle
+  }
+  else if(type==='fridge'){
+    cx.fillStyle='#d0d8e0'; cx.fillRect(x,y,20,36);
+    cx.fillStyle='#e0e8f0'; cx.fillRect(x+1,y+1,18,34);
+    // Door divider
+    cx.fillStyle='#b0b8c0'; cx.fillRect(x,y+14,20,2);
+    // Handles
+    cx.fillStyle='#808898'; cx.fillRect(x+16,y+4,2,8); cx.fillRect(x+16,y+18,2,8);
+    // Logo
+    cx.fillStyle='#c0c8d0'; cx.fillRect(x+4,y+4,8,6);
+  }
+  else if(type==='painting'){
+    cx.fillStyle='#604020'; cx.fillRect(x,y,24,18); // frame
+    cx.fillStyle='#c09060'; cx.fillRect(x+1,y+1,22,16); // frame inner
+    cx.fillStyle='#6080c0'; cx.fillRect(x+3,y+3,18,12); // canvas
+    // Simple landscape
+    cx.fillStyle='#80c0e0'; cx.fillRect(x+3,y+3,18,7); // sky
+    cx.fillStyle='#40a040'; cx.fillRect(x+3,y+10,18,5); // ground
+    cx.fillStyle='#ffffff'; cx.fillRect(x+5,y+4,4,3); cx.fillRect(x+12,y+5,3,2); // clouds
+    cx.fillStyle='#208020'; cx.fillRect(x+14,y+6,3,5); cx.fillRect(x+18,y+7,2,4); // trees
+  }
+  else if(type==='rug'){
+    cx.fillStyle='#a04030'; cx.fillRect(x,y,TILE*2,TILE);
+    cx.fillStyle='#c05040'; cx.fillRect(x+2,y+2,TILE*2-4,TILE-4);
+    cx.fillStyle='#e08060'; cx.fillRect(x+4,y+4,TILE*2-8,TILE-8);
+    cx.fillStyle='#c05040'; cx.fillRect(x+6,y+6,TILE*2-12,TILE-12);
+    // Border pattern
+    cx.fillStyle='#f0c080';
+    for(let i=0;i<6;i++) cx.fillRect(x+2+i*10,y+2,4,2);
+    for(let i=0;i<6;i++) cx.fillRect(x+2+i*10,y+TILE-4,4,2);
+  }
+  else if(type==='barrel'){
+    cx.fillStyle='#8a5a20'; cx.fillRect(x+2,y,16,24);
+    cx.fillStyle='#a06a28'; cx.fillRect(x+3,y+1,14,22);
+    cx.fillStyle='#c08840'; cx.fillRect(x+4,y+2,12,4);
+    cx.fillStyle='#706030'; cx.fillRect(x+2,y+6,16,2); cx.fillRect(x+2,y+15,16,2); cx.fillRect(x+2,y+22,16,2);
+  }
+  else if(type==='anvil'){
+    cx.fillStyle='#404040'; cx.fillRect(x+2,y+10,24,12);
+    cx.fillStyle='#505050'; cx.fillRect(x,y+14,28,8);
+    cx.fillStyle='#606060'; cx.fillRect(x+4,y+8,20,6);
+    cx.fillStyle='#707070'; cx.fillRect(x+8,y+4,12,6);
+    cx.fillStyle='#808080'; cx.fillRect(x+10,y+2,8,4);
+  }
+  else if(type==='cauldron'){
+    cx.fillStyle='#303030'; cx.fillRect(x+2,y+8,24,18);
+    cx.fillStyle='#404040'; cx.fillRect(x,y+10,28,14);
+    cx.fillStyle='#50c850'; cx.fillRect(x+3,y+12,22,8); // potion
+    cx.fillStyle='#70e870'; cx.fillRect(x+3,y+12,22,3);
+    cx.fillStyle='#303030'; cx.fillRect(x+2,y+22,24,4);
+    // Legs
+    cx.fillStyle='#282828'; cx.fillRect(x+4,y+24,4,6); cx.fillRect(x+20,y+24,4,6);
+  }
+  else if(type==='forge'){
+    cx.fillStyle='#484840'; cx.fillRect(x,y+4,TILE,24);
+    cx.fillStyle='#303030'; cx.fillRect(x+4,y,TILE-8,6);
+    // Fire glow
+    cx.fillStyle='#e04000'; cx.fillRect(x+8,y+6,TILE-16,10);
+    cx.fillStyle='#f08000'; cx.fillRect(x+10,y+8,TILE-20,6);
+    cx.fillStyle='#ffff00'; cx.fillRect(x+12,y+10,TILE-24,3);
+    // Chimney
+    cx.fillStyle='#606050'; cx.fillRect(x+TILE/2-4,y-8,8,12);
+  }
+  else if(type==='chest'){
+    cx.fillStyle='#8a5020'; cx.fillRect(x,y+6,24,16);
+    cx.fillStyle='#c07030'; cx.fillRect(x+1,y+7,22,14);
+    cx.fillStyle='#8a5020'; cx.fillRect(x,y,24,8);
+    cx.fillStyle='#c07030'; cx.fillRect(x+1,y+1,22,7);
+    // Latch
+    cx.fillStyle='#e0c060'; cx.fillRect(x+9,y+4,6,6);
+    cx.fillStyle='#f0d080'; cx.fillRect(x+10,y+5,4,4);
+    // Bands
+    cx.fillStyle='#704010'; cx.fillRect(x+4,y,2,22); cx.fillRect(x+18,y,2,22);
+  }
+  else if(type==='workbench'){
+    cx.fillStyle='#7a5828'; cx.fillRect(x,y+8,TILE,20);
+    cx.fillStyle='#b08040'; cx.fillRect(x,y+6,TILE,6); // top
+    cx.fillStyle='#d0a060'; cx.fillRect(x+1,y+7,TILE-2,4);
+    // Tools on top
+    cx.fillStyle='#808080'; cx.fillRect(x+4,y,3,8); // hammer
+    cx.fillStyle='#a06020'; cx.fillRect(x+3,y,5,3);
+    cx.fillStyle='#909090'; cx.fillRect(x+14,y+1,8,3); // saw
+    // Legs
+    cx.fillStyle='#604020'; cx.fillRect(x+2,y+26,4,6); cx.fillRect(x+TILE-6,y+26,4,6);
+  }
+}
+
+
+
+function genVillage(){
+  currentBiome='cave';
+  G._isVillage=true;
+  buildVillageSprites();
+
+  villageMap=[];
+  villageTileV=[];
+  villageDeco=[];
+
+  // Fill all grass
+  for(let y=0;y<VILLAGE_H;y++){
+    villageMap[y]=[];
+    villageTileV[y]=[];
+    for(let x=0;x<VILLAGE_W;x++){
+      villageMap[y][x]=T_GRASS;
+      villageTileV[y][x]=Math.floor(Math.random()*4);
+    }
+  }
+
+  // === PATHS === horizontal main road + vertical road
+  const RY1=Math.floor(VILLAGE_H/2)-1, RY2=Math.floor(VILLAGE_H/2)+1;
+  const RX1=Math.floor(VILLAGE_W/2)-1, RX2=Math.floor(VILLAGE_W/2)+1;
+  for(let x=0;x<VILLAGE_W;x++) for(let py=RY1;py<=RY2;py++) villageMap[py][x]=T_PATH;
+  for(let y=0;y<VILLAGE_H;y++) for(let px=RX1;px<=RX2;px++) villageMap[y][px]=T_PATH;
+  // side paths to houses
+  for(let y=2;y<=RY1;y++) for(let px=RX1;px<=RX2;px++) villageMap[y][px]=T_PATH;
+  for(let y=RY2;y<=VILLAGE_H-4;y++) for(let px=RX1;px<=RX2;px++) villageMap[y][px]=T_PATH;
+
+  // === HOUSES (5 NPC shops) ===
+  houseDefs=[
+    {tx:3,  ty:2,  w:8,h:7, npcIdx:0},
+    {tx:17, ty:2,  w:8,h:7, npcIdx:1},
+    {tx:31, ty:2,  w:8,h:7, npcIdx:2},
+    {tx:3,  ty:21, w:8,h:7, npcIdx:3},
+    {tx:31, ty:21, w:8,h:7, npcIdx:4},
+    {tx:17, ty:21, w:8,h:7, npcIdx:5},
+  ];
+  houseFurniture=[];
+
+  for(let hi=0;hi<houseDefs.length;hi++){
+    const h=houseDefs[hi];
+    houseFurniture[hi]=[];
+
+    // Outer cement walls
+    for(let dy=0;dy<h.h;dy++) for(let dx=0;dx<h.w;dx++){
+      const tx=h.tx+dx, ty=h.ty+dy;
+      if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_HOUSE;
+    }
+
+    // === INTERIOR ROOMS ===
+    // Top half = main room + kitchen (split vertically)
+    // Bottom half = bedroom + bathroom (split vertically)
+    const iLeft=h.tx+1, iRight=h.tx+h.w-2;
+    const iTop=h.ty+1,  iBot=h.ty+h.h-2;
+    const midX=Math.floor((iLeft+iRight)/2);
+    const midY=Math.floor((iTop+iBot)/2);
+
+    // Main room (top-left) — wood floor
+    for(let ty=iTop;ty<=midY;ty++) for(let tx=iLeft;tx<=midX;tx++)
+      if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_WOOD;
+    // Kitchen (top-right) — tile floor
+    for(let ty=iTop;ty<=midY;ty++) for(let tx=midX+1;tx<=iRight;tx++)
+      if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_TILE;
+    // Bedroom (bottom-left) — carpet
+    for(let ty=midY+1;ty<=iBot;ty++) for(let tx=iLeft;tx<=midX;tx++)
+      if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_CARPET;
+    // Bathroom (bottom-right) — tile floor
+    for(let ty=midY+1;ty<=iBot;ty++) for(let tx=midX+1;tx<=iRight;tx++)
+      if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_TILE;
+    // Inner walls (room dividers — walkable, just visual)
+    for(let ty=iTop;ty<=iBot;ty++) if(ty<VILLAGE_H) villageMap[ty][midX+1]=T_IWALL;
+    for(let tx=iLeft;tx<=iRight;tx++) if(tx<VILLAGE_W) villageMap[midY+1][tx]=T_IWALL;
+    // Doorways in inner walls
+    if(midY+1<VILLAGE_H){ villageMap[midY+1][midX]=T_WOOD; villageMap[midY+1][midX+1]=T_TILE; }
+    if(midX+1<VILLAGE_W){ villageMap[midY][midX+1]=T_WOOD; villageMap[midY+1][midX+1]=T_TILE; }
+
+    // Door on outer wall
+    const doorX=h.tx+Math.floor(h.w/2), doorY=h.ty+h.h-1;
+    villageMap[doorY][doorX]=T_PATH;
+    if(doorY+1<VILLAGE_H) villageMap[doorY+1][doorX]=T_PATH;
+
+    villageDeco.push({type:'sign',tx:doorX,ty:h.ty-1,npcIdx:h.npcIdx});
+    const npc=VILLAGE_NPCS[h.npcIdx];
+    npc.tx=h.tx+Math.floor(h.w/2); npc.ty=h.ty+2;
+    npc.doorX=doorX; npc.doorY=doorY;
+
+    // === FURNITURE (world pixel coords) ===
+    const W=TILE; // shorthand
+    const fx=(tx)=>(h.tx+tx)*W, fy=(ty)=>(h.ty+ty)*W;
+
+    // -- Main room --
+    houseFurniture[hi].push({type:'rug',   px:fx(1),   py:fy(1)});
+    houseFurniture[hi].push({type:'table', px:fx(1)+4, py:fy(1)+4});
+    houseFurniture[hi].push({type:'chair', px:fx(1)+2, py:fy(2)});
+    houseFurniture[hi].push({type:'chair', px:fx(2)+8, py:fy(2)});
+    houseFurniture[hi].push({type:'lamp',  px:fx(1),   py:fy(1)+W-4});
+    houseFurniture[hi].push({type:'plant', px:fx(3)-4, py:fy(1)});
+
+    // Shop-specific extra furniture in main room
+    if(hi===0){ // Weaponsmith
+      houseFurniture[hi].push({type:'anvil',     px:fx(2)+4, py:fy(1)+4});
+      houseFurniture[hi].push({type:'forge',     px:fx(3)-4, py:fy(2)-4});
+      houseFurniture[hi].push({type:'chest',     px:fx(1),   py:fy(2)-4});
+    } else if(hi===1){ // Alchemist
+      houseFurniture[hi].push({type:'cauldron',  px:fx(2)+4, py:fy(2)-8});
+      houseFurniture[hi].push({type:'bookshelf', px:fx(1),   py:fy(2)-4});
+      houseFurniture[hi].push({type:'chest',     px:fx(3)-4, py:fy(1)+8});
+    } else if(hi===2){ // Pickaxeman/Forger
+      houseFurniture[hi].push({type:'forge',     px:fx(2),   py:fy(1)+4});
+      houseFurniture[hi].push({type:'anvil',     px:fx(3)-4, py:fy(2)-8});
+      houseFurniture[hi].push({type:'barrel',    px:fx(1),   py:fy(2)-4});
+    } else if(hi===3){ // Bomber
+      houseFurniture[hi].push({type:'workbench', px:fx(1)+4, py:fy(2)-8});
+      houseFurniture[hi].push({type:'barrel',    px:fx(2)+8, py:fy(1)+4});
+      houseFurniture[hi].push({type:'chest',     px:fx(3)-4, py:fy(1)+4});
+    } else if(hi===4){ // Ore merchant
+      houseFurniture[hi].push({type:'chest',     px:fx(1),   py:fy(1)+8});
+      houseFurniture[hi].push({type:'barrel',    px:fx(2),   py:fy(2)-8});
+      houseFurniture[hi].push({type:'bookshelf', px:fx(3)-4, py:fy(1)});
+    }
+
+    // -- Kitchen --
+    houseFurniture[hi].push({type:'counter', px:fx(4),   py:fy(1)});
+    houseFurniture[hi].push({type:'counter', px:fx(4)+W, py:fy(1)});
+    houseFurniture[hi].push({type:'stove',   px:fx(5)+4, py:fy(1)+4});
+    houseFurniture[hi].push({type:'fridge',  px:fx(6)-2, py:fy(1)});
+    houseFurniture[hi].push({type:'sink',    px:fx(4)+4, py:fy(2)-8});
+
+    // -- Bedroom --
+    houseFurniture[hi].push({type:'bed',      px:fx(1)+2, py:fy(3)});
+    houseFurniture[hi].push({type:'wardrobe', px:fx(3)-4, py:fy(3)});
+    houseFurniture[hi].push({type:'desk',     px:fx(1),   py:fy(4)-4});
+    houseFurniture[hi].push({type:'lamp',     px:fx(3)-2, py:fy(4)-4});
+    houseFurniture[hi].push({type:'painting', px:fx(2),   py:fy(3)});
+
+    // -- Bathroom --
+    houseFurniture[hi].push({type:'toilet',  px:fx(5)+4, py:fy(3)});
+    houseFurniture[hi].push({type:'bathtub', px:fx(4)+2, py:fy(4)-8});
+    houseFurniture[hi].push({type:'sink',    px:fx(6)-2, py:fy(3)+4});
+    houseFurniture[hi].push({type:'plant',   px:fx(6)-2, py:fy(4)-4});
+  }
+
+  // === TREES along outer border ===
+  for(let x=0;x<VILLAGE_W;x+=3){
+    if(villageMap[0][x]===T_GRASS){ villageMap[0][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:0}); }
+    const last=VILLAGE_H-1;
+    if(villageMap[last]?.[x]===T_GRASS){ villageMap[last][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:last}); }
+  }
+  for(let y=0;y<VILLAGE_H;y+=3){
+    if(villageMap[y][0]===T_GRASS){ villageMap[y][0]=T_TREE; villageDeco.push({type:'tree',tx:0,ty:y}); }
+    const last=VILLAGE_W-1;
+    if(villageMap[y][last]===T_GRASS){ villageMap[y][last]=T_TREE; villageDeco.push({type:'tree',tx:last,ty:y}); }
+  }
+  // A few interior trees scattered
+  const intTrees=[[14,13],[14,14],[33,13],[33,14],[14,20],[14,21],[33,20],[33,21]];
+  for(const[tx,ty]of intTrees){
+    if(ty<VILLAGE_H&&tx<VILLAGE_W&&villageMap[ty][tx]===T_GRASS){
+      villageMap[ty][tx]=T_TREE;
+      villageDeco.push({type:'tree',tx,ty});
+    }
+  }
+
+  // === LADDER TO FLOOR 1 ===
+  // Bottom center — clear a 3x3 area for the mine entrance staircase
+  const stairX=Math.floor(VILLAGE_W/2);
+  const stairY=VILLAGE_H-5;
+  for(let dy=0;dy<4;dy++) for(let dx=-2;dx<=2;dx++){
+    const tx=stairX+dx, ty=stairY+dy;
+    if(ty<VILLAGE_H&&tx>=0&&tx<VILLAGE_W) villageMap[ty][tx]=T_PATH;
+  }
+  // The actual walkable ladder tile (player steps on this)
+  villageDeco.push({type:'ladder_down', tx:stairX, ty:stairY+1});
+  G._villageLadder={tx:stairX, ty:stairY+1};
+
+  // === PORTAL (fast travel hub) ===
+  // Left side of village center plaza
+  const portalX=6, portalY=Math.floor(VILLAGE_H/2);
+  for(let dy=-1;dy<=2;dy++) for(let dx=-1;dx<=2;dx++){
+    const tx=portalX+dx, ty=portalY+dy;
+    if(ty>=0&&ty<VILLAGE_H&&tx>=0&&tx<VILLAGE_W&&villageMap[ty][tx]===T_GRASS)
+      villageMap[ty][tx]=T_PATH;
+  }
+  villageDeco.push({type:'portal', tx:portalX, ty:portalY});
+  G._villagePortal={tx:portalX, ty:portalY};
+
+  // === WELL / CENTER PIECE at crossroads ===
+  villageDeco.push({type:'well', tx:Math.floor(VILLAGE_W/2), ty:Math.floor(VILLAGE_H/2)});
+
+  // Set worldMap reference
+  worldMap=villageMap;
+  rocks={};
+  monsters={};
+  minerNPCs={}; // clear current floor view only (allMinerNPCs persists)
+  ladderTile=null;
+  G._returnPortal=null;
+
+  // Gozo starts just above the staircase (south end of village)
+  gozo.wx=stairX*TILE+TILE/2;
+  gozo.wy=(stairY-2)*TILE+TILE-4;
+  gozo.state='idle';gozo.dir='N';gozo.frame=0;gozo.frameT=0;
+  gozo.mineTarget=null;gozo.clickDest=null;
+  G.hp=G.maxHp; updateGozoHpBar();
+  setTimeout(()=>toast('🏘 Mining Village! [E] near staircase=enter mine | [E] near portal=fast travel | Walk to shops'),600);
+}
+
+// Draw village
+function renderVillage(){
+  if(!gctx||!TC) return;
+  updateCam();
+  const ox=Math.round(shakeX),oy=Math.round(shakeY);
+  const cx2=camX,cy2=camY;
+  gctx.clearRect(0,0,cW,cH);
+  // Daylight sky-green bg
+  gctx.fillStyle='#5a8c35'; gctx.fillRect(0,0,cW,cH);
+
+  const sx=Math.floor(cx2/TILE)-1, sy=Math.floor(cy2/TILE)-1;
+  const ex=Math.min(VILLAGE_W,sx+Math.ceil(cW/TILE)+3);
+  const ey=Math.min(VILLAGE_H,sy+Math.ceil(cH/TILE)+3);
+
+  // Pass 1 — ground tiles
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const t=villageMap[ty2]?.[tx2];
+      const v=villageTileV[ty2]?.[tx2]??0;
+      const px=Math.round(tx2*TILE-cx2)+ox;
+      const py=Math.round(ty2*TILE-cy2)+oy;
+      if(t===T_GRASS&&TC.grass)            gctx.drawImage(TC.grass[v%4],px,py);
+      else if(t===T_PATH&&TC.path)          gctx.drawImage(TC.path[v%2],px,py);
+      else if(t===T_FLOOR&&TC.floor)        gctx.drawImage(TC.floor[v%4],px,py);
+      else if(t===T_TREE&&TC.grass)         gctx.drawImage(TC.grass[0],px,py);
+      else if(t===T_WOOD&&TC.woodFloor)     gctx.drawImage(TC.woodFloor[v%4],px,py);
+      else if(t===T_TILE&&TC.tileFloor)     gctx.drawImage(TC.tileFloor[v%2],px,py);
+      else if(t===T_CARPET&&TC.carpet)      gctx.drawImage(TC.carpet[v%2],px,py);
+      else if(t===T_IWALL&&TC.innerWall){
+        // Inner wall — draw floor beneath first based on context
+        gctx.drawImage(TC.woodFloor[0],px,py);
+        gctx.fillStyle='rgba(0,0,0,0.45)'; gctx.fillRect(px,py,TILE,4);
+        gctx.fillStyle='#c8bca0'; gctx.fillRect(px,py,TILE,3);
+        gctx.fillStyle='rgba(255,255,255,0.08)'; gctx.fillRect(px,py+3,TILE,1);
+      }
+      else if(t===T_HOUSE){
+        // Cement exterior wall — thick gray blocks
+        gctx.fillStyle='#909090'; gctx.fillRect(px,py,TILE,TILE);
+        gctx.fillStyle='#a8a8a8'; gctx.fillRect(px+1,py+1,TILE-2,4);
+        gctx.fillStyle='#787878'; gctx.fillRect(px,py,TILE,1); gctx.fillRect(px,py,1,TILE);
+        gctx.fillStyle='#b0b0b0'; gctx.fillRect(px+2,py+2,TILE-4,2);
+        // Stone block seams
+        gctx.fillStyle='rgba(0,0,0,0.18)';
+        gctx.fillRect(px,py+TILE/2,TILE,1);
+        gctx.fillRect(px+TILE/2,py,1,TILE/2);
+        gctx.fillRect(px+TILE/4,py+TILE/2,1,TILE/2);
+        gctx.fillRect(px+3*TILE/4,py+TILE/2,1,TILE/2);
+        // Face/shadow below wall
+        gctx.fillStyle='#606060'; gctx.fillRect(px,py+TILE-4,TILE,4);
+      }
+    }
+  }
+
+  // Pass 1.5 — house exterior details: roof trim, windows, door frames
+  for(let hi=0;hi<houseDefs.length;hi++){
+    const h=houseDefs[hi];
+    const bpx=Math.round(h.tx*TILE-cx2)+ox;
+    const bpy=Math.round(h.ty*TILE-cy2)+oy;
+    const bw=h.w*TILE, bh=h.h*TILE;
+    // Roof color strip on top row
+    gctx.fillStyle='#704830'; gctx.fillRect(bpx,bpy,bw,6);
+    gctx.fillStyle='#904830'; gctx.fillRect(bpx+2,bpy+2,bw-4,2);
+    // Bottom trim
+    gctx.fillStyle='#504028'; gctx.fillRect(bpx,bpy+bh-6,bw,6);
+    // Door frame
+    const doorPx=Math.round(h.doorX*TILE-cx2)+ox;
+    const doorPy=Math.round(h.doorY*TILE-cy2)+oy;
+    gctx.fillStyle='#704020'; gctx.fillRect(doorPx-2,doorPy-2,TILE+4,TILE+4);
+    gctx.fillStyle='#8a5030'; gctx.fillRect(doorPx,doorPy,TILE,TILE);
+    // Door panel
+    gctx.fillStyle='#6a3818'; gctx.fillRect(doorPx+2,doorPy+2,TILE-4,TILE-4);
+    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+3,doorPy+3,TILE/2-4,TILE/2-3);
+    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+TILE/2+1,doorPy+3,TILE/2-4,TILE/2-3);
+    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+3,doorPy+TILE/2+1,TILE-6,TILE/2-4);
+    // Doorknob
+    gctx.fillStyle='#f0c840'; gctx.fillRect(doorPx+TILE-8,doorPy+TILE/2-1,3,3);
+    // Windows — top row left and right
+    const winY=bpy+8;
+    for(const winOffX of [TILE+4, bw-TILE*1.5-4]){
+      const wpx=bpx+winOffX;
+      gctx.fillStyle='#504028'; gctx.fillRect(wpx,winY,TILE-4,TILE-8);
+      gctx.fillStyle='#90c8f0'; gctx.fillRect(wpx+2,winY+2,TILE-8,TILE-12);
+      // Window cross
+      gctx.fillStyle='#504028'; gctx.fillRect(wpx+2+(TILE-8)/2-1,winY+2,(TILE-8)/2,TILE-12);
+      gctx.fillRect(wpx+2,winY+2+(TILE-12)/2-1,TILE-8,2);
+      // Reflection
+      gctx.fillStyle='rgba(255,255,255,0.3)'; gctx.fillRect(wpx+3,winY+3,4,4);
+    }
+    // NPC shop sign above door
+    const npc=VILLAGE_NPCS[h.npcIdx];
+    gctx.fillStyle=npc.color+'cc';
+    gctx.fillRect(doorPx-12,doorPy-16,TILE+24,14);
+    gctx.fillStyle='#000';
+    gctx.font='bold 6px monospace';
+    gctx.fillText(npc.icon+' '+npc.name.split(' ')[0],doorPx-10,doorPy-5);
+  }
+
+  // Pass 1.8 — draw furniture sorted by py (depth)
+  const allFurniture=[];
+  for(const flist of houseFurniture) for(const f of flist) allFurniture.push(f);
+  allFurniture.sort((a,b)=>a.py-b.py);
+  for(const item of allFurniture){
+    const fpx=Math.round(item.px-cx2)+ox;
+    const fpy=Math.round(item.py-cy2)+oy;
+    drawFurniture(gctx,{...item,px:fpx,py:fpy},0,0);
+  }
+  // Sort by ty so trees behind render first
+  const sortedDeco=[...villageDeco].sort((a,b)=>a.ty-b.ty);
+  for(const d of sortedDeco){
+    const px=Math.round(d.tx*TILE-cx2)+ox;
+    const py=Math.round(d.ty*TILE-cy2)+oy;
+    const now=Date.now();
+
+    if(d.type==='tree'&&TC.tree){
+      gctx.drawImage(TC.tree,px,py-TILE);
+
+    } else if(d.type==='sign'){
+      if(TC.sign) gctx.drawImage(TC.sign,px,py);
+      const npc=VILLAGE_NPCS[d.npcIdx];
+      gctx.fillStyle='rgba(0,0,0,0.78)';
+      gctx.fillRect(px-20,py-16,TILE+40,13);
+      gctx.fillStyle=npc.color;
+      gctx.font='bold 6px monospace';
+      gctx.fillText(npc.icon+' '+npc.desc,px-18,py-6);
+
+    } else if(d.type==='well'){
+      // Stone well
+      gctx.fillStyle='#706050'; gctx.fillRect(px-10,py-8,20,16);
+      gctx.fillStyle='#504030'; gctx.fillRect(px-12,py-10,24,6);
+      gctx.fillStyle='#303060'; gctx.fillRect(px-6,py-4,12,10);
+      gctx.fillStyle='#a08060'; gctx.fillRect(px-12,py+2,24,4);
+      // Rope
+      gctx.strokeStyle='#c8a060'; gctx.lineWidth=1;
+      gctx.beginPath(); gctx.moveTo(px,py-14); gctx.lineTo(px-8,py-10); gctx.stroke();
+      gctx.beginPath(); gctx.moveTo(px,py-14); gctx.lineTo(px+8,py-10); gctx.stroke();
+
+    } else if(d.type==='ladder_down'){
+      // Mine staircase — stone arch + ladder
+      // Stone arch
+      gctx.fillStyle='#302018';
+      gctx.fillRect(px-TILE,py-TILE/2,TILE*2,TILE);
+      // Dark void inside
+      gctx.fillStyle='#080408';
+      gctx.fillRect(px-TILE+6,py-TILE/2+4,TILE*2-12,TILE-4);
+      // Ladder rungs
+      gctx.fillStyle='#c8a060';
+      gctx.fillRect(px-6,py-TILE/2+2,3,TILE-4);
+      gctx.fillRect(px+3,py-TILE/2+2,3,TILE-4);
+      for(let r=0;r<4;r++) gctx.fillRect(px-6,py-TILE/2+4+r*6,12,2);
+      // Stone pillars
+      gctx.fillStyle='#505040';
+      gctx.fillRect(px-TILE+2,py-TILE*1.2,8,TILE*1.4);
+      gctx.fillRect(px+TILE-10,py-TILE*1.2,8,TILE*1.4);
+      // Arch top
+      gctx.fillStyle='#403020';
+      gctx.fillRect(px-TILE,py-TILE*1.2,TILE*2,8);
+      // Label
+      gctx.fillStyle='rgba(0,0,0,0.8)';
+      gctx.fillRect(px-28,py-TILE*1.2-16,56,12);
+      gctx.fillStyle='#f0c840';
+      gctx.font='bold 6px monospace';
+      gctx.fillText('⬇ MINE FL.1',px-26,py-TILE*1.2-7);
+      // Proximity hint
+      const edx=gozo.wx-(d.tx*TILE+TILE/2), edy=gozo.wy-(d.ty*TILE+TILE-4);
+      if(Math.sqrt(edx*edx+edy*edy)<TILE*2.5){
+        gctx.fillStyle='rgba(240,200,64,0.95)';
+        gctx.fillRect(px-22,py+6,44,14);
+        gctx.fillStyle='#000';
+        gctx.font='bold 6px monospace';
+        gctx.fillText('[E] ENTER',px-20,py+16);
+      }
+
+    } else if(d.type==='portal'){
+      // Animated swirling portal
+      const t2=now/800;
+      const pulse=Math.sin(now/400)*0.15+0.85;
+      // Outer ring glow
+      const grad=gctx.createRadialGradient(px+TILE/2,py+TILE/2,4,px+TILE/2,py+TILE/2,TILE*1.1*pulse);
+      grad.addColorStop(0,'rgba(160,80,255,0.9)');
+      grad.addColorStop(0.4,'rgba(80,40,200,0.7)');
+      grad.addColorStop(0.8,'rgba(40,10,100,0.4)');
+      grad.addColorStop(1,'rgba(0,0,0,0)');
+      gctx.fillStyle=grad;
+      gctx.beginPath();gctx.arc(px+TILE/2,py+TILE/2,TILE*1.1*pulse,0,Math.PI*2);gctx.fill();
+      // Inner void
+      gctx.fillStyle='rgba(20,5,50,0.9)';
+      gctx.beginPath();gctx.ellipse(px+TILE/2,py+TILE/2,TILE*0.6,TILE*0.75,0,0,Math.PI*2);gctx.fill();
+      // Swirl rings
+      for(let ring=0;ring<3;ring++){
+        gctx.strokeStyle=`rgba(${180+ring*20},${60+ring*30},255,${0.6-ring*0.15})`;
+        gctx.lineWidth=2-ring*0.5;
+        gctx.beginPath();
+        gctx.ellipse(px+TILE/2,py+TILE/2,
+          (TILE*0.55-ring*6)*pulse,
+          (TILE*0.7-ring*7)*pulse,
+          t2+ring*0.8,0,Math.PI*2);
+        gctx.stroke();
+      }
+      // Sparkles
+      for(let s=0;s<6;s++){
+        const sa=t2*1.5+s*(Math.PI*2/6);
+        const sr=TILE*0.8*pulse;
+        const sx2=px+TILE/2+Math.cos(sa)*sr;
+        const sy2=py+TILE/2+Math.sin(sa)*sr*0.8;
+        gctx.fillStyle=`rgba(200,140,255,${0.4+Math.sin(t2*2+s)*0.4})`;
+        gctx.beginPath();gctx.arc(sx2,sy2,2,0,Math.PI*2);gctx.fill();
+      }
+      // Label
+      gctx.fillStyle='rgba(0,0,0,0.85)';
+      gctx.fillRect(px-14,py-22,TILE+28,13);
+      gctx.fillStyle='#c080ff';
+      gctx.font='bold 6px monospace';
+      gctx.fillText('🌀 PORTAL',px-12,py-12);
+      // Proximity hint
+      const pdx=gozo.wx-(d.tx*TILE+TILE/2), pdy=gozo.wy-(d.ty*TILE+TILE-4);
+      if(Math.sqrt(pdx*pdx+pdy*pdy)<TILE*2.5){
+        gctx.fillStyle='rgba(192,128,255,0.95)';
+        gctx.fillRect(px-14,py+TILE+4,TILE+28,14);
+        gctx.fillStyle='#000';
+        gctx.font='bold 6px monospace';
+        gctx.fillText('[E] TRAVEL',px-12,py+TILE+14);
+      }
+    }
+  }
+
+  // Pass 3 — furniture inside houses
+  if(houseFurniture && houseFurniture.length){
+    for(const hfList of houseFurniture){
+      if(!hfList) continue;
+      for(const item of hfList){
+        const fpx=Math.round(item.px-cx2)+ox;
+        const fpy=Math.round(item.py-cy2)+oy;
+        // Only draw if on screen
+        if(fpx>-64&&fpx<cW+64&&fpy>-64&&fpy<cH+64)
+          drawFurniture(gctx,{...item,px:fpx,py:fpy},0,0);
+      }
+    }
+  }
+
+  // Draw NPCs (inside houses, visible through open front)
+  for(const npc of VILLAGE_NPCS){
+    if(!npc.tx) continue;
+    const px=Math.round(npc.tx*TILE+TILE/2-cx2)+ox;
+    const py=Math.round(npc.ty*TILE+TILE-4-cy2)+oy;
+    const bobY=Math.floor(Date.now()/600)%2===0?0:1;
+    // Shadow
+    gctx.fillStyle='rgba(0,0,0,0.3)';
+    gctx.beginPath();gctx.ellipse(px,py+4,10,4,0,0,Math.PI*2);gctx.fill();
+    // Body
+    gctx.fillStyle=npc.color; gctx.fillRect(px-7,py-22+bobY,14,12);
+    // Apron/detail strip
+    gctx.fillStyle=lighten(npc.color,25); gctx.fillRect(px-3,py-18+bobY,6,8);
+    // Head
+    gctx.fillStyle='#f0c890'; gctx.fillRect(px-5,py-32+bobY,10,10);
+    // Hair/hat
+    gctx.fillStyle=darken(npc.color,20); gctx.fillRect(px-6,py-34+bobY,12,5);
+    // Eyes
+    gctx.fillStyle='#000'; gctx.fillRect(px-3,py-28+bobY,2,2); gctx.fillRect(px+1,py-28+bobY,2,2);
+    // Smile
+    gctx.fillStyle='#c06040'; gctx.fillRect(px-2,py-23+bobY,4,1);
+    // Legs
+    gctx.fillStyle='#303050'; gctx.fillRect(px-7,py-10+bobY,6,12); gctx.fillRect(px+1,py-10+bobY,6,12);
+    // Boots
+    gctx.fillStyle='#201520'; gctx.fillRect(px-8,py+1+bobY,7,4); gctx.fillRect(px+1,py+1+bobY,7,4);
+    // NPC icon tool (weapon/potion/pickaxe etc)
+    gctx.font='12px monospace'; gctx.fillText(npc.icon,px+6,py-28+bobY);
+    // Name tag
+    gctx.fillStyle='rgba(0,0,0,0.7)'; gctx.fillRect(px-24,py-48,48,11);
+    gctx.fillStyle=npc.color; gctx.font='5px monospace';
+    gctx.fillText(npc.name.split(' ')[0],px-22,py-40);
+    // [E] hint
+    const dx=gozo.wx-(npc.tx*TILE+TILE/2), dy=gozo.wy-(npc.ty*TILE+TILE-4);
+    if(Math.sqrt(dx*dx+dy*dy)<TILE*2.5){
+      gctx.fillStyle='rgba(240,200,64,0.95)'; gctx.fillRect(px-18,py-62,36,13);
+      gctx.fillStyle='#000'; gctx.font='bold 6px monospace';
+      gctx.fillText('[E] SHOP',px-15,py-52);
+    }
+  }
+
+  // Gozo
+  const gfx=Math.round(gozo.wx-cx2)+ox;
+  const gfy=Math.round(gozo.wy-cy2)+oy;
+  gctx.fillStyle='rgba(0,0,0,0.28)';
+  gctx.beginPath();gctx.ellipse(gfx,gfy+2,11,5,0,0,Math.PI*2);gctx.fill();
+  const[frs,flip]=getSprFrames();
+  const fi=Math.min(gozo.frame,frs.length-1);
+  const sp2=frs[fi];
+  const SW=sp2.width,SH=sp2.height;
+  gctx.save();gctx.imageSmoothingEnabled=false;
+  if(flip){gctx.translate(gfx,gfy-SH+4);gctx.scale(-1,1);gctx.drawImage(sp2,-SW/2,0);}
+  else gctx.drawImage(sp2,gfx-SW/2,gfy-SH+4);
+  gctx.restore();
+
+  // Soft daylight overlay
+  gctx.fillStyle='rgba(255,220,100,0.05)'; gctx.fillRect(0,0,cW,cH);
+  drawBuffHud();
+}
+
+function canWalkVillage(wx,wy){
+  const padX=8,padYup=4,padYdn=2;
+  for(const[cx,cy]of[
+    [wx-padX,wy-padYup],[wx+padX,wy-padYup],
+    [wx-padX,wy+padYdn],[wx+padX,wy+padYdn],
+  ]){
+    const tx=Math.floor(cx/TILE),ty=Math.floor(cy/TILE);
+    if(tx<0||tx>=VILLAGE_W||ty<0||ty>=VILLAGE_H) return false;
+    const t=villageMap[ty]?.[tx];
+    // Blocked: exterior walls and trees only; all floor types walkable
+    if(t===T_HOUSE||t===T_TREE||t===undefined) return false;
+  }
+  return true;
+}
+
+function updateGozoVillage(){
+  const spd=getSpd();
+  let moved=false;
+  let dx=0,dy=0;
+  if(KEYS['ArrowLeft']||KEYS['a']||KEYS['A']){dx=-1;gozo.dir='W';}
+  if(KEYS['ArrowRight']||KEYS['d']||KEYS['D']){dx=1;gozo.dir='E';}
+  if(KEYS['ArrowUp']||KEYS['w']||KEYS['W']){dy=-1;gozo.dir='N';}
+  if(KEYS['ArrowDown']||KEYS['s']||KEYS['S']){dy=1;gozo.dir='S';}
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+  if(dx||dy){
+    gozo.clickDest=null;
+    const nx=gozo.wx+dx*spd,ny=gozo.wy+dy*spd;
+    if(canWalkVillage(nx,gozo.wy))gozo.wx=nx;
+    if(canWalkVillage(gozo.wx,ny))gozo.wy=ny;
+    gozo.state='walk';moved=true;
+  }
+  if(gozo.clickDest){
+    const ddx=gozo.clickDest.wx-gozo.wx,ddy=gozo.clickDest.wy-gozo.wy;
+    const dist=Math.sqrt(ddx*ddx+ddy*ddy);
+    if(dist<spd+1){gozo.wx=gozo.clickDest.wx;gozo.wy=gozo.clickDest.wy;gozo.clickDest=null;gozo.state='idle';}
+    else{
+      const nx2=gozo.wx+(ddx/dist)*spd,ny2=gozo.wy+(ddy/dist)*spd;
+      if(canWalkVillage(nx2,gozo.wy))gozo.wx=nx2;
+      if(canWalkVillage(gozo.wx,ny2))gozo.wy=ny2;
+      gozo.dir=Math.abs(ddx)>Math.abs(ddy)?(ddx>0?'E':'W'):(ddy>0?'S':'N');
+      moved=true;
+    }
+  }
+  if(!moved&&gozo.state!=='idle')gozo.state='idle';
+  // Anim
+  gozo.frameT++;
+  const as=gozo.state==='walk'?ASPD.walk:ASPD.idle;
+  if(gozo.frameT>=as){gozo.frame=(gozo.frame+1)%(gozo.state==='walk'?4:2);gozo.frameT=0;}
+
+  // Check mine entrance
+  const med=villageDeco.find(d=>d.type==='mine_entrance');
+  if(med){
+    const edx=gozo.wx-(med.tx*TILE),edy=gozo.wy-(med.ty*TILE+TILE);
+    if(Math.sqrt(edx*edx+edy*edy)<TILE*1.5) G._nearMine=true;
+    else G._nearMine=false;
+  }
+}
+
+// ── SHOP SYSTEM ──────────────────────────────────────────────
+function openShop(npcIdx){
+  const npc=VILLAGE_NPCS[npcIdx];
+  // Legendary NPC opens its own Web3 modal
+  if(npc.shop==='legendary'){ openLegendShop(); return; }
+  shopState={npc, tab:'buy', selectedItem:null, selectedSellSlot:null};
+  document.getElementById('shop-title').textContent=npc.icon+' '+npc.desc;
+  document.getElementById('shop-npc-name').textContent=npc.name;
+  buildShopTabs(npc.shop);
+  renderShopItems();
+  updateShopGold();
+  document.getElementById('shop-panel').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WEB3 — LEGENDARY SHOP  (Monad Mainnet · GOZO token burn)
+// ══════════════════════════════════════════════════════════════
+const GOZO_TOKEN    = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const DEAD_ADDRESS  = '0x000000000000000000000000000000000000dEaD';
+const MONAD_CHAIN_ID = 41455n; // Monad mainnet
+const GOZO_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function decimals() view returns (uint8)',
+];
+
+const LEGENDARY_ITEMS = [
+  {id:'gozo_fang',      priceGozo:5000},
+  {id:'monad_lance',    priceGozo:8000},
+  {id:'void_sovereign', priceGozo:12000},
+  {id:'abyss_throne',   priceGozo:20000},
+  {id:'genesis_reaper', priceGozo:50000},
+];
+
+let legendProvider=null, legendSigner=null, legendGozoBal=0n, legendDecimals=18;
+
+async function legendConnectWallet(){
+  const btn=document.getElementById('legend-connect-btn');
+  btn.textContent='CONNECTING...'; btn.disabled=true;
+  try {
+    if(!window.ethereum) throw new Error('No wallet found. Install MetaMask or Rabby.');
+    legendProvider = new ethers.BrowserProvider(window.ethereum);
+    await legendProvider.send('eth_requestAccounts',[]);
+    legendSigner = await legendProvider.getSigner();
+    // Check network
+    const net = await legendProvider.getNetwork();
+    if(net.chainId !== MONAD_CHAIN_ID){
+      try {
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0xA1EF'}]});
+        legendProvider = new ethers.BrowserProvider(window.ethereum);
+        legendSigner = await legendProvider.getSigner();
+      } catch(e){
+        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
+          chainId:'0xA1EF', chainName:'Monad Mainnet',
+          nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
+          rpcUrls:['https://rpc.monad.xyz'],
+          blockExplorerUrls:['https://explorer.monad.xyz'],
+        }]});
+        legendProvider = new ethers.BrowserProvider(window.ethereum);
+        legendSigner = await legendProvider.getSigner();
+      }
+    }
+    const addr = await legendSigner.getAddress();
+    const contract = new ethers.Contract(GOZO_TOKEN, GOZO_ABI, legendProvider);
+    legendDecimals = Number(await contract.decimals());
+    legendGozoBal  = await contract.balanceOf(addr);
+    const balDisplay = Number(legendGozoBal / BigInt(10**legendDecimals)).toLocaleString();
+    document.getElementById('legend-wallet-status').textContent = '⬤ Connected';
+    document.getElementById('legend-wallet-status').style.color = '#40e090';
+    document.getElementById('legend-wallet-addr').textContent   = addr.slice(0,6)+'...'+addr.slice(-4);
+    document.getElementById('legend-gozo-bal').textContent      = `💰 ${balDisplay} GOZO`;
+    btn.textContent='✓ CONNECTED'; btn.style.borderColor='#40e090'; btn.style.color='#40e090';
+    renderLegendItems();
+  } catch(e){
+    toast('❌ '+e.message);
+    btn.textContent='CONNECT'; btn.disabled=false;
+  }
+}
+
+function renderLegendItems(){
+  const container=document.getElementById('legend-items');
+  container.innerHTML='';
+  for(const li of LEGENDARY_ITEMS){
+    const w=WEAPONS[li.id];
+    const priceWei=BigInt(li.priceGozo) * BigInt(10**legendDecimals);
+    const owned=G.inventory.some(s=>s&&s.type==='weapon'&&s.id===li.id);
+    const canAfford=legendGozoBal>=priceWei;
+    const div=document.createElement('div');
+    div.style.cssText=`background:${owned?'#1a1a08':'#0e0a18'};border:1px solid ${w.color};border-radius:6px;padding:10px;display:flex;align-items:center;gap:10px;`;
+
+    // Animated sprite canvas
+    const sprCanvas=document.createElement('canvas');
+    sprCanvas.width=48; sprCanvas.height=48;
+    sprCanvas.style.cssText='image-rendering:pixelated;width:48px;height:48px;min-width:48px;';
+    const sprCtx=sprCanvas.getContext('2d');
+    sprCtx.imageSmoothingEnabled=false;
+    // Animate — update frame via requestAnimationFrame loop tied to div
+    let sprAnim=null;
+    function animLegendSpr(){
+      const frames=LEGEND_SPR[li.id];
+      if(!frames){sprAnim=null;return;}
+      const fi=Math.floor(Date.now()/120)%frames.length;
+      sprCtx.clearRect(0,0,48,48);
+      sprCtx.drawImage(frames[fi],0,0);
+      sprAnim=requestAnimationFrame(animLegendSpr);
+    }
+    animLegendSpr();
+    // Cancel anim when modal closes (handled in closeLegendShop)
+    sprCanvas._animId=()=>{ if(sprAnim) cancelAnimationFrame(sprAnim); };
+
+    const infoDiv=document.createElement('div');
+    infoDiv.style.flex='1';
+    infoDiv.innerHTML=`
+      <div style="color:${w.color};font-size:7px;margin-bottom:3px;text-shadow:0 0 6px ${w.color};">${w.name}</div>
+      <div style="color:#aaa;font-size:5px;">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</div>
+      <div style="color:#ffaa00;font-size:5px;margin-top:2px;">💛 Sell to Gareth for ${w.goldSell.toLocaleString()}g</div>`;
+
+    const actionDiv=document.createElement('div');
+    actionDiv.style.cssText='text-align:right;min-width:80px;';
+    actionDiv.innerHTML=`<div style="color:#ffdd00;font-size:6px;margin-bottom:4px;">${li.priceGozo.toLocaleString()} GOZO</div>`;
+    if(owned){
+      actionDiv.innerHTML+=`<div style="color:#40e090;font-size:5px;">✓ OWNED</div>`;
+    } else {
+      const btn=document.createElement('button');
+      btn.onclick=()=>legendBuy(li.id, li.priceGozo);
+      btn.style.cssText=`background:${canAfford?'#1a0030':'#111'};border:1px solid ${canAfford?w.color:'#333'};color:${canAfford?w.color:'#444'};padding:4px 8px;font-family:'Press Start 2P',monospace;font-size:5px;cursor:${canAfford?'pointer':'not-allowed'};border-radius:3px;white-space:nowrap;`;
+      btn.disabled=!canAfford;
+      btn.textContent=legendSigner?(canAfford?'🔥 BUY & BURN':'NOT ENOUGH'):'🔒 CONNECT';
+      actionDiv.appendChild(btn);
+    }
+
+    div.appendChild(sprCanvas);
+    div.appendChild(infoDiv);
+    div.appendChild(actionDiv);
+    container.appendChild(div);
+  }
+}
+
+async function legendBuy(weaponId, priceGozo){
+  if(!legendSigner){ toast('Connect wallet first!'); return; }
+  const w=WEAPONS[weaponId];
+  const priceWei=BigInt(priceGozo) * BigInt(10**legendDecimals);
+  const btn=event.target; btn.textContent='BURNING...'; btn.disabled=true;
+  try {
+    const contract=new ethers.Contract(GOZO_TOKEN, GOZO_ABI, legendSigner);
+    // Transfer GOZO to dead address (burn)
+    const tx=await contract.transfer(DEAD_ADDRESS, priceWei);
+    toast(`🔥 Burning ${priceGozo.toLocaleString()} GOZO... tx pending`);
+    btn.textContent='WAITING TX...';
+    await tx.wait();
+    // Give weapon
+    const added=addToInventory({type:'weapon', id:weaponId, qty:1});
+    if(!added){ toast('❌ Inventory full!'); btn.textContent='BUY & BURN'; btn.disabled=false; return; }
+    // Deduct from display balance
+    legendGozoBal -= priceWei;
+    const balDisplay=Number(legendGozoBal/BigInt(10**legendDecimals)).toLocaleString();
+    document.getElementById('legend-gozo-bal').textContent=`💰 ${balDisplay} GOZO`;
+    toast(`🌟 ${w.name} acquired! GOZO burned forever.`);
+    renderLegendItems();
+  } catch(e){
+    toast('❌ TX failed: '+(e.shortMessage||e.message||'Unknown error'));
+    btn.textContent='BUY & BURN'; btn.disabled=false;
+  }
+}
+
+function openLegendShop(){
+  const m=document.getElementById('legend-modal');
+  m.style.display='flex';
+  renderLegendItems();
+}
+function closeLegendShop(){
+  // Cancel all sprite animations
+  document.querySelectorAll('#legend-items canvas').forEach(c=>{ if(c._animId) c._animId(); });
+  document.getElementById('legend-modal').style.display='none';
+}
+function closeShop(){
+  document.getElementById('shop-panel').classList.remove('open');
+}
+function buildShopTabs(shopType){
+  const tabs=document.getElementById('shop-tabs');
+  tabs.innerHTML='';
+  const tabList=[['buy','🛒 BUY'],['sell','💰 SELL']];
+  for(const[id,label]of tabList){
+    const b=document.createElement('button');
+    b.className='shop-tab'+(shopState.tab===id?' active':'');
+    b.textContent=label;
+    b.onclick=()=>{ shopState.tab=id; shopState.selectedItem=null; shopState.selectedSellSlot=null; buildShopTabs(shopType); renderShopItems(); updateShopAction(null); };
+    tabs.appendChild(b);
+  }
+}
+function getShopInventory(shopType){
+  // Returns list of {id, name, icon, price, desc, tier} for buy
+  const items=[];
+  if(shopType==='weapon'){
+    const wids=Object.keys(WEAPONS).filter(w=>!WEAPONS[w].starter);
+    for(const wid of wids) if(SHOP_BUY[wid]) items.push({id:wid,name:WEAPONS[wid].name,icon:WEAPONS[wid].icon,price:SHOP_BUY[wid],tier:WEAPONS[wid].tier,desc:`ATK ${WEAPONS[wid].dmg} | ${WEAPONS[wid].tier}`});
+  } else if(shopType==='potion'){
+    for(const pid in POTIONS) items.push({id:pid,name:POTIONS[pid].name,icon:'🧪',price:SHOP_BUY[pid]||99,tier:POTIONS[pid].tier,desc:POTIONS[pid].desc||'Potion effect'});
+  } else if(shopType==='pickaxe'){
+    for(const pid in PICKAXES) items.push({id:pid,name:PICKAXES[pid].name,icon:'⛏',price:SHOP_BUY[pid]||100,tier:PICKAXES[pid].tier,desc:`DMG +${PICKAXES[pid].dmg} | ${PICKAXES[pid].tier}`});
+  } else if(shopType==='bomb'){
+    items.push({id:'bomb',name:'Bomb',icon:'💣',price:SHOP_BUY.bomb||200,tier:'Common',desc:'Blasts rocks in radius'});
+  } else if(shopType==='ore'){
+    items.push({id:'iron',name:'Iron Ore',icon:'🪨',price:SHOP_BUY.iron||20,tier:'Common',desc:'Craft & sell material'});
+    items.push({id:'gold',name:'Gold Ore',icon:'✨',price:SHOP_BUY.gold||100,tier:'Uncommon',desc:'Valuable ore'});
+    items.push({id:'diamond',name:'Diamond',icon:'💎',price:SHOP_BUY.diamond||600,tier:'Rare',desc:'Rare precious gem'});
+  }
+  return items;
+}
+function getShopSellItems(shopType){
+  // Returns player inventory items relevant to this shop
+  const items=[];
+  for(let i=0;i<(G.invSlots||30);i++){
+    const s=G.inventory[i];
+    if(!s) continue;
+    let match=false;
+    if(shopType==='weapon'&&s.type==='weapon') match=true;
+    if(shopType==='potion'&&s.type==='potion') match=true;
+    if(shopType==='pickaxe'&&s.type==='pickaxe') match=true;
+    if(shopType==='bomb'&&s.type==='bomb') match=true;
+    if(shopType==='ore'&&s.type==='ore') match=true;
+    if(match) items.push({slot:i, item:s});
+  }
+  return items;
+}
+function renderShopItems(){
+  const grid=document.getElementById('shop-items');
+  grid.innerHTML='';
+  const npc=shopState.npc;
+  if(!npc) return;
+  if(shopState.tab==='buy'){
+    const inv=getShopInventory(npc.shop);
+    for(const item of inv){
+      const d=document.createElement('div');
+      const tc=TIER_COLOR[item.tier]||'#c0c0c0';
+      d.className='shop-item'+(shopState.selectedItem?.id===item.id?' selected':'');
+      d.style.borderColor=tc+'88';
+      d.innerHTML=`<div class="si-top"><span class="si-icon">${item.icon}</span><div><div class="si-name">${item.name}</div><div class="si-tier" style="color:${tc}">${item.tier||''}</div></div></div><div class="si-price">💰${fmt(item.price)}</div>`;
+      d.onclick=()=>{ shopState.selectedItem=item; shopState.selectedSellSlot=null; renderShopItems(); updateShopAction(item,'buy'); };
+      grid.appendChild(d);
+    }
+  } else {
+    const sellItems=getShopSellItems(npc.shop);
+    if(!sellItems.length){
+      grid.innerHTML='<div style="font-family:\'Press Start 2P\',monospace;font-size:5px;color:#604030;padding:10px;grid-column:span 2">Nothing to sell here.</div>';
+      return;
+    }
+    for(const{slot,item}of sellItems){
+      let name='?',icon='📦',price=0,tier='Common';
+      if(item.type==='weapon'){name=WEAPONS[item.id]?.name||'Wpn';icon=WEAPONS[item.id]?.icon||'⚔️';const t=WEAPONS[item.id]?.tierIdx||0;price=Math.floor((WEAPON_SELL[t+1]||30)*0.6);tier=WEAPONS[item.id]?.tier||'Common';}
+      else if(item.type==='pickaxe'){name=PICKAXES[item.id]?.name||'Pick';icon='⛏';const ti=PICKAXES[item.id]?.tierIdx||0;price=Math.floor((PICK_SELL[ti]||20)*0.6);tier=PICKAXES[item.id]?.tier||'Common';}
+      else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';icon='🧪';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
+      else if(item.type==='ore'){name=item.id;icon=item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
+      else if(item.type==='bomb'){name='Bomb';icon='💣';price=100;}
+      const tc=TIER_COLOR[tier]||'#c0c0c0';
+      const d=document.createElement('div');
+      d.className='shop-item'+(shopState.selectedSellSlot===slot?' selected':'');
+      d.style.borderColor=tc+'88';
+      d.innerHTML=`<div class="si-top"><span class="si-icon">${icon}</span><div><div class="si-name">${name}${item.qty>1?' ×'+item.qty:''}</div><div class="si-tier" style="color:${tc}">${tier}</div></div></div><div class="si-sell">+${fmt(price*(item.qty||1))}g</div>`;
+      d.onclick=()=>{ shopState.selectedSellSlot=slot; shopState.selectedItem={...item,_slot:slot,_price:price}; renderShopItems(); updateShopAction({...item,_slot:slot,_price:price,name,icon},'sell'); };
+      grid.appendChild(d);
+    }
+  }
+}
+function updateShopAction(item, mode){
+  const buyBtn=document.getElementById('shop-buy-btn');
+  const sellBtn=document.getElementById('shop-sell-btn');
+  const iconEl=document.getElementById('shop-item-icon');
+  const titleEl=document.getElementById('shop-item-title');
+  const descEl=document.getElementById('shop-item-desc');
+  buyBtn.disabled=true; sellBtn.disabled=true;
+  if(!item){ iconEl.textContent='🛒'; titleEl.textContent='Select an item'; descEl.textContent='Browse items to buy or sell.'; return; }
+  if(mode==='buy'){
+    iconEl.textContent=item.icon||'📦';
+    titleEl.textContent=item.name;
+    descEl.textContent=item.desc||'';
+    buyBtn.textContent=`BUY 💰${fmt(item.price)}`;
+    buyBtn.disabled=G.coins<item.price;
+    sellBtn.disabled=true;
+  } else {
+    iconEl.textContent=item.icon||'📦';
+    titleEl.textContent=(item.name||'Item')+(item.qty>1?' ×'+item.qty:'');
+    descEl.textContent='Sell to NPC';
+    const total=item._price*(item.qty||1);
+    sellBtn.textContent=`SELL +${fmt(total)}g`;
+    sellBtn.disabled=false;
+    buyBtn.disabled=true;
+  }
+}
+function updateShopGold(){
+  const el=document.getElementById('shop-gold-amt');
+  if(el) el.textContent=fmt(G.coins);
+}
+function shopBuy(){
+  const item=shopState.selectedItem;
+  if(!item||!item.price) return;
+  if(G.coins<item.price){ toast('❌ Not enough coins!'); return; }
+  const npc=shopState.npc;
+  let added=false;
+  if(npc.shop==='weapon') added=addToInventory({type:'weapon',id:item.id,qty:1});
+  else if(npc.shop==='potion') added=addToInventory({type:'potion',id:item.id,qty:1});
+  else if(npc.shop==='pickaxe') added=addToInventory({type:'pickaxe',id:item.id,qty:1});
+  else if(npc.shop==='bomb'){ G.tntCount++; updateHud(); added=true; }
+  else if(npc.shop==='ore') added=addToInventory({type:'ore',id:item.id,qty:1});
+  if(added){ G.coins-=item.price; updateHud(); updateShopGold(); toast(`✅ Bought ${item.name}!`); renderShopItems(); updateShopAction(item,'buy'); }
+}
+function shopSell(){
+  const item=shopState.selectedItem;
+  if(!item||item._slot===undefined) return;
+  const slot=item._slot;
+  const inv=G.inventory[slot];
+  if(!inv){ toast('❌ Item not found!'); return; }
+  const price=item._price*(inv.qty||1);
+  G.coins+=price;
+  // Unequip if selling equipped
+  if(inv.type==='weapon'&&G.equippedWeapon===inv.id) G.equippedWeapon=null;
+  if(inv.type==='pickaxe'&&G.equippedPickaxe===inv.id) G.equippedPickaxe='wooden_pick';
+  G.inventory[slot]=null;
+  updateHud(); updateShopGold();
+  toast(`💰 Sold for ${fmt(price)}g!`);
+  shopState.selectedItem=null; shopState.selectedSellSlot=null;
+  renderShopItems(); updateShopAction(null);
+}
+
+function checkVillageInteractions(){
+  if(G.floor!==0) return;
+  G._nearNPC=null; G._nearMine=false; G._nearPortal=false;
+  // Check NPC proximity
+  for(let i=0;i<VILLAGE_NPCS.length;i++){
+    const npc=VILLAGE_NPCS[i];
+    if(!npc.tx) continue;
+    const dx=gozo.wx-(npc.tx*TILE+TILE/2);
+    const dy=gozo.wy-(npc.ty*TILE+TILE-4);
+    if(Math.sqrt(dx*dx+dy*dy)<TILE*2.5){ G._nearNPC=i; return; }
+  }
+  // Check ladder (mine entrance)
+  const lad=villageDeco.find(d=>d.type==='ladder_down');
+  if(lad){
+    const dx=gozo.wx-(lad.tx*TILE+TILE/2), dy=gozo.wy-(lad.ty*TILE+TILE-4);
+    if(Math.sqrt(dx*dx+dy*dy)<TILE*2.5){ G._nearMine=true; return; }
+  }
+  // Check portal
+  const por=villageDeco.find(d=>d.type==='portal');
+  if(por){
+    const dx=gozo.wx-(por.tx*TILE+TILE/2), dy=gozo.wy-(por.ty*TILE+TILE-4);
+    if(Math.sqrt(dx*dx+dy*dy)<TILE*2.5){ G._nearPortal=true; return; }
+  }
+}
+
+// Enter mine from village
+function enterMine(){
+  if(G.floor!==0) return;
+  G.floor=1;
+  if(!G.visitedFloors.includes(1)) G.visitedFloors.push(1);
+  G._isVillage=false;
+  const fa=document.createElement('div');
+  fa.style.cssText='position:fixed;inset:0;background:#000;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;';
+  document.body.appendChild(fa);
+  requestAnimationFrame(()=>{fa.style.opacity='1';});
+  setTimeout(()=>{
+    genFloor(1); updateHud();
+    fa.style.transition='opacity .5s';fa.style.opacity='0';
+    setTimeout(()=>fa.remove(),520);
+    toast('⛏ Entered the mine! Floor 1');
+  },320);
+}
+
+// Return to village
+function returnToVillage(){
+  G.floor=0;
+  G._isVillage=true;
+  if(!G.visitedFloors.includes(0)) G.visitedFloors.unshift(0);
+  const fa=document.createElement('div');
+  fa.style.cssText='position:fixed;inset:0;background:#fff8e0;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;';
+  document.body.appendChild(fa);
+  requestAnimationFrame(()=>{fa.style.opacity='1';});
+  setTimeout(()=>{
+    genVillage(); updateHud();
+    fa.style.transition='opacity .5s';fa.style.opacity='0';
+    setTimeout(()=>fa.remove(),520);
+  },300);
+}
+
+
 const T_FLOOR=0, T_WALL=1, T_VOID=2;
 let worldMap=[], rocks={}, ladderTile=null;
 let tileVariant=[];
 
 function genFloor(fl){
+  // Set biome for this floor
+  currentBiome = getBiome(fl);
+  buildBiomeTiles(currentBiome); // build biome-specific tiles
+
+  // Show biome entry toast
+  if(currentBiome!=='cave'){
+    const b=BIOMES[currentBiome];
+    setTimeout(()=>toast(`🗺 Entered ${b.name}! (Floor ${fl})`),400);
+  }
+
   // Start with all walls
   let raw=[];
   for(let y=0;y<MAP_H;y++){raw[y]=[];for(let x=0;x<MAP_W;x++) raw[y][x]=T_WALL;}
@@ -1736,11 +4826,25 @@ function genFloor(fl){
   gozo.state='idle';gozo.dir='S';gozo.frame=0;gozo.frameT=0;
   gozo.mineTarget=null;gozo.clickDest=null;
   ladderTile=null;
+  G._returnPortal=null; // portal back to village
   // Restore HP on new floor
   G.hp=G.maxHp;
   updateGozoHpBar();
   // Spawn monsters for this floor
   spawnMonsters(fl);
+  // Spawn miner companions
+  spawnMinerNPCs(fl);
+
+  // Place return portal — find a floor tile far from spawn
+  const pgx=Math.floor(gozo.wx/TILE), pgy=Math.floor(gozo.wy/TILE);
+  const portalCands=floors.filter(f=>
+    !rocks[f.x+','+f.y] &&
+    Math.abs(f.x-pgx)+Math.abs(f.y-pgy)>12
+  ).sort(()=>Math.random()-0.5);
+  if(portalCands.length>0){
+    const {x,y}=portalCands[0];
+    G._returnPortal={tx:x, ty:y};
+  }
 }
 
 const typeKeys=['stone','iron','gold','diamond'];
@@ -1825,14 +4929,17 @@ function updateGozo(){
 
   const autoAtkRange = TILE * 1.3;
   if(nearestMob && nearestDist < autoAtkRange){
-    // In range — stop moving and swing
-    if(gozo.state !== 'mine') gozo.state = 'mine';
-    gozo.clickDest = null; gozo.mineTarget = null;
+    // In range — face monster and swing (don't force 'mine' state if player is moving)
+    if(gozo.state !== 'mine' && gozo.state !== 'walk') gozo.state = 'mine';
+    if(gozo.state !== 'walk') {
+      gozo.clickDest = null; gozo.mineTarget = null;
+    }
     const m = monsters[nearestMob];
     gozo.dir = m.wx > gozo.wx ? 'E' : m.wx < gozo.wx ? 'W' : m.wy > gozo.wy ? 'S' : 'N';
     if(gozo.atkCd <= 0){
+      gozo.state = 'mine'; // briefly show attack anim
       hitMonster(nearestMob);
-      gozo.atkCd = 22; // attack speed ~3 hits/sec at 60fps
+      gozo.atkCd = 22;
     }
   } else if(gozo.attackTarget && monsters[gozo.attackTarget]){
     // Walking toward clicked monster
@@ -1929,7 +5036,14 @@ function render(){
   const cx2=camX, cy2=camY;
 
   gctx.clearRect(0,0,cW,cH);
-  gctx.fillStyle='#050302'; gctx.fillRect(0,0,cW,cH);
+  const bgColor = BIOMES[currentBiome]?.bgColor || '#050302';
+  gctx.fillStyle=bgColor; gctx.fillRect(0,0,cW,cH);
+
+  // Pick active tile set — biome override or default TC
+  const BTC = BIOME_TC[currentBiome] || null;
+  const tFloor = v => BTC ? BTC.floor[v] : TC.floor[v];
+  const tWall  = v => BTC ? BTC.wall[v]  : TC.wall[v];
+  const tFace  = v => BTC ? BTC.face[v]  : TC.face[v];
 
   const sx=Math.floor(cx2/TILE)-1, sy=Math.floor(cy2/TILE)-1;
   const ex=Math.min(MAP_W,sx+Math.ceil(cW/TILE)+3);
@@ -1943,7 +5057,7 @@ function render(){
       const t=worldMap[ty2]?.[tx2]??T_VOID;
       const v=tileVariant[ty2]?.[tx2]??0;
       if(t===T_FLOOR){
-        gctx.drawImage(TC.floor[v],px,py);
+        gctx.drawImage(tFloor(v),px,py);
       } else if(t!==T_WALL){
         gctx.drawImage(TC.border,px,py);
       }
@@ -1958,12 +5072,11 @@ function render(){
       const px=Math.round(tx2*TILE-cx2)+ox;
       const py=Math.round(ty2*TILE-cy2)+oy;
       const v=tileVariant[ty2]?.[tx2]??0;
-      gctx.drawImage(TC.wall[v], px, py);
+      gctx.drawImage(tWall(v), px, py);
     }
   }
 
-  // Pass 3: cliff face — drawn at BOTTOM of wall tile, hanging over floor below
-  // This is the key to 2.5D: the face is part of the wall, not the floor
+  // Pass 3: cliff face
   for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
     for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
       const t=worldMap[ty2]?.[tx2]??T_VOID;
@@ -1973,8 +5086,7 @@ function render(){
       const px=Math.round(tx2*TILE-cx2)+ox;
       const py=Math.round(ty2*TILE-cy2)+oy;
       const v=tileVariant[ty2]?.[tx2]??0;
-      // Face drawn starting from bottom of wall tile, going down over floor
-      gctx.drawImage(TC.face[v], px, py + TILE - 2);
+      gctx.drawImage(tFace(v), px, py + TILE - 2);
     }
   }
 
@@ -2001,6 +5113,44 @@ function render(){
     gctx.drawImage(TC.ladder,px,py);
   }
 
+  // Draw return portal (back to village)
+  if(G._returnPortal && G.floor>0){
+    const now2=Date.now();
+    const rpx=Math.round(G._returnPortal.tx*TILE+TILE/2-cx2)+ox;
+    const rpy=Math.round(G._returnPortal.ty*TILE+TILE/2-cy2)+oy;
+    // Pulsing glow base
+    const glowR=10+Math.sin(now2/300)*3;
+    const grd=gctx.createRadialGradient(rpx,rpy,0,rpx,rpy,glowR+12);
+    grd.addColorStop(0,'rgba(80,220,120,0.9)');
+    grd.addColorStop(0.5,'rgba(40,160,80,0.5)');
+    grd.addColorStop(1,'rgba(20,80,40,0)');
+    gctx.fillStyle=grd; gctx.beginPath(); gctx.arc(rpx,rpy,glowR+12,0,Math.PI*2); gctx.fill();
+    // Rotating rings
+    for(let ri=0;ri<3;ri++){
+      const a=now2/600+ri*(Math.PI*2/3);
+      gctx.strokeStyle=`rgba(80,255,140,${0.5-ri*0.1})`; gctx.lineWidth=1.5;
+      gctx.beginPath(); gctx.ellipse(rpx,rpy,glowR+ri*3,4+ri,a,0,Math.PI*2); gctx.stroke();
+    }
+    // Sparkles
+    for(let si=0;si<5;si++){
+      const sa=now2/400+si*(Math.PI*2/5);
+      const sr=glowR+6;
+      const sx=rpx+Math.cos(sa)*sr, sy=rpy+Math.sin(sa)*sr*0.4;
+      gctx.fillStyle='rgba(150,255,180,0.8)'; gctx.fillRect(sx-1,sy-1,2,2);
+    }
+    // Label
+    gctx.fillStyle='rgba(0,0,0,0.7)'; gctx.fillRect(rpx-22,rpy-26,44,11);
+    gctx.fillStyle='#80ffb0'; gctx.font='bold 5px monospace';
+    gctx.fillText('🏘 VILLAGE',rpx-20,rpy-18);
+    // [E] hint if near
+    const gdist=Math.abs(gozo.wx-G._returnPortal.tx*TILE-TILE/2)+Math.abs(gozo.wy-G._returnPortal.ty*TILE-TILE/2);
+    if(gdist<TILE*2.5){
+      gctx.fillStyle='rgba(0,0,0,0.75)'; gctx.fillRect(rpx-18,rpy+10,36,10);
+      gctx.fillStyle='#80ffb0'; gctx.font='bold 6px monospace';
+      gctx.fillText('[E] WARP',rpx-14,rpy+18);
+    }
+  }
+
   // Draw rocks (sorted by Y for depth)
   const rockList=Object.values(rocks).sort((a,b)=>a.ty-b.ty);
   for(const r of rockList){
@@ -2021,7 +5171,9 @@ function render(){
     // Animated sprite — cycle 4 frames
     m.animT=(m.animT||0)+1;
     const animFrame = Math.floor(m.animT/10)%4; // change frame every 10 ticks
-    const frames=MOB_SPR[m.defIdx];
+    const frames = m.biome && m.biomeMobIdx>=0
+      ? BIOME_MOB_SPR[m.biome]?.[m.biomeMobIdx]
+      : MOB_SPR[m.defIdx];
     const spr=frames?frames[animFrame]:null;
     if(spr) gctx.drawImage(spr,mpx-16,mpy-28);
     // HP bar above monster
@@ -2035,14 +5187,86 @@ function render(){
     gctx.fillRect(bx,by-11,bw,9);
     gctx.fillStyle='#e0c080';
     gctx.font='5px monospace';
-    gctx.fillText(MOB_DEFS[m.defIdx].n.slice(0,12),bx+1,by-4);
+    const mobName = m.biome && m.biomeMobIdx>=0
+      ? BIOME_MOBS[m.biome][m.biomeMobIdx].n
+      : MOB_DEFS[m.defIdx].n;
+    gctx.fillText(mobName.slice(0,12),bx+1,by-4);
+  }
+
+  // Draw Miner NPCs
+  const minerList=Object.values(minerNPCs).sort((a,b)=>a.wy-b.wy);
+  for(const m of minerList){
+    const mpx=Math.round(m.wx-cx2)+ox;
+    const mpy=Math.round(m.wy-cy2)+oy;
+    // Shadow
+    gctx.fillStyle='rgba(0,0,0,0.25)';
+    gctx.beginPath();gctx.ellipse(mpx,mpy+4,10,4,0,0,Math.PI*2);gctx.fill();
+    // Sprite (flip if walking west)
+    const frms=MINER_SPR[m.col+m.pick];
+    if(frms){
+      const spr=frms[m.frame];
+      gctx.save();
+      if(m.dir==='W'){ gctx.translate(mpx-16+spr.width,mpy-36); gctx.scale(-1,1); gctx.drawImage(spr,0,0); }
+      else gctx.drawImage(spr,mpx-16,mpy-36);
+      gctx.restore();
+    }
+    // Name tag
+    gctx.fillStyle='rgba(0,0,0,0.65)'; gctx.fillRect(mpx-18,mpy-52,36,10);
+    gctx.fillStyle=m.col; gctx.font='bold 5px monospace';
+    gctx.fillText(m.name,mpx-16,mpy-44);
+    // Bag indicator (small colored bar)
+    const bagTotal=m.bag.stone+m.bag.iron+m.bag.gold+m.bag.diamond;
+    const bagPct=bagTotal/m.bagMax;
+    gctx.fillStyle='#333'; gctx.fillRect(mpx-16,mpy-41,32,3);
+    gctx.fillStyle=bagPct>0.7?'#e04040':bagPct>0.3?'#e0c040':'#40c080';
+    gctx.fillRect(mpx-16,mpy-41,Math.round(32*bagPct),3);
+    // State icon
+    if(m.mineTarget){
+      gctx.font='8px monospace'; gctx.fillText('⛏',mpx-5,mpy-54);
+    } else if(m.restT>0){
+      gctx.font='8px monospace'; gctx.fillText('💤',mpx-5,mpy-54);
+    }
+    // Speech bubble
+    if(m.speech && m.speechT>0){
+      const alpha=Math.min(1,m.speechT/20);
+      const tw=gctx.measureText(m.speech).width+8;
+      gctx.globalAlpha=alpha;
+      gctx.fillStyle='#fff8e8'; gctx.fillRect(mpx-tw/2,mpy-72,tw,12);
+      gctx.strokeStyle='#c0a060'; gctx.lineWidth=1; gctx.strokeRect(mpx-tw/2,mpy-72,tw,12);
+      // Bubble tail
+      gctx.fillStyle='#fff8e8';
+      gctx.beginPath(); gctx.moveTo(mpx-3,mpy-60); gctx.lineTo(mpx+3,mpy-60); gctx.lineTo(mpx,mpy-54); gctx.fill();
+      gctx.fillStyle='#604020'; gctx.font='5px monospace';
+      gctx.fillText(m.speech,mpx-tw/2+4,mpy-63);
+      gctx.globalAlpha=1;
+    }
   }
 
   // Draw gozo shadow (at feet)
-  const gpx=Math.round(gozo.wx-cx2)+ox;
-  const gpy=Math.round(gozo.wy-cx2)+oy; // will fix below
   const gfx=Math.round(gozo.wx-cx2)+ox;  // feet X
   const gfy=Math.round(gozo.wy-cy2)+oy;  // feet Y (world anchor)
+
+  // Legendary weapon aura — drawn UNDER Gozo
+  if(G.equippedWeapon && WEAPONS[G.equippedWeapon]?.legendary){
+    const lw=WEAPONS[G.equippedWeapon];
+    const now3=Date.now();
+    const lp=0.5+0.5*Math.sin(now3/300);
+    // Floor glow
+    const laGrd=gctx.createRadialGradient(gfx,gfy,0,gfx,gfy,28+lp*8);
+    laGrd.addColorStop(0,lw.color+'66'); laGrd.addColorStop(1,'rgba(0,0,0,0)');
+    gctx.fillStyle=laGrd; gctx.fillRect(gfx-40,gfy-40,80,80);
+    // Orbiting rune sparkles
+    gctx.save(); gctx.globalAlpha=0.5+lp*0.5;
+    for(let si=0;si<5;si++){
+      const sa=now3/500+si*(Math.PI*2/5);
+      const sr=18+lp*4;
+      const spx=gfx+Math.cos(sa)*sr, spy=gfy-8+Math.sin(sa)*sr*0.35;
+      gctx.fillStyle=lw.color;
+      gctx.fillRect(spx-1,spy-1,2,2);
+    }
+    gctx.restore();
+  }
+
   gctx.fillStyle='rgba(0,0,0,0.28)';
   gctx.beginPath();gctx.ellipse(gfx,gfy+2,11,5,0,0,Math.PI*2);gctx.fill();
 
@@ -2067,46 +5291,52 @@ function render(){
 
   // Lighting passes
   drawLighting(gfx, gfy);
+  // Bomb radius ring preview (shown when hovering slot-tnt)
+  if(G._showBombRadius && G.tntCount>0){
+    const br=4*TILE;
+    gctx.strokeStyle='rgba(255,160,0,0.55)';
+    gctx.lineWidth=2;
+    gctx.setLineDash([6,4]);
+    gctx.beginPath(); gctx.arc(gfx,gfy,br,0,Math.PI*2); gctx.stroke();
+    gctx.setLineDash([]);
+    gctx.fillStyle='rgba(255,100,0,0.08)';
+    gctx.beginPath(); gctx.arc(gfx,gfy,br,0,Math.PI*2); gctx.fill();
+  }
+  drawBuffHud();
 }
 
 // Flickering torch light state
 let torchFlicker = 0, torchPhase = 0;
 
 function drawLighting(px, py){
-  // Animate flicker
   torchPhase += 0.04;
   torchFlicker = Math.sin(torchPhase)*0.018 + Math.sin(torchPhase*2.3)*0.012;
 
-  const lightR = cH * (0.52 + torchFlicker);   // radius of warm light pool
-  const cx2 = px, cy2 = py - 8; // light source slightly above feet
+  const lightR = cH * (0.52 + torchFlicker);
+  const cx2 = px, cy2 = py - 8;
 
-  // ── Layer 1: warm point light (yellow-orange glow on the ground) ──
-  // Use 'multiply'-like effect by drawing warm color under darkness
+  const b = BIOMES[currentBiome] || BIOMES.cave;
   const warm = gctx.createRadialGradient(cx2,cy2,0, cx2,cy2, lightR*0.7);
-  warm.addColorStop(0,   `rgba(255,200,80,${0.10+torchFlicker*2})`);
-  warm.addColorStop(0.35,`rgba(220,150,40,0.06)`);
+  warm.addColorStop(0,   `rgba(${b.warmRgb},${0.12+torchFlicker*2})`);
+  warm.addColorStop(0.35,`rgba(${b.warmRgb},0.05)`);
   warm.addColorStop(1,   'rgba(0,0,0,0)');
   gctx.fillStyle=warm; gctx.fillRect(0,0,cW,cH);
 
-  // ── Layer 2: darkness mask — black with hole where torch shines ──
   gctx.save();
   gctx.globalCompositeOperation = 'source-over';
-
-  // Fill whole screen dark, then cut a lit circle
   const dark = gctx.createRadialGradient(cx2,cy2, lightR*0.18, cx2,cy2, lightR);
-  dark.addColorStop(0,   'rgba(0,0,0,0)');       // fully lit center
-  dark.addColorStop(0.45,'rgba(0,0,0,0.08)');    // soft edge start
-  dark.addColorStop(0.7, 'rgba(0,0,0,0.45)');    // dim zone
-  dark.addColorStop(0.88,'rgba(0,0,0,0.72)');    // dark border
-  dark.addColorStop(1,   'rgba(0,0,0,0.92)');    // near-black corners
+  dark.addColorStop(0,   'rgba(0,0,0,0)');
+  dark.addColorStop(0.45,'rgba(0,0,0,0.08)');
+  dark.addColorStop(0.7, 'rgba(0,0,0,0.45)');
+  dark.addColorStop(0.88,'rgba(0,0,0,0.72)');
+  dark.addColorStop(1,   'rgba(0,0,0,0.92)');
   gctx.fillStyle=dark; gctx.fillRect(0,0,cW,cH);
   gctx.restore();
 
-  // ── Layer 3: colored ambient — cool blue tint in far darkness ──
   const ambient = gctx.createRadialGradient(cx2,cy2, lightR*0.6, cx2,cy2, cW*0.9);
   ambient.addColorStop(0,   'rgba(0,0,0,0)');
-  ambient.addColorStop(0.5, 'rgba(10,15,40,0.08)');
-  ambient.addColorStop(1,   'rgba(10,15,50,0.30)');
+  ambient.addColorStop(0.5, `rgba(${b.ambientRgb},0.10)`);
+  ambient.addColorStop(1,   `rgba(${b.fogRgb},0.35)`);
   gctx.fillStyle=ambient; gctx.fillRect(0,0,cW,cH);
 }
 
@@ -2119,6 +5349,23 @@ function onCanvasClick(e){
   const wx=mx+camX,wy=my+camY;
   const tx=Math.floor(wx/TILE),ty=Math.floor(wy/TILE);
   const k=tx+','+ty;
+
+  // Village mode — click to walk toward NPC or mine entrance
+  if(G.floor===0){
+    for(let i=0;i<VILLAGE_NPCS.length;i++){
+      const npc=VILLAGE_NPCS[i];
+      if(!npc.tx) continue;
+      const ndx=(npc.tx*TILE+TILE/2)-wx, ndy=(npc.ty*TILE+TILE-4)-wy;
+      if(Math.sqrt(ndx*ndx+ndy*ndy)<TILE*2){
+        gozo.clickDest={wx:npc.tx*TILE+TILE/2,wy:(npc.ty+1)*TILE+TILE-4};
+        gozo.state='walk';
+        return;
+      }
+    }
+    // Walk to clicked position in village
+    gozo.clickDest={wx,wy}; gozo.state='walk';
+    return;
+  }
 
   // Check if clicked near a monster — walk toward it (auto-attack fires when close)
   for(const id in monsters){
@@ -2313,7 +5560,8 @@ function rollLoot(type,fl){
 function sell(type){
   const p={iron:15,gold:80,diamond:500};
   let totalQty=0;
-  for(let i=0;i<30;i++){
+  const slots=G.invSlots||30;
+  for(let i=0;i<slots;i++){
     const s=G.inventory[i];
     if(s&&s.type==='ore'&&s.id===type){totalQty+=s.qty;G.inventory[i]=null;}
   }
@@ -2331,18 +5579,198 @@ function buyUpgrade(id){
   if(G.coins<cost){toast('❌ Not enough coins!');return;}
   G.coins-=cost;u.lv++;
   if(id==='tnt'){
-    let tc=0;
-    for(const k in rocks){const r=rocks[k];const l=rollLoot(r.type,G.floor);tc+=l.coins;G.iron+=l.iron;G.gold+=l.gold;G.diamond+=l.diamond;if(l.ladder)G.ladder++;}
-    G.coins+=tc;rocks={};gozo.state='idle';gozo.mineTarget=null;
-    toast(`💣 BOOM! +${tc}g`);
+    for(const k in rocks){
+      const r=rocks[k];
+      const l=rollLoot(r.type,G.floor);
+      if(l.iron)   addToInventory({type:'ore',id:'iron',   qty:l.iron});
+      if(l.gold)   addToInventory({type:'ore',id:'gold',   qty:l.gold});
+      if(l.diamond)addToInventory({type:'ore',id:'diamond',qty:l.diamond});
+      if(l.ladder) G.ladder++;
+    }
+    rocks={};gozo.state='idle';gozo.mineTarget=null;
+    toast('💣 BOOM! All rocks blasted!');
   }
   toast(`✅ ${id.toUpperCase()} LV${u.lv}!`);updateHud();
+}
+
+function playExplosion(){
+  try {
+    const ctx=getAudioCtx();
+    const now=ctx.currentTime;
+    const bufSize=ctx.sampleRate*0.8;
+    const buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<bufSize;i++){
+      const t=i/ctx.sampleRate;
+      // Deep boom
+      const boom=Math.sin(2*Math.PI*55*t)*Math.exp(-t*8)*0.8;
+      // Mid crunch
+      const crunch=Math.sin(2*Math.PI*120*t)*Math.exp(-t*14)*0.5;
+      // Noise burst
+      const noise=(Math.random()*2-1)*Math.exp(-t*10)*0.6;
+      // High crack
+      const crack=Math.sin(2*Math.PI*800*t)*Math.exp(-t*50)*0.2;
+      data[i]=boom+crunch+noise+crack;
+    }
+    const src=ctx.createBufferSource();
+    src.buffer=buf;
+    const gain=ctx.createGain();
+    gain.gain.setValueAtTime(1.0,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.8);
+    src.connect(gain); gain.connect(ctx.destination);
+    src.start(now);
+  } catch(e){}
+}
+
+function useBomb(){
+  if(!G.tntCount){ toast('❌ No bombs! Kill monsters to find one.'); return; }
+  G.tntCount--;
+
+  // Blast radius: 4 tiles from Gozo
+  const BLAST_RADIUS = 4 * TILE;
+  let rockCount=0;
+  for(const k in {...rocks}){
+    const r=rocks[k];
+    const rx=r.tx*TILE+TILE/2, ry=r.ty*TILE+TILE/2;
+    const dx=rx-gozo.wx, dy=ry-gozo.wy;
+    if(Math.sqrt(dx*dx+dy*dy)>BLAST_RADIUS) continue; // outside radius
+
+    const l=rollLoot(r.type,G.floor);
+    if(l.iron)    addToInventory({type:'ore',id:'iron',   qty:l.iron});
+    if(l.gold)    addToInventory({type:'ore',id:'gold',   qty:l.gold});
+    if(l.diamond) addToInventory({type:'ore',id:'diamond',qty:l.diamond});
+    if(l.ladder){ G.ladder++; ladderTile={tx:r.tx,ty:r.ty}; }
+    // Particles per rock
+    const sx=Math.round(rx-camX), sy=Math.round(ry-camY);
+    spawnParticles(sx,sy,r.type);
+    delete rocks[k];
+    rockCount++;
+  }
+  if(gozo.mineTarget && !rocks[gozo.mineTarget]){
+    gozo.state='idle'; gozo.mineTarget=null;
+  }
+
+  shakeAmt=14;
+  playExplosion();
+  updateHud();
+
+  const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY);
+  spawnDmg(sx,sy-30,'💥 BOOM!','#ffcc00',16);
+  // Draw blast circle indicator
+  spawnDmg(sx-30,sy-10,'🔥','#ff6600',10);
+  spawnDmg(sx+30,sy-10,'🔥','#ff6600',10);
+  spawnDmg(sx,sy-60,'🔥','#ff6600',10);
+  toast(`💣 BOOM! Blasted ${rockCount} rocks in radius!`);
+  if(Object.keys(rocks).length===0) setTimeout(()=>toast('✨ Floor cleared!'),400);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PORTAL / FLOOR MAP
+// ═══════════════════════════════════════════════════════════
+const BIOME_ICON = {cave:'⛏', ice:'❄️', desert:'🏜', forest:'🌲', lava:'🔥'};
+
+function togglePortal(){
+  const p=document.getElementById('portal-panel');
+  const isOpen=p.classList.toggle('open');
+  if(isOpen) renderPortalGrid();
+}
+
+function renderPortalGrid(){
+  const grid=document.getElementById('portal-grid');
+  if(!grid) return;
+  grid.innerHTML='';
+  const visited=new Set(G.visitedFloors||[]);
+  const max=G.maxFloor||1;
+
+  // Floor 0 — Village
+  const vDiv=document.createElement('div');
+  const isVilCurrent=G.floor===0;
+  vDiv.className='pfl village'+(isVilCurrent?' current':'');
+  vDiv.innerHTML=`<span class="pfl-biome">${isVilCurrent?'📍':'🏘'}</span><span class="pfl-num">V</span>`;
+  vDiv.title='Mining Village (Floor 0)';
+  if(!isVilCurrent) vDiv.onclick=()=>warpToFloor(0);
+  grid.appendChild(vDiv);
+
+  for(let f=1;f<=Math.max(max,100);f++){
+    const div=document.createElement('div');
+    const biome=getBiome(f);
+    const icon=BIOME_ICON[biome]||'⛏';
+    const isCurrent=f===G.floor;
+    const isVisited=visited.has(f);
+    div.className='pfl'+(isVisited?' visited':'')+(isCurrent?' current':'');
+    div.innerHTML=`<span class="pfl-biome">${isCurrent?'📍':isVisited?icon:'🔒'}</span><span class="pfl-num">${f}</span>`;
+    if(isVisited && !isCurrent){ div.title=`Floor ${f} — ${BIOMES[biome].name}`; div.onclick=()=>warpToFloor(f); }
+    else if(isCurrent){ div.title=`Current: Floor ${f}`; }
+    else { div.title=`Floor ${f} — Not yet visited`; }
+    grid.appendChild(div);
+  }
+  const cells=grid.querySelectorAll('.pfl');
+  if(G.floor>0 && cells[G.floor]) cells[G.floor].scrollIntoView({block:'center',behavior:'smooth'});
+}
+
+function warpToFloor(target){
+  if(target===G.floor){ togglePortal(); return; }
+  const visited=new Set(G.visitedFloors||[]);
+  if(!visited.has(target)){ toast('❌ Floor not yet visited!'); return; }
+
+  document.getElementById('portal-panel').classList.remove('open');
+  document.getElementById('portal-info').textContent='Select a visited floor to warp there.';
+
+  if(target===0){ returnToVillage(); return; }
+
+  // Black fade warp
+  const fa=document.createElement('div');
+  fa.style.cssText='position:fixed;inset:0;background:#100020;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;';
+  document.body.appendChild(fa);
+
+  // Portal sound
+  try{
+    const ctx=getAudioCtx(); const now=ctx.currentTime;
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.6,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){
+      const t=i/ctx.sampleRate;
+      d[i]=Math.sin(2*Math.PI*(300+t*400)*t)*Math.exp(-t*4)*0.5
+          +Math.sin(2*Math.PI*600*t)*Math.exp(-t*6)*0.3
+          +(Math.random()-.5)*Math.exp(-t*20)*0.1;
+    }
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const gain=ctx.createGain();
+    gain.gain.setValueAtTime(0.6,now);
+    gain.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    src.connect(gain); gain.connect(ctx.destination); src.start(now);
+  }catch(e){}
+
+  requestAnimationFrame(()=>{ fa.style.opacity='1'; });
+  setTimeout(()=>{
+    G.floor=target;
+    G._isVillage=false;
+    genFloor(G.floor);
+    updateHud();
+    fa.style.transition='opacity .5s'; fa.style.opacity='0';
+    setTimeout(()=>fa.remove(),520);
+    toast(`🌀 Warped to Floor ${target}! (${BIOMES[getBiome(target)].name})`);
+  },320);
+}
+
+function deployLadder(){
+  if(!G.ladder){ toast('❌ No ladder! Kill monsters to find one.'); return; }
+  if(ladderTile){ toast('🪜 Ladder already placed!'); return; }
+  const tx=Math.floor(gozo.wx/TILE);
+  const ty=Math.floor(gozo.wy/TILE);
+  if(worldMap[ty]?.[tx]!==T_FLOOR){ toast('❌ Must be on open ground!'); return; }
+  ladderTile={tx,ty};
+  toast('🪜 Ladder deployed! Walk onto it to descend.');
+  spawnDmg(Math.round(gozo.wx-camX),Math.round(gozo.wy-camY-30),'🪜 PLACED!','#e0a040',9);
 }
 
 function goNextFloor(){
   if(!G.ladder){toast('❌ No ladder in inventory!');closeLadder();return;}
   G.ladder--;G.floor=Math.min(G.floor+1,MAX_FLOOR);
   if(G.floor>G.maxFloor)G.maxFloor=G.floor;
+  // Track visited floor
+  if(!G.visitedFloors) G.visitedFloors=[1];
+  if(!G.visitedFloors.includes(G.floor)) G.visitedFloors.push(G.floor);
   closeLadder();
   // Black fade
   const fa=document.createElement('div');
@@ -2387,17 +5815,18 @@ function spawnParticles(sx,sy,type){
 // ═══════════════════════════════════════════════════════════
 function updateHud(){
   const c=fmt(G.coins);
-  document.getElementById('gh-coins').textContent=c;
-  document.getElementById('fb-num').textContent=G.floor;
-  document.getElementById('hs-coins').textContent=c;
-  // Count ore in inventory
-  let iron=0,gold=0,diam=0;
-  for(const s of G.inventory){if(!s)continue;if(s.type==='ore'){if(s.id==='iron')iron+=s.qty;else if(s.id==='gold')gold+=s.qty;else if(s.id==='diamond')diam+=s.qty;}}
-  document.getElementById('hs-iron').textContent=fmt(iron);
-  document.getElementById('hs-gold').textContent=fmt(gold);
-  document.getElementById('hs-diam').textContent=fmt(diam);
-  document.getElementById('hs-rocks').textContent=Object.keys(rocks).length;
-  document.getElementById('lad-slot-qty').textContent=G.ladder;
+  const ghCoins=document.getElementById('gh-coins');
+  if(ghCoins) ghCoins.textContent=c;
+  const biomeName = G.floor===0 ? '🏘 Village' : (BIOMES[currentBiome]?.name || 'Cave');
+  const floorLabel = G.floor===0 ? '0 · Mining Village' : `${G.floor} · ${biomeName}`;
+  const fbNum=document.getElementById('fb-num');
+  if(fbNum) fbNum.textContent=floorLabel;
+  const hsCoins=document.getElementById('hs-coins');
+  if(hsCoins) hsCoins.textContent=c;
+  const ladQty=document.getElementById('lad-slot-qty');
+  if(ladQty) ladQty.textContent=G.ladder;
+  const tntQty=document.getElementById('tnt-qty');
+  if(tntQty) tntQty.textContent=G.tntCount||0;
   updateUpgUI();
 }
 function updateUpgUI(){
@@ -2421,7 +5850,21 @@ let tt;function toast(msg){const t=document.getElementById('toast');t.textConten
 // ═══════════════════════════════════════════════════════════
 //  GAME LOOP
 // ═══════════════════════════════════════════════════════════
-function loop(){updateGozo();updateMonsters();render();requestAnimationFrame(loop);}
+function loop(){
+  if(G._isVillage||G.floor===0){
+    updateGozoVillage();
+    checkVillageInteractions();
+    tickBuffs();
+    renderVillage();
+  } else {
+    updateGozo();
+    updateMonsters();
+    updateMinerNPCs();
+    tickBuffs();
+    render();
+  }
+  requestAnimationFrame(loop);
+}
 
 function initCanvas(){
   const wrap=document.getElementById('game-wrap');
@@ -2443,6 +5886,26 @@ document.addEventListener('keydown',e=>{
   KEYS[e.key]=true;
   if(e.key==='t'||e.key==='T')toggleUpgPanel();
   if(e.key==='i'||e.key==='I')toggleInv();
+  if(e.key==='m'||e.key==='M')togglePortal();
+  if(e.key==='3') useBomb();
+  if(e.key==='4') deployLadder();
+  if(e.key==='e'||e.key==='E'){
+    if(G.floor===0){
+      if(G._nearNPC!=null) openShop(G._nearNPC);
+      else if(G._nearMine) enterMine();
+      else if(G._nearPortal) togglePortal();
+    } else {
+      // Dungeon: check return portal proximity
+      if(G._returnPortal){
+        const pdx=gozo.wx-(G._returnPortal.tx*TILE+TILE/2);
+        const pdy=gozo.wy-(G._returnPortal.ty*TILE+TILE/2);
+        if(Math.abs(pdx)+Math.abs(pdy)<TILE*2.5){
+          warpToFloor(0);
+          toast('🏘 Returned to Mining Village!');
+        }
+      }
+    }
+  }
   if(e.code==='Space'){e.preventDefault();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
 });
@@ -2484,13 +5947,20 @@ function onFileLoad(e){
       buildAllSprites();
       buildTiles();
       buildOreSprites();
+      buildAllWeaponSprites();
+      buildAllMonsterSprites();
+      buildAllPickaxeSprites();
+      buildAllBiomeMonsterSprites();
+      buildAllPotionSprites();
       Object.assign(G, data.G);
       const sp=document.getElementById('splash');
       sp.style.transition='opacity .5s';sp.style.opacity='0';
       setTimeout(()=>sp.style.display='none',520);
       initCanvas();
       genFloor(G.floor);
+      setTimeout(()=>equipPickaxe(G.equippedPickaxe||'wooden_pick'),100);
       updateHud();
+      updateGozoHpBar();
       toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`);
       requestAnimationFrame(loop);
     } catch(err){
@@ -2509,14 +5979,22 @@ function startNewGame(){
   buildOreSprites();
   buildAllWeaponSprites();
   buildAllMonsterSprites();
-  buildAllWeaponSprites();
-  buildAllMonsterSprites();
+  buildAllPickaxeSprites();
+  buildAllBiomeMonsterSprites();
+  buildAllPotionSprites();
   const sp=document.getElementById('splash');
   sp.style.transition='opacity .5s';sp.style.opacity='0';
   setTimeout(()=>sp.style.display='none',520);
   initCanvas();
-  genFloor(1);
+  // Start at village (floor 0)
+  G.floor=0;
+  G._isVillage=true;
+  initAllMiners(20); // distribute 10 miners across floors 1-20
+  genVillage();
+  G.visitedFloors=[0,1];
   giveStarterWeapon();
+  // Init pickaxe slot with wooden pick sprite
+  setTimeout(()=>equipPickaxe('wooden_pick'),100);
   updateHud();
   updateGozoHpBar();
   toast('⛏ WASD=move | Click rock=mine | Click monster=attack | I=bag');
