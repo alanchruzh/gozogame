@@ -11419,44 +11419,44 @@ let _mktPurchasing = false;
 // ── MARKET ITEMS — 5 weapons + 5 armors, Rare→Legendary ──
 const MARKET_ITEMS = [
   // WEAPONS
-  { id:'mw1', type:'weapon', name:'Void Reaper',    rarity:'Legendary', atk:95, t:10,
+  { id:'mw1', type:'weapon', name:'Void Reaper',    rarity:'Legendary', atk:95, t:10, element:'dark',
     price:5000, desc:'Forged in the void between worlds. Tears reality.',
     lore:'Only one exists. The last wielder vanished.',
     palette:['#1a0a2e','#3d1a6e','#7b2fff','#c084fc','#f0abfc','#fff'] },
-  { id:'mw2', type:'weapon', name:'Solar Blade',    rarity:'Legendary', atk:88, t:10,
+  { id:'mw2', type:'weapon', name:'Solar Blade',    rarity:'Legendary', atk:88, t:10, element:'light',
     price:4500, desc:'Crystallized starfire. Burns without consuming.',
     lore:'Born from a dying star\'s last breath.',
     palette:['#431407','#9a3412','#f97316','#fbbf24','#fef08a','#fff'] },
-  { id:'mw3', type:'weapon', name:'Storm Fang',     rarity:'Epic',      atk:72, t:9,
+  { id:'mw3', type:'weapon', name:'Storm Fang',     rarity:'Epic',      atk:72, t:9,  element:'electric',
     price:3000, desc:'Crackling with eternal lightning. Never silent.',
     lore:'Carved from a fallen storm giant\'s tooth.',
     palette:['#0c1445','#1e3a8a','#3b82f6','#7dd3fc','#e0f2fe','#fff'] },
-  { id:'mw4', type:'weapon', name:'Crimson Edge',   rarity:'Epic',      atk:68, t:8,
+  { id:'mw4', type:'weapon', name:'Crimson Edge',   rarity:'Epic',      atk:68, t:8,  element:'fire',
     price:2500, desc:'Blood-forged and battle-hungry. Craves combat.',
     lore:'A blade that drinks the courage of the fallen.',
     palette:['#3b0000','#7f1d1d','#dc2626','#f87171','#fca5a5','#fff'] },
-  { id:'mw5', type:'weapon', name:'Abyssal Lance',  rarity:'Rare',      atk:55, t:7,
+  { id:'mw5', type:'weapon', name:'Abyssal Lance',  rarity:'Rare',      atk:55, t:7,  element:'water',
     price:1500, desc:'Dipped in the deep ocean trench. Ice-cold forever.',
     lore:'Fishermen speak of the glowing spear beneath the waves.',
     palette:['#042f2e','#065f46','#059669','#34d399','#a7f3d0','#fff'] },
   // ARMORS
-  { id:'ma1', type:'armor',  name:'Void Mantle',    rarity:'Legendary', def:80, hp:300, t:10,
+  { id:'ma1', type:'armor',  name:'Void Mantle',    rarity:'Legendary', def:80, hp:300, t:10, element:'dark',
     price:5000, desc:'Woven from collapsed starlight. Absorbs all damage.',
     lore:'The wearer becomes one with emptiness.',
     palette:['#0f0c29','#302b63','#24243e','#7b2fff','#c084fc','#fff'] },
-  { id:'ma2', type:'armor',  name:'Phoenix Plate',  rarity:'Legendary', def:75, hp:280, t:10,
+  { id:'ma2', type:'armor',  name:'Phoenix Plate',  rarity:'Legendary', def:75, hp:280, t:10, element:'fire',
     price:4500, desc:'Reborn from ashes. Grants a second life.',
     lore:'Has died and risen exactly 99 times.',
     palette:['#431407','#9a3412','#c2410c','#f97316','#fef08a','#fff'] },
-  { id:'ma3', type:'armor',  name:'Aegis of Storms',rarity:'Epic',      def:60, hp:220, t:9,
+  { id:'ma3', type:'armor',  name:'Aegis of Storms',rarity:'Epic',      def:60, hp:220, t:9,  element:'electric',
     price:3000, desc:'Channels lightning into a protective barrier.',
     lore:'Stolen from the Sky Fortress by a lone thief.',
     palette:['#0c1445','#1e3a8a','#1d4ed8','#60a5fa','#bfdbfe','#fff'] },
-  { id:'ma4', type:'armor',  name:'Bloodstone Mail',rarity:'Epic',      def:55, hp:200, t:8,
+  { id:'ma4', type:'armor',  name:'Bloodstone Mail',rarity:'Epic',      def:55, hp:200, t:8,  element:'earth',
     price:2500, desc:'Each gem pulses with the owner\'s heartbeat.',
     lore:'The gems grow brighter as danger approaches.',
     palette:['#450a0a','#7f1d1d','#991b1b','#dc2626','#fca5a5','#fff'] },
-  { id:'ma5', type:'armor',  name:'Coral Guard',    rarity:'Rare',      def:42, hp:160, t:7,
+  { id:'ma5', type:'armor',  name:'Coral Guard',    rarity:'Rare',      def:42, hp:160, t:7,  element:'water',
     price:1000, desc:'Living coral that hardens under attack.',
     lore:'It grows stronger each time it is struck.',
     palette:['#042f2e','#134e4a','#0f766e','#14b8a6','#99f6e4','#fff'] },
@@ -11467,12 +11467,12 @@ function drawMarketItem(canvas, item) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0,0,W,H);
-  const p = item.palette;
+  const p = item.palette || getItemPal(item);
 
   if (item.type === 'weapon') {
-    drawPixelWeapon(ctx, item, p, W, H);
+    _drawWeapon2d5(ctx, item, p, W, H);
   } else {
-    drawPixelArmor(ctx, item, p, W, H);
+    _drawArmor2d5(ctx, item, p, W, H);
   }
 }
 
