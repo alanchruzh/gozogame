@@ -2566,6 +2566,11 @@ const BIOMES = {
   desert:    { name:'Desert Ruins',      floors:[], bgColor:'#100804', ambientRgb:'60,30,5',    warmRgb:'255,160,40',  fogRgb:'60,30,5'    },
   forest:    { name:'Crystal Forest',    floors:[], bgColor:'#010802', ambientRgb:'10,50,20',   warmRgb:'120,255,80',  fogRgb:'10,50,15'   },
   lava:      { name:'Lava Caves',        floors:[], bgColor:'#100000', ambientRgb:'80,10,0',    warmRgb:'255,80,20',   fogRgb:'80,10,0'    },
+  // New biomes fl.1-100
+  mushroom:  { name:'Mushroom Grotto',   floors:[], bgColor:'#080010', ambientRgb:'40,10,60',   warmRgb:'200,80,255',  fogRgb:'30,5,50'    },
+  ruins:     { name:'Ancient Ruins',     floors:[], bgColor:'#0a0800', ambientRgb:'50,35,5',    warmRgb:'220,180,60',  fogRgb:'40,28,4'    },
+  swamp:     { name:'Toxic Swamp',       floors:[], bgColor:'#030600', ambientRgb:'15,35,5',    warmRgb:'80,220,30',   fogRgb:'10,30,0'    },
+  crystal:   { name:'Crystal Caves',     floors:[], bgColor:'#000810', ambientRgb:'10,40,80',   warmRgb:'60,200,255',  fogRgb:'5,30,60'    },
   // Special biomes fl.101-150
   frost_hell:{ name:'Frost Hell',        floors:[], bgColor:'#000818', ambientRgb:'0,30,80',    warmRgb:'80,180,255',  fogRgb:'0,20,60'    },
   poison_bog:{ name:'Poison Bog',        floors:[], bgColor:'#020800', ambientRgb:'10,40,0',    warmRgb:'80,255,40',   fogRgb:'5,30,0'     },
@@ -2587,11 +2592,16 @@ function getBiome(fl){
     return ['frost_hell','poison_bog','inferno','demon_realm','witch_wood',
             'blood_crypt','cyclops_range','dragon_peak','shadow_void','abyss_core'][Math.min(seg,9)];
   }
-  const cycle = ((fl-1) % 50);
-  if(cycle>=10&&cycle<20) return 'ice';
-  if(cycle>=20&&cycle<30) return 'desert';
-  if(cycle>=30&&cycle<40) return 'forest';
-  if(cycle>=40&&cycle<50) return 'lava';
+  const cycle = ((fl-1) % 90);
+  if(cycle< 10) return 'cave';
+  if(cycle< 18) return 'ice';
+  if(cycle< 26) return 'mushroom';
+  if(cycle< 34) return 'desert';
+  if(cycle< 42) return 'ruins';
+  if(cycle< 50) return 'forest';
+  if(cycle< 58) return 'swamp';
+  if(cycle< 66) return 'crystal';
+  if(cycle< 78) return 'lava';
   return 'cave';
 }
 
@@ -2669,6 +2679,60 @@ function makeFloorTileBiome(variant, biome){
     cx.beginPath(); cx.ellipse(rng(55)*TILE,rng(56)*TILE,4,3,0,0,Math.PI*2); cx.fill();
     cx.fillStyle='rgba(60,30,20,0.15)';
     for(let i=0;i<3;i++) cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,2,1);
+
+  } else if(biome==='mushroom'){
+    cx.fillStyle=['#0a0012','#080010','#0c0016','#090012'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Glowing spore patches
+    cx.fillStyle=`rgba(200,80,255,${0.08+rng(20+variant)*0.1})`;
+    cx.beginPath();cx.ellipse(rng(10)*TILE,rng(11)*TILE,5,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle=`rgba(100,255,200,${0.06+rng(30+variant)*0.08})`;
+    cx.beginPath();cx.ellipse(rng(40)*TILE,rng(41)*TILE,3,3,0,0,Math.PI*2);cx.fill();
+    // tiny spore dots
+    cx.fillStyle='rgba(220,100,255,0.2)';
+    for(let i=0;i<5;i++)cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,1,1);
+    cx.strokeStyle='rgba(160,40,220,0.2)';cx.lineWidth=0.5;
+    cx.beginPath();cx.moveTo(rng(60)*TILE,rng(61)*TILE);cx.lineTo(rng(62)*TILE,rng(63)*TILE);cx.stroke();
+
+  } else if(biome==='ruins'){
+    cx.fillStyle=['#0e0a04','#100c06','#0c0802','#0e0a04'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Stone tile pattern
+    const tx=Math.floor(rng(20+variant)*3)*8, ty=Math.floor(rng(21+variant)*3)*8;
+    cx.strokeStyle='rgba(100,80,40,0.3)';cx.lineWidth=1;
+    cx.strokeRect(tx,ty,8,8);
+    // Worn crack
+    cx.strokeStyle='rgba(80,60,20,0.2)';cx.lineWidth=0.5;
+    cx.beginPath();cx.moveTo(rng(30)*TILE,rng(31)*TILE);cx.lineTo(rng(32)*TILE,rng(33)*TILE);cx.stroke();
+    // Gold dust sparkle
+    cx.fillStyle=`rgba(220,180,60,${0.05+rng(40+variant)*0.07})`;
+    for(let i=0;i<3;i++)cx.fillRect(rng(i*9)*TILE,rng(i*9+1)*TILE,1,1);
+    cx.fillStyle='rgba(140,100,30,0.12)';
+    cx.beginPath();cx.ellipse(rng(50)*TILE,rng(51)*TILE,4,3,0,0,Math.PI*2);cx.fill();
+
+  } else if(biome==='swamp'){
+    cx.fillStyle=['#030700','#020600','#040800','#030600'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Murky water patches
+    cx.fillStyle=`rgba(40,100,20,${0.12+rng(20+variant)*0.12})`;
+    cx.beginPath();cx.ellipse(rng(10)*TILE,rng(11)*TILE,7,5,rng(12),0,Math.PI*2);cx.fill();
+    // Toxic bubble
+    cx.fillStyle=`rgba(80,220,30,${0.08+rng(30+variant)*0.1})`;
+    cx.beginPath();cx.arc(rng(40)*TILE,rng(41)*TILE,2,0,Math.PI*2);cx.fill();
+    // Swamp ripples
+    cx.strokeStyle='rgba(60,160,20,0.2)';cx.lineWidth=0.5;
+    cx.beginPath();cx.ellipse(rng(50)*TILE,rng(51)*TILE,6,2,0,0,Math.PI*2);cx.stroke();
+    cx.fillStyle='rgba(20,60,5,0.2)';
+    for(let i=0;i<4;i++)cx.fillRect(rng(i*8)*TILE,rng(i*8+1)*TILE,2,1);
+
+  } else if(biome==='crystal'){
+    cx.fillStyle=['#000810','#00060e','#000a14','#000710'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Crystal refraction lines
+    cx.strokeStyle=`rgba(60,200,255,${0.2+rng(20+variant)*0.2})`;cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    // Crystal glint
+    cx.fillStyle=`rgba(100,240,255,${0.1+rng(30+variant)*0.12})`;
+    cx.beginPath();cx.ellipse(rng(40)*TILE,rng(41)*TILE,4,2,rng(42),0,Math.PI*2);cx.fill();
+    // Tiny crystal facets
+    cx.fillStyle='rgba(200,240,255,0.15)';
+    for(let i=0;i<3;i++)cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,2,2);
 
   } else if(biome==='frost_hell'){
     cx.fillStyle=['#010a18','#02081a','#010c1e','#020a16'][variant%4]; cx.fillRect(0,0,TILE,TILE);
@@ -5792,6 +5856,8 @@ const VILLAGE_NPCS = [
     x:34, y:26, color:'#40e090', desc:'Buy & Sell Ores' },
   { id:'legend',     name:'Zael the Legend',        icon:'🌟', shop:'legendary',
     x:22, y:26, color:'#ffdd00', desc:'Legendary Weapons (GOZO token)' },
+  { id:'forge',      name:'Drak the Forge Master',  icon:'🔥', shop:'forge',
+    x:46, y:17, color:'#ff8020', desc:'Craft Equipment from Ores' },
 ];
 
 // Shop buy prices (cost to player)
@@ -5819,7 +5885,143 @@ const SHOP_SELL = {
   steel:900, titanium:2000, tungsten:3200, chromium:2400,
 };
 
-let shopState = { npc:null, tab:'buy', selectedItem:null };
+// ═══════════════════════════════════════════════════════════
+//  CRAFTING SYSTEM — Forge Master Drak
+// ═══════════════════════════════════════════════════════════
+const CRAFT_RECIPES = [
+  // ── WEAPONS ──
+  { id:'iron_blade',    name:'Iron Blade',       icon:'🗡️', type:'weapon',
+    desc:'Forged iron sword. ATK +22',
+    cost:{iron:8, coins:200},   result:{type:'weapon',id:'iron_sword'},   resultDesc:'Iron Sword (ATK 22)' },
+  { id:'gold_blade',    name:'Gold Blade',        icon:'⚔️', type:'weapon',
+    desc:'Golden alloy sword. ATK +42',
+    cost:{gold:6, iron:4, coins:600},  result:{type:'weapon',id:'gold_sword'},   resultDesc:'Gold Sword (ATK 42)' },
+  { id:'diamond_blade', name:'Diamond Edge',      icon:'💎', type:'weapon',
+    desc:'Diamond-edged sword. ATK +75',
+    cost:{diamond:3, gold:4, coins:1500}, result:{type:'weapon',id:'diamond_sword'}, resultDesc:'Diamond Sword (ATK 75)' },
+  { id:'steel_blade',   name:'Steel Saber',       icon:'🔩', type:'weapon',
+    desc:'Deep-forged steel blade. ATK +95',
+    cost:{steel:5, iron:8, coins:2000},  result:{type:'weapon',id:'iron_sword'},   resultDesc:'Steel Saber (ATK 95)',
+    resultOverride:{type:'weapon',id:'steel_saber',name:'Steel Saber',dmg:95,spd:1.4,range:2.0,tier:'Epic',icon:'🔩',color:'#a0c8f0',goldSell:3000} },
+  { id:'titanium_blade',name:'Titanium Cleaver',  icon:'🔷', type:'weapon',
+    desc:'Lightweight titanium cleaver. ATK +130',
+    cost:{titanium:4, steel:3, coins:4000}, result:{type:'weapon',id:'titanium_cleaver'},
+    resultOverride:{type:'weapon',id:'titanium_cleaver',name:'Titanium Cleaver',dmg:130,spd:1.6,range:2.2,tier:'Epic',icon:'🔷',color:'#c0c8ff',goldSell:6000} },
+  { id:'tungsten_hammer',name:'Tungsten Warhammer',icon:'⬛', type:'weapon',
+    desc:'Devastating tungsten warhammer. ATK +200',
+    cost:{tungsten:5, chromium:2, coins:8000}, result:{type:'weapon',id:'tungsten_warhammer'},
+    resultOverride:{type:'weapon',id:'tungsten_warhammer',name:'Tungsten Warhammer',dmg:200,spd:0.7,range:1.8,tier:'Legendary',icon:'⬛',color:'#d8d8d8',goldSell:12000} },
+  { id:'chromium_lance', name:'Chromium Lance',   icon:'💚', type:'weapon',
+    desc:'Razor-sharp chromium lance. ATK +175',
+    cost:{chromium:5, titanium:3, coins:7000}, result:{type:'weapon',id:'chromium_lance'},
+    resultOverride:{type:'weapon',id:'chromium_lance',name:'Chromium Lance',dmg:175,spd:1.5,range:3.0,tier:'Legendary',icon:'💚',color:'#40e860',goldSell:10000} },
+
+  // ── PICKAXES ──
+  { id:'steel_pick',    name:'Steel Pickaxe',     icon:'⛏', type:'pickaxe',
+    desc:'Mines deep metals faster. DMG +70',
+    cost:{steel:6, iron:10, coins:3000}, result:{type:'pickaxe',id:'steel_pick'},
+    resultOverride:{type:'pickaxe',id:'steel_pick',name:'Steel Pickaxe',tier:'Epic',dmg:70,color:'#a0c8f0',handleCol:'#503020',headCol:'#a0c8f0',gemCol:'#60a8ff',dropChance:0.003,tierIdx:5} },
+  { id:'tungsten_pick', name:'Tungsten Pickaxe',  icon:'⛏', type:'pickaxe',
+    desc:'Breaks any rock. DMG +140',
+    cost:{tungsten:6, titanium:4, coins:9000}, result:{type:'pickaxe',id:'tungsten_pick'},
+    resultOverride:{type:'pickaxe',id:'tungsten_pick',name:'Tungsten Pickaxe',tier:'Legendary',dmg:140,color:'#d8d8d8',handleCol:'#303030',headCol:'#d8d8d8',gemCol:'#ffffff',dropChance:0.001,tierIdx:6} },
+
+  // ── ARMOR / ACCESSORIES ──
+  { id:'iron_shield',   name:'Iron Shield',       icon:'🛡', type:'accessory',
+    desc:'Grants 80 shield points when entering a floor',
+    cost:{iron:12, coins:400},  result:{type:'accessory',id:'iron_shield'},
+    resultOverride:{type:'accessory',id:'iron_shield',name:'Iron Shield',effect:'shield',val:80,icon:'🛡',color:'#70c0d8',goldSell:600} },
+  { id:'gold_shield',   name:'Gold Shield',       icon:'🛡', type:'accessory',
+    desc:'Grants 200 shield points when entering a floor',
+    cost:{gold:8, iron:6, coins:1200}, result:{type:'accessory',id:'gold_shield'},
+    resultOverride:{type:'accessory',id:'gold_shield',name:'Gold Shield',effect:'shield',val:200,icon:'🛡',color:'#f0d040',goldSell:2000} },
+  { id:'antidote_ring', name:'Antidote Ring',     icon:'💍', type:'accessory',
+    desc:'50% chance to resist poison & burn',
+    cost:{diamond:2, gold:4, coins:2000}, result:{type:'accessory',id:'antidote_ring'},
+    resultOverride:{type:'accessory',id:'antidote_ring',name:'Antidote Ring',effect:'resist_dot',val:0.5,icon:'💍',color:'#00ffcc',goldSell:3000} },
+  { id:'steel_armor',   name:'Steel Armor',       icon:'🦺', type:'accessory',
+    desc:'+50 DEF permanently while equipped',
+    cost:{steel:8, iron:10, coins:4000}, result:{type:'accessory',id:'steel_armor'},
+    resultOverride:{type:'accessory',id:'steel_armor',name:'Steel Armor',effect:'def_boost',val:50,icon:'🦺',color:'#a0c8f0',goldSell:5000} },
+  { id:'chromium_boots',name:'Chromium Boots',    icon:'👢', type:'accessory',
+    desc:'+40% movement speed permanently',
+    cost:{chromium:4, titanium:2, coins:5000}, result:{type:'accessory',id:'chromium_boots'},
+    resultOverride:{type:'accessory',id:'chromium_boots',name:'Chromium Boots',effect:'speed_boost',val:0.4,icon:'👢',color:'#40e860',goldSell:7000} },
+];
+
+// Crafted weapon/item registry (dynamically added)
+const CRAFTED_ITEMS = {};
+
+// Apply accessory effects
+function applyAccessoryEffect(acc){
+  if(!acc||!acc.effect) return;
+  if(acc.effect==='shield')      BUFFS.shield=Math.max(BUFFS.shield, acc.val);
+  if(acc.effect==='def_boost')   G._craftDefBoost=(G._craftDefBoost||0)+acc.val;
+  if(acc.effect==='speed_boost') G._craftSpeedBoost=(G._craftSpeedBoost||0)+acc.val;
+  if(acc.effect==='resist_dot')  G._resistDot=(G._resistDot||0)+acc.val;
+}
+
+// Equipped accessories slot (up to 2)
+if(!G.accessories) G.accessories=[];
+
+function openForge(){
+  const npcIdx = VILLAGE_NPCS.findIndex(n=>n.shop==='forge');
+  openShop(npcIdx);
+}
+
+function getShopForgeItems(){
+  return CRAFT_RECIPES.map(r=>{
+    const canAfford = Object.entries(r.cost).every(([k,v])=>
+      k==='coins' ? G.coins>=v : (G[k]||0)>=v
+    );
+    const costStr = Object.entries(r.cost).map(([k,v])=>
+      k==='coins'?`💰${fmt(v)}`:`${ORE_DEF[k]?oreIcon(k):k} ${v}`
+    ).join(' + ');
+    return { ...r, price:r.cost.coins||0, desc:`${r.desc} | Cost: ${costStr}`, _canAfford:canAfford };
+  });
+}
+
+function oreIcon(k){
+  const icons={iron:'🪨',gold:'🟡',diamond:'💎',steel:'🔩',titanium:'🔷',tungsten:'⬛',chromium:'💚'};
+  return (icons[k]||k)+k;
+}
+
+function doCraft(recipe){
+  // Check materials
+  for(const[k,v] of Object.entries(recipe.cost)){
+    if(k==='coins'){ if(G.coins<v){ toast('❌ Not enough coins!'); return; } }
+    else { if((G[k]||0)<v){ toast(`❌ Not enough ${k}!`); return; } }
+  }
+  // Deduct
+  for(const[k,v] of Object.entries(recipe.cost)){
+    if(k==='coins') G.coins-=v; else G[k]-=v;
+  }
+  // Register crafted item if override
+  if(recipe.resultOverride){
+    const ro=recipe.resultOverride;
+    if(ro.type==='weapon')  WEAPONS[ro.id]=ro;
+    if(ro.type==='pickaxe') PICKAXES[ro.id]=ro;
+    if(ro.type==='accessory') CRAFTED_ITEMS[ro.id]=ro;
+  }
+  const res = recipe.resultOverride || recipe.result;
+  // Add to inventory
+  let added=false;
+  if(res.type==='weapon')    added=addToInventory({type:'weapon',   id:res.id, qty:1});
+  if(res.type==='pickaxe')   added=addToInventory({type:'pickaxe',  id:res.id, qty:1});
+  if(res.type==='accessory') added=addToInventory({type:'accessory',id:res.id, qty:1, def:res});
+  if(added){
+    updateHud();
+    toast(`🔥 Crafted: ${res.name||recipe.name}!`,'#ff8020',3000);
+    renderShopItems();
+  } else {
+    // Refund if inventory full
+    for(const[k,v] of Object.entries(recipe.cost)){
+      if(k==='coins') G.coins+=v; else G[k]+=v;
+    }
+    toast('❌ Inventory full!');
+  }
+}
+
 
 // Which NPC shop type accepts each item type for selling
 const SELL_NPC_MAP = { weapon:'weapon', pickaxe:'pickaxe', potion:'potion', ore:'ore', legendary:'weapon' };
@@ -7469,7 +7671,10 @@ function closeShop(){
 function buildShopTabs(shopType){
   const tabs=document.getElementById('shop-tabs');
   tabs.innerHTML='';
-  const tabList=[['buy','🛒 BUY'],['sell','💰 SELL']];
+  const tabList = shopType==='forge'
+    ? [['forge','🔥 CRAFT']]
+    : [['buy','🛒 BUY'],['sell','💰 SELL']];
+  if(shopState.tab==='buy'&&shopType==='forge') shopState.tab='forge';
   for(const[id,label]of tabList){
     const b=document.createElement('button');
     b.className='shop-tab'+(shopState.tab===id?' active':'');
@@ -7499,6 +7704,8 @@ function getShopInventory(shopType){
     items.push({id:'titanium',name:'Titanium',   icon:'🔷', price:SHOP_BUY.titanium||2500,tier:'Epic',     desc:'Ultra-strong fl.101+ only'});
     items.push({id:'tungsten',name:'Tungsten',   icon:'⬛', price:SHOP_BUY.tungsten||4000,tier:'Legendary',desc:'Densest metal fl.101+ only'});
     items.push({id:'chromium',name:'Chromium',   icon:'💚', price:SHOP_BUY.chromium||3000,tier:'Legendary',desc:'Rare alloy fl.101+ only'});
+  } else if(shopType==='forge'){
+    return getShopForgeItems();
   }
   return items;
 }
@@ -7523,7 +7730,20 @@ function renderShopItems(){
   grid.innerHTML='';
   const npc=shopState.npc;
   if(!npc) return;
-  if(shopState.tab==='buy'){
+  if(shopState.tab==='forge'){
+    const recipes=getShopForgeItems();
+    for(const r of recipes){
+      const d=document.createElement('div');
+      const tc=r._canAfford?'#ff8020':'#604030';
+      d.className='shop-item'+(shopState.selectedItem?.id===r.id?' selected':'');
+      d.style.borderColor=tc+'99';
+      const costStr=Object.entries(r.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)}`:`${k}×${v}`).join(' ');
+      d.innerHTML=`<div class="si-top"><span class="si-icon">${r.icon}</span><div><div class="si-name">${r.name}</div><div class="si-tier" style="color:${tc}">${r._canAfford?'✅ CAN CRAFT':'❌ NEED MORE'}</div></div></div><div class="si-price" style="font-size:4px">${costStr}</div>`;
+      d.onclick=()=>{ shopState.selectedItem=r; renderShopItems(); updateShopAction(r,'forge'); };
+      grid.appendChild(d);
+    }
+    return;
+  } else if(shopState.tab==='buy'){
     const inv=getShopInventory(npc.shop);
     for(const item of inv){
       const d=document.createElement('div');
@@ -7564,7 +7784,19 @@ function updateShopAction(item, mode){
   const titleEl=document.getElementById('shop-item-title');
   const descEl=document.getElementById('shop-item-desc');
   buyBtn.disabled=true; sellBtn.disabled=true;
-  if(!item){ iconEl.textContent='🛒'; titleEl.textContent='Select an item'; descEl.textContent='Browse items to buy or sell.'; return; }
+  if(!item){ iconEl.textContent='🔥'; titleEl.textContent='Select a recipe'; descEl.textContent='Choose what to forge from your ores.'; return; }
+  if(mode==='forge'){
+    iconEl.textContent=item.icon||'🔥';
+    titleEl.textContent=item.name;
+    descEl.textContent=item.desc||'';
+    const costStr=Object.entries(item.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)} gold`:`${v}x ${k}`).join(', ');
+    buyBtn.textContent=`🔨 FORGE`;
+    buyBtn.disabled=!item._canAfford;
+    buyBtn.onclick=()=>doCraft(item);
+    sellBtn.disabled=true;
+    return;
+  }
+  buyBtn.onclick=shopBuy;
   if(mode==='buy'){
     iconEl.textContent=item.icon||'📦';
     titleEl.textContent=item.name;
@@ -7786,6 +8018,19 @@ function genFloor(fl){
   spawnMonsters(fl);
   // Spawn miner companions
   spawnMinerNPCs(fl);
+
+  // ── TREASURE CHESTS (1-3 per floor, rarer deeper) ──
+  G._chests = [];
+  const numChests = Math.random()<0.15 ? 3 : Math.random()<0.4 ? 2 : 1;
+  const chestCands = floors.filter(f=>
+    !rocks[f.x+','+f.y] &&
+    Math.abs(f.x - Math.floor(gozo.wx/TILE)) + Math.abs(f.y - Math.floor(gozo.wy/TILE)) > 6
+  ).sort(()=>Math.random()-0.5);
+  for(let ci=0; ci<Math.min(numChests, chestCands.length); ci++){
+    const {x,y} = chestCands[ci];
+    const tier = fl>=101 ? 'legendary' : fl>=60 ? 'epic' : fl>=30 ? 'rare' : fl>=10 ? 'uncommon' : 'common';
+    G._chests.push({tx:x, ty:y, tier, opened:false});
+  }
 
   // Place return portal — find a floor tile far from spawn
   const pgx=Math.floor(gozo.wx/TILE), pgy=Math.floor(gozo.wy/TILE);
@@ -8251,7 +8496,46 @@ function render(){
     }
   }
 
-  // Draw rocks (sorted by Y for depth)
+  // Draw treasure chests
+  if(G._chests && G.floor>0){
+    const now3=Date.now();
+    for(const ch of G._chests){
+      if(ch.opened) continue;
+      const cpx=Math.round(ch.tx*TILE+TILE/2-cx2)+ox;
+      const cpy=Math.round(ch.ty*TILE+TILE/2-cy2)+oy;
+      // tier colors
+      const chCol = ch.tier==='legendary'?'#ffd700':ch.tier==='epic'?'#c040ff':ch.tier==='rare'?'#4080ff':ch.tier==='uncommon'?'#40e080':'#c0a060';
+      // glow
+      const cglow=6+Math.sin(now3/400)*2;
+      gctx.fillStyle=chCol+'44';
+      gctx.beginPath(); gctx.arc(cpx,cpy,cglow+8,0,Math.PI*2); gctx.fill();
+      // chest body
+      gctx.fillStyle='#6a3a10'; gctx.fillRect(cpx-8,cpy-5,16,11);
+      gctx.fillStyle='#8a5a20'; gctx.fillRect(cpx-8,cpy-5,16,5);
+      // lid hinge line
+      gctx.strokeStyle='#3a1a00'; gctx.lineWidth=1;
+      gctx.strokeRect(cpx-8,cpy-5,16,11);
+      gctx.beginPath(); gctx.moveTo(cpx-8,cpy); gctx.lineTo(cpx+8,cpy); gctx.stroke();
+      // latch
+      gctx.fillStyle=chCol; gctx.fillRect(cpx-2,cpy-2,4,4);
+      // sparkle
+      gctx.fillStyle=chCol; gctx.globalAlpha=0.7+Math.sin(now3/200)*0.3;
+      gctx.fillRect(cpx-1,cpy-10,2,2);
+      gctx.globalAlpha=1;
+      // tier label
+      gctx.fillStyle='rgba(0,0,0,0.7)'; gctx.fillRect(cpx-18,cpy-20,36,10);
+      gctx.fillStyle=chCol; gctx.font='bold 4px monospace';
+      gctx.fillText(`✦ ${ch.tier.toUpperCase()}`,cpx-16,cpy-13);
+      // [E] hint
+      const cdist=Math.abs(gozo.wx-ch.tx*TILE-TILE/2)+Math.abs(gozo.wy-ch.ty*TILE-TILE/2);
+      if(cdist<TILE*2){
+        gctx.fillStyle='rgba(0,0,0,0.8)'; gctx.fillRect(cpx-20,cpy+12,40,10);
+        gctx.fillStyle=chCol; gctx.font='bold 5px monospace';
+        gctx.fillText('[E] OPEN',cpx-16,cpy+20);
+      }
+    }
+  }
+
   const rockList=Object.values(rocks).sort((a,b)=>a.ty-b.ty);
   for(const r of rockList){
     const px=Math.round(r.tx*TILE-cx2)+ox;
@@ -9756,12 +10040,80 @@ document.addEventListener('keydown',e=>{
           toast('🏘 Returned to Mining Village!');
         }
       }
+      // Check treasure chest proximity
+      if(G._chests){
+        for(const ch of G._chests){
+          if(ch.opened) continue;
+          const cdx=gozo.wx-(ch.tx*TILE+TILE/2);
+          const cdy=gozo.wy-(ch.ty*TILE+TILE/2);
+          if(Math.abs(cdx)+Math.abs(cdy)<TILE*2){ openChest(ch); break; }
+        }
+      }
     }
   }
   if(e.code==='Space'){e.preventDefault();}
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();
 });
 document.addEventListener('keyup',e=>{KEYS[e.key]=false;});
+
+// ═══════════════════════════════════════════════════════════
+//  TREASURE CHESTS
+// ═══════════════════════════════════════════════════════════
+function openChest(ch){
+  ch.opened=true;
+  const fl=G.floor;
+  const tier=ch.tier;
+  const rewards=[];
+
+  // Gold reward
+  const goldBase={common:80,uncommon:250,rare:600,epic:1500,legendary:4000};
+  const gold=Math.floor((goldBase[tier]||80)*(0.8+Math.random()*0.4));
+  G.coins+=gold;
+  rewards.push(`💰${fmt(gold)}g`);
+
+  // Ore reward
+  const oreRewards={
+    common:   ()=>{ G.iron+=Math.floor(3+Math.random()*5); rewards.push('🪨 Iron ×'+(Math.floor(3+Math.random()*5))); },
+    uncommon: ()=>{ G.gold+=Math.floor(2+Math.random()*4); rewards.push('✨ Gold ×'+(Math.floor(2+Math.random()*4))); },
+    rare:     ()=>{ G.diamond+=Math.floor(1+Math.random()*3); rewards.push('💎 Diamond ×'+(Math.floor(1+Math.random()*3))); },
+    epic:     ()=>{ G.steel+=Math.floor(2+Math.random()*4); G.titanium+=Math.floor(1+Math.random()*3); rewards.push('🔩 Steel+Titanium'); },
+    legendary:()=>{ G.tungsten+=Math.floor(2+Math.random()*3); G.chromium+=Math.floor(2+Math.random()*3); rewards.push('⬛💚 Tungsten+Chromium'); },
+  };
+  if(oreRewards[tier]) oreRewards[tier]();
+
+  // Potion reward
+  const potChance={common:0.3,uncommon:0.5,rare:0.7,epic:0.85,legendary:1.0};
+  if(Math.random()<(potChance[tier]||0.3)){
+    const potPool=tier==='legendary'?['maxhp_pot','bomb_pot','luck_pot']:tier==='epic'?['shield_pot','str_pot','hp_large']:['hp_small','hp_medium','speed_pot'];
+    const pid=potPool[Math.floor(Math.random()*potPool.length)];
+    addToInventory({type:'potion',id:pid,qty:1});
+    rewards.push(POTIONS[pid]?.name||pid);
+  }
+
+  // Weapon reward (rare+)
+  const wpnChance={rare:0.25,epic:0.5,legendary:0.85};
+  if(wpnChance[tier] && Math.random()<wpnChance[tier]){
+    const wkeys=Object.keys(WEAPONS).filter(w=>{
+      const wf=WEAPONS[w].floorMin||0;
+      return !WEAPONS[w].legendary && !WEAPONS[w].bossDrop && wf<=fl && wf>=fl-20;
+    });
+    if(wkeys.length){
+      const wid=wkeys[Math.floor(Math.random()*wkeys.length)];
+      addToInventory({type:'weapon',id:wid,qty:1});
+      rewards.push(`⚔️ ${WEAPONS[wid].name}`);
+    }
+  }
+
+  updateHud();
+  const msg=`📦 ${tier.toUpperCase()} CHEST! Got: ${rewards.join(', ')}`;
+  toast(msg, tier==='legendary'?'#ffd700':tier==='epic'?'#c040ff':'#80ffb0', 4000);
+
+  // Particle burst at chest position
+  const cpx=Math.round(ch.tx*TILE+TILE/2-camX);
+  const cpy=Math.round(ch.ty*TILE+TILE/2-camY);
+  spawnDmg(cpx,cpy-20,`✦ ${tier.toUpperCase()} CHEST ✦`,
+    tier==='legendary'?'#ffd700':tier==='epic'?'#c040ff':'#80ffb0', 11);
+}
 
 // ═══════════════════════════════════════════════════════════
 //  SAVE / LOAD — file based (download/upload)
