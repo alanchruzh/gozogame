@@ -313,6 +313,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 .inv-slot:hover{border-color:#e8c060;}
 .inv-slot .inv-qty{position:absolute;bottom:2px;right:3px;font-size:6px;color:#f0c840;font-family:'Press Start 2P',monospace;}
 .inv-slot .inv-name{font-size:5px;color:#a08060;font-family:'Press Start 2P',monospace;margin-top:1px;text-align:center;line-height:1.3;}
+.inv-slot canvas, .inv-slot img, .inv-slot span{ pointer-events:none; }
 .inv-slot.weapon-item{border-color:#c06020;}
 .inv-slot.weapon-item:hover{border-color:#f08040;}
 #inv-info{margin-top:8px;padding:6px;background:rgba(0,0,0,0.4);border:1px solid #3a2810;border-radius:2px;min-height:36px;font-size:6px;color:#c0a060;line-height:1.8;}
@@ -5988,11 +5989,10 @@ function renderInventory(){
         const w=WEAPONS[s.id] || s.def || s;
         const cvs=document.createElement('canvas');
         cvs.width=36; cvs.height=36;
-        cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;';
+        cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
         const wctx=cvs.getContext('2d');
         wctx.imageSmoothingEnabled=false;
         if(w.legendary && LEGEND_SPR[s.id]){
-          // Animated legendary — run loop
           div.style.borderColor=w.color;
           div.style.boxShadow=`0 0 8px ${w.color}88`;
           let af=null;
@@ -6028,6 +6028,7 @@ function renderInventory(){
         const pt=POTIONS[s.id];
         const cvs=document.createElement('canvas');
         cvs.width=32;cvs.height=32;
+        cvs.style.cssText='image-rendering:pixelated;width:32px;height:32px;pointer-events:none;';
         const pctx=cvs.getContext('2d');
         pctx.imageSmoothingEnabled=false;
         const spr=POTION_SPR[s.id];
@@ -6045,7 +6046,7 @@ function renderInventory(){
         const pk=PICKAXES[s.id];
         const cvs=document.createElement('canvas');
         cvs.width=36;cvs.height=36;
-        const pctx=cvs.getContext('2d');
+        cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
         pctx.imageSmoothingEnabled=false;
         const spr=PICK_SPR[s.id];
         if(spr)pctx.drawImage(spr,0,0,36,36);
