@@ -9894,6 +9894,12 @@ document.addEventListener('click', function(e){
   }
 });
 
+// Disable right-click context menu on the game
+document.addEventListener('contextmenu', function(e){
+  e.preventDefault();
+  return false;
+});
+
 </script>
 </body>
 </html>
