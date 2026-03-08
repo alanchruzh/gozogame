@@ -52,6 +52,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 .stat-label{font-family:'Press Start 2P',monospace;font-size:5px;color:#8a7050;margin-bottom:2px;}
 .stat-val{font-family:'Press Start 2P',monospace;font-size:9px;}
 .sv-coin{color:#f0c840;} .sv-iron{color:#90c0d0;} .sv-gold{color:#f0d040;} .sv-diam{color:#60e8e0;} .sv-lad{color:#e0a040;}
+.sv-steel{color:#a0c8f0;} .sv-titanium{color:#c0c8ff;} .sv-tungsten{color:#d8d8d8;} .sv-chromium{color:#40e860;}
 
 .hud-right{
   display:flex;align-items:center;gap:6px;padding:0 10px;margin-left:auto;
@@ -327,10 +328,14 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 #gozo-hp-fill{width:120px;height:8px;background:#1a0808;border:1px solid #4a1010;border-radius:2px;overflow:hidden;}
 #gozo-hp-inner{height:100%;background:linear-gradient(90deg,#c02020,#f04040);transition:width .2s;}
 
-/* Monster HP bars (canvas overlay via DOM) */
-.mob-hp{position:absolute;pointer-events:none;z-index:35;}
-.mob-hp-bar{width:32px;height:4px;background:#1a0808;border:1px solid #3a1010;}
-.mob-hp-fill{height:100%;background:#c03030;transition:width .1s;}
+#gozo-lv-bar{position:absolute;top:36px;left:50%;transform:translateX(-50%);z-index:50;
+  background:rgba(5,10,20,.88);border:2px solid #306060;border-radius:3px;
+  padding:3px 10px;font-family:'Press Start 2P',monospace;font-size:7px;
+  display:flex;align-items:center;gap:6px;pointer-events:none;white-space:nowrap;}
+#gozo-lv-bar #lv-txt{color:#80ffcc;}
+#lv-bar-wrap{width:100px;height:6px;background:#071414;border:1px solid #204040;border-radius:2px;overflow:hidden;transition:box-shadow .3s,border-color .3s;}
+#lv-bar-inner{height:100%;background:linear-gradient(90deg,#00a888,#40ffd0);transition:width .25s;}
+
 
 /* Weapon equipped indicator */
 #equipped-weapon{position:absolute;top:10px;right:100px;z-index:50;
@@ -402,6 +407,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 
   <!-- Gozo HP bar -->
   <div id="gozo-hp-bar">❤️ <span id="gozo-hp-txt">100</span>&nbsp;<div id="gozo-hp-fill"><div id="gozo-hp-inner" style="width:100%"></div></div></div>
+  <!-- Level + EXP bar -->
+  <div id="gozo-lv-bar">⭐ <span id="lv-txt">LV 1</span>&nbsp;<div id="lv-bar-wrap"><div id="lv-bar-inner" style="width:0%"></div></div>&nbsp;<span id="lv-exp" style="font-size:6px;color:#80ffcc;">0/20</span></div>
   <!-- Equipped weapon display -->
   <div id="equipped-weapon">⚔️ <span id="eq-name">Fists</span></div>
 
@@ -514,14 +521,17 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   <!-- Stats -->
   <div class="hud-stats">
     <div class="stat-box"><div class="stat-label">COINS</div><div class="stat-val sv-coin" id="hs-coins">0</div></div>
+    <div class="stat-box" style="border-color:#306060;"><div class="stat-label" style="color:#60c0a0;">LEVEL</div><div class="stat-val" id="hs-level" style="color:#80ffcc;">1</div></div>
+    <div class="stat-box" style="border-color:#603020;"><div class="stat-label" style="color:#c08060;">ATK</div><div class="stat-val" id="hs-atk" style="color:#ff9060;">+0</div></div>
+    <div class="stat-box" style="border-color:#203060;"><div class="stat-label" style="color:#6080c0;">DEF</div><div class="stat-val" id="hs-def" style="color:#80b0ff;">+0</div></div>
   </div>
   <!-- Right buttons -->
   <div class="hud-right">
-    <button class="hud-btn" onclick="returnToVillage()" style="border-color:#c08030;color:#f0c840;">🏘 VILLAGE</button>
+
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn upg" onclick="toggleUpgPanel()">[T] UPGRADE</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
-    <button class="hud-btn" onclick="togglePortal()" style="border-color:#8050c0;color:#c080ff;">[M] MAP</button>
+
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="toggleInv()" style="border-color:#a060c0;color:#c080e0;">[I] BAG</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
@@ -1355,10 +1365,15 @@ function buildTiles() {
 //  ORE / ROCK SPRITES — pixel art circles
 // ═══════════════════════════════════════════════════════════
 const ORE_DEF = {
-  stone:   {base:'#7a6878',hi:'#a08898',sh:'#3a2838',vein:null,        r:12},
-  iron:    {base:'#506878',hi:'#709098',sh:'#283848',vein:'#90c8d8',   r:11},
-  gold:    {base:'#806020',hi:'#c09030',sh:'#402c08',vein:'#f0d040',   r:11},
-  diamond: {base:'#1c6068',hi:'#30a0a8',sh:'#0a3038',vein:'#80f0f0',   r:10},
+  stone:     {base:'#7a6878',hi:'#a08898',sh:'#3a2838',vein:null,         r:12},
+  iron:      {base:'#506878',hi:'#709098',sh:'#283848',vein:'#90c8d8',    r:11},
+  gold:      {base:'#806020',hi:'#c09030',sh:'#402c08',vein:'#f0d040',    r:11},
+  diamond:   {base:'#1c6068',hi:'#30a0a8',sh:'#0a3038',vein:'#80f0f0',   r:10},
+  // ── TIER 2 METALS — floors 101-150 only ──
+  steel:     {base:'#38485a',hi:'#5878a0',sh:'#141c28',vein:'#a0c8f0',    r:11},
+  titanium:  {base:'#484860',hi:'#7878a8',sh:'#181828',vein:'#c0c8ff',    r:10},
+  tungsten:  {base:'#282828',hi:'#505060',sh:'#0c0c0c',vein:'#d8d8d8',   r:10},
+  chromium:  {base:'#1c3828',hi:'#306048',sh:'#081408',vein:'#40e860',    r:10},
 };
 
 function makeOreTile(type, cracks=0) {
@@ -1408,7 +1423,7 @@ function makeOreTile(type, cracks=0) {
 let ORE_SPR = null;
 function buildOreSprites(){
   ORE_SPR={};
-  for(const t of['stone','iron','gold','diamond']){
+  for(const t of['stone','iron','gold','diamond','steel','titanium','tungsten','chromium']){
     ORE_SPR[t]=[];
     for(let c=0;c<=4;c++) ORE_SPR[t].push(makeOreTile(t,c));
   }
@@ -1420,14 +1435,15 @@ function buildOreSprites(){
 const G={
   floor:1,maxFloor:1,
   visitedFloors:[0,1],
-  coins:0,ladder:0,iron:0,gold:0,diamond:0,
+  coins:0,ladder:0,iron:0,gold:0,diamond:0,steel:0,titanium:0,tungsten:0,chromium:0,
   rocksSmashed:0,
   tntCount:0,
   hp:100, maxHp:100,
+  level:1, exp:0,
   equippedWeapon:null,
   equippedPickaxe:'wooden_pick',
   inventory:Array(30).fill(null),
-  invSlots:30, // current max slots (expandable)
+  invSlots:30,
   upg:{
     pick:  {lv:0,max:10,cost:50, mult:1.65,unlock:1},
     crit:  {lv:0,max:5, cost:150,mult:1.9, unlock:1},
@@ -1438,9 +1454,78 @@ const G={
     helmet:{lv:0,max:3, cost:600,mult:2.3, unlock:10},
   },
 };
+// ── LEVEL SYSTEM ──────────────────────────────────────────────
+// EXP needed to reach next level (grows per level)
+const expToLevel = lv => Math.floor(20 * Math.pow(lv, 1.55));
+// Stat bonuses per level: +4 ATK, +3 DEF, +15 HP
+const getLvlAtk = () => (G.level - 1) * 4;
+const getLvlDef = () => (G.level - 1) * 3;
+const getLvlHp  = () => (G.level - 1) * 15;
+
+function gainExp(amount){
+  G.exp += amount;
+  const needed = expToLevel(G.level);
+  if(G.exp >= needed){
+    G.exp -= needed;
+    G.level++;
+    // HP bonus: raise maxHp and heal the difference
+    const hpGain = 15;
+    G.maxHp += hpGain;
+    G.hp = Math.min(G.maxHp, G.hp + hpGain);
+    updateGozoHpBar();
+    updateLevelBar();
+    showLevelUpEffect();
+    toast(`✨ LEVEL UP! Gozo is now LV ${G.level}! ATK+4 DEF+3 HP+${hpGain}`);
+  }
+  updateLevelBar();
+}
+
+function updateLevelBar(){
+  const bar = document.getElementById('lv-bar-inner');
+  const txt = document.getElementById('lv-txt');
+  const expTxt = document.getElementById('lv-exp');
+  if(!bar||!txt) return;
+  const needed = expToLevel(G.level);
+  const pct = Math.min(100, G.exp / needed * 100);
+  bar.style.width = pct + '%';
+  txt.textContent = 'LV ' + G.level;
+  if(expTxt) expTxt.textContent = G.exp + '/' + needed;
+  // Update stat boxes
+  const hsLv  = document.getElementById('hs-level');
+  const hsAtk = document.getElementById('hs-atk');
+  const hsDef = document.getElementById('hs-def');
+  if(hsLv)  hsLv.textContent  = G.level;
+  if(hsAtk) hsAtk.textContent = '+' + getLvlAtk();
+  if(hsDef) hsDef.textContent = '+' + getLvlDef();
+}
+
+function showLevelUpEffect(){
+  // Flash the level bar gold
+  const wrap = document.getElementById('lv-bar-wrap');
+  if(wrap){
+    wrap.style.boxShadow = '0 0 18px #ffe040, 0 0 6px #fff';
+    wrap.style.borderColor = '#ffe040';
+    setTimeout(()=>{ wrap.style.boxShadow=''; wrap.style.borderColor=''; }, 1200);
+  }
+  // Play ascending level-up chime
+  try{
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    [330,440,550,660,880].forEach((f,i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(0,now+i*0.09);
+      g.gain.linearRampToValueAtTime(0.28,now+i*0.09+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.09+0.35);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(now+i*0.09); o.stop(now+i*0.09+0.4);
+    });
+  }catch(e){}
+}
+
 const getDmg  =()=>{
   const pick = G.equippedPickaxe ? PICKAXES[G.equippedPickaxe] : PICKAXES['wooden_pick'];
-  return (pick?pick.dmg:1) + G.upg.pick.lv*3;
+  return (pick?pick.dmg:1) + G.upg.pick.lv*3 + getLvlAtk();
 };
 const getCrit =()=>G.upg.crit.lv*0.10;
 const getLuck =()=>G.upg.lucky.lv*0.09+((typeof BUFFS!=='undefined'&&BUFFS.luck>0)?0.15:0);
@@ -1620,6 +1705,17 @@ const WEAPONS = {
   starfire_bow:  {name:'Starfire Bow',  dmg:55, spd:1.8, range:3.5, tier:5, icon:'🏹',  color:'#f0c040', floorMin:90},
   abyss_blade:   {name:'Abyss Blade',   dmg:70, spd:1.3, range:2.0, tier:5, icon:'🗡️',  color:'#6000c0', floorMin:95},
   omega_hammer:  {name:'Ω Hammer',      dmg:100,spd:0.5, range:1.3, tier:5, icon:'🔨',  color:'#ff80ff', floorMin:98},
+  // ── TIER 7 — BOSS DROP WEAPONS (floors 101-150) ──
+  glacial_fang:   {name:'Glacial Fang',    dmg:120,spd:1.5, range:2.0, tier:7, icon:'🗡️', color:'#a0e8ff', floorMin:101, bossDrop:true, goldSell:5000},
+  venomstrike:    {name:'Venom Strike',    dmg:115,spd:1.7, range:1.8, tier:7, icon:'🗡️', color:'#80ff40', floorMin:106, bossDrop:true, goldSell:5500},
+  inferno_claw:   {name:'Inferno Claw',    dmg:130,spd:1.4, range:1.9, tier:7, icon:'🗡️', color:'#ff6020', floorMin:111, bossDrop:true, goldSell:6000},
+  demonbane:      {name:'Demonbane',       dmg:140,spd:1.2, range:2.1, tier:7, icon:'⚔️', color:'#ff2060', floorMin:116, bossDrop:true, goldSell:7000},
+  witchcraft_rod: {name:'Witchcraft Rod',  dmg:125,spd:1.6, range:2.8, tier:7, icon:'🪄', color:'#c060ff', floorMin:121, bossDrop:true, goldSell:6500},
+  blood_fang:     {name:'Blood Fang',      dmg:145,spd:1.5, range:2.0, tier:7, icon:'🗡️', color:'#ff1040', floorMin:126, bossDrop:true, goldSell:8000},
+  cyclops_maul:   {name:'Cyclops Maul',    dmg:180,spd:0.7, range:1.4, tier:7, icon:'🔨', color:'#ff9000', floorMin:131, bossDrop:true, goldSell:9000},
+  dragonscale_sword:{name:'Dragonscale Sword',dmg:170,spd:1.3,range:2.2,tier:7,icon:'⚔️',color:'#20ffa0', floorMin:136, bossDrop:true, goldSell:10000},
+  shadowfire_lance:{name:'Shadowfire Lance',dmg:190,spd:1.1, range:2.6, tier:7, icon:'⚡', color:'#ff40ff', floorMin:141, bossDrop:true, goldSell:12000},
+  abyssal_reaper: {name:'Abyssal Reaper',  dmg:220,spd:1.0, range:2.4, tier:7, icon:'⚔️', color:'#ff0000', floorMin:146, bossDrop:true, goldSell:15000},
   // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
   gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
   monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
@@ -2458,16 +2554,33 @@ function drawBuffHud(){
 //  BIOME SYSTEM
 // ═══════════════════════════════════════════════════════════
 const BIOMES = {
-  cave:   { name:'Cave',         floors:[],    bgColor:'#050302', ambientRgb:'10,15,50',  warmRgb:'255,200,80',  fogRgb:'10,15,50'  },
-  ice:    { name:'Ice Cavern',   floors:[],    bgColor:'#010814', ambientRgb:'20,60,120', warmRgb:'120,200,255', fogRgb:'20,60,140' },
-  desert: { name:'Desert Ruins', floors:[],    bgColor:'#100804', ambientRgb:'60,30,5',   warmRgb:'255,160,40',  fogRgb:'60,30,5'   },
-  forest: { name:'Crystal Forest',floors:[],   bgColor:'#010802', ambientRgb:'10,50,20',  warmRgb:'120,255,80',  fogRgb:'10,50,15'  },
-  lava:   { name:'Lava Caves',   floors:[],    bgColor:'#100000', ambientRgb:'80,10,0',   warmRgb:'255,80,20',   fogRgb:'80,10,0'   },
+  cave:      { name:'Cave',              floors:[], bgColor:'#050302', ambientRgb:'10,15,50',   warmRgb:'255,200,80',  fogRgb:'10,15,50'   },
+  ice:       { name:'Ice Cavern',        floors:[], bgColor:'#010814', ambientRgb:'20,60,120',  warmRgb:'120,200,255', fogRgb:'20,60,140'  },
+  desert:    { name:'Desert Ruins',      floors:[], bgColor:'#100804', ambientRgb:'60,30,5',    warmRgb:'255,160,40',  fogRgb:'60,30,5'    },
+  forest:    { name:'Crystal Forest',    floors:[], bgColor:'#010802', ambientRgb:'10,50,20',   warmRgb:'120,255,80',  fogRgb:'10,50,15'   },
+  lava:      { name:'Lava Caves',        floors:[], bgColor:'#100000', ambientRgb:'80,10,0',    warmRgb:'255,80,20',   fogRgb:'80,10,0'    },
+  // Special biomes fl.101-150
+  frost_hell:{ name:'Frost Hell',        floors:[], bgColor:'#000818', ambientRgb:'0,30,80',    warmRgb:'80,180,255',  fogRgb:'0,20,60'    },
+  poison_bog:{ name:'Poison Bog',        floors:[], bgColor:'#020800', ambientRgb:'10,40,0',    warmRgb:'80,255,40',   fogRgb:'5,30,0'     },
+  inferno:   { name:'Inferno Depths',    floors:[], bgColor:'#180000', ambientRgb:'100,10,0',   warmRgb:'255,60,0',    fogRgb:'100,5,0'    },
+  demon_realm:{ name:'Demon Realm',      floors:[], bgColor:'#0a0008', ambientRgb:'60,0,30',    warmRgb:'255,20,60',   fogRgb:'50,0,20'    },
+  witch_wood:{ name:'Witch Wood',        floors:[], bgColor:'#030008', ambientRgb:'30,0,60',    warmRgb:'180,80,255',  fogRgb:'20,0,50'    },
+  blood_crypt:{ name:'Blood Crypt',      floors:[], bgColor:'#0a0000', ambientRgb:'60,0,0',     warmRgb:'255,20,20',   fogRgb:'50,0,0'     },
+  cyclops_range:{ name:'Cyclops Range',  floors:[], bgColor:'#080600', ambientRgb:'40,25,0',    warmRgb:'255,140,40',  fogRgb:'35,20,0'    },
+  dragon_peak:{ name:'Dragon Peak',      floors:[], bgColor:'#000a05', ambientRgb:'0,50,20',    warmRgb:'40,255,120',  fogRgb:'0,40,15'    },
+  shadow_void:{ name:'Shadow Void',      floors:[], bgColor:'#020005', ambientRgb:'20,0,40',    warmRgb:'200,40,255',  fogRgb:'15,0,30'    },
+  abyss_core: { name:'Abyss Core',       floors:[], bgColor:'#000000', ambientRgb:'10,0,10',    warmRgb:'255,0,200',   fogRgb:'10,0,10'    },
 };
 
 // Determine biome by floor
 function getBiome(fl){
-  const cycle = ((fl-1) % 50); // repeats every 50 floors
+  // Special floors 101-150: 10 horrific biomes, 5 floors each
+  if(fl>=101&&fl<=150){
+    const seg=Math.floor((fl-101)/5);
+    return ['frost_hell','poison_bog','inferno','demon_realm','witch_wood',
+            'blood_crypt','cyclops_range','dragon_peak','shadow_void','abyss_core'][Math.min(seg,9)];
+  }
+  const cycle = ((fl-1) % 50);
   if(cycle>=10&&cycle<20) return 'ice';
   if(cycle>=20&&cycle<30) return 'desert';
   if(cycle>=30&&cycle<40) return 'forest';
@@ -2539,20 +2652,88 @@ function makeFloorTileBiome(variant, biome){
   } else if(biome==='lava'){
     const bases=['#2a1008','#320c04','#280c06','#300e06'];
     cx.fillStyle=bases[variant%4]; cx.fillRect(0,0,TILE,TILE);
-    // Lava crack glow
     const lc=rng(40+variant);
     cx.strokeStyle=`rgba(255,${60+lc*80},0,0.35)`; cx.lineWidth=1;
     for(let i=0;i<2;i++){
-      cx.beginPath();
-      cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);
+      cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);
       cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE); cx.stroke();
     }
-    // Hot spots glow
     cx.fillStyle=`rgba(255,80,0,${0.08+rng(50+variant)*0.12})`;
     cx.beginPath(); cx.ellipse(rng(55)*TILE,rng(56)*TILE,4,3,0,0,Math.PI*2); cx.fill();
-    // Ash dust
     cx.fillStyle='rgba(60,30,20,0.15)';
     for(let i=0;i<3;i++) cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,2,1);
+
+  } else if(biome==='frost_hell'){
+    cx.fillStyle=['#010a18','#02081a','#010c1e','#020a16'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(40,120,220,0.4)'; cx.lineWidth=1;
+    for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(60,140,255,0.12)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,5,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,255,255,0.06)';for(let i=0;i<4;i++)cx.fillRect(rng(i*5)*TILE,rng(i*5+1)*TILE,1,1);
+
+  } else if(biome==='poison_bog'){
+    cx.fillStyle=['#020800','#030a00','#020700','#030900'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle=`rgba(80,200,20,${0.07+rng(30+variant)*0.1})`;
+    cx.beginPath();cx.ellipse(rng(20)*TILE,rng(21)*TILE,6,4,0,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='rgba(60,180,10,0.3)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(rng(40)*TILE,rng(41)*TILE);cx.lineTo(rng(42)*TILE,rng(43)*TILE);cx.stroke();
+    cx.fillStyle='rgba(0,40,0,0.25)';for(let i=0;i<3;i++)cx.fillRect(rng(i*9)*TILE,rng(i*9+1)*TILE,3,2);
+
+  } else if(biome==='inferno'){
+    cx.fillStyle=['#1c0100','#180000','#200200','#1a0100'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle=`rgba(255,60,0,0.45)`; cx.lineWidth=1;
+    for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE);cx.stroke();}
+    cx.fillStyle=`rgba(255,100,0,${0.1+rng(50+variant)*0.15})`;
+    cx.beginPath();cx.ellipse(rng(55)*TILE,rng(56)*TILE,5,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(80,0,0,0.2)';for(let i=0;i<2;i++)cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,4,2);
+
+  } else if(biome==='demon_realm'){
+    cx.fillStyle=['#0c0006','#0a0004','#0e0008','#080002'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(200,0,40,0.35)';cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(180,0,30,0.1)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,5,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(100,0,20,0.15)';for(let i=0;i<3;i++)cx.fillRect(rng(i*8)*TILE,rng(i*8+1)*TILE,2,2);
+
+  } else if(biome==='witch_wood'){
+    cx.fillStyle=['#040008','#030006','#05000a','#030007'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(160,40,255,0.3)';cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(140,40,255,0.1)';cx.beginPath();cx.ellipse(rng(40)*TILE,rng(41)*TILE,4,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(100,0,200,0.08)';for(let i=0;i<4;i++)cx.fillRect(rng(i*6)*TILE,rng(i*6+1)*TILE,1,2);
+
+  } else if(biome==='blood_crypt'){
+    cx.fillStyle=['#0e0000','#0c0000','#100100','#0b0000'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(200,0,0,0.4)';cx.lineWidth=1;
+    for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(180,0,0,0.1)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,6,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(120,0,0,0.2)';for(let i=0;i<3;i++)cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,2,3);
+
+  } else if(biome==='cyclops_range'){
+    cx.fillStyle=['#0c0900','#0a0800','#0e0a00','#0b0800'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(180,120,20,0.3)';cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(160,100,20,0.1)';cx.beginPath();cx.ellipse(rng(40)*TILE,rng(41)*TILE,7,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(80,60,10,0.2)';for(let i=0;i<4;i++)cx.fillRect(rng(i*6)*TILE,rng(i*6+1)*TILE,4,2);
+
+  } else if(biome==='dragon_peak'){
+    cx.fillStyle=['#000c04','#000a03','#000e05','#000b04'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(20,200,80,0.35)';cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(30,200,80,0.09)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,6,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(0,80,20,0.2)';for(let i=0;i<3;i++)cx.fillRect(rng(i*7)*TILE,rng(i*7+1)*TILE,3,3);
+
+  } else if(biome==='shadow_void'){
+    cx.fillStyle=['#030006','#020004','#040008','#020005'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(180,0,255,0.3)';cx.lineWidth=1;
+    for(let i=0;i<2;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(160,0,255,0.09)';cx.beginPath();cx.ellipse(rng(40)*TILE,rng(41)*TILE,5,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(60,0,80,0.15)';for(let i=0;i<4;i++)cx.fillRect(rng(i*5)*TILE,rng(i*5+1)*TILE,1,3);
+
+  } else if(biome==='abyss_core'){
+    cx.fillStyle=['#000000','#010000','#000001','#010001'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(255,0,255,0.35)';cx.lineWidth=1;
+    for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(220,0,220,0.1)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,5,4,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,0,255,0.05)';cx.fillRect(0,0,TILE,TILE); // subtle glow over all
 
   } else { // default cave
     return makeFloorTile(variant);
@@ -2592,6 +2773,21 @@ function makeWallTileBiome(variant, biome){
     for(let i=0;i<3;i++){cx.beginPath();cx.ellipse(rng(i*5)*TILE,rng(i*5+1)*TILE,4+rng(i*5+2)*6,3,0,0,Math.PI*2);cx.fill();}
     cx.strokeStyle='rgba(255,80,0,0.2)'; cx.lineWidth=1;
     cx.beginPath(); cx.moveTo(rng(20)*TILE,0); cx.lineTo(rng(21)*TILE,TILE); cx.stroke();
+  } else {
+    // Special biomes — use dark tinted wall
+    const specWallCol={
+      frost_hell:'#050e1e', poison_bog:'#040900', inferno:'#1e0100',
+      demon_realm:'#0e0008', witch_wood:'#060010', blood_crypt:'#120000',
+      cyclops_range:'#0e0b00', dragon_peak:'#000e04', shadow_void:'#060010', abyss_core:'#060006'
+    };
+    const specAcc={
+      frost_hell:'rgba(40,100,200,0.2)', poison_bog:'rgba(60,180,10,0.2)', inferno:'rgba(255,50,0,0.25)',
+      demon_realm:'rgba(180,0,30,0.2)', witch_wood:'rgba(140,30,255,0.18)', blood_crypt:'rgba(200,0,0,0.25)',
+      cyclops_range:'rgba(160,100,10,0.2)', dragon_peak:'rgba(20,180,60,0.2)', shadow_void:'rgba(140,0,200,0.22)', abyss_core:'rgba(200,0,200,0.3)'
+    };
+    cx.fillStyle=specWallCol[biome]||'#0a0a0a'; cx.fillRect(0,0,TILE,TILE);
+    cx.fillStyle=specAcc[biome]||'rgba(100,100,100,0.15)';
+    for(let i=0;i<3;i++){cx.beginPath();cx.ellipse(rng(i*5)*TILE,rng(i*5+1)*TILE,4+rng(i*5+2)*6,3,0,0,Math.PI*2);cx.fill();}
   }
   return oc;
 }
@@ -2608,6 +2804,16 @@ function makeWallFaceTileBiome(variant, biome){
     desert: {top:'#b07828', bot:'#180c02', rim:'rgba(220,160,60,0.65)', strata:'rgba(0,0,0,0.15)'},
     forest: {top:'#2a5020', bot:'#030802', rim:'rgba(80,180,40,0.55)',  strata:'rgba(0,20,0,0.18)'},
     lava:   {top:'#500808', bot:'#0a0000', rim:'rgba(255,80,0,0.7)',    strata:'rgba(40,0,0,0.2)'},
+    frost_hell:{top:'#0a2050', bot:'#000408', rim:'rgba(60,160,255,0.7)', strata:'rgba(0,10,40,0.22)'},
+    poison_bog:{top:'#1a4000', bot:'#020500', rim:'rgba(60,220,20,0.65)', strata:'rgba(0,20,0,0.2)'},
+    inferno:{top:'#601000', bot:'#100000', rim:'rgba(255,60,0,0.8)',    strata:'rgba(60,0,0,0.25)'},
+    demon_realm:{top:'#400010', bot:'#080000', rim:'rgba(255,0,50,0.75)', strata:'rgba(40,0,10,0.22)'},
+    witch_wood:{top:'#200040', bot:'#030006', rim:'rgba(180,0,255,0.7)', strata:'rgba(20,0,40,0.22)'},
+    blood_crypt:{top:'#500000', bot:'#0a0000', rim:'rgba(255,0,0,0.8)',  strata:'rgba(50,0,0,0.25)'},
+    cyclops_range:{top:'#503010', bot:'#090600', rim:'rgba(220,140,20,0.7)',strata:'rgba(30,15,0,0.2)'},
+    dragon_peak:{top:'#005020', bot:'#000800', rim:'rgba(20,255,80,0.7)',strata:'rgba(0,30,10,0.22)'},
+    shadow_void:{top:'#200040', bot:'#020003', rim:'rgba(200,0,255,0.75)',strata:'rgba(20,0,40,0.25)'},
+    abyss_core:{top:'#200020', bot:'#000000', rim:'rgba(255,0,255,0.85)',strata:'rgba(20,0,20,0.3)'},
   };
   const cfg=configs[biome]||configs.lava;
   const grad=cx.createLinearGradient(0,0,0,TILE);
@@ -2684,76 +2890,627 @@ const BIOME_MOBS = {
     {n:'Volcano God', cl:'#800010',hl:'#ff2000',hp:900,dmg:65,spd:0.4,shape:3,drop:'soul_reaper'},
     {n:'Lava Overlord',cl:'#ff2000',hl:'#ffff00',hp:1500,dmg:80,spd:0.5,shape:5,drop:'omega_hammer'},
   ],
+  // ══ SPECIAL BIOMES fl.101-150 ══
+  frost_hell: [
+    {n:'Frost Wraith',   cl:'#80c0ff',hl:'#e0f8ff',hp:800, dmg:55,spd:1.4,shape:5,drop:'glacial_fang', special:'freeze'},
+    {n:'Blizzard Demon', cl:'#4080c0',hl:'#a0d8ff',hp:1000,dmg:60,spd:0.9,shape:3,drop:'glacial_fang', special:'freeze'},
+    {n:'Ice Naga',       cl:'#60a8e0',hl:'#c0ecff',hp:1200,dmg:65,spd:1.1,shape:6,drop:'glacial_fang', special:'freeze'},
+    {n:'Frost Banshee',  cl:'#a0d0f8',hl:'#e8f8ff',hp:900, dmg:70,spd:1.6,shape:5,drop:'glacial_fang', special:'freeze'},
+    {n:'Glacier Titan',  cl:'#2060a0',hl:'#80c0ff',hp:1600,dmg:75,spd:0.4,shape:3,drop:'glacial_fang', special:'freeze'},
+    {n:'Ice Dragon',     cl:'#40a0e0',hl:'#b0e8ff',hp:2000,dmg:80,spd:0.8,shape:7,drop:'glacial_fang', special:'freeze'},
+    {n:'Winter Reaper',  cl:'#c0e8ff',hl:'#ffffff', hp:1400,dmg:85,spd:1.2,shape:5,drop:'glacial_fang', special:'freeze'},
+    {n:'Frost King',     cl:'#0040a0',hl:'#60a8ff',hp:2200,dmg:90,spd:0.5,shape:3,drop:'glacial_fang', special:'freeze'},
+    {n:'Arctic Specter', cl:'#d0f0ff',hl:'#ffffff', hp:1800,dmg:95,spd:1.5,shape:5,drop:'glacial_fang', special:'freeze'},
+    {n:'Ice Naga Queen', cl:'#20a0f8',hl:'#80e0ff',hp:3000,dmg:110,spd:0.7,shape:8,drop:'glacial_fang', special:'freeze', boss:true},
+  ],
+  poison_bog: [
+    {n:'Venom Stalker',  cl:'#408020',hl:'#80ff40',hp:850, dmg:58,spd:1.3,shape:2,drop:'venomstrike', special:'poison'},
+    {n:'Bog Witch',      cl:'#304020',hl:'#60c030',hp:950, dmg:62,spd:1.0,shape:9,drop:'venomstrike', special:'poison'},
+    {n:'Toxic Drake',    cl:'#206010',hl:'#60e020',hp:1100,dmg:67,spd:0.9,shape:4,drop:'venomstrike', special:'poison'},
+    {n:'Plague Hound',   cl:'#507030',hl:'#90c050',hp:900, dmg:65,spd:1.5,shape:4,drop:'venomstrike', special:'poison'},
+    {n:'Swamp Colossus', cl:'#304818',hl:'#70b030',hp:1700,dmg:72,spd:0.4,shape:3,drop:'venomstrike', special:'poison'},
+    {n:'Forest Naga',    cl:'#3a7020',hl:'#80e040',hp:2100,dmg:78,spd:0.8,shape:6,drop:'venomstrike', special:'poison'},
+    {n:'Spore Titan',    cl:'#506830',hl:'#a0c860',hp:1500,dmg:82,spd:0.5,shape:3,drop:'venomstrike', special:'poison'},
+    {n:'Venomfang',      cl:'#205810',hl:'#50c820',hp:2000,dmg:88,spd:1.0,shape:4,drop:'venomstrike', special:'poison'},
+    {n:'Bog Specter',    cl:'#608040',hl:'#c0f880',hp:1600,dmg:92,spd:1.4,shape:5,drop:'venomstrike', special:'poison'},
+    {n:'Forest Naga Lord',cl:'#107800',hl:'#40ff00',hp:3200,dmg:112,spd:0.7,shape:8,drop:'venomstrike', special:'poison', boss:true},
+  ],
+  inferno: [
+    {n:'Flame Wraith',   cl:'#e04000',hl:'#ff8020',hp:900, dmg:62,spd:1.4,shape:5,drop:'inferno_claw', special:'burn'},
+    {n:'Magma Demon',    cl:'#a02000',hl:'#ff4000',hp:1100,dmg:66,spd:0.9,shape:3,drop:'inferno_claw', special:'burn'},
+    {n:'Inferno Bat',    cl:'#c03000',hl:'#ff6010',hp:800, dmg:60,spd:1.8,shape:0,drop:'inferno_claw', special:'burn'},
+    {n:'Volcanic Drake', cl:'#b04010',hl:'#ff7020',hp:1300,dmg:70,spd:0.8,shape:4,drop:'inferno_claw', special:'burn'},
+    {n:'Hellfire Titan', cl:'#801000',hl:'#ff3000',hp:1800,dmg:78,spd:0.4,shape:3,drop:'inferno_claw', special:'burn'},
+    {n:'Fire Naga',      cl:'#d04810',hl:'#ff8030',hp:2200,dmg:84,spd:0.8,shape:6,drop:'inferno_claw', special:'burn'},
+    {n:'Ember Colossus', cl:'#902010',hl:'#ff5010',hp:1600,dmg:88,spd:0.5,shape:3,drop:'inferno_claw', special:'burn'},
+    {n:'Pyromaniac',     cl:'#ff4000',hl:'#ffaa00',hp:1400,dmg:82,spd:1.2,shape:5,drop:'inferno_claw', special:'burn'},
+    {n:'Hellgate Titan', cl:'#600800',hl:'#ff2000',hp:2000,dmg:94,spd:0.6,shape:3,drop:'inferno_claw', special:'burn'},
+    {n:'Fire Dragon',    cl:'#ff4400',hl:'#ffcc00',hp:3500,dmg:115,spd:0.7,shape:7,drop:'inferno_claw', special:'burn', boss:true},
+  ],
+  demon_realm: [
+    {n:'Lesser Demon',   cl:'#800020',hl:'#ff2050',hp:950, dmg:65,spd:1.3,shape:3,drop:'demonbane', special:'curse'},
+    {n:'Demon Hound',    cl:'#600018',hl:'#e01840',hp:900, dmg:62,spd:1.6,shape:4,drop:'demonbane', special:'curse'},
+    {n:'Hellspawn',      cl:'#700010',hl:'#ff1030',hp:1100,dmg:68,spd:1.1,shape:5,drop:'demonbane', special:'curse'},
+    {n:'Demon Knight',   cl:'#500010',hl:'#c01030',hp:1400,dmg:74,spd:0.7,shape:3,drop:'demonbane', special:'curse'},
+    {n:'Blood Golem',    cl:'#800000',hl:'#ff0000',hp:1600,dmg:79,spd:0.5,shape:3,drop:'demonbane', special:'curse'},
+    {n:'Demon Colossus', cl:'#600008',hl:'#ff2020',hp:2000,dmg:85,spd:0.4,shape:3,drop:'demonbane', special:'curse'},
+    {n:'Chaos Demon',    cl:'#a00030',hl:'#ff4060',hp:1700,dmg:88,spd:0.9,shape:5,drop:'demonbane', special:'curse'},
+    {n:'Soul Crusher',   cl:'#400020',hl:'#e00050',hp:1500,dmg:82,spd:1.2,shape:5,drop:'demonbane', special:'curse'},
+    {n:'Abyss Demon',    cl:'#200010',hl:'#d00040',hp:2200,dmg:96,spd:0.7,shape:3,drop:'demonbane', special:'curse'},
+    {n:'Demon Lord',     cl:'#a00020',hl:'#ff0040',hp:4000,dmg:120,spd:0.6,shape:10,drop:'demonbane', special:'curse', boss:true},
+  ],
+  witch_wood: [
+    {n:'Hex Bat',        cl:'#8020c0',hl:'#c060ff',hp:850, dmg:60,spd:1.5,shape:0,drop:'witchcraft_rod', special:'hex'},
+    {n:'Coven Witch',    cl:'#6010a0',hl:'#a040e0',hp:1000,dmg:65,spd:1.0,shape:9,drop:'witchcraft_rod', special:'hex'},
+    {n:'Hex Golem',      cl:'#500090',hl:'#9030d0',hp:1300,dmg:70,spd:0.5,shape:3,drop:'witchcraft_rod', special:'hex'},
+    {n:'Witch Familiar', cl:'#9040c0',hl:'#d080ff',hp:800, dmg:63,spd:1.8,shape:0,drop:'witchcraft_rod', special:'hex'},
+    {n:'Cursed Drake',   cl:'#7020b0',hl:'#c060ff',hp:1500,dmg:76,spd:0.8,shape:4,drop:'witchcraft_rod', special:'hex'},
+    {n:'Grand Witch',    cl:'#400080',hl:'#a000ff',hp:1800,dmg:83,spd:0.9,shape:9,drop:'witchcraft_rod', special:'hex'},
+    {n:'Shadow Familiar',cl:'#200040',hl:'#8000ff',hp:1100,dmg:78,spd:1.6,shape:0,drop:'witchcraft_rod', special:'hex'},
+    {n:'Hex Titan',      cl:'#600090',hl:'#b040f0',hp:2000,dmg:90,spd:0.5,shape:3,drop:'witchcraft_rod', special:'hex'},
+    {n:'Chaos Witch',    cl:'#a000c0',hl:'#ff00ff',hp:1700,dmg:86,spd:1.1,shape:9,drop:'witchcraft_rod', special:'hex'},
+    {n:'Arch Witch',     cl:'#8000c0',hl:'#ff40ff',hp:3800,dmg:118,spd:0.8,shape:11,drop:'witchcraft_rod', special:'hex', boss:true},
+  ],
+  blood_crypt: [
+    {n:'Vampire Bat',    cl:'#800010',hl:'#ff2020',hp:900, dmg:62,spd:1.8,shape:0,drop:'blood_fang', special:'drain'},
+    {n:'Bloodling',      cl:'#600000',hl:'#e01010',hp:850, dmg:60,spd:1.4,shape:1,drop:'blood_fang', special:'drain'},
+    {n:'Vampire Thrall', cl:'#500008',hl:'#cc0818',hp:1050,dmg:67,spd:1.1,shape:3,drop:'blood_fang', special:'drain'},
+    {n:'Blood Knight',   cl:'#700010',hl:'#ff1018',hp:1400,dmg:75,spd:0.8,shape:3,drop:'blood_fang', special:'drain'},
+    {n:'Crimson Drake',  cl:'#800000',hl:'#ff2010',hp:1600,dmg:80,spd:0.7,shape:4,drop:'blood_fang', special:'drain'},
+    {n:'Vampire Lord',   cl:'#400000',hl:'#c00010',hp:2000,dmg:87,spd:0.9,shape:12,drop:'blood_fang', special:'drain'},
+    {n:'Blood Colossus', cl:'#600000',hl:'#ff0000',hp:1800,dmg:84,spd:0.5,shape:3,drop:'blood_fang', special:'drain'},
+    {n:'Crimson Specter', cl:'#a00000',hl:'#ff4040',hp:1500,dmg:88,spd:1.4,shape:5,drop:'blood_fang', special:'drain'},
+    {n:'Bloodlord',      cl:'#800010',hl:'#ff2030',hp:2200,dmg:98,spd:0.7,shape:3,drop:'blood_fang', special:'drain'},
+    {n:'Vampire Dragon', cl:'#600010',hl:'#ff1020',hp:4200,dmg:122,spd:0.6,shape:7,drop:'blood_fang', special:'drain', boss:true},
+  ],
+  cyclops_range: [
+    {n:'Young Cyclops',  cl:'#c08030',hl:'#f0b050',hp:1200,dmg:70,spd:0.8,shape:3,drop:'cyclops_maul', special:'stun'},
+    {n:'Rock Thrower',   cl:'#a07020',hl:'#d09030',hp:1000,dmg:65,spd:0.9,shape:3,drop:'cyclops_maul', special:'stun'},
+    {n:'Boulder Golem',  cl:'#907028',hl:'#c0a040',hp:1800,dmg:75,spd:0.3,shape:3,drop:'cyclops_maul', special:'stun'},
+    {n:'Stone Cyclops',  cl:'#808888',hl:'#b0c0c0',hp:2000,dmg:80,spd:0.4,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'War Cyclops',    cl:'#b08030',hl:'#e0b040',hp:2200,dmg:85,spd:0.5,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'Iron Cyclops',   cl:'#707888',hl:'#a0b0c0',hp:2500,dmg:90,spd:0.4,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'Rune Cyclops',   cl:'#8070a8',hl:'#c0b0f8',hp:2400,dmg:92,spd:0.5,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'Lava Cyclops',   cl:'#a04010',hl:'#ff6020',hp:2800,dmg:96,spd:0.4,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'Ancient Cyclops',cl:'#606868',hl:'#909898',hp:3000,dmg:100,spd:0.3,shape:13,drop:'cyclops_maul', special:'stun'},
+    {n:'Cyclops King',   cl:'#a09040',hl:'#ffd700',hp:5000,dmg:130,spd:0.4,shape:14,drop:'cyclops_maul', special:'stun', boss:true},
+  ],
+  dragon_peak: [
+    {n:'Dragon Whelp',   cl:'#40c060',hl:'#80ff90',hp:1100,dmg:68,spd:1.3,shape:4,drop:'dragonscale_sword', special:'roar'},
+    {n:'Emerald Drake',  cl:'#20a040',hl:'#50f870',hp:1400,dmg:73,spd:1.0,shape:4,drop:'dragonscale_sword', special:'roar'},
+    {n:'Serpent Drake',  cl:'#308050',hl:'#60d880',hp:1600,dmg:78,spd:0.9,shape:4,drop:'dragonscale_sword', special:'roar'},
+    {n:'Forest Dragon',  cl:'#208040',hl:'#40d060',hp:2000,dmg:83,spd:0.8,shape:7,drop:'dragonscale_sword', special:'roar'},
+    {n:'Scale Titan',    cl:'#186830',hl:'#38c860',hp:2400,dmg:88,spd:0.5,shape:3,drop:'dragonscale_sword', special:'roar'},
+    {n:'Elder Drake',    cl:'#10602a',hl:'#30c858',hp:2200,dmg:86,spd:0.7,shape:4,drop:'dragonscale_sword', special:'roar'},
+    {n:'Dragon Guard',   cl:'#288838',hl:'#58e870',hp:2600,dmg:92,spd:0.6,shape:3,drop:'dragonscale_sword', special:'roar'},
+    {n:'Ancient Drake',  cl:'#107820',hl:'#28e848',hp:2800,dmg:96,spd:0.6,shape:7,drop:'dragonscale_sword', special:'roar'},
+    {n:'Dragon Elder',   cl:'#089018',hl:'#18f838',hp:3200,dmg:104,spd:0.5,shape:7,drop:'dragonscale_sword', special:'roar'},
+    {n:'Dragon King',    cl:'#20a030',hl:'#60ff80',hp:5500,dmg:135,spd:0.6,shape:15,drop:'dragonscale_sword', special:'roar', boss:true},
+  ],
+  shadow_void: [
+    {n:'Void Wraith',    cl:'#200040',hl:'#8000ff',hp:1200,dmg:72,spd:1.5,shape:5,drop:'shadowfire_lance', special:'blind'},
+    {n:'Shadow Fiend',   cl:'#100030',hl:'#6000e0',hp:1300,dmg:75,spd:1.3,shape:5,drop:'shadowfire_lance', special:'blind'},
+    {n:'Void Slasher',   cl:'#300050',hl:'#a020ff',hp:1500,dmg:80,spd:1.2,shape:3,drop:'shadowfire_lance', special:'blind'},
+    {n:'Dark Specter',   cl:'#080018',hl:'#4010c0',hp:1600,dmg:82,spd:1.4,shape:5,drop:'shadowfire_lance', special:'blind'},
+    {n:'Chaos Reaper',   cl:'#400060',hl:'#c040ff',hp:2000,dmg:88,spd:0.9,shape:5,drop:'shadowfire_lance', special:'blind'},
+    {n:'Void Titan',     cl:'#200030',hl:'#8000c0',hp:2500,dmg:94,spd:0.5,shape:3,drop:'shadowfire_lance', special:'blind'},
+    {n:'Shadow Dragon',  cl:'#180028',hl:'#7000e0',hp:2800,dmg:100,spd:0.7,shape:7,drop:'shadowfire_lance', special:'blind'},
+    {n:'Abyss Shade',    cl:'#100020',hl:'#5000c0',hp:2400,dmg:96,spd:1.1,shape:5,drop:'shadowfire_lance', special:'blind'},
+    {n:'Void Colossus',  cl:'#080010',hl:'#3000a0',hp:3000,dmg:106,spd:0.5,shape:3,drop:'shadowfire_lance', special:'blind'},
+    {n:'Shadow Overlord',cl:'#300050',hl:'#a000ff',hp:6000,dmg:140,spd:0.6,shape:16,drop:'shadowfire_lance', special:'blind', boss:true},
+  ],
+  abyss_core: [
+    {n:'Abyss Spawn',    cl:'#100010',hl:'#ff00ff',hp:1500,dmg:80,spd:1.4,shape:5,drop:'abyssal_reaper', special:'doom'},
+    {n:'Core Demon',     cl:'#200010',hl:'#ff2080',hp:1700,dmg:85,spd:1.2,shape:3,drop:'abyssal_reaper', special:'doom'},
+    {n:'Void Annihilator',cl:'#080008',hl:'#e000e0',hp:2000,dmg:90,spd:1.0,shape:5,drop:'abyssal_reaper', special:'doom'},
+    {n:'Abyss Titan',    cl:'#100018',hl:'#c000ff',hp:2600,dmg:97,spd:0.7,shape:3,drop:'abyssal_reaper', special:'doom'},
+    {n:'Core Dragon',    cl:'#180008',hl:'#ff00a0',hp:3000,dmg:104,spd:0.7,shape:7,drop:'abyssal_reaper', special:'doom'},
+    {n:'Eternal Dread',  cl:'#200020',hl:'#ff40ff',hp:2800,dmg:108,spd:0.8,shape:5,drop:'abyssal_reaper', special:'doom'},
+    {n:'Doom Colossus',  cl:'#100010',hl:'#e000c0',hp:3200,dmg:112,spd:0.5,shape:3,drop:'abyssal_reaper', special:'doom'},
+    {n:'Abyss Sovereign',cl:'#080010',hl:'#c000e0',hp:3500,dmg:118,spd:0.6,shape:5,drop:'abyssal_reaper', special:'doom'},
+    {n:'Final Specter',  cl:'#200018',hl:'#ff00e0',hp:4000,dmg:125,spd:0.8,shape:5,drop:'abyssal_reaper', special:'doom'},
+    {n:'ABYSSAL GOD',    cl:'#080008',hl:'#ff00ff',hp:8000,dmg:160,spd:0.5,shape:17,drop:'abyssal_reaper', special:'doom', boss:true},
+  ],
 };
 
-// Build biome monster sprites using same shape system but different colors
+// Build biome monster sprites
 const BIOME_MOB_SPR = {};
+// ══ ANIMATED PIXEL ART MONSTER BUILDER — 2.5D style, 4-frame animation ══
+// shape map: 0=bat, 1=slime, 2=crab, 3=humanoid, 4=drake, 5=lich/specter
+// NEW shapes: 6=naga, 7=dragon, 8=naga-queen, 9=witch, 10=demon-lord,
+//             11=arch-witch, 12=vampire-lord, 13=cyclops, 14=cyclops-king
+//             15=dragon-king, 16=shadow-overlord, 17=abyssal-god
 function buildBiomeMonsterSprite(mobDef, key){
-  const oc=document.createElement('canvas'); oc.width=32; oc.height=32;
-  const cx=oc.getContext('2d');
-  cx.imageSmoothingEnabled=false;
-  const shape=mobDef.shape, cl=mobDef.cl, hl=mobDef.hl;
+  const SIZE = mobDef.boss ? 48 : 32;
+  const FRAMES = 4;
+  const shape=mobDef.shape||0, cl=mobDef.cl, hl=mobDef.hl;
+  const isBoss = !!mobDef.boss;
 
-  // Reuse same drawing code from buildMonsterSprite but pass shape/color directly
-  const frame=0;
-  const bob=0, wingAng=0;
-  if(shape===0){
-    cx.fillStyle=cl;
-    cx.save();cx.translate(10,18);cx.rotate(-wingAng);
-    cx.beginPath();cx.moveTo(0,0);cx.lineTo(-7,-8);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
-    cx.save();cx.translate(22,18);cx.rotate(wingAng);
-    cx.beginPath();cx.moveTo(0,0);cx.lineTo(7,-8);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
-    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,18,7,5,0,0,Math.PI*2);cx.fill();
-    cx.fillStyle=hl;cx.fillRect(12,13,3,3);cx.fillRect(18,13,3,3);
-    cx.fillStyle=hl;cx.fillRect(13,17,3,2);cx.fillRect(18,17,3,2);
-  } else if(shape===1){
-    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,20,10,8,0,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.ellipse(16,13,7,6,0,0,Math.PI*2);cx.fill();
-    cx.fillStyle=hl;cx.globalAlpha=0.4;cx.beginPath();cx.ellipse(13,12,3,4,Math.PI*0.3,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
-    cx.fillStyle='#ffffff';cx.fillRect(12,13,4,3);cx.fillRect(17,13,4,3);
-    cx.fillStyle=hl;cx.fillRect(13,14,2,2);cx.fillRect(18,14,2,2);
-    cx.fillStyle=cl;cx.beginPath();cx.moveTo(13,25);cx.lineTo(16,28);cx.lineTo(19,25);cx.fill();
-  } else if(shape===2){
-    cx.fillStyle=cl;cx.beginPath();cx.ellipse(16,18,9,7,0,0,Math.PI*2);cx.fill();
-    for(let i=0;i<4;i++){cx.fillRect(4+i*2,18,2,6);cx.fillRect(24-i*2,18,2,6);}
-    cx.fillStyle=hl;cx.fillRect(4,16,4,4);cx.fillRect(24,16,4,4);
-    cx.fillStyle=cl;cx.fillRect(12,12,3,5);cx.fillRect(18,12,3,5);
-    cx.fillStyle='#ffffff';cx.fillRect(12,11,3,3);cx.fillRect(18,11,3,3);
-    cx.fillStyle=hl;cx.fillRect(13,12,1,1);cx.fillRect(19,12,1,1);
-  } else if(shape===3){
-    cx.fillStyle=cl;cx.fillRect(10,8,12,16);cx.fillRect(11,3,10,7);
-    cx.fillRect(5,10,6,8);cx.fillRect(21,10,6,8);
-    cx.fillRect(11,22,4,8);cx.fillRect(17,22,4,8);
-    cx.fillStyle='rgba(0,0,0,0.3)';cx.fillRect(10,8,12,3);cx.fillRect(5,10,6,3);
-    cx.fillStyle=hl;cx.fillRect(12,5,3,2);cx.fillRect(17,5,3,2);
-    cx.fillStyle='rgba(0,0,0,0.4)';cx.fillRect(15,9,2,6);cx.fillRect(12,12,4,2);
-  } else if(shape===4){
-    cx.fillStyle=cl;
-    cx.beginPath();cx.moveTo(4,22);cx.lineTo(2,26);cx.lineTo(8,20);cx.closePath();cx.fill();
-    cx.beginPath();cx.ellipse(14,18,10,7,0,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.ellipse(22,11,6,5,Math.PI*0.1,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.ellipse(26,8,5,4,0,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.moveTo(14,14);cx.lineTo(6,4);cx.lineTo(16,10);cx.closePath();cx.fill();
-    cx.fillStyle=hl;cx.globalAlpha=0.3;cx.beginPath();cx.ellipse(14,18,7,4,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
-    cx.fillStyle=hl;cx.fillRect(25,7,2,2);cx.fillRect(28,7,2,2);
-  } else {
-    cx.fillStyle=cl;cx.globalAlpha=0.85;cx.beginPath();cx.ellipse(16,18,8,11,0,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.ellipse(16,9,7,7,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
-    cx.fillStyle=hl;cx.fillRect(11,8,5,3);cx.fillRect(17,8,5,3);
-    cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(13,13,6,2);
-    cx.fillStyle=hl;cx.globalAlpha=0.5;
-    cx.beginPath();cx.ellipse(7,22,3,5,Math.PI*0.2,0,Math.PI*2);cx.fill();
-    cx.beginPath();cx.ellipse(25,23,3,5,Math.PI*0.8,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+  // Biome aura color
+  const biomeKey = key.includes('_') ? key.split('_').slice(0,-1).join('_') : key;
+  const auraMap = {
+    ice:'rgba(140,200,255,0.3)', desert:'rgba(255,180,40,0.3)',
+    forest:'rgba(60,200,40,0.3)', lava:'rgba(255,60,0,0.35)',
+    frost_hell:'rgba(80,160,255,0.4)', poison_bog:'rgba(80,255,40,0.4)',
+    inferno:'rgba(255,80,0,0.45)', demon_realm:'rgba(255,20,60,0.4)',
+    witch_wood:'rgba(200,60,255,0.4)', blood_crypt:'rgba(255,0,30,0.45)',
+    cyclops_range:'rgba(255,160,20,0.35)', dragon_peak:'rgba(40,255,100,0.4)',
+    shadow_void:'rgba(180,0,255,0.45)', abyss_core:'rgba(255,0,255,0.5)',
+  };
+  const auraCol = auraMap[biomeKey] || 'rgba(200,200,255,0.2)';
+
+  function makeFrame(f){
+    const oc=document.createElement('canvas'); oc.width=SIZE; oc.height=SIZE;
+    const cx=oc.getContext('2d');
+    cx.imageSmoothingEnabled=false;
+    const bob = Math.sin(f*Math.PI/2)*1.5; // vertical bob per frame
+    const C=SIZE/2, sc=isBoss?1.45:1.0;
+
+    cx.save(); cx.translate(C, C+bob); cx.scale(sc,sc); cx.translate(-C,-C);
+
+    // ── draw by shape ──
+    if(shape===0){ // BAT — animated wings
+      const wing=f%2===0?0.3:-0.3;
+      cx.fillStyle=cl;
+      // left wing
+      cx.save();cx.translate(C-6,C+1);cx.rotate(-wing);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(-8,-9);cx.lineTo(-2,-3);cx.closePath();cx.fill();cx.restore();
+      // right wing
+      cx.save();cx.translate(C+6,C+1);cx.rotate(wing);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(8,-9);cx.lineTo(2,-3);cx.closePath();cx.fill();cx.restore();
+      // body
+      cx.fillStyle=cl; cx.beginPath();cx.ellipse(C,C+2,6,4,0,0,Math.PI*2);cx.fill();
+      // eyes
+      cx.fillStyle=hl; cx.fillRect(C-4,C-1,3,3); cx.fillRect(C+1,C-1,3,3);
+      cx.fillStyle='#ff2020'; cx.fillRect(C-3,C,1,1); cx.fillRect(C+2,C,1,1);
+      // fangs
+      cx.fillStyle='#ffffff'; cx.fillRect(C-2,C+4,1,2); cx.fillRect(C+1,C+4,1,2);
+
+    } else if(shape===1){ // SLIME
+      const sq = f%2===0?1.0:0.85;
+      cx.fillStyle=cl; cx.beginPath();cx.ellipse(C,C+3,9*sq,7/sq,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C,C-2,6,5,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle=hl;cx.globalAlpha=0.4;
+      cx.beginPath();cx.ellipse(C-3,C-3,3,4,Math.PI*0.3,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+      cx.fillStyle='#fff';cx.fillRect(C-4,C-3,4,3);cx.fillRect(C+1,C-3,4,3);
+      cx.fillStyle=hl;cx.fillRect(C-3,C-2,2,2);cx.fillRect(C+2,C-2,2,2);
+      // drip
+      if(f>=2){cx.fillStyle=cl;cx.fillRect(C-1,C+8,2,3);}
+
+    } else if(shape===2){ // CRAB
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C+2,9,6,0,0,Math.PI*2);cx.fill();
+      const claw = f%2===0?1:-1;
+      for(let s of[-1,1]){
+        cx.fillRect(C+s*10,C-1+claw*s,3,5);
+        cx.fillRect(C+s*12,C-3+claw*s,4,4);
+      }
+      for(let i=0;i<3;i++){cx.fillRect(C-8+i*3,C+5,2,5);cx.fillRect(C+2+i*3,C+5,2,5);}
+      cx.fillStyle=hl;cx.fillRect(C-4,C-2,3,3);cx.fillRect(C+1,C-2,3,3);
+      cx.fillStyle='#fff';cx.fillRect(C-4,C-3,2,2);cx.fillRect(C+2,C-3,2,2);
+
+    } else if(shape===3){ // HUMANOID / GOLEM
+      const armSwing = f%2===0?1:-1;
+      cx.fillStyle=cl;
+      // body
+      cx.fillRect(C-5,C-4,10,10);
+      // head
+      cx.fillRect(C-4,C-12,8,8);
+      // arms
+      cx.fillRect(C-9,C-3+armSwing,4,7); cx.fillRect(C+5,C-3-armSwing,4,7);
+      // legs
+      cx.fillRect(C-4,C+6,3,6); cx.fillRect(C+1,C+6,3,6);
+      // eyes glow
+      cx.fillStyle=hl; cx.fillRect(C-3,C-10,2,2); cx.fillRect(C+1,C-10,2,2);
+      // shadow detail
+      cx.fillStyle='rgba(0,0,0,0.35)'; cx.fillRect(C-5,C-4,10,2);
+      cx.fillRect(C-5,C-4,1,10); cx.fillRect(C+4,C-4,1,10);
+
+    } else if(shape===4){ // DRAKE
+      const tailWag = f%2===0?2:-2;
+      cx.fillStyle=cl;
+      // tail
+      cx.beginPath();cx.moveTo(C-12,C+4+tailWag);cx.lineTo(C-4,C+3);cx.lineTo(C-4,C+7);cx.closePath();cx.fill();
+      // body
+      cx.beginPath();cx.ellipse(C+2,C+2,9,6,0,0,Math.PI*2);cx.fill();
+      // neck+head
+      cx.beginPath();cx.ellipse(C+10,C-4,5,4,-0.3,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C+14,C-8,4,3,0.1,0,Math.PI*2);cx.fill();
+      // wing
+      cx.beginPath();cx.moveTo(C,C-2);cx.lineTo(C-4,C-12);cx.lineTo(C+4,C-5);cx.closePath();cx.fill();
+      cx.fillStyle=hl;cx.globalAlpha=0.3;cx.beginPath();cx.ellipse(C+2,C+2,6,4,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+      cx.fillStyle=hl; cx.fillRect(C+13,C-10,2,2); cx.fillRect(C+16,C-10,2,2);
+
+    } else if(shape===5){ // LICH / SPECTER
+      const pulse = f%2===0?1.0:0.85;
+      cx.globalAlpha=0.85*pulse;
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C+3,7,9,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C,C-5,6,6,0,0,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+      cx.fillStyle=hl;cx.fillRect(C-4,C-7,4,3);cx.fillRect(C+1,C-7,4,3);
+      cx.fillStyle='rgba(0,0,0,0.5)';cx.fillRect(C-2,C-1,4,2);
+      cx.fillStyle=hl;cx.globalAlpha=0.5*pulse;
+      cx.beginPath();cx.ellipse(C-7,C+4,3,5,Math.PI*0.2,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C+7,C+4,3,5,-Math.PI*0.2,0,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+
+    } else if(shape===6){ // NAGA — serpent body + humanoid torso
+      const sway = Math.sin(f*Math.PI/2)*2;
+      cx.fillStyle=cl;
+      // coiled tail
+      cx.beginPath();cx.ellipse(C+sway,C+7,8,5,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C-3+sway,C+4,5,4,0,0,Math.PI*2);cx.fill();
+      // torso
+      cx.fillRect(C-3,C-4,6,8);
+      // arms
+      cx.fillRect(C-7,C-3+sway,3,6); cx.fillRect(C+4,C-3-sway,3,6);
+      // head
+      cx.beginPath();cx.ellipse(C,C-9,5,5,0,0,Math.PI*2);cx.fill();
+      // snake hood
+      cx.fillStyle=hl;
+      cx.beginPath();cx.ellipse(C,C-9,7,6,-0.1,Math.PI,Math.PI*2);cx.fill();
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C-9,4,4,0,0,Math.PI*2);cx.fill();
+      // eyes
+      cx.fillStyle='#ff3030'; cx.fillRect(C-3,C-11,2,2); cx.fillRect(C+1,C-11,2,2);
+      // scales highlight
+      cx.fillStyle=hl;cx.globalAlpha=0.3;
+      for(let i=0;i<4;i++) cx.fillRect(C-2,C-2+i*2,4,1);
+      cx.globalAlpha=1;
+
+    } else if(shape===7){ // DRAGON — large winged dragon
+      const wingFlap = f%2===0?-0.2:0.2;
+      const tailWag = f%2===0?3:-3;
+      cx.fillStyle=cl;
+      // tail
+      cx.beginPath();cx.moveTo(C-12,C+5+tailWag);cx.lineTo(C-2,C+4);cx.lineTo(C-3,C+8);cx.closePath();cx.fill();
+      // body
+      cx.beginPath();cx.ellipse(C+1,C+3,10,7,0,0,Math.PI*2);cx.fill();
+      // neck
+      cx.beginPath();cx.ellipse(C+9,C-3,6,5,-0.3,0,Math.PI*2);cx.fill();
+      // head
+      cx.beginPath();cx.ellipse(C+13,C-8,5,4,0.2,0,Math.PI*2);cx.fill();
+      // snout
+      cx.fillRect(C+16,C-10,4,3);
+      // horns
+      cx.fillStyle=hl;cx.fillRect(C+11,C-13,2,4); cx.fillRect(C+15,C-13,2,4);
+      // wings
+      cx.fillStyle=cl;
+      cx.save();cx.translate(C+3,C-2);cx.rotate(wingFlap);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(-10,-14);cx.lineTo(0,-7);cx.closePath();cx.fill();cx.restore();
+      cx.save();cx.translate(C+3,C-2);cx.rotate(-wingFlap);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(8,-12);cx.lineTo(2,-6);cx.closePath();cx.fill();cx.restore();
+      // belly highlight
+      cx.fillStyle=hl;cx.globalAlpha=0.3;cx.beginPath();cx.ellipse(C+1,C+5,6,4,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+      // eyes
+      cx.fillStyle='#ffcc00';cx.fillRect(C+11,C-10,3,2);cx.fillRect(C+15,C-10,2,2);
+      // fire breath on frames 2-3
+      if(f>=2){
+        cx.fillStyle='rgba(255,140,0,0.7)';
+        cx.beginPath();cx.moveTo(C+19,C-9);cx.lineTo(C+28,C-7);cx.lineTo(C+19,C-7);cx.closePath();cx.fill();
+        cx.fillStyle='rgba(255,220,0,0.5)';
+        cx.beginPath();cx.moveTo(C+20,C-9);cx.lineTo(C+30,C-8);cx.lineTo(C+20,C-8);cx.closePath();cx.fill();
+      }
+
+    } else if(shape===8){ // NAGA QUEEN — bigger naga with crown
+      const sway = Math.sin(f*Math.PI/2)*2.5;
+      cx.fillStyle=cl;
+      // grand coil
+      cx.beginPath();cx.ellipse(C+sway,C+8,11,7,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C-4+sway,C+3,7,5,0,0,Math.PI*2);cx.fill();
+      // torso with armor
+      cx.fillRect(C-4,C-5,8,9);
+      cx.fillStyle=hl;cx.globalAlpha=0.4;cx.fillRect(C-4,C-5,8,3);cx.globalAlpha=1;
+      // arms with claws
+      cx.fillStyle=cl;cx.fillRect(C-8,C-4+sway,3,8); cx.fillRect(C+5,C-4-sway,3,8);
+      cx.fillStyle=hl; cx.fillRect(C-9,C+4+sway,3,2); cx.fillRect(C+6,C+4-sway,3,2);
+      // head
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C-11,6,6,0,0,Math.PI*2);cx.fill();
+      // grand hood
+      cx.fillStyle=hl;cx.globalAlpha=0.6;
+      cx.beginPath();cx.ellipse(C,C-11,9,7,-0.1,Math.PI,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C-11,5,5,0,0,Math.PI*2);cx.fill();
+      // crown
+      cx.fillStyle='#ffd700';
+      cx.fillRect(C-4,C-18,8,3);
+      cx.fillRect(C-5,C-20,2,3);cx.fillRect(C-1,C-21,2,4);cx.fillRect(C+3,C-20,2,3);
+      // gems on crown
+      cx.fillStyle='#ff2080'; cx.fillRect(C-1,C-22,2,2);
+      // eyes
+      cx.fillStyle='#ff0080'; cx.fillRect(C-3,C-13,2,2); cx.fillRect(C+1,C-13,2,2);
+
+    } else if(shape===9){ // WITCH
+      const float = f%2===0?0:2;
+      cx.fillStyle=cl;
+      // robe
+      cx.beginPath();cx.moveTo(C-6,C+10);cx.lineTo(C-4,C-2);cx.lineTo(C+4,C-2);cx.lineTo(C+6,C+10);cx.closePath();cx.fill();
+      // arms
+      cx.fillRect(C-8,C-1+float,3,6); cx.fillRect(C+5,C-1-float,3,6);
+      // head
+      cx.fillStyle=hl;cx.beginPath();cx.ellipse(C,C-7,5,5,0,0,Math.PI*2);cx.fill();
+      // witch hat
+      cx.fillStyle='#1a0030';
+      cx.beginPath();cx.moveTo(C-6,C-10);cx.lineTo(C+6,C-10);cx.lineTo(C+4,C-10);cx.closePath();cx.fill();
+      cx.fillRect(C-5,C-10,10,2);
+      cx.beginPath();cx.moveTo(C-3,C-12);cx.lineTo(C,C-22);cx.lineTo(C+3,C-12);cx.closePath();cx.fill();
+      // hat band
+      cx.fillStyle='#ff80ff';cx.fillRect(C-5,C-12,10,1);
+      // eyes
+      cx.fillStyle='#aaff00'; cx.fillRect(C-3,C-9,2,2); cx.fillRect(C+1,C-9,2,2);
+      // wand sparks
+      if(f>=1){cx.fillStyle='rgba(200,100,255,0.8)';cx.beginPath();cx.arc(C+7,C,3,0,Math.PI*2);cx.fill();}
+      if(f>=2){cx.fillStyle='rgba(255,200,80,0.6)';cx.beginPath();cx.arc(C+9,C-2,2,0,Math.PI*2);cx.fill();}
+
+    } else if(shape===10){ // DEMON LORD
+      const armFlare = f%2===0?1:-1;
+      cx.fillStyle=cl;
+      // imposing body
+      cx.fillRect(C-7,C-5,14,12);
+      cx.fillRect(C-5,C-14,10,9);
+      // huge arms
+      cx.fillRect(C-12,C-5+armFlare,5,9); cx.fillRect(C+7,C-5-armFlare,5,9);
+      // clawed hands
+      cx.fillStyle='#800000';
+      cx.fillRect(C-13,C+3+armFlare,2,3);cx.fillRect(C-11,C+3+armFlare,2,3);
+      cx.fillRect(C+9,C+3-armFlare,2,3);cx.fillRect(C+11,C+3-armFlare,2,3);
+      cx.fillStyle=cl;
+      // legs
+      cx.fillRect(C-6,C+7,4,7); cx.fillRect(C+2,C+7,4,7);
+      // horns
+      cx.fillStyle='#800000';
+      cx.beginPath();cx.moveTo(C-4,C-14);cx.lineTo(C-6,C-22);cx.lineTo(C-1,C-14);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(C+4,C-14);cx.lineTo(C+6,C-22);cx.lineTo(C+1,C-14);cx.closePath();cx.fill();
+      // face
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C-10,5,5,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#ff0020'; cx.fillRect(C-3,C-12,2,2); cx.fillRect(C+1,C-12,2,2);
+      cx.fillStyle='rgba(255,0,40,0.6)';cx.fillRect(C-2,C-9,4,1);
+      // shadow
+      cx.fillStyle='rgba(0,0,0,0.3)';cx.fillRect(C-7,C-5,14,2);
+
+    } else if(shape===11){ // ARCH WITCH — grand sorceress
+      const float = Math.sin(f*Math.PI/2)*2;
+      cx.fillStyle=cl;
+      // flowing robe
+      cx.beginPath();cx.moveTo(C-8,C+12+float);cx.lineTo(C-5,C-4);cx.lineTo(C+5,C-4);cx.lineTo(C+8,C+12+float);cx.closePath();cx.fill();
+      cx.fillStyle=hl;cx.globalAlpha=0.3;
+      cx.beginPath();cx.moveTo(C-8,C+12+float);cx.lineTo(C-5,C-4);cx.lineTo(C,C-4);cx.lineTo(C,C+12+float);cx.closePath();cx.fill();
+      cx.globalAlpha=1;
+      // arms with energy
+      cx.fillStyle=cl;
+      cx.fillRect(C-10,C-3+float,3,8); cx.fillRect(C+7,C-3-float,3,8);
+      // orb in hands
+      cx.fillStyle='rgba(255,100,255,0.8)';cx.beginPath();cx.arc(C-9,C+6+float,3,0,Math.PI*2);cx.fill();
+      cx.fillStyle='rgba(255,200,80,0.7)';cx.beginPath();cx.arc(C+9,C+6-float,3,0,Math.PI*2);cx.fill();
+      // head
+      cx.fillStyle=hl;cx.beginPath();cx.ellipse(C,C-9,6,6,0,0,Math.PI*2);cx.fill();
+      // grand hat
+      cx.fillStyle='#0a0020';
+      cx.fillRect(C-7,C-13,14,3);
+      cx.beginPath();cx.moveTo(C-4,C-16);cx.lineTo(C,C-28);cx.lineTo(C+4,C-16);cx.closePath();cx.fill();
+      // hat decoration
+      cx.fillStyle='#ff40ff';cx.fillRect(C-7,C-15,14,1);
+      cx.fillStyle='#ffdd00';cx.beginPath();cx.arc(C,C-28,2,0,Math.PI*2);cx.fill();
+      // eyes
+      cx.fillStyle='#ffff00'; cx.fillRect(C-3,C-11,2,2); cx.fillRect(C+1,C-11,2,2);
+      // magic sparkles
+      cx.fillStyle='rgba(255,80,255,0.7)';
+      for(let s=0;s<4;s++){cx.beginPath();cx.arc(C-10+s*7,C-17+f,1.5,0,Math.PI*2);cx.fill();}
+
+    } else if(shape===12){ // VAMPIRE LORD
+      const cape = f%2===0?0.1:-0.1;
+      cx.fillStyle=cl;
+      // body in cape
+      cx.save();cx.translate(C,C);cx.rotate(cape);
+      cx.beginPath();cx.moveTo(-8,12);cx.lineTo(-5,-4);cx.lineTo(5,-4);cx.lineTo(8,12);cx.closePath();cx.fill();
+      cx.restore();
+      // cape shadow/depth
+      cx.fillStyle='rgba(0,0,0,0.4)';
+      cx.save();cx.translate(C,C);cx.rotate(cape);
+      cx.beginPath();cx.moveTo(-8,12);cx.lineTo(-5,-4);cx.lineTo(-2,-4);cx.lineTo(-1,12);cx.closePath();cx.fill();
+      cx.restore();
+      // head
+      cx.fillStyle=cl;cx.beginPath();cx.ellipse(C,C-9,5,6,0,0,Math.PI*2);cx.fill();
+      // hair
+      cx.fillStyle='#1a0010';cx.fillRect(C-5,C-15,10,7);
+      cx.fillRect(C-6,C-13,2,5);cx.fillRect(C+4,C-13,2,5);
+      // collar
+      cx.fillStyle='#fff';cx.fillRect(C-3,C-5,2,3);cx.fillRect(C+1,C-5,2,3);
+      // eyes red glow
+      cx.fillStyle='#ff0000';cx.fillRect(C-3,C-11,2,2);cx.fillRect(C+1,C-11,2,2);
+      // fangs
+      cx.fillStyle='#fff';cx.fillRect(C-2,C-6,1,2);cx.fillRect(C+1,C-6,1,2);
+      // arms+hands
+      cx.fillStyle=cl;cx.fillRect(C-8,C-2,3,7);cx.fillRect(C+5,C-2,3,7);
+      // claws
+      cx.fillStyle='#800010';cx.fillRect(C-9,C+4,1,2);cx.fillRect(C-8,C+4,1,3);cx.fillRect(C-7,C+4,1,2);
+      cx.fillRect(C+6,C+4,1,2);cx.fillRect(C+7,C+4,1,3);cx.fillRect(C+8,C+4,1,2);
+
+    } else if(shape===13){ // CYCLOPS
+      const armSwing = f%2===0?2:-2;
+      cx.fillStyle=cl;
+      // large sturdy body
+      cx.fillRect(C-7,C-4,14,12);
+      // head — big round
+      cx.beginPath();cx.ellipse(C,C-11,8,8,0,0,Math.PI*2);cx.fill();
+      // big arms
+      cx.fillRect(C-12,C-3+armSwing,5,8); cx.fillRect(C+7,C-3-armSwing,5,8);
+      // legs
+      cx.fillRect(C-6,C+8,4,7); cx.fillRect(C+2,C+8,4,7);
+      // THE EYE — single giant eye
+      cx.fillStyle='#fff'; cx.beginPath();cx.ellipse(C,C-11,5,4,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#2020ff';cx.beginPath();cx.ellipse(C,C-11,3,3,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#000';cx.beginPath();cx.ellipse(C,C-11,1.5,1.5,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='rgba(255,255,255,0.8)';cx.beginPath();cx.ellipse(C+1,C-12,1,1,0,0,Math.PI*2);cx.fill();
+      // brow ridge
+      cx.fillStyle='rgba(0,0,0,0.4)';cx.fillRect(C-6,C-16,12,2);
+      // shadows on body
+      cx.fillStyle='rgba(0,0,0,0.25)';cx.fillRect(C-7,C-4,14,2);cx.fillRect(C-7,C-4,2,12);
+
+    } else if(shape===14){ // CYCLOPS KING
+      const armSwing = f%2===0?2:-2;
+      cx.fillStyle=cl;
+      // massive king body
+      cx.fillRect(C-9,C-5,18,14);
+      cx.beginPath();cx.ellipse(C,C-13,10,10,0,0,Math.PI*2);cx.fill();
+      // armor plates
+      cx.fillStyle=hl;cx.globalAlpha=0.35;
+      cx.fillRect(C-9,C-5,18,4); cx.fillRect(C-9,C+1,18,2);
+      cx.globalAlpha=1;
+      // huge arms with club
+      cx.fillStyle=cl;
+      cx.fillRect(C-14,C-4+armSwing,6,10); cx.fillRect(C+8,C-4-armSwing,6,10);
+      // club weapon
+      cx.fillStyle='#7a5020';cx.fillRect(C-16,C-8+armSwing,4,14);
+      cx.fillStyle='#a08040';cx.fillRect(C-17,C-10+armSwing,6,5);
+      // legs
+      cx.fillStyle=cl;cx.fillRect(C-8,C+9,5,8); cx.fillRect(C+3,C+9,5,8);
+      // THE KING EYE
+      cx.fillStyle='#fff';cx.beginPath();cx.ellipse(C,C-13,7,6,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#ff6000';cx.beginPath();cx.ellipse(C,C-13,5,4,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#8b0000';cx.beginPath();cx.ellipse(C,C-13,2.5,2.5,0,0,Math.PI*2);cx.fill();
+      cx.fillStyle='rgba(255,255,255,0.9)';cx.beginPath();cx.ellipse(C+2,C-15,1,1,0,0,Math.PI*2);cx.fill();
+      // crown
+      cx.fillStyle='#ffd700';
+      cx.fillRect(C-8,C-22,16,4);
+      for(let p=-3;p<=3;p+=2){cx.fillRect(C+p*2-1,C-26,3,5);}
+      // ruby gems
+      cx.fillStyle='#ff1010';cx.fillRect(C-1,C-27,3,3);
+      cx.fillStyle='#1010ff';cx.fillRect(C-6,C-25,2,2); cx.fillRect(C+4,C-25,2,2);
+
+    } else if(shape===15){ // DRAGON KING
+      const wingFlap = f%2===0?-0.25:0.25;
+      const tailWag = f%2===0?4:-4;
+      cx.fillStyle=cl;
+      // long tail
+      cx.beginPath();cx.moveTo(C-14,C+6+tailWag);cx.lineTo(C-2,C+5);cx.lineTo(C-3,C+9);cx.closePath();cx.fill();
+      // massive body
+      cx.beginPath();cx.ellipse(C+2,C+4,12,9,0,0,Math.PI*2);cx.fill();
+      // neck
+      cx.beginPath();cx.ellipse(C+11,C-4,7,6,-0.35,0,Math.PI*2);cx.fill();
+      // head
+      cx.beginPath();cx.ellipse(C+15,C-10,7,5,0.2,0,Math.PI*2);cx.fill();
+      // royal snout
+      cx.fillRect(C+19,C-12,5,4);
+      // crown horns
+      cx.fillStyle='#ffd700';
+      cx.beginPath();cx.moveTo(C+12,C-16);cx.lineTo(C+10,C-26);cx.lineTo(C+15,C-16);cx.closePath();cx.fill();
+      cx.beginPath();cx.moveTo(C+17,C-15);cx.lineTo(C+20,C-24);cx.lineTo(C+22,C-15);cx.closePath();cx.fill();
+      // wings — grand
+      cx.fillStyle=cl;
+      cx.save();cx.translate(C+4,C-3);cx.rotate(wingFlap);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(-14,-18);cx.lineTo(-4,-8);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
+      cx.save();cx.translate(C+4,C-3);cx.rotate(-wingFlap);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(10,-15);cx.lineTo(4,-7);cx.lineTo(0,-4);cx.closePath();cx.fill();cx.restore();
+      // wing membrane
+      cx.fillStyle=hl;cx.globalAlpha=0.2;
+      cx.save();cx.translate(C+4,C-3);cx.rotate(wingFlap);
+      cx.beginPath();cx.moveTo(0,0);cx.lineTo(-14,-18);cx.lineTo(-2,-5);cx.closePath();cx.fill();cx.restore();
+      cx.globalAlpha=1;
+      // belly scales
+      cx.fillStyle=hl;cx.globalAlpha=0.3;cx.beginPath();cx.ellipse(C+2,C+6,8,5,0,0,Math.PI*2);cx.fill();cx.globalAlpha=1;
+      // eyes — golden
+      cx.fillStyle='#ffd700';cx.fillRect(C+13,C-12,3,2);cx.fillRect(C+18,C-12,2,2);
+      // royal fire breath
+      if(f>=2){
+        cx.fillStyle='rgba(255,200,0,0.8)';
+        cx.beginPath();cx.moveTo(C+23,C-11);cx.lineTo(C+33,C-8);cx.lineTo(C+22,C-9);cx.closePath();cx.fill();
+        cx.fillStyle='rgba(255,80,0,0.6)';
+        cx.beginPath();cx.moveTo(C+24,C-11);cx.lineTo(C+35,C-9);cx.lineTo(C+23,C-10);cx.closePath();cx.fill();
+      }
+
+    } else if(shape===16){ // SHADOW OVERLORD
+      const pulse = f%2===0?1.0:0.75;
+      cx.globalAlpha=0.9*pulse;
+      cx.fillStyle=cl;
+      // void form body
+      cx.beginPath();cx.ellipse(C,C+4,9,13,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C,C-7,8,8,0,0,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+      // multiple arms from void
+      const arms = [[-10,2,0.3],[10,2,-0.3],[-11,-2,-0.5],[11,-2,0.5]];
+      for(const[ax,ay,ar] of arms){
+        cx.fillStyle=cl;cx.globalAlpha=0.7*pulse;
+        cx.save();cx.translate(C+ax,C+ay);cx.rotate(ar+f*0.3);
+        cx.beginPath();cx.ellipse(0,0,3,7,0,0,Math.PI*2);cx.fill();
+        cx.restore();cx.globalAlpha=1;
+      }
+      // face — multiple glowing eyes
+      cx.fillStyle='#a000ff';
+      for(let e=0;e<3;e++){
+        const ex=C-4+e*4, ey=C-9;
+        cx.beginPath();cx.arc(ex,ey,2,0,Math.PI*2);cx.fill();
+        // glow
+        cx.fillStyle='rgba(200,0,255,0.4)';cx.beginPath();cx.arc(ex,ey,3.5,0,Math.PI*2);cx.fill();
+        cx.fillStyle='#a000ff';
+      }
+      // void tendrils
+      cx.strokeStyle=hl;cx.globalAlpha=0.4*pulse;cx.lineWidth=1;
+      for(let t=0;t<4;t++){
+        cx.beginPath();cx.moveTo(C,C+10);
+        cx.lineTo(C+(t-1.5)*6,C+16+f*1.5);cx.stroke();
+      }
+      cx.globalAlpha=1;
+
+    } else { // shape 17: ABYSSAL GOD — ultimate final boss
+      const pulse = 0.7+f*0.1;
+      cx.globalAlpha=pulse;
+      cx.fillStyle=cl;
+      // colossal void body
+      cx.beginPath();cx.ellipse(C,C+5,14,16,0,0,Math.PI*2);cx.fill();
+      // multiple heads/heads cluster
+      cx.beginPath();cx.ellipse(C,C-12,10,10,0,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C-10,C-5,5,6,0.3,0,Math.PI*2);cx.fill();
+      cx.beginPath();cx.ellipse(C+10,C-5,5,6,-0.3,0,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+      // 6 void arms
+      const aposns=[[-14,0],[-14,8],[-12,16],[14,0],[14,8],[12,16]];
+      for(let[ax,ay] of aposns){
+        cx.fillStyle=hl;cx.globalAlpha=0.6+pulse*0.2;
+        cx.beginPath();cx.ellipse(C+ax,C+ay,3,6,ax>0?-0.3:0.3,0,Math.PI*2);cx.fill();
+        cx.globalAlpha=1;
+      }
+      // MANY EYES — chaos
+      const eyePos=[[-4,-14],[0,-14],[4,-14],[-10,-6],[10,-6],[-10,2],[10,2]];
+      for(let[ex,ey] of eyePos){
+        cx.fillStyle='#ff00ff';cx.beginPath();cx.arc(C+ex,C+ey,2.5,0,Math.PI*2);cx.fill();
+        cx.fillStyle='rgba(255,0,255,'+(0.3+pulse*0.2)+')';
+        cx.beginPath();cx.arc(C+ex,C+ey,5,0,Math.PI*2);cx.fill();
+      }
+      // cosmic crown of void
+      cx.fillStyle='#ffd700';cx.globalAlpha=0.9;
+      for(let s=0;s<8;s++){
+        const angle=s*Math.PI/4+f*0.1;
+        const rx=Math.cos(angle)*14, ry=Math.sin(angle)*8-14;
+        cx.beginPath();cx.arc(C+rx,C+ry,2,0,Math.PI*2);cx.fill();
+      }
+      cx.globalAlpha=1;
+      // void tendrils at base
+      cx.strokeStyle=hl;cx.lineWidth=1.5;
+      for(let t=0;t<6;t++){
+        cx.globalAlpha=0.5;cx.beginPath();
+        cx.moveTo(C+(t-2.5)*5,C+18);cx.lineTo(C+(t-2.5)*7,C+24+f);cx.stroke();
+      }
+      cx.globalAlpha=1;
+    }
+
+    // Boss glow ring
+    if(isBoss){
+      cx.globalAlpha=0.25+f*0.05;
+      cx.fillStyle=hl;
+      cx.beginPath();cx.arc(C,C,SIZE/2-2,0,Math.PI*2);cx.fill();
+      cx.globalAlpha=1;
+    }
+
+    // Biome aura overlay (subtle)
+    cx.globalAlpha=0.2;
+    cx.fillStyle=auraCol;
+    cx.beginPath();cx.arc(C,C,SIZE/2-1,0,Math.PI*2);cx.fill();
+    cx.globalAlpha=1;
+
+    cx.restore();
+    return oc;
   }
 
-  // Biome aura
-  const auraColors={ice:'rgba(180,220,255,0.25)',desert:'rgba(255,200,60,0.25)',forest:'rgba(80,200,40,0.25)',lava:'rgba(255,80,0,0.3)'};
-  const biomeKey=key.split('_')[0];
-  if(auraColors[biomeKey]){
-    cx.fillStyle=auraColors[biomeKey];
-    cx.beginPath();cx.arc(16,16,14,0,Math.PI*2);cx.fill();
-  }
-  return [oc,oc,oc,oc]; // static frames for biome monsters (can animate later)
+  return [0,1,2,3].map(f=>makeFrame(f));
 }
 
 function buildAllBiomeMonsterSprites(){
@@ -2769,9 +3526,13 @@ let mobIdCtr = 0;
 
 function spawnMonsters(fl){
   monsters={};
+  window.mobRespawnQueue = []; // clear respawn queue on new floor
   const biome = currentBiome;
   const floorMult = 1+(fl-1)*0.15;
   const count = 5 + Math.min(5, Math.floor(fl/12));
+
+  // Check if this is a boss floor (101,106,111,...,146 = every 5 floors in special zone)
+  const isBossFloor = fl>=101 && fl<=150 && ((fl-101)%5===4);
 
   // Choose monster pool — biome monsters if in biome floor, else MOB_DEFS
   const isBiomeFloor = biome !== 'cave';
@@ -2784,13 +3545,52 @@ function spawnMonsters(fl){
   const cands=floors.filter(f=>Math.abs(f.x-gx)+Math.abs(f.y-gy)>8);
   const shuffled=[...cands].sort(()=>Math.random()-0.5);
 
+  // Spawn boss on boss floors (last mob in biome pool = boss)
+  if(isBossFloor && biomePool){
+    const bossIdx = biomePool.length-1;
+    const bossDef = biomePool[bossIdx];
+    if(shuffled.length>0){
+      const{x,y}=shuffled[0];
+      const id=++mobIdCtr;
+      const maxHp = Math.ceil(bossDef.hp * floorMult);
+      monsters[id]={
+        id, defIdx:-1, biome, biomeMobIdx:bossIdx,
+        wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander', isBoss:true,
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:x, ty:y,
+      };
+      // Show boss intro
+      setTimeout(()=>{
+        toast(`⚠️ BOSS: ${bossDef.n} awakens on floor ${fl}!`,'#ff2040',4000);
+        playBossAlert();
+      }, 500);
+    }
+    // Also spawn some regular minions for boss floors
+    for(let i=1;i<Math.min(4,shuffled.length);i++){
+      const{x,y}=shuffled[i];
+      const id=++mobIdCtr;
+      const poolIdx=Math.max(0,biomePool.length-3);
+      const def=biomePool[poolIdx];
+      const maxHp=Math.ceil(def.hp*floorMult);
+      monsters[id]={
+        id, defIdx:-1, biome, biomeMobIdx:poolIdx,
+        wx:x*TILE+TILE/2, wy:y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander',
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:x, ty:y,
+      };
+    }
+    return;
+  }
+
   for(let i=0;i<Math.min(count,shuffled.length);i++){
     const{x,y}=shuffled[i];
     const id=++mobIdCtr;
 
     if(biomePool){
       // Pick random mob from biome pool (weighted toward harder ones at deeper floors)
-      const poolIdx = Math.min(biomePool.length-1, Math.floor(Math.random()*biomePool.length*(0.4+fl/100)));
+      const poolIdx = Math.min(biomePool.length-2, Math.floor(Math.random()*(biomePool.length-1)*(0.4+fl/200)));
       const def = biomePool[poolIdx];
       const maxHp = Math.ceil(def.hp*floorMult);
       monsters[id]={
@@ -2812,6 +3612,62 @@ function spawnMonsters(fl){
       };
     }
   }
+}
+
+function tickRespawnQueue(){
+  if(!window.mobRespawnQueue || G._isVillage) return;
+  const queue = window.mobRespawnQueue;
+  const stillPending = [];
+
+  // Floor tiles far from player for spawning
+  const gx = Math.floor(gozo.wx/TILE), gy = Math.floor(gozo.wy/TILE);
+  const farFloors = [];
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++)
+    if(worldMap[y]&&worldMap[y][x]===T_FLOOR && !rocks[x+','+y]
+       && Math.abs(x-gx)+Math.abs(y-gy) > 10)
+      farFloors.push({x,y});
+
+  for(const entry of queue){
+    // Clear queue if player changed floor
+    if(entry.floor !== G.floor) continue;
+
+    entry.timer--;
+    if(entry.timer > 0){ stillPending.push(entry); continue; }
+
+    // Timer expired — spawn if there's a valid far tile
+    if(farFloors.length === 0){ stillPending.push({...entry, timer:60}); continue; }
+
+    const pos = farFloors[Math.floor(Math.random()*farFloors.length)];
+    const id = ++mobIdCtr;
+    const floorMult = 1+(G.floor-1)*0.15;
+
+    if(entry.biome && entry.biomeMobIdx >= 0 && BIOME_MOBS[entry.biome]){
+      const def = BIOME_MOBS[entry.biome][entry.biomeMobIdx];
+      const maxHp = Math.ceil(def.hp*floorMult);
+      monsters[id] = {
+        id, defIdx:-1, biome:entry.biome, biomeMobIdx:entry.biomeMobIdx,
+        wx:pos.x*TILE+TILE/2, wy:pos.y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander',
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:pos.x, ty:pos.y,
+      };
+    } else if(entry.defIdx >= 0){
+      const def = MOB_DEFS[Math.min(entry.defIdx, 99)];
+      const maxHp = Math.ceil(def.hp*floorMult);
+      monsters[id] = {
+        id, defIdx:entry.defIdx, biome:null, biomeMobIdx:-1,
+        wx:pos.x*TILE+TILE/2, wy:pos.y*TILE+TILE-4,
+        hp:maxHp, maxHp, state:'wander',
+        dir:'S', frameT:0, frame:0, animT:0,
+        atkCd:0, wanderT:0, tx:pos.x, ty:pos.y,
+      };
+    }
+    // Show subtle respawn indicator (no toast — just a small particle)
+    const sx = Math.round(pos.x*TILE+TILE/2-camX);
+    const sy = Math.round(pos.y*TILE-camY);
+    spawnDmg(sx, sy, '👁', '#a060ff', 7);
+  }
+  window.mobRespawnQueue = stillPending;
 }
 
 function updateMonsters(){
@@ -2860,8 +3716,10 @@ function updateMonsters(){
         if(canWalk(nx,m.wy)&&!mobCollidesAt(nx,m.wy,id))m.wx=nx;
         if(canWalk(m.wx,ny)&&!mobCollidesAt(m.wx,ny,id))m.wy=ny;
       } else if(m.atkCd<=0){
-        // Attack Gozo
+        // Attack Gozo — reduced by level DEF
         let dmg=Math.ceil(def.dmg*flMult);
+        const defReduction = Math.floor(getLvlDef() * 0.6); // DEF reduces ~60% of bonus
+        dmg = Math.max(1, dmg - defReduction);
         if(BUFFS.shield>0){
           const absorbed=Math.min(BUFFS.shield,dmg);
           BUFFS.shield-=absorbed; dmg-=absorbed;
@@ -2873,7 +3731,7 @@ function updateMonsters(){
         shakeAmt=4;
         const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-20);
         spawnDmg(sx,sy-10,`-${dmg}`,'#f04040',8);
-        if(G.hp<=0) handleGozoDeath();
+        if(G.hp<=0 && !G._isDead) handleGozoDeath();
       }
     } else {
       // Wander
@@ -2907,7 +3765,7 @@ function hitMonster(id){
   const m=monsters[id];
   if(!m)return;
   const wep=G.equippedWeapon?WEAPONS[G.equippedWeapon]:null;
-  const baseDmg=wep?wep.dmg:getDmg();
+  const baseDmg=(wep?wep.dmg:getDmg()) + getLvlAtk();
   const strMult = BUFFS.str>0 ? (BUFFS.strMult||2) : 1;
   let dmg=Math.floor(baseDmg*strMult);
   let isCrit=false;
@@ -2929,11 +3787,26 @@ function killMonster(id){
   const sx=Math.round(m.wx-camX), sy=Math.round(m.wy-camY);
   spawnDmg(sx,sy-10,'💀 DEFEATED','#f0c840',8);
 
-  // Drop weapon (35% chance)
-  if(Math.random()<0.35&&def.drop){
+  // EXP gain — based on monster HP and floor
+  const expGain = Math.ceil((def.hp * 0.4 + G.floor * 1.2));
+  gainExp(expGain);
+  spawnDmg(sx+8,sy-22,`+${expGain} EXP`,'#80ffcc',7);
+
+  // Drop weapon — GUARANTEED for bosses, 35% for normal
+  const isBossKill = !!m.isBoss;
+  if((isBossKill || Math.random()<0.35) && def.drop){
     const wid=def.drop;
-    const added=addToInventory({type:'weapon',id:wid,qty:1});
-    if(added)spawnDmg(sx,sy-28,`⚔️ ${WEAPONS[wid].name}`,'#f08040',7);
+    if(WEAPONS[wid]){
+      const added=addToInventory({type:'weapon',id:wid,qty:1});
+      if(added){
+        const col = isBossKill ? (WEAPONS[wid].color||'#ffd700') : '#f08040';
+        spawnDmg(sx,sy-28,`${WEAPONS[wid].icon||'⚔️'} ${WEAPONS[wid].name}`,col,isBossKill?12:7);
+        if(isBossKill){
+          setTimeout(()=>toast(`🏆 BOSS SLAIN! You obtained: ${WEAPONS[wid].name}!`,'#ffd700',5000),200);
+          playBossAlert(); // victory fanfare reuse
+        }
+      }
+    }
   }
   // Drop pickaxe (tiered chance based on floor)
   const pickRoll = Math.random();
@@ -2978,9 +3851,21 @@ function killMonster(id){
   }
 
   delete monsters[id];
+
+  // Queue this monster for respawn after 15 seconds (900 frames)
+  if(!window.mobRespawnQueue) window.mobRespawnQueue = [];
+  window.mobRespawnQueue.push({
+    defIdx: m.defIdx,
+    biome:  m.biome,
+    biomeMobIdx: m.biomeMobIdx,
+    floor:  G.floor,
+    timer:  900, // 15s at 60fps
+  });
 }
 
 function handleGozoDeath(){
+  if(G._isDead) return;
+  G._isDead = true;
   G.hp=0;
   updateGozoHpBar();
   // Play death sound
@@ -3066,31 +3951,13 @@ function showDeathScreen(){
 function respawnAtShrine(){
   const overlay=document.getElementById('death-screen');
   if(overlay) overlay.remove();
+  G._isDead = false;
 
   // Coin penalty
   const lost=Math.floor(G.coins*0.3);
   G.coins=G.coins-lost;
-  G.hp=Math.floor(G.maxHp*0.5); // respawn at 50% HP
 
-  // Go back to village, position at shrine
-  G.floor=0;
-  initVillage();
-
-  // Override gozo position to shrine
-  if(G._shrinePos){
-    gozo.wx=G._shrinePos.tx*TILE+TILE/2;
-    gozo.wy=(G._shrinePos.ty+1)*TILE;
-  }
-  G.hp=Math.floor(G.maxHp*0.5);
-  updateGozoHpBar();
-  updateHud();
-
-  // Respawn soul stone flash effect
-  G._shrineFlash=Date.now();
-
-  toast(`🕯️ Gozo respawned at the Soul Shrine! Lost ${lost} coins.`);
-
-  // Play respawn chime
+  // Play respawn chime first (before floor change)
   try{
     const ctx=getAudioCtx();
     const now=ctx.currentTime;
@@ -3104,18 +3971,47 @@ function respawnAtShrine(){
       o.start(now+i*0.12); o.stop(now+i*0.12+0.45);
     });
   }catch(e){}
+
+  // Go back to village
+  G.floor=0;
+  G._isVillage=true;
+  if(!G.visitedFloors.includes(0)) G.visitedFloors.unshift(0);
+
+  genVillage();
+  Music.play('village');
+
+  // Set HP after genVillage (genVillage may reset state)
+  G.hp=Math.floor(G.maxHp*0.5);
+  updateGozoHpBar();
+  updateHud();
+
+  // Override gozo position to shrine
+  if(G._shrinePos){
+    gozo.wx=G._shrinePos.tx*TILE+TILE/2;
+    gozo.wy=(G._shrinePos.ty+1)*TILE;
+  }
+
+  // Respawn soul stone flash effect
+  G._shrineFlash=Date.now();
+
+  toast(`🕯️ Gozo respawned at the Soul Shrine! Lost ${lost} coins.`);
 }
 
 function respawnAtSurface(){
   const overlay=document.getElementById('death-screen');
   if(overlay) overlay.remove();
+  G._isDead = false;
 
   const lost=Math.floor(G.coins*0.3);
   G.coins=G.coins-lost;
-  G.hp=Math.floor(G.maxHp*0.35); // weaker if no shrine
 
   G.floor=0;
-  initVillage();
+  G._isVillage=true;
+  if(!G.visitedFloors.includes(0)) G.visitedFloors.unshift(0);
+
+  genVillage();
+  Music.play('village');
+
   G.hp=Math.floor(G.maxHp*0.35);
   updateGozoHpBar();
   updateHud();
@@ -3601,10 +4497,12 @@ const SHOP_BUY = {
   bomb:200,
   // Ores (buy)
   iron:20, gold:100, diamond:600,
+  steel:1200, titanium:2500, tungsten:4000, chromium:3000,
 };
 // Shop sell prices (player sells to NPC) — ~60% of buy
 const SHOP_SELL = {
   iron:15,gold:80,diamond:500,
+  steel:900, titanium:2000, tungsten:3200, chromium:2400,
 };
 
 let shopState = { npc:null, tab:'buy', selectedItem:null };
@@ -5277,11 +6175,16 @@ function getShopInventory(shopType){
   } else if(shopType==='pickaxe'){
     for(const pid in PICKAXES) items.push({id:pid,name:PICKAXES[pid].name,icon:'⛏',price:SHOP_BUY[pid]||100,tier:PICKAXES[pid].tier,desc:`DMG +${PICKAXES[pid].dmg} | ${PICKAXES[pid].tier}`});
   } else if(shopType==='bomb'){
-    items.push({id:'bomb',name:'Bomb',icon:'💣',price:SHOP_BUY.bomb||200,tier:'Common',desc:'Blasts rocks in radius'});
+    items.push({id:'bomb',  name:'Bomb',  icon:'💣', price:SHOP_BUY.bomb||200, tier:'Common',   desc:'Blasts rocks in radius'});
+    items.push({id:'ladder',name:'Ladder',icon:'🪜', price:1,                  tier:'Common',   desc:'Instantly go 1 floor deeper'});
   } else if(shopType==='ore'){
-    items.push({id:'iron',name:'Iron Ore',icon:'🪨',price:SHOP_BUY.iron||20,tier:'Common',desc:'Craft & sell material'});
-    items.push({id:'gold',name:'Gold Ore',icon:'✨',price:SHOP_BUY.gold||100,tier:'Uncommon',desc:'Valuable ore'});
-    items.push({id:'diamond',name:'Diamond',icon:'💎',price:SHOP_BUY.diamond||600,tier:'Rare',desc:'Rare precious gem'});
+    items.push({id:'iron',    name:'Iron Ore',   icon:'🪨', price:SHOP_BUY.iron||20,     tier:'Common',    desc:'Craft & sell material'});
+    items.push({id:'gold',    name:'Gold Ore',   icon:'✨', price:SHOP_BUY.gold||100,    tier:'Uncommon',  desc:'Valuable ore'});
+    items.push({id:'diamond', name:'Diamond',    icon:'💎', price:SHOP_BUY.diamond||600, tier:'Rare',      desc:'Rare precious gem'});
+    items.push({id:'steel',   name:'Baja',       icon:'🔩', price:SHOP_BUY.steel||1200,  tier:'Epic',      desc:'Deep metal fl.101+ only'});
+    items.push({id:'titanium',name:'Titanium',   icon:'🔷', price:SHOP_BUY.titanium||2500,tier:'Epic',     desc:'Ultra-strong fl.101+ only'});
+    items.push({id:'tungsten',name:'Tungsten',   icon:'⬛', price:SHOP_BUY.tungsten||4000,tier:'Legendary',desc:'Densest metal fl.101+ only'});
+    items.push({id:'chromium',name:'Chromium',   icon:'💚', price:SHOP_BUY.chromium||3000,tier:'Legendary',desc:'Rare alloy fl.101+ only'});
   }
   return items;
 }
@@ -5378,7 +6281,10 @@ function shopBuy(){
   if(npc.shop==='weapon') added=addToInventory({type:'weapon',id:item.id,qty:1});
   else if(npc.shop==='potion') added=addToInventory({type:'potion',id:item.id,qty:1});
   else if(npc.shop==='pickaxe') added=addToInventory({type:'pickaxe',id:item.id,qty:1});
-  else if(npc.shop==='bomb'){ G.tntCount++; updateHud(); added=true; }
+  else if(npc.shop==='bomb'){
+    if(item.id==='ladder'){ G.ladder++; updateHud(); added=true; }
+    else { G.tntCount++; updateHud(); added=true; }
+  }
   else if(npc.shop==='ore') added=addToInventory({type:'ore',id:item.id,qty:1});
   if(added){ G.coins-=item.price; updateHud(); updateShopGold(); toast(`✅ Bought ${item.name}!`); renderShopItems(); updateShopAction(item,'buy'); }
 }
@@ -5538,7 +6444,7 @@ function genFloor(fl){
   // Scatter rocks (~10% of floor)
   rocks={};
   const floorMult = 1 + (fl - 1) * 0.20;
-  const baseHits = { stone: 4, iron: 8, gold: 16, diamond: 32 };
+  const baseHits = { stone:4, iron:8, gold:16, diamond:32, steel:40, titanium:60, tungsten:80, chromium:50 };
   const numRocks=Math.floor(floors.length*0.10);
   const shuffled=[...floors].sort(()=>Math.random()-0.5);
   for(let i=0;i<Math.min(numRocks,shuffled.length);i++){
@@ -5580,15 +6486,38 @@ function genFloor(fl){
 }
 
 const typeKeys=['stone','iron','gold','diamond'];
+const typeKeysDeep=['steel','titanium','tungsten','chromium'];
 function rockWeights(fl){
-  if(fl<=5)  return[88,12,0,0];
-  if(fl<=15) return[65,26,9,0];
-  if(fl<=30) return[48,30,17,5];
-  if(fl<=50) return[35,30,22,13];
-  if(fl<=75) return[22,28,28,22];
+  if(fl>=101) return[0,0,0,0]; // handled separately
+  if(fl<=5)   return[88,12,0,0];
+  if(fl<=15)  return[65,26,9,0];
+  if(fl<=30)  return[48,30,17,5];
+  if(fl<=50)  return[35,30,22,13];
+  if(fl<=75)  return[22,28,28,22];
   return[10,22,30,38];
 }
-function pickType(fl){const w=rockWeights(fl);let r=Math.random()*100,s=0;for(let i=0;i<4;i++){s+=w[i];if(r<s)return typeKeys[i];}return'stone';}
+function rockWeightsDeep(fl){
+  // fl 101-150: mix of all 4 new metals + some stone, weighted toward rarer at deeper floors
+  const depth = fl - 101; // 0-49
+  // stone | steel | titanium | tungsten | chromium
+  if(depth<10)  return[20,50,20,8,2];
+  if(depth<20)  return[12,40,28,14,6];
+  if(depth<30)  return[8, 30,30,20,12];
+  if(depth<40)  return[5, 22,28,26,19];
+  return             [3, 15,25,28,29];
+}
+function pickType(fl){
+  if(fl>=101){
+    const w=rockWeightsDeep(fl);
+    const keys=['stone',...typeKeysDeep];
+    let r=Math.random()*100,s=0;
+    for(let i=0;i<keys.length;i++){s+=w[i];if(r<s)return keys[i];}
+    return'steel';
+  }
+  const w=rockWeights(fl);let r=Math.random()*100,s=0;
+  for(let i=0;i<4;i++){s+=w[i];if(r<s)return typeKeys[i];}
+  return'stone';
+}
 
 // ═══════════════════════════════════════════════════════════
 //  GOZO
@@ -6022,32 +6951,46 @@ function render(){
   for(const m of mobList){
     const mpx=Math.round(m.wx-cx2)+ox;
     const mpy=Math.round(m.wy-cy2)+oy;
+    const isBossM = !!m.isBoss;
+    const sprSize = isBossM ? 48 : 32;
+    const shadowR = isBossM ? 22 : 13;
+
+    // Boss glow pulse
+    if(isBossM){
+      const pulse = 0.3+Math.sin(m.animT*0.08)*0.15;
+      const def = m.biome && m.biomeMobIdx>=0 ? BIOME_MOBS[m.biome][m.biomeMobIdx] : null;
+      const glowCol = def ? def.hl : '#ff2020';
+      gctx.save();
+      gctx.globalAlpha=pulse;
+      gctx.fillStyle=glowCol;
+      gctx.beginPath();gctx.ellipse(mpx,mpy,sprSize,sprSize*0.7,0,0,Math.PI*2);gctx.fill();
+      gctx.globalAlpha=1; gctx.restore();
+    }
+
     // Shadow
-    gctx.fillStyle='rgba(0,0,0,0.28)';
-    gctx.beginPath();gctx.ellipse(mpx,mpy+4,13,5,0,0,Math.PI*2);gctx.fill();
+    gctx.fillStyle=`rgba(0,0,0,${isBossM?0.45:0.28})`;
+    gctx.beginPath();gctx.ellipse(mpx,mpy+4,shadowR,Math.floor(shadowR*0.38),0,0,Math.PI*2);gctx.fill();
+
     // Animated sprite — cycle 4 frames
     m.animT=(m.animT||0)+1;
-    const animFrame = Math.floor(m.animT/10)%4; // change frame every 10 ticks
+    const animFrame = Math.floor(m.animT/10)%4;
     const frames = m.biome && m.biomeMobIdx>=0
       ? BIOME_MOB_SPR[m.biome]?.[m.biomeMobIdx]
       : MOB_SPR[m.defIdx];
     const spr=frames?frames[animFrame]:null;
-    if(spr) gctx.drawImage(spr,mpx-16,mpy-28);
-    // HP bar above monster
-    const hpPct=m.hp/m.maxHp;
-    const bw=34,bh=4,bx=mpx-17,by=mpy-36;
-    gctx.fillStyle='#1a0808'; gctx.fillRect(bx,by,bw,bh);
-    gctx.fillStyle=hpPct>0.5?'#30c030':hpPct>0.25?'#c0a020':'#e02020';
-    gctx.fillRect(bx,by,Math.round(bw*hpPct),bh);
-    // Monster name on hover (show always for clarity)
-    gctx.fillStyle='rgba(0,0,0,0.55)';
-    gctx.fillRect(bx,by-11,bw,9);
-    gctx.fillStyle='#e0c080';
-    gctx.font='5px monospace';
-    const mobName = m.biome && m.biomeMobIdx>=0
-      ? BIOME_MOBS[m.biome][m.biomeMobIdx].n
-      : MOB_DEFS[m.defIdx].n;
-    gctx.fillText(mobName.slice(0,12),bx+1,by-4);
+    if(spr) gctx.drawImage(spr, mpx-sprSize/2, mpy-sprSize+4, sprSize, sprSize);
+
+    // Boss name tag
+    if(isBossM){
+      const def = m.biome && m.biomeMobIdx>=0 ? BIOME_MOBS[m.biome][m.biomeMobIdx] : null;
+      if(def){
+        gctx.save();
+        gctx.fillStyle='rgba(0,0,0,0.7)'; gctx.fillRect(mpx-28,mpy-sprSize-10,56,9);
+        gctx.fillStyle='#ffd700'; gctx.font='bold 7px monospace';
+        gctx.textAlign='center'; gctx.fillText('⚔ '+def.n.slice(0,14),mpx,mpy-sprSize-3);
+        gctx.textAlign='left'; gctx.restore();
+      }
+    }
   }
 
   // Draw Miner NPCs
@@ -6890,6 +7833,26 @@ function smashRock(r){
     addToInventory({type:'ore',id:'diamond',qty});
     spawnDmg(sx,   sy-50,`+${qty} diam`,'#80f0f0',9);
   }
+  if(loot.steel){
+    const qty=loot.steel*mag;
+    addToInventory({type:'ore',id:'steel',qty});
+    spawnDmg(sx+6, sy-26,`+${qty} baja`,'#a0c8f0',8);
+  }
+  if(loot.titanium){
+    const qty=loot.titanium*mag;
+    addToInventory({type:'ore',id:'titanium',qty});
+    spawnDmg(sx-6, sy-38,`+${qty} titanium`,'#c0c8ff',8);
+  }
+  if(loot.tungsten){
+    const qty=loot.tungsten*mag;
+    addToInventory({type:'ore',id:'tungsten',qty});
+    spawnDmg(sx,   sy-50,`+${qty} tungsten`,'#d8d8d8',9);
+  }
+  if(loot.chromium){
+    const qty=loot.chromium*mag;
+    addToInventory({type:'ore',id:'chromium',qty});
+    spawnDmg(sx+4, sy-62,`+${qty} chromium`,'#40e860',9);
+  }
   if(loot.ladder){
     G.ladder++;
     ladderTile={tx:r.tx,ty:r.ty};
@@ -6901,12 +7864,15 @@ function smashRock(r){
 
 function rollLoot(type,fl){
   const luck=getLuck(),helmB=G.upg.helmet.lv*.25;
-  const res={coins:0,iron:0,gold:0,diamond:0,ladder:false};
-  // No direct coins — player earns coins by selling minerals
+  const res={coins:0,iron:0,gold:0,diamond:0,steel:0,titanium:0,tungsten:0,chromium:0,ladder:false};
   if(Math.random()<Math.min(.45,.06+fl*.003+luck*.6+helmB))res.ladder=true;
   if(type==='iron'){res.iron=1+(Math.random()<.35+luck?1:0);}
   else if(type==='gold'){res.gold=1+(Math.random()<.28+luck?1:0);}
   else if(type==='diamond'){res.diamond=1+(Math.random()<.18+luck?1:0);}
+  else if(type==='steel'){res.steel=1+(Math.random()<.32+luck?1:0);}
+  else if(type==='titanium'){res.titanium=1+(Math.random()<.26+luck?1:0);}
+  else if(type==='tungsten'){res.tungsten=1+(Math.random()<.20+luck?1:0);}
+  else if(type==='chromium'){res.chromium=1+(Math.random()<.22+luck?1:0);}
   else if(Math.random()<.40+luck)res.iron=1; // stone sometimes drops iron
   return res;
 }
@@ -6915,7 +7881,7 @@ function rollLoot(type,fl){
 //  SELL / UPGRADE / FLOOR
 // ═══════════════════════════════════════════════════════════
 function sell(type){
-  const p={iron:15,gold:80,diamond:500};
+  const p={iron:15,gold:80,diamond:500,steel:1200,titanium:2500,tungsten:4000,chromium:3000};
   let totalQty=0;
   const slots=G.invSlots||30;
   for(let i=0;i<slots;i++){
@@ -7285,6 +8251,7 @@ function updateHud(){
   if(ladQty) ladQty.textContent=G.ladder;
   const tntQty=document.getElementById('tnt-qty');
   if(tntQty) tntQty.textContent=G.tntCount||0;
+  updateLevelBar();
   updateUpgUI();
 }
 function updateUpgUI(){
@@ -7303,7 +8270,29 @@ function updateUpgUI(){
   }
 }
 function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return Math.floor(n);}
-let tt;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2800);}
+let tt;function toast(msg,col,dur){const t=document.getElementById('toast');t.textContent=msg;if(col)t.style.color=col;else t.style.color='';t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),dur||2800);}
+function playBossAlert(){
+  try{
+    const ctx=getAudioCtx(); const now=ctx.currentTime;
+    // Ominous boss stinger — low rumble + high shriek
+    for(let i=0;i<3;i++){
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth'; o.frequency.setValueAtTime(80-i*15,now+i*0.25);
+      o.frequency.exponentialRampToValueAtTime(40-i*10,now+i*0.25+0.4);
+      g.gain.setValueAtTime(0.18,now+i*0.25);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.25+0.6);
+      o.start(now+i*0.25); o.stop(now+i*0.25+0.6);
+    }
+    // shriek
+    const os=ctx.createOscillator(); const gs=ctx.createGain();
+    os.connect(gs);gs.connect(ctx.destination);
+    os.type='sine'; os.frequency.setValueAtTime(600,now+0.3);
+    os.frequency.exponentialRampToValueAtTime(1200,now+0.7);
+    gs.gain.setValueAtTime(0.12,now+0.3); gs.gain.exponentialRampToValueAtTime(0.001,now+1.0);
+    os.start(now+0.3); os.stop(now+1.0);
+  }catch(e){}
+}
 
 // ═══════════════════════════════════════════════════════════
 //  GAME LOOP
@@ -7317,6 +8306,7 @@ function loop(){
   } else {
     updateGozo();
     updateMonsters();
+    tickRespawnQueue();
     updateMinerNPCs();
     tickBuffs();
     render();
@@ -7347,7 +8337,6 @@ document.addEventListener('keydown',e=>{
   KEYS[e.key]=true;
   if(e.key==='t'||e.key==='T')toggleUpgPanel();
   if(e.key==='i'||e.key==='I')toggleInv();
-  if(e.key==='m'||e.key==='M')togglePortal();
   if(e.key==='3') useBomb();
   if(e.key==='4') deployLadder();
   if(e.key==='e'||e.key==='E'){
