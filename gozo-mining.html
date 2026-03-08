@@ -162,7 +162,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 .shop-item:hover{border-color:#c08030;background:rgba(192,128,48,.1);}
 .shop-item.selected{border-color:#f0c840;background:rgba(240,200,64,.12);}
 .si-top{display:flex;align-items:center;gap:6px;}
-.si-icon{font-size:20px;line-height:1;flex-shrink:0;}
+.si-icon{font-size:20px;line-height:1;flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
 .si-name{font-family:'Press Start 2P',monospace;font-size:5px;color:#e0c090;line-height:1.5;}
 .si-tier{font-family:'Press Start 2P',monospace;font-size:4px;margin-top:1px;}
 .si-price{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;}
@@ -497,6 +497,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
       <div id="shop-gold-bar">💰 <span id="shop-gold-amt">0</span>g</div>
       <button id="shop-buy-btn" disabled onclick="shopBuy()">BUY</button>
       <button id="shop-sell-btn" disabled onclick="shopSell()">SELL</button>
+      <button id="shop-sellall-btn" onclick="shopSellAll()" style="display:none;width:100%;margin-top:4px;padding:5px;background:rgba(255,160,40,.12);border:1px solid #c07820;color:#ffb040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 SELL ALL</button>
     </div>
   </div>
 </div>
@@ -515,8 +516,13 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   <div class="hotbar">
     <div class="hslot active" id="slot-pick" title="Pickaxe" onclick="equipSlot('pick')"><span class="slot-num">1</span><span class="slot-icon">⛏️</span></div>
     <div class="hslot" id="slot-weapon" title="Weapon" onclick="equipSlot('weapon')"><span class="slot-num">2</span><span id="weapon-icon" class="slot-icon">👊</span></div>
-    <div class="hslot" title="Bomb — Click to use!" id="slot-tnt" onclick="useBomb()" onmouseenter="G._showBombRadius=true" onmouseleave="G._showBombRadius=false" style="cursor:pointer;"><span class="slot-num">3</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
-    <div class="hslot" title="Ladder — Click to deploy!" id="slot-ladder" onclick="deployLadder()" style="cursor:pointer;"><span class="slot-num">4</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
+    <div class="hslot" id="slot-armor" title="Armor — Click to manage" onclick="openArmorSlot()" style="position:relative;">
+      <span class="slot-num">3</span>
+      <span class="slot-icon" id="armor-icon">🫙</span>
+      <span class="slot-qty" id="armor-name-hud" style="position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:4px;color:#80c0ff;white-space:nowrap;overflow:hidden;"></span>
+    </div>
+    <div class="hslot" title="Bomb — Click to use!" id="slot-tnt" onclick="useBomb()" onmouseenter="G._showBombRadius=true" onmouseleave="G._showBombRadius=false" style="cursor:pointer;"><span class="slot-num">4</span><span class="slot-icon">💣</span><span class="slot-qty" id="tnt-qty">0</span></div>
+    <div class="hslot" title="Ladder — Click to deploy!" id="slot-ladder" onclick="deployLadder()" style="cursor:pointer;"><span class="slot-num">5</span><span class="slot-icon">🪜</span><span class="slot-qty" id="lad-slot-qty">0</span></div>
   </div>
   <!-- Stats -->
   <div class="hud-stats">
@@ -1442,6 +1448,7 @@ const G={
   level:1, exp:0,
   equippedWeapon:null,
   equippedPickaxe:'wooden_pick',
+  equippedArmor:null,  // equipped accessory/armor item id
   inventory:Array(30).fill(null),
   invSlots:30,
   upg:{
@@ -1496,7 +1503,11 @@ function updateLevelBar(){
   const hsDef = document.getElementById('hs-def');
   if(hsLv)  hsLv.textContent  = G.level;
   if(hsAtk) hsAtk.textContent = '+' + getLvlAtk();
-  if(hsDef) hsDef.textContent = '+' + getLvlDef();
+  // DEF = level def + armor bonus
+  const armorDef = G.equippedArmor ? (CRAFTED_ITEMS[G.equippedArmor]?.val||0) : 0;
+  if(hsDef) hsDef.textContent = '+' + (getLvlDef() + armorDef);
+  // Update armor HUD slot
+  updateArmorHud();
 }
 
 function showLevelUpEffect(){
@@ -1530,7 +1541,7 @@ const getDmg  =()=>{
 const getCrit =()=>G.upg.crit.lv*0.10;
 const getLuck =()=>G.upg.lucky.lv*0.09+((typeof BUFFS!=='undefined'&&BUFFS.luck>0)?0.15:0);
 const getMag  =()=>G.upg.magnet.lv>=1?2:1;
-const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1)*(BUFFS.frozen>0?0.35:1);
+const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1)*(BUFFS.frozen>0?0.35:1)*(typeof getArmorSpeedMult!=='undefined'?getArmorSpeedMult():1);
 const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
 
 // ═══════════════════════════════════════════════════════════
@@ -1547,7 +1558,7 @@ const PICKAXES = {
 // Tier colors for UI
 const TIER_COLOR = {Common:'#c0c0c0', Uncommon:'#40d040', Rare:'#4080ff', Epic:'#c040f0', Legendary:'#ff8c00'};
 
-// ── Draw pickaxe pixel art sprite (48×48) — 2.5D isometric style ──
+// ── Draw pickaxe pixel art sprite (40×40) — based on reference image ──
 const PICK_SPR = {};
 function buildPickaxeSprite(id){
   const p = PICKAXES[id];
@@ -1556,106 +1567,177 @@ function buildPickaxeSprite(id){
   const cx = oc.getContext('2d');
   cx.imageSmoothingEnabled=false;
 
-  const hc  = p.handleCol;   // handle wood color
-  const hcl = lighten(hc,30);
-  const mc  = p.headCol;     // metal head color
-  const mcl = lighten(mc,40);
-  const mcd = darken(mc,30);
-  const gc  = p.gemCol;
+  // Colors derived from player's reference image
+  // Head = blue/cyan tones, handle = orange-brown diagonal
+  const headBase  = p.headCol;               // e.g. '#48b8d0' for diamond
+  const headLight = lighten(p.headCol, 55);  // bright cyan highlight
+  const headMid   = lighten(p.headCol, 20);  // mid tone
+  const headDark  = darken(p.headCol,  40);  // shadow/underside
+  const headEdge  = darken(p.headCol,  70);  // dark outline
 
-  // ── Handle — diagonal rod bottom-left to center ──
-  // Shadow under handle
-  cx.fillStyle='rgba(0,0,0,0.25)';
-  for(let i=0;i<14;i++) cx.fillRect(8+i+1, 28-i+1, 3, 3);
-  // Handle body (3px wide diagonal)
-  cx.fillStyle=hc;
-  for(let i=0;i<14;i++) cx.fillRect(8+i, 28-i, 3, 3);
-  // Handle highlight (top edge)
-  cx.fillStyle=hcl;
-  for(let i=0;i<14;i++) cx.fillRect(8+i, 28-i, 3, 1);
-  // Handle end cap
-  cx.fillStyle=darken(hc,20);
-  cx.fillRect(8,28,4,4);
-  cx.fillStyle=hcl; cx.fillRect(9,29,2,1);
+  const hndBase   = p.handleCol;             // e.g. '#c05020' orange
+  const hndLight  = lighten(p.handleCol, 50);
+  const hndDark   = darken(p.handleCol,  35);
+  const hndEdge   = darken(p.handleCol,  65);
 
-  // ── Pickaxe head — 2.5D isometric block ──
-  // Top face (lighter — facing up)
-  cx.fillStyle=mcl;
-  cx.beginPath();
-  cx.moveTo(18,8); cx.lineTo(32,8); cx.lineTo(28,14); cx.lineTo(14,14);
-  cx.closePath(); cx.fill();
+  const OUT = 'rgba(0,0,0,0.75)';  // pixel outline
 
-  // Left face (medium — side)
-  cx.fillStyle=mc;
-  cx.beginPath();
-  cx.moveTo(14,14); cx.lineTo(18,8); cx.lineTo(18,20); cx.lineTo(14,26);
-  cx.closePath(); cx.fill();
+  // Helper: fill a single pixel
+  const px = (x,y,col)=>{ cx.fillStyle=col; cx.fillRect(x,y,1,1); };
+  const rect = (x,y,w,h,col)=>{ cx.fillStyle=col; cx.fillRect(x,y,w,h); };
 
-  // Right face (darkest — shadow side)
-  cx.fillStyle=mcd;
-  cx.beginPath();
-  cx.moveTo(28,8); cx.lineTo(32,8); cx.lineTo(32,20); cx.lineTo(28,20);
-  cx.closePath(); cx.fill();
+  // ══════════════════════════════════════════════
+  //  HANDLE — diagonal, bottom-right going up-left
+  //  Reference: orange column at x=22-29, y=13-38
+  // ══════════════════════════════════════════════
+  // Handle segments (from reference pixel map, O=orange zone)
+  const hndSegs = [
+    // [x, y, w, h]  — each step of diagonal
+    [22,13, 2,2],
+    [22,15, 2,2],[23,15,2,2],
+    [22,17, 3,2],[23,17,2,2],
+    [22,19, 3,2],
+    [23,21, 3,2],
+    [23,23, 3,2],
+    [24,25, 3,2],
+    [24,27, 3,2],
+    [25,29, 3,2],
+    [25,31, 3,2],
+    [26,33, 3,2],
+    [26,35, 3,2],
+    [27,37, 3,2],
+  ];
+  // Shadow
+  for(const[x,y,w,h] of hndSegs) rect(x+1,y+1,w,h,'rgba(0,0,0,0.28)');
+  // Dark side (right edge)
+  for(const[x,y,w,h] of hndSegs) rect(x+w-1,y,1,h,hndDark);
+  // Base fill
+  for(const[x,y,w,h] of hndSegs) rect(x,y,w,h,hndBase);
+  // Light side (left edge)
+  for(const[x,y,w,h] of hndSegs) rect(x,y,1,h,hndLight);
+  // Top highlight strip
+  for(const[x,y,w] of hndSegs) rect(x,y,w,1,hndLight);
+  // Outline
+  for(const[x,y,w,h] of hndSegs){
+    px(x-1,y,OUT); px(x+w,y+h-1,OUT);
+  }
 
-  // Front face (main visible face)
-  cx.fillStyle=mc;
-  cx.beginPath();
-  cx.moveTo(14,14); cx.lineTo(28,14); cx.lineTo(28,20); cx.lineTo(14,26);
-  cx.closePath(); cx.fill();
+  // ══════════════════════════════════════════════
+  //  HEAD — large curved crescent, upper-left area
+  //  Reference: B zone rows 2-28, x=0-27
+  // ══════════════════════════════════════════════
+  // Head shape defined as rows [x, y, width]
+  const headRows = [
+    // tip top
+    [16, 1, 10],
+    [14, 2, 13],
+    [12, 3, 16],
+    [11, 4, 18],
+    [10, 5, 19],
+    // upper blade — widest
+    [9,  6, 17],
+    [8,  7, 17],
+    [8,  8, 13],
+    [8,  9, 13],
+    [7, 10, 14],
+    [5, 11, 16],
+    [4, 12, 16],
+    [4, 13, 14],
+    [3, 14, 14],
+    [3, 15, 13],
+    // mid-lower taper
+    [2, 16, 12],
+    [2, 17, 12],
+    [2, 18, 11],
+    [2, 19, 11],
+    [1, 20, 11],
+    [1, 21, 10],
+    [1, 22,  9],
+    [1, 23,  7],
+    [1, 24,  6],
+    [1, 25,  6],
+    [2, 26,  4],
+    [2, 27,  3],
+    [2, 28,  2],
+  ];
 
-  // Bottom face edge
-  cx.fillStyle=mcd;
-  cx.beginPath();
-  cx.moveTo(14,26); cx.lineTo(28,20); cx.lineTo(32,20); cx.lineTo(18,26);
-  cx.closePath(); cx.fill();
+  // Shadow pass
+  for(const[x,y,w] of headRows) rect(x+1,y+1,w,1,'rgba(0,0,0,0.22)');
+  // Dark underside (bottom edge of each row = shadow)
+  for(const[x,y,w] of headRows) rect(x,y,w,1,headDark);
+  // Base fill
+  for(const[x,y,w] of headRows) rect(x,y,w,1,headBase);
 
-  // ── Pick point — sharp tip ──
-  // Top spike (mine upward)
-  cx.fillStyle=mcl;
-  cx.beginPath(); cx.moveTo(32,8); cx.lineTo(38,4); cx.lineTo(36,12); cx.lineTo(32,14); cx.closePath(); cx.fill();
-  cx.fillStyle=mcd;
-  cx.beginPath(); cx.moveTo(32,14); cx.lineTo(36,12); cx.lineTo(38,14); cx.lineTo(32,20); cx.closePath(); cx.fill();
-  // Tip glint
-  cx.fillStyle='#ffffff'; cx.fillRect(36,5,2,2);
+  // Repaint top rows with lighter tone (upper face of head)
+  for(const[x,y,w] of headRows.slice(0,8)) rect(x,y,w,1,headLight);
+  for(const[x,y,w] of headRows.slice(8,16)) rect(x,y,w,1,headMid);
 
-  // Bottom spike
-  cx.fillStyle=mcl;
-  cx.beginPath(); cx.moveTo(14,14); cx.lineTo(8,12); cx.lineTo(10,20); cx.lineTo(14,22); cx.closePath(); cx.fill();
-  cx.fillStyle=mcd;
-  cx.beginPath(); cx.moveTo(14,22); cx.lineTo(10,20); cx.lineTo(12,26); cx.lineTo(14,26); cx.closePath(); cx.fill();
-  cx.fillStyle='#ffffff'; cx.fillRect(8,13,2,2);
+  // Inner darker zone (concave underside of crescent)
+  const innerDark = [
+    [9,8,5],[10,9,5],[11,10,5],[12,11,4],[13,12,3],
+    [14,13,2],[15,14,2],[16,15,2],[17,16,2],
+  ];
+  for(const[x,y,w] of innerDark) rect(x,y,w,1,headDark);
 
-  // ── Edge outline pixels — crisp 2.5D border ──
-  cx.fillStyle='rgba(0,0,0,0.55)';
-  // Top outline
-  for(let x=18;x<=32;x++) cx.fillRect(x,7,1,1);
-  // Left outline
-  cx.fillRect(13,14,1,12);
-  // Spike outlines
-  cx.fillRect(37,3,1,1); cx.fillRect(7,11,1,1);
+  // White/bright highlight stripe along top curve
+  const highlights = [
+    [17,1,8],[15,2,9],[13,3,8],[12,4,6],[11,5,4],[10,6,3],[9,7,3],
+  ];
+  for(const[x,y,w] of highlights) rect(x,y,w,1,headLight);
+  // Brightest shine pixels (top of tip)
+  rect(20,1,4,1,'#ffffff'); rect(18,2,3,1,'#ffffff');
+  rect(15,3,2,1,'#e8f8ff'); rect(10,7,2,1,'#e0f4ff');
 
-  // ── Gem/crystal on head (rare+) ──
-  if(gc){
-    // Gem facets
-    cx.fillStyle=gc;
-    cx.beginPath(); cx.moveTo(22,10); cx.lineTo(26,10); cx.lineTo(25,15); cx.lineTo(21,15); cx.closePath(); cx.fill();
-    cx.fillStyle=lighten(gc,50); cx.fillRect(22,10,2,2);
-    cx.fillStyle='rgba(0,0,0,0.3)'; cx.fillRect(24,13,2,2);
-    // Sparkle
-    if(p.tierIdx>=4){ // legendary — extra sparkles
+  // ── SHARP POINTED TIP (upper right of head) ──
+  rect(26,1,3,1,headLight);
+  rect(27,2,2,1,headMid);
+  rect(28,3,1,1,headDark);
+  px(26,1,'#ffffff'); // tip glint
+
+  // ── BACK BLUNT END (lower of head) ──
+  rect(2,25,3,1,headMid);
+  rect(2,26,3,1,headDark);
+  rect(1,27,2,1,headEdge);
+
+  // ── OUTLINE ──
+  cx.fillStyle=OUT;
+  // Top arc outline
+  for(const[x,y,w] of headRows.slice(0,10)){
+    px(x-1,y,OUT); px(x+w,y,OUT);
+  }
+  // Bottom arc
+  const lastRow=headRows[headRows.length-1];
+  px(lastRow[0],lastRow[1]+1,OUT);
+
+  // ── GEM on head ──
+  if(p.gemCol){
+    const gc=p.gemCol;
+    // Diamond gem on the wide middle part of head
+    rect(6,13,4,4,darken(gc,20));
+    rect(7,12,4,5,gc);
+    rect(7,12,3,1,lighten(gc,60));
+    rect(7,12,1,4,lighten(gc,40));
+    px(7,12,'#ffffff');
+    rect(9,15,2,2,'rgba(0,0,0,0.3)');
+    // Extra sparkles for legendary
+    if(p.tierIdx>=4){
       cx.fillStyle='#ffffff';
-      cx.fillRect(21,9,1,1); cx.fillRect(27,9,1,1);
-      cx.fillRect(23,16,1,1);
+      px(6,11,OUT); px(11,11,OUT); px(6,17,OUT);
     }
   }
 
-  // ── Tier aura glow (epic/legendary) ──
+  // ── TIER GLOW AURA ──
   if(p.tierIdx>=3){
-    const grd=cx.createRadialGradient(22,16,2,22,16,18);
-    grd.addColorStop(0, mc+'44');
-    grd.addColorStop(1, 'transparent');
-    cx.fillStyle=grd;
-    cx.fillRect(0,0,40,40);
+    const grd=cx.createRadialGradient(12,14,2,12,14,22);
+    grd.addColorStop(0, p.headCol+'66');
+    grd.addColorStop(1,'transparent');
+    cx.fillStyle=grd; cx.fillRect(0,0,40,40);
+  }
+  if(p.tierIdx>=4){
+    // Legendary sparkles
+    cx.fillStyle=headLight;
+    px(28,2,'#ffffff'); px(3,10,'#ffffff');
+    px(0,20,'#ffffff'); px(13,0,'#ffffff');
   }
 
   return oc;
@@ -2009,6 +2091,258 @@ function buildLegendarySprite(id){
         const sr2=6+pulse*4;
         cx.fillStyle=`rgba(255,255,180,${0.5*pulse2})`;
         cx.fillRect(24+Math.cos(sa)*sr2-1,16+Math.sin(sa)*sr2*0.5-1,1,1);
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    // LEGENDARY ARMORS
+    // ══════════════════════════════════════════════════════
+
+    else if(id==='crimson_mantle'){
+      // ── CRIMSON MANTLE: Dragon-scale cape, red + gold trim ──
+      // Outer cape shadow
+      cx.fillStyle='rgba(0,0,0,0.35)'; cx.fillRect(8,9,33,37);
+      // Cape base — wide dragon-scale shape
+      cx.fillStyle='#7a0808'; cx.fillRect(9,10,30,34);
+      cx.fillStyle='#aa1010'; cx.fillRect(10,10,28,32);
+      // Scale pattern (rows of overlapping arcs)
+      cx.fillStyle='#cc2020';
+      for(let row=0;row<5;row++) for(let col=0;col<4;col++){
+        const sx=11+col*7+(row%2)*3, sy=12+row*6;
+        cx.fillRect(sx,sy,6,4);
+        cx.fillStyle='#e84040'; cx.fillRect(sx+1,sy,4,2);
+        cx.fillStyle='#cc2020';
+      }
+      // Gold trim edges
+      cx.fillStyle='#c08020';
+      cx.fillRect(9,10,2,34); cx.fillRect(37,10,2,34);
+      cx.fillRect(9,10,30,2); cx.fillRect(9,42,30,2);
+      // Gold highlight on trim
+      cx.fillStyle='#f0d040';
+      cx.fillRect(10,11,28,1); cx.fillRect(10,11,1,32);
+      // Collar / shoulder pads
+      cx.fillStyle='#880000'; cx.fillRect(9,8,30,5);
+      cx.fillStyle='#cc2010'; cx.fillRect(10,9,28,3);
+      cx.fillStyle='#ff4020'; cx.fillRect(11,9,10,2); cx.fillRect(27,9,10,2);
+      // Dragon eye gems on collar
+      cx.fillStyle='#ffdd00'; cx.fillRect(16,9,3,3); cx.fillRect(29,9,3,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(17,9,1,1); cx.fillRect(30,9,1,1);
+      // Animated fire glow at bottom hem
+      const fireH=4+Math.floor(pulse*4);
+      const fireGrd=cx.createLinearGradient(9,44-fireH,9,44);
+      fireGrd.addColorStop(0,'rgba(255,80,0,0)');
+      fireGrd.addColorStop(1,`rgba(255,60,0,${0.5+0.3*pulse})`);
+      cx.fillStyle=fireGrd; cx.fillRect(9,44-fireH,30,fireH);
+      // Fire sparks
+      for(let s=0;s<5;s++){
+        const sa=t*Math.PI*2+s*1.26;
+        cx.fillStyle=`rgba(255,${100+s*30},0,${0.7*pulse})`;
+        cx.fillRect(14+s*5+Math.cos(sa)*2,40+Math.sin(sa*2)*3,2,2);
+      }
+      // Radial crimson aura
+      const aura=cx.createRadialGradient(24,24,4,24,24,22);
+      aura.addColorStop(0,`rgba(200,0,0,${0.18*pulse})`);
+      aura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=aura; cx.fillRect(0,0,48,48);
+    }
+
+    else if(id==='void_carapace'){
+      // ── VOID CARAPACE: Insectoid purple-black shell armor, with void runes ──
+      // Outer shell shadow
+      cx.fillStyle='rgba(0,0,0,0.5)'; cx.fillRect(10,5,30,40);
+      // Main shell body — chitinous plates
+      cx.fillStyle='#0a0010'; cx.fillRect(11,6,26,36);
+      // Plate segments
+      const plateColors=['#1a0030','#220040','#300050'];
+      for(let i=0;i<4;i++){
+        cx.fillStyle=plateColors[i%3];
+        cx.fillRect(12,8+i*8,24,7);
+        cx.fillStyle='#6020a0';
+        cx.fillRect(13,8+i*8,22,2); // top highlight
+        cx.fillStyle='#0a0018';
+        cx.fillRect(13,14+i*8,22,1); // bottom shadow
+      }
+      // Chitin ribbing — vertical
+      cx.fillStyle='#40108080';
+      for(let x=0;x<4;x++) cx.fillRect(14+x*6,8,2,36);
+      // Shoulder spikes
+      cx.fillStyle='#8030c0';
+      cx.fillRect(8,8,6,3); cx.fillRect(34,8,6,3);
+      cx.fillRect(7,6,4,4); cx.fillRect(37,6,4,4);
+      cx.fillStyle='#c060ff';
+      cx.fillRect(8,7,2,2); cx.fillRect(38,7,2,2);
+      // Void rune glyphs (animated)
+      cx.fillStyle=`rgba(150,80,255,${0.5+0.5*pulse})`;
+      const runeX=[14,20,26,32]; const runeY=[12,20,28,36];
+      runeX.forEach((rx,ri)=>{
+        cx.fillRect(rx,runeY[ri],1,5);
+        cx.fillRect(rx-1,runeY[ri]+2,3,1);
+      });
+      // Void eye in center
+      const eyeGrd=cx.createRadialGradient(24,24,0,24,24,6+pulse*3);
+      eyeGrd.addColorStop(0,`rgba(200,100,255,${0.8*pulse})`);
+      eyeGrd.addColorStop(0.4,`rgba(80,0,140,0.6)`);
+      eyeGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=eyeGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#cc80ff'; cx.fillRect(22,22,4,4);
+      cx.fillStyle='#000000'; cx.fillRect(23,23,2,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,23,1,1);
+      // Void particle orbit
+      for(let s=0;s<6;s++){
+        const sa=t*Math.PI*2+s*1.047;
+        const sr=10+pulse*3;
+        cx.fillStyle=`rgba(180,60,255,${0.6*pulse})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,24+Math.sin(sa)*sr*0.5-1,2,2);
+      }
+    }
+
+    else if(id==='titan_shell'){
+      // ── TITAN SHELL: Massive tungsten plate armor, silver-grey, impenetrable ──
+      // Drop shadow
+      cx.fillStyle='rgba(0,0,0,0.45)'; cx.fillRect(7,6,36,40);
+      // Outer rim — dark steel edge
+      cx.fillStyle='#181818'; cx.fillRect(8,7,32,38);
+      // Main chest plate
+      cx.fillStyle='#606070'; cx.fillRect(9,8,30,36);
+      cx.fillStyle='#808090'; cx.fillRect(10,9,28,34);
+      // Plate divisions — horizontal bolted seams
+      cx.fillStyle='#505060';
+      for(let i=0;i<3;i++) cx.fillRect(10,16+i*8,28,2);
+      // Rivet bolts
+      cx.fillStyle='#c0c0d0';
+      [[12,16],[20,16],[28,16],[12,24],[20,24],[28,24],[12,32],[20,32],[28,32]].forEach(([bx,by])=>{
+        cx.fillRect(bx,by,3,3);
+        cx.fillStyle='#ffffff'; cx.fillRect(bx,by,1,1);
+        cx.fillStyle='#c0c0d0';
+      });
+      // Center emblem — stylized T (Titan)
+      cx.fillStyle='#d8d8e8'; cx.fillRect(19,12,10,3); cx.fillRect(23,12,3,14);
+      cx.fillStyle='#ffffff'; cx.fillRect(19,12,10,1); cx.fillRect(23,12,1,12);
+      // Shoulder armor plates
+      cx.fillStyle='#505060'; cx.fillRect(7,8,4,12); cx.fillRect(37,8,4,12);
+      cx.fillStyle='#707080'; cx.fillRect(8,9,3,10); cx.fillRect(38,9,2,10);
+      cx.fillStyle='#303040'; cx.fillRect(7,19,4,2); cx.fillRect(37,19,4,2);
+      // Animated metallic sheen (scanning line)
+      const sheenY=Math.floor(9+((t*38)%38));
+      const sheenGrd=cx.createLinearGradient(10,sheenY-3,38,sheenY+3);
+      sheenGrd.addColorStop(0,'rgba(255,255,255,0)');
+      sheenGrd.addColorStop(0.5,`rgba(255,255,255,${0.3*pulse})`);
+      sheenGrd.addColorStop(1,'rgba(255,255,255,0)');
+      cx.fillStyle=sheenGrd; cx.fillRect(10,sheenY-2,28,5);
+      // Outer steel glow aura
+      const steelAura=cx.createRadialGradient(24,24,6,24,24,24);
+      steelAura.addColorStop(0,`rgba(180,180,220,${0.1*pulse})`);
+      steelAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=steelAura; cx.fillRect(0,0,48,48);
+    }
+
+    else if(id==='soul_aegis'){
+      // ── SOUL AEGIS: Crystalline shield-robe, cyan + white energy ──
+      // Outer glow aura — wide cyan
+      const aegisAura=cx.createRadialGradient(24,24,4,24,24,26);
+      aegisAura.addColorStop(0,`rgba(0,200,255,${0.25*pulse})`);
+      aegisAura.addColorStop(0.6,`rgba(0,100,180,${0.1*pulse})`);
+      aegisAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=aegisAura; cx.fillRect(0,0,48,48);
+      // Robe body
+      cx.fillStyle='#041830'; cx.fillRect(10,10,28,36);
+      cx.fillStyle='#062440'; cx.fillRect(11,11,26,34);
+      // Crystal lattice overlay
+      cx.strokeStyle=`rgba(0,180,255,${0.25+0.2*pulse})`; cx.lineWidth=1;
+      for(let i=0;i<5;i++){
+        cx.beginPath(); cx.moveTo(10,11+i*7); cx.lineTo(37,11+i*7); cx.stroke();
+        cx.beginPath(); cx.moveTo(10+i*7,11); cx.lineTo(10+i*7,45); cx.stroke();
+      }
+      // Glowing collar crystal
+      cx.fillStyle='#00aadd'; cx.fillRect(16,8,16,6);
+      cx.fillStyle='#00ddff'; cx.fillRect(17,9,14,4);
+      cx.fillStyle='#80ffff'; cx.fillRect(18,9,6,2); cx.fillRect(26,10,4,2);
+      // Center soul gem
+      const gemPulse=6+pulse*4;
+      const gemGrd=cx.createRadialGradient(24,22,0,24,22,gemPulse);
+      gemGrd.addColorStop(0,`rgba(200,240,255,${0.9})`);
+      gemGrd.addColorStop(0.4,`rgba(0,180,255,0.8)`);
+      gemGrd.addColorStop(1,'rgba(0,80,150,0)');
+      cx.fillStyle=gemGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#004488'; cx.fillRect(20,18,8,8);
+      cx.fillStyle='#00aaff'; cx.fillRect(21,19,6,6);
+      cx.fillStyle='#80e8ff'; cx.fillRect(22,20,3,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(22,20,1,1);
+      // Soul particles orbiting gem
+      for(let s=0;s<8;s++){
+        const sa=t*Math.PI*2+s*0.785;
+        const sr=9+pulse*5;
+        const alpha=0.4+0.4*Math.sin(t*Math.PI*2+s);
+        cx.fillStyle=`rgba(0,200,255,${alpha})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,22+Math.sin(sa)*sr*0.5-1,2,2);
+      }
+      // Hem glow
+      const hemGrd=cx.createLinearGradient(10,40,10,46);
+      hemGrd.addColorStop(0,'rgba(0,180,255,0)');
+      hemGrd.addColorStop(1,`rgba(0,200,255,${0.4*pulse})`);
+      cx.fillStyle=hemGrd; cx.fillRect(10,40,28,6);
+    }
+
+    else if(id==='abyssal_crown'){
+      // ── ABYSSAL CROWN: Golden crown of the Abyss God, cosmic power ──
+      // Cosmic background aura
+      const cosmicAura=cx.createRadialGradient(24,18,2,24,18,26);
+      cosmicAura.addColorStop(0,`rgba(255,180,0,${0.3*pulse})`);
+      cosmicAura.addColorStop(0.5,`rgba(180,60,0,${0.15*pulse})`);
+      cosmicAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=cosmicAura; cx.fillRect(0,0,48,48);
+      // Crown base band
+      cx.fillStyle='#6a3800'; cx.fillRect(8,24,32,10);
+      cx.fillStyle='#c07820'; cx.fillRect(9,25,30,8);
+      cx.fillStyle='#f0b030'; cx.fillRect(10,26,28,6);
+      // Highlight on band top
+      cx.fillStyle='#ffe060'; cx.fillRect(10,26,28,1);
+      cx.fillStyle='#ffdd20'; cx.fillRect(10,27,28,1);
+      // Crown spikes — 5 varying heights
+      const spikeH=[16,22,28,22,16];
+      const spikeX=[9,14,20,26,32];
+      spikeH.forEach((sh,si)=>{
+        const sx=spikeX[si]; const sy=24-sh;
+        cx.fillStyle='#6a3800'; cx.fillRect(sx,sy,5,sh+2);
+        cx.fillStyle='#c07820'; cx.fillRect(sx+1,sy+1,3,sh);
+        cx.fillStyle='#f0b030'; cx.fillRect(sx+1,sy+1,2,sh-2);
+        cx.fillStyle='#ffe080'; cx.fillRect(sx+1,sy+1,1,sh-4);
+        // Spike tip glow
+        const tipGrd=cx.createRadialGradient(sx+2,sy,0,sx+2,sy,4+pulse*3);
+        tipGrd.addColorStop(0,`rgba(255,220,60,${0.8*pulse})`);
+        tipGrd.addColorStop(1,'rgba(0,0,0,0)');
+        cx.fillStyle=tipGrd; cx.fillRect(sx-2,sy-3,9,8);
+        // Tip point white shine
+        cx.fillStyle=`rgba(255,255,200,${0.9*pulse})`; cx.fillRect(sx+2,sy,1,2);
+      });
+      // Crown jewels in band
+      const jewelColors=['#ff4444','#4444ff','#ff44ff','#44ffff','#ffff44'];
+      [10,15,21,27,33].forEach((jx,ji)=>{
+        cx.fillStyle=jewelColors[ji]; cx.fillRect(jx,27,4,4);
+        cx.fillStyle=lighten(jewelColors[ji],60); cx.fillRect(jx,27,2,2);
+        cx.fillStyle='rgba(0,0,0,0.3)'; cx.fillRect(jx+2,29,2,2);
+      });
+      // Orbiting star particles
+      for(let s=0;s<10;s++){
+        const sa=t*Math.PI*2+s*0.628;
+        const sr=16+pulse*6;
+        const bri=0.3+0.5*Math.sin(t*Math.PI*4+s);
+        cx.fillStyle=`rgba(255,${180+s*8},0,${bri})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,18+Math.sin(sa)*sr*0.4-1,2,2);
+      }
+      // Bottom drape / robe suggestion
+      cx.fillStyle='#3a1800'; cx.fillRect(10,34,28,12);
+      cx.fillStyle='#6a3000'; cx.fillRect(11,35,26,10);
+      // Gold trim bottom
+      cx.fillStyle='#f0b030'; cx.fillRect(10,44,28,2);
+      cx.fillStyle='#ffe060'; cx.fillRect(10,44,28,1);
+      // Grand star burst behind crown
+      for(let ray=0;ray<8;ray++){
+        const ra=t*Math.PI*0.25+ray*0.785;
+        const len=14+pulse*6;
+        cx.fillStyle=`rgba(255,200,0,${0.2*pulse})`;
+        cx.fillRect(24+Math.cos(ra)*4,18+Math.sin(ra)*2,
+          Math.cos(ra)*len|0, Math.sin(ra)*len*0.5|0);
       }
     }
 
@@ -2407,7 +2741,7 @@ const POTIONS = {
   speed_pot: {name:'Swift Potion',   color:'#10c0a0', glowCol:'#40ffe0', effect:'speed',  value:2,   desc:'+2× Speed (25s)',        dropW:16},
   shield_pot:{name:'Iron Skin',      color:'#5070c0', glowCol:'#80b0ff', effect:'shield', value:50,  desc:'Block 50 DMG',           dropW:12},
   luck_pot:  {name:'Lucky Brew',     color:'#30b010', glowCol:'#70ff30', effect:'luck',   value:2,   desc:'+2× Drop Luck (40s)',    dropW:14},
-  bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'Destroy all monsters!',  dropW:4},
+  bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'AoE blast — deals heavy damage to nearby monsters',  dropW:4},
   maxhp_pot: {name:'Elixir of Life', color:'#c060e0', glowCol:'#f0a0ff', effect:'maxhp',  value:20,  desc:'+20 Max HP permanently', dropW:3},
 };
 
@@ -2415,67 +2749,198 @@ const POTIONS = {
 const BUFFS = {str:0, speed:0, luck:0, shield:0,
   frozen:0, poisoned:0, poisonDmg:0, burning:0, burnDmg:0, blinded:0, doomed:0};
 
-// Pixel art potion bottle sprite
+// Pixel art potion bottle sprite — unique shape + symbol per potion type
 const POTION_SPR = {};
 function buildPotionSprite(id){
   const p = POTIONS[id];
   const oc = document.createElement('canvas');
-  oc.width=32; oc.height=32; oc.imageSmoothingEnabled=false;
+  oc.width=32; oc.height=32;
   const cx = oc.getContext('2d');
   cx.imageSmoothingEnabled=false;
   const c=p.color, g=p.glowCol;
 
-  // Outer glow
-  cx.fillStyle=g+'2a';
-  cx.beginPath(); cx.arc(16,19,12,0,Math.PI*2); cx.fill();
+  // Helper: draw rounded flask body (pixel-style)
+  function flask(bx,by,bw,bh, neckX,neckW,neckH, col, dark, shine){
+    // shadow
+    cx.fillStyle='rgba(0,0,0,0.25)';
+    cx.fillRect(bx+1,by+bh,bw,2);
+    // body dark border
+    cx.fillStyle=dark;
+    cx.fillRect(bx-1,by,bw+2,bh+1);
+    cx.fillRect(bx,by-1,bw,bh+2);
+    // body fill
+    cx.fillStyle=col;
+    cx.fillRect(bx,by,bw,bh);
+    // shine
+    cx.fillStyle=shine;
+    cx.fillRect(bx+1,by+1,Math.ceil(bw*0.35),Math.ceil(bh*0.55));
+    cx.fillStyle='rgba(255,255,255,0.15)';
+    cx.fillRect(bx+1,by+1,2,2);
+    // neck
+    cx.fillStyle=dark;
+    cx.fillRect(neckX-1,by-neckH-1,neckW+2,neckH+2);
+    cx.fillStyle=col;
+    cx.fillRect(neckX,by-neckH,neckW,neckH);
+    cx.fillStyle=shine;
+    cx.fillRect(neckX,by-neckH,1,neckH);
+    // cork
+    cx.fillStyle='#c4963c'; cx.fillRect(neckX-1,by-neckH-4,neckW+2,4);
+    cx.fillStyle='#e0b050'; cx.fillRect(neckX,by-neckH-3,neckW,1);
+    cx.fillStyle='rgba(0,0,0,0.3)'; cx.fillRect(neckX-1,by-neckH,neckW+2,1);
+  }
 
-  // Bottle body — rounded flask shape
-  cx.fillStyle=darken(c,15);
-  cx.beginPath();
-  cx.moveTo(11,21); cx.lineTo(10,27); cx.lineTo(22,27); cx.lineTo(21,21);
-  cx.bezierCurveTo(23,19,23,13,16,12);
-  cx.bezierCurveTo(9,13,9,19,11,21);
-  cx.closePath(); cx.fill();
+  // Helper: pixel star
+  function star(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx,sy-2,1,5); cx.fillRect(sx-2,sy,5,1);
+    cx.fillRect(sx-1,sy-1,3,3);
+    cx.fillStyle='#ffffff'; cx.fillRect(sx,sy,1,1);
+  }
 
-  // Liquid fill (lighter, inside)
-  cx.fillStyle=c;
-  cx.beginPath();
-  cx.moveTo(12,22); cx.lineTo(11,26); cx.lineTo(21,26); cx.lineTo(20,22);
-  cx.bezierCurveTo(22,20,22,14,16,13);
-  cx.bezierCurveTo(10,14,10,20,12,22);
-  cx.closePath(); cx.fill();
+  // Helper: pixel cross (heal)
+  function cross(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx-1,sy-3,3,7); cx.fillRect(sx-3,sy-1,7,3);
+    cx.fillStyle='rgba(255,255,255,0.6)'; cx.fillRect(sx,sy-2,1,2);
+  }
 
-  // Shine highlight left
-  cx.fillStyle='rgba(255,255,255,0.38)';
-  cx.beginPath();
-  cx.moveTo(12,21); cx.lineTo(11,25); cx.lineTo(14,25); cx.lineTo(14,21);
-  cx.bezierCurveTo(14,16,12,14,12,15);
-  cx.bezierCurveTo(10,16,11,20,12,21);
-  cx.closePath(); cx.fill();
+  // Helper: pixel lightning bolt
+  function bolt(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx+1,sy,3,3); cx.fillRect(sx,sy+2,3,3); cx.fillRect(sx+1,sy+4,3,3);
+    cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(sx+2,sy,1,2);
+  }
 
-  // Bubbles inside
-  cx.fillStyle='rgba(255,255,255,0.22)';
-  cx.beginPath(); cx.arc(18,22,2,0,Math.PI*2); cx.fill();
-  cx.beginPath(); cx.arc(14,18,1,0,Math.PI*2); cx.fill();
+  // Helper: pixel shield icon
+  function shieldIcon(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx-2,sy-3,5,5); cx.fillRect(sx-1,sy+1,3,2); cx.fillRect(sx,sy+2,1,2);
+    cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(sx-1,sy-2,2,2);
+  }
 
-  // Neck
-  cx.fillStyle=darken(c,25);
-  cx.fillRect(13,8,6,5);
-  cx.fillStyle='rgba(255,255,255,0.25)'; cx.fillRect(14,9,2,3);
+  // Helper: pixel arrow up (speed)
+  function arrowUp(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx,sy,1,5); cx.fillRect(sx-2,sy+2,5,1);
+    cx.fillRect(sx-1,sy+1,3,1);
+    cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(sx,sy,1,2);
+  }
 
-  // Cork
-  cx.fillStyle='#b89050'; cx.fillRect(12,5,8,4);
-  cx.fillStyle='#d4aa60'; cx.fillRect(13,5,4,1);
-  cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(12,8,8,1);
+  // Helper: pixel leaf (luck)
+  function leaf(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx,sy-3,2,2); cx.fillRect(sx-1,sy-1,4,2);
+    cx.fillRect(sx-2,sy+1,5,2); cx.fillRect(sx-1,sy+3,3,2);
+    cx.fillRect(sx,sy+4,1,2);
+    cx.fillStyle='rgba(255,255,255,0.4)'; cx.fillRect(sx,sy-2,1,3);
+  }
 
-  // Glowing center dot label
-  cx.fillStyle=g;
-  cx.beginPath(); cx.arc(16,21,3,0,Math.PI*2); cx.fill();
-  cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(15,20,1,1);
+  // Helper: pixel bomb icon
+  function bombIcon(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx-2,sy-1,5,4); cx.fillRect(sx-1,sy-2,3,6);
+    cx.fillStyle='#ff8800'; cx.fillRect(sx+2,sy-3,2,2); cx.fillRect(sx+3,sy-4,1,2);
+    cx.fillStyle='rgba(255,255,255,0.4)'; cx.fillRect(sx-1,sy-1,2,1);
+  }
 
-  // Drop shadow
-  cx.fillStyle='rgba(0,0,0,0.22)';
-  cx.beginPath(); cx.ellipse(16,28,5,2,0,0,Math.PI*2); cx.fill();
+  // Helper: pixel heart (maxhp)
+  function heart(sx,sy,col){
+    cx.fillStyle=col;
+    cx.fillRect(sx-2,sy-1,2,3); cx.fillRect(sx+1,sy-1,2,3);
+    cx.fillRect(sx-3,sy,7,2); cx.fillRect(sx-2,sy+2,5,1);
+    cx.fillRect(sx-1,sy+3,3,1); cx.fillRect(sx,sy+4,1,1);
+    cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(sx-1,sy,1,1);
+  }
+
+  // ── DRAW EACH POTION UNIQUELY ──
+  // Outer aura glow
+  cx.fillStyle=g+'22';
+  for(let r=14;r>8;r--){
+    cx.globalAlpha=(14-r)*0.015;
+    cx.beginPath(); cx.arc(16,20,r,0,Math.PI*2); cx.fill();
+  }
+  cx.globalAlpha=1;
+
+  if(id==='hp_small'){
+    // Small round red health flask
+    flask(10,14,12,13, 13,6,5, c, darken(c,30), 'rgba(255,200,200,0.3)');
+    // Drop shadow
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(9,28,14,2);
+    // Red cross label
+    cross(16,21,'rgba(255,255,255,0.7)');
+
+  } else if(id==='hp_medium'){
+    // Medium round flask, deeper red
+    flask(9,13,14,14, 12,8,5, c, darken(c,30), 'rgba(255,180,200,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(8,28,16,2);
+    // Double cross
+    cross(14,21,'rgba(255,255,255,0.6)');
+    cross(18,21,'rgba(255,255,255,0.6)');
+    // Extra glow dot
+    cx.fillStyle=g; cx.fillRect(15,18,2,2);
+
+  } else if(id==='hp_large'){
+    // Large wide crimson flask — tall
+    flask(8,11,16,16, 12,8,6, c, darken(c,35), 'rgba(255,150,180,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(7,28,18,2);
+    // Big cross + glow
+    cross(16,20,'rgba(255,255,255,0.7)');
+    cx.fillStyle=g; cx.fillRect(14,19,4,4);
+    cx.fillStyle='rgba(255,255,255,0.6)'; cx.fillRect(15,20,2,2);
+    // Stars around
+    cx.fillStyle='rgba(255,200,200,0.7)';
+    cx.fillRect(9,15,1,1); cx.fillRect(22,15,1,1); cx.fillRect(9,23,1,1); cx.fillRect(22,23,1,1);
+
+  } else if(id==='str_pot'){
+    // Orange wide-shouldered strength vial
+    flask(9,14,14,13, 12,8,5, c, darken(c,30), 'rgba(255,220,150,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(8,28,16,2);
+    // Lightning bolt
+    bolt(13,17,'rgba(255,255,200,0.85)');
+    bolt(17,17,'rgba(255,255,200,0.85)');
+
+  } else if(id==='speed_pot'){
+    // Teal slim narrow flask — speed arrows
+    flask(11,13,10,14, 13,6,6, c, darken(c,30), 'rgba(180,255,240,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(10,28,12,2);
+    // Triple up arrows
+    cx.fillStyle='rgba(200,255,240,0.9)';
+    cx.fillRect(15,15,1,7); cx.fillRect(13,17,5,1); cx.fillRect(14,16,3,1);
+    cx.fillRect(15,19,1,4); cx.fillRect(13,21,5,1); cx.fillRect(14,20,3,1);
+
+  } else if(id==='shield_pot'){
+    // Blue wide flask — shield icon
+    flask(8,13,16,14, 12,8,5, c, darken(c,30), 'rgba(180,200,255,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(7,28,18,2);
+    shieldIcon(16,21,'rgba(220,235,255,0.85)');
+
+  } else if(id==='luck_pot'){
+    // Green round flask — four leaf clover
+    flask(10,13,12,14, 13,6,5, c, darken(c,30), 'rgba(180,255,160,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(9,28,14,2);
+    leaf(16,19,'rgba(200,255,160,0.85)');
+    // Sparkles
+    cx.fillStyle='rgba(200,255,100,0.7)';
+    cx.fillRect(11,15,1,1); cx.fillRect(21,15,1,1); cx.fillRect(11,22,1,1); cx.fillRect(21,22,1,1);
+
+  } else if(id==='bomb_pot'){
+    // Dark yellow squat wide flask — bomb icon
+    flask(8,14,16,12, 12,8,4, c, darken(c,35), 'rgba(255,240,150,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(7,28,18,2);
+    bombIcon(16,20,'rgba(80,50,0,0.9)');
+
+  } else if(id==='maxhp_pot'){
+    // Purple tall elegant flask — heart
+    flask(9,11,14,16, 12,8,6, c, darken(c,30), 'rgba(240,180,255,0.3)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(8,28,16,2);
+    heart(16,19,'rgba(255,220,255,0.85)');
+    // Star crown
+    star(16,14,'rgba(255,200,255,0.7)');
+  }
+
+  // Bottle glass sheen (always on top)
+  cx.fillStyle='rgba(255,255,255,0.12)';
+  cx.fillRect(11,15,2,7);
 
   return oc;
 }
@@ -2515,10 +2980,32 @@ function usePotion(slot){
     toast(`⚗️ ${p.name}! Drop luck ×2 for 40s`);
     spawnDmg(sx,sy,'LUCKY!','#70ff30',9);
   } else if(p.effect==='bomb'){
-    const count=Object.keys(monsters).length;
-    for(const mid in {...monsters}) killMonster(mid);
-    toast(`💥 Bomb Potion! ${count} monsters destroyed!`);
-    spawnDmg(sx,sy,'BOOM!','#ffcc00',12);
+    // AoE blast — deals 5× player ATK to all monsters within 7 tiles, does NOT kill instantly
+    const wep=G.equippedWeapon?WEAPONS[G.equippedWeapon]:null;
+    const baseAtk=(wep?wep.dmg:getDmg()) + getLvlAtk();
+    const bombDmg = Math.floor(baseAtk * 5 * (BUFFS.strMult||1));
+    const BLAST_RADIUS = 7 * TILE; // 7 tile radius
+    let hit=0;
+    for(const mid in monsters){
+      const m=monsters[mid];
+      const dx=m.wx-(gozo.wx), dy=m.wy-(gozo.wy);
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<=BLAST_RADIUS){
+        const def=m.def||0;
+        const dmg=Math.max(1, bombDmg - def);
+        m.hp-=dmg;
+        // Floating damage number at monster position
+        const mpx=Math.round(m.wx-camX), mpy=Math.round(m.wy-camY);
+        spawnDmg(mpx,mpy-10,`💥${dmg}`,'#ffcc00',8);
+        if(m.hp<=0){ killMonster(mid); }
+        hit++;
+      }
+    }
+    const hitStr=hit>0?` (${hit} monsters hit)`:'';
+    toast(`💥 Bomb Potion! ${bombDmg} damage AoE${hitStr}`);
+    spawnDmg(sx,sy,'BOOM!','#ffcc00',13);
+    // Screen flash orange
+    screenFlash('#ff8800', 0.45, 12);
   } else if(p.effect==='maxhp'){
     G.maxHp+=p.value; G.hp=Math.min(G.hp+p.value,G.maxHp);
     updateGozoHpBar();
@@ -5042,7 +5529,7 @@ function updateMonsters(){
       } else if(m.atkCd<=0){
         // Attack Gozo — reduced by level DEF
         let dmg=Math.ceil(def.dmg*flMult);
-        const defReduction = Math.floor(getLvlDef() * 0.6); // DEF reduces ~60% of bonus
+        const defReduction = Math.floor((getLvlDef() + getArmorDef()) * 0.6); // DEF reduces ~60% of bonus
         dmg = Math.max(1, dmg - defReduction);
         if(BUFFS.shield>0){
           const absorbed=Math.min(BUFFS.shield,dmg);
@@ -5627,7 +6114,10 @@ function onInvClick(i){
         <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
         <span style="color:#ffdd00;font-size:5px;">Purchased with GOZO token · Sell for gold only</span><br>
         <div style="display:flex;gap:6px;margin-top:6px;">
-          <button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⚔️ EQUIP'}</button>
+          ${isEquipped
+            ? `<button onclick="invUnequipWeapon(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
+            : `<button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⚔️ EQUIP</button>`
+          }
           ${sellBtnHtml}
         </div>`;
       return;
@@ -5638,7 +6128,10 @@ function onInvClick(i){
       <b style="color:#f0c840">${w.name}</b><br>
       <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
       <div style="display:flex;gap:6px;margin-top:6px;">
-        <button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⚔️ EQUIP'}</button>
+        ${isEquipped
+          ? `<button onclick="invUnequipWeapon(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
+          : `<button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⚔️ EQUIP</button>`
+        }
         ${sellBtn('weapon',sellVal,w.name)}
       </div>`;
   } else if(s.type==='pickaxe'){
@@ -5650,7 +6143,10 @@ function onInvClick(i){
       <b style="color:${tc}">[${pk.tier}] ${pk.name}</b><br>
       <span style="color:#a0c0d0">Mine DMG: +${pk.dmg}</span><br>
       <div style="display:flex;gap:6px;margin-top:6px;">
-        <button onclick="invEquipPickaxe(${i})" style="flex:1;padding:4px;background:${isEquipped?'#2a4020':'#1a2810'};border:1px solid ${isEquipped?'#60c840':'#4a6830'};color:${isEquipped?'#80f040':'#80c060'};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">${isEquipped?'✅ EQUIPPED':'⛏ EQUIP'}</button>
+        ${isEquipped
+          ? `<button onclick="invUnequipPickaxe(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
+          : `<button onclick="invEquipPickaxe(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⛏ EQUIP</button>`
+        }
         ${sellBtn('pickaxe',sellVal,pk.name)}
       </div>`;
   } else if(s.type==='ore'){
@@ -5663,6 +6159,24 @@ function onInvClick(i){
       <div style="display:flex;gap:6px;margin-top:6px;">
         ${sellBtn('ore',total,`${s.qty} ${s.id}`,true)}
       </div>`;
+  } else if(s.type==='accessory'){
+    const a=s.def||CRAFTED_ITEMS[s.id]||{};
+    const isEquipped=G.equippedArmor===s.id;
+    const effectLabel=a.effect==='def_boost'?`🛡 +${a.val} DEF`
+      :a.effect==='speed_boost'?`👢 +${Math.round((a.val||0)*100)}% Speed`
+      :a.effect==='shield'?`💙 Shield +${a.val} on floor entry`
+      :a.effect==='resist_dot'?`💍 ${Math.round((a.val||0)*100)}% Resist Poison/Burn`
+      :'?';
+    info.innerHTML=`
+      <b style="color:#80c0ff">${a.icon||'🛡'} ${a.name||s.id}</b><br>
+      <span style="color:#80ffcc">${effectLabel}</span><br>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        ${isEquipped
+          ? `<button onclick="invUnequipArmorSlot(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
+          : `<button onclick="invEquipArmorSlot(${i})" style="flex:1;padding:4px;background:#0a1828;border:1px solid #4080c0;color:#80c0ff;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">🛡 EQUIP</button>`
+        }
+        <button onclick="invSellAccessory(${i})" style="flex:1;padding:4px;background:#1a1000;border:1px solid #604020;color:#c08040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 SELL ${fmt(a.goldSell||100)}g</button>
+      </div>`;
   }
 }
 
@@ -5671,10 +6185,130 @@ function invEquipWeapon(i){
   equipWeapon(s.id,i);
   onInvClick(i); // refresh panel
 }
+function invUnequipWeapon(i){
+  G.equippedWeapon=null;
+  resetWeaponHudSlot();
+  setText('eq-name','Fists');
+  updateHud();
+  onInvClick(i);
+  toast('⚔️ Weapon unequipped');
+}
 function invEquipPickaxe(i){
   const s=G.inventory[i]; if(!s||s.type!=='pickaxe')return;
   equipPickaxe(s.id);
   onInvClick(i);
+}
+function invUnequipPickaxe(i){
+  G.equippedPickaxe='wooden_pick';
+  updateHud();
+  onInvClick(i);
+  toast('⛏ Pickaxe unequipped');
+}
+function invEquipArmorSlot(i){
+  const s=G.inventory[i]; if(!s||s.type!=='accessory') return;
+  // Register in CRAFTED_ITEMS if not already there
+  if(s.def && !CRAFTED_ITEMS[s.id]) CRAFTED_ITEMS[s.id]=s.def;
+  equipArmor(s.id);
+  onInvClick(i);
+}
+function invUnequipArmorSlot(i){
+  unequipArmor();
+  onInvClick(i);
+}
+function invSellAccessory(i){
+  const s=G.inventory[i]; if(!s||s.type!=='accessory') return;
+  const a=s.def||CRAFTED_ITEMS[s.id]||{};
+  const price=a.goldSell||100;
+  if(G.equippedArmor===s.id){ G.equippedArmor=null; }
+  G.inventory[i]=null;
+  G.coins+=price;
+  updateHud();
+  toast(`💰 Sold ${a.name||'item'} for ${fmt(price)}g`);
+  renderInv();
+}
+
+// ── ARMOR SLOT ──
+function updateArmorHud(){
+  const iconEl=document.getElementById('armor-icon');
+  const nameEl=document.getElementById('armor-name-hud');
+  const slotEl=document.getElementById('slot-armor');
+  if(!iconEl) return;
+  if(G.equippedArmor && CRAFTED_ITEMS[G.equippedArmor]){
+    const a=CRAFTED_ITEMS[G.equippedArmor];
+    iconEl.textContent=a.icon||'🛡';
+    if(nameEl) nameEl.textContent=a.name||'';
+    if(slotEl){ slotEl.style.borderColor='#60c0ff'; slotEl.style.background='linear-gradient(135deg,#0a2040,#061828)'; }
+  } else {
+    iconEl.textContent='🫙';
+    if(nameEl) nameEl.textContent='';
+    if(slotEl){ slotEl.style.borderColor=''; slotEl.style.background=''; }
+  }
+}
+
+function getArmorDef(){
+  if(!G.equippedArmor) return 0;
+  const a=CRAFTED_ITEMS[G.equippedArmor];
+  return (a&&a.effect==='def_boost') ? (a.val||0) : 0;
+}
+function getArmorSpeedMult(){
+  if(!G.equippedArmor) return 1;
+  const a=CRAFTED_ITEMS[G.equippedArmor];
+  return (a&&a.effect==='speed_boost') ? (1+(a.val||0)) : 1;
+}
+function getArmorResistDot(){
+  if(!G.equippedArmor) return 0;
+  const a=CRAFTED_ITEMS[G.equippedArmor];
+  return (a&&a.effect==='resist_dot') ? (a.val||0) : 0;
+}
+function getArmorShield(){
+  if(!G.equippedArmor) return 0;
+  const a=CRAFTED_ITEMS[G.equippedArmor];
+  return (a&&a.effect==='shield') ? (a.val||0) : 0;
+}
+
+function equipArmor(itemId){
+  const a=CRAFTED_ITEMS[itemId];
+  if(!a){ toast('❌ Unknown armor!'); return; }
+  G.equippedArmor=itemId;
+  // Apply shield effect immediately on equip
+  if(a.effect==='shield') BUFFS.shield=Math.max(BUFFS.shield, a.val||0);
+  updateHud();
+  toast(`🛡 ${a.name} equipped!`,'#80c0ff');
+}
+function unequipArmor(){
+  if(!G.equippedArmor){ toast('No armor equipped!'); return; }
+  const a=CRAFTED_ITEMS[G.equippedArmor];
+  G.equippedArmor=null;
+  updateHud();
+  toast(`🫙 ${a?.name||'Armor'} unequipped`);
+}
+
+function openArmorSlot(){
+  // Show a small modal listing craftable accessories in inventory
+  if(G.equippedArmor){
+    // If already equipped, prompt unequip
+    const a=CRAFTED_ITEMS[G.equippedArmor];
+    if(confirm(`Unequip ${a?.name||'armor'}?`)) unequipArmor();
+    return;
+  }
+  // Find accessories in inventory
+  const accessories=[];
+  for(let i=0;i<(G.invSlots||30);i++){
+    const s=G.inventory[i];
+    if(!s||s.type!=='accessory') continue;
+    const def=s.def||CRAFTED_ITEMS[s.id];
+    if(def) accessories.push({slot:i, id:s.id, def});
+  }
+  if(!accessories.length){
+    toast('🫙 No armor in inventory! Craft one at Drak the Forge Master.');
+    return;
+  }
+  // Show picker toast list — simple prompt
+  const names=accessories.map((a,idx)=>`${idx+1}. ${a.def.name} (${a.def.effect==='def_boost'?'+'+a.def.val+' DEF':a.def.effect==='speed_boost'?'+'+Math.round(a.def.val*100)+'% SPD':a.def.effect==='shield'?'Shield '+a.def.val:a.def.effect==='resist_dot'?'Resist DoT':'?'})`).join('\n');
+  const pick=prompt(`Choose armor to equip:\n${names}\n\nEnter number:`);
+  const idx=parseInt(pick)-1;
+  if(isNaN(idx)||idx<0||idx>=accessories.length) return;
+  equipArmor(accessories[idx].id);
 }
 function invSellLegendary(i){
   const s=G.inventory[i]; if(!s||s.type!=='weapon') return;
@@ -5857,7 +6491,7 @@ const VILLAGE_NPCS = [
   { id:'legend',     name:'Zael the Legend',        icon:'🌟', shop:'legendary',
     x:22, y:26, color:'#ffdd00', desc:'Legendary Weapons (GOZO token)' },
   { id:'forge',      name:'Drak the Forge Master',  icon:'🔥', shop:'forge',
-    x:46, y:17, color:'#ff8020', desc:'Craft Equipment from Ores' },
+    x:43, y:24, color:'#ff8020', desc:'Craft Equipment from Ores' },
 ];
 
 // Shop buy prices (cost to player)
@@ -6674,7 +7308,7 @@ function genVillage(){
   for(let y=2;y<=RY1;y++) for(let px=RX1;px<=RX2;px++) villageMap[y][px]=T_PATH;
   for(let y=RY2;y<=VILLAGE_H-4;y++) for(let px=RX1;px<=RX2;px++) villageMap[y][px]=T_PATH;
 
-  // === HOUSES (5 NPC shops) ===
+  // === HOUSES (6 NPC shops + Forge Master) ===
   houseDefs=[
     {tx:3,  ty:2,  w:8,h:7, npcIdx:0},
     {tx:17, ty:2,  w:8,h:7, npcIdx:1},
@@ -6682,6 +7316,7 @@ function genVillage(){
     {tx:3,  ty:21, w:8,h:7, npcIdx:3},
     {tx:31, ty:21, w:8,h:7, npcIdx:4},
     {tx:17, ty:21, w:8,h:7, npcIdx:5},
+    {tx:39, ty:21, w:8,h:7, npcIdx:6},  // Drak the Forge Master
   ];
   houseFurniture=[];
 
@@ -7431,14 +8066,63 @@ const GOZO_ABI = [
 ];
 
 const LEGENDARY_ITEMS = [
-  {id:'gozo_fang',      priceGozo:5000},
-  {id:'monad_lance',    priceGozo:8000},
-  {id:'void_sovereign', priceGozo:12000},
-  {id:'abyss_throne',   priceGozo:20000},
-  {id:'genesis_reaper', priceGozo:50000},
+  {id:'gozo_fang',      priceGozo:5000,  itemType:'weapon'},
+  {id:'monad_lance',    priceGozo:8000,  itemType:'weapon'},
+  {id:'void_sovereign', priceGozo:12000, itemType:'weapon'},
+  {id:'abyss_throne',   priceGozo:20000, itemType:'weapon'},
+  {id:'genesis_reaper', priceGozo:50000, itemType:'weapon'},
+  // ── LEGENDARY ARMORS ──
+  {id:'crimson_mantle', priceGozo:3000,  itemType:'armor'},
+  {id:'void_carapace',  priceGozo:7000,  itemType:'armor'},
+  {id:'titan_shell',    priceGozo:15000, itemType:'armor'},
+  {id:'soul_aegis',     priceGozo:25000, itemType:'armor'},
+  {id:'abyssal_crown',  priceGozo:60000, itemType:'armor'},
 ];
 
+// Register legendary armors into CRAFTED_ITEMS
+const LEGENDARY_ARMORS = {
+  crimson_mantle:{ id:'crimson_mantle', name:"Crimson Mantle",     icon:'🔴', type:'accessory',
+    effect:'def_boost',    val:80,  color:'#ff4444',
+    desc:'Woven from dragon scales. DEF +80, glows with crimson fire.',
+    goldSell:5000 },
+  void_carapace: { id:'void_carapace',  name:"Void Carapace",      icon:'🟣', type:'accessory',
+    effect:'resist_dot',   val:0.9, color:'#9040ff',
+    desc:'Forged in the shadow void. 90% resist poison, burn & freeze.',
+    goldSell:12000 },
+  titan_shell:   { id:'titan_shell',    name:"Titan Shell",        icon:'⬛', type:'accessory',
+    effect:'def_boost',    val:200, color:'#d8d8d8',
+    desc:'Impenetrable tungsten plate. DEF +200. Unbreakable.',
+    goldSell:25000 },
+  soul_aegis:    { id:'soul_aegis',     name:"Soul Aegis",         icon:'💠', type:'accessory',
+    effect:'shield',       val:500, color:'#00d4ff',
+    desc:'Regenerates 500 shield on every floor. Bound to your soul.',
+    goldSell:40000 },
+  abyssal_crown: { id:'abyssal_crown',  name:"Abyssal Crown",      icon:'👑', type:'accessory',
+    effect:'speed_boost',  val:1.0, color:'#ffd700',
+    desc:'Crown of the Abyss God. +100% movement. Pure dominance.',
+    goldSell:90000 },
+};
+Object.assign(CRAFTED_ITEMS, LEGENDARY_ARMORS);
+
 let legendProvider=null, legendSigner=null, legendGozoBal=0n, legendDecimals=18;
+
+// ── Wallet purchase history (persists across new game) ──
+// Key: "gozoPurchases_<walletAddr>" → JSON array of weaponIds
+function getWalletPurchases(addr){
+  if(!addr) return [];
+  try { return JSON.parse(localStorage.getItem('gozoPurchases_'+addr.toLowerCase())||'[]'); }
+  catch(e){ return []; }
+}
+function recordWalletPurchase(addr, weaponId){
+  if(!addr) return;
+  const key='gozoPurchases_'+addr.toLowerCase();
+  const list=getWalletPurchases(addr);
+  if(!list.includes(weaponId)){ list.push(weaponId); localStorage.setItem(key, JSON.stringify(list)); }
+}
+function walletHasPurchased(addr, weaponId){
+  return getWalletPurchases(addr).includes(weaponId);
+}
+let legendWalletAddr = null; // current connected wallet address
 
 async function legendConnectWallet(){
   const btn=document.getElementById('legend-connect-btn');
@@ -7467,6 +8151,7 @@ async function legendConnectWallet(){
       }
     }
     const addr = await legendSigner.getAddress();
+    legendWalletAddr = addr; // store for purchase history lookup
     const contract = new ethers.Contract(GOZO_TOKEN, GOZO_ABI, legendProvider);
     legendDecimals = Number(await contract.decimals());
     legendGozoBal  = await contract.balanceOf(addr);
@@ -7491,10 +8176,19 @@ function renderLegendItems(){
   document.querySelectorAll('#legend-items canvas[data-anim]').forEach(c=>{ if(c._stop) c._stop(); });
 
   for(const li of LEGENDARY_ITEMS){
-    const w=WEAPONS[li.id];
+    const isArmor = li.itemType==='armor';
+    // Get item definition — weapon or armor
+    const w = isArmor ? LEGENDARY_ARMORS[li.id] : WEAPONS[li.id];
+    if(!w) continue;
     const priceWei=BigInt(li.priceGozo) * BigInt(10**legendDecimals);
-    const owned=G.inventory.some(s=>s&&s.type==='weapon'&&s.id===li.id);
+    const ownedInInventory = isArmor
+      ? G.inventory.some(s=>s&&s.type==='accessory'&&s.id===li.id)
+      : G.inventory.some(s=>s&&s.type==='weapon'&&s.id===li.id);
+    const equippedArmor = isArmor && G.equippedArmor===li.id;
+    const everPurchased = legendWalletAddr && walletHasPurchased(legendWalletAddr, li.id);
+    const owned = ownedInInventory || equippedArmor;
     const canAfford=legendGozoBal>=priceWei;
+    const canReclaim = everPurchased && !owned;
 
     const card=document.createElement('div');
     card.style.cssText=`
@@ -7572,11 +8266,21 @@ function renderLegendItems(){
         text-shadow:0 0 8px ${w.color};margin-bottom:5px;letter-spacing:1px;">
         ${owned?'★ ':''}${w.name}
       </div>
+      ${isArmor ? `
+      <div style="color:#888;font-family:'Press Start 2P',monospace;font-size:5px;line-height:1.8;">
+        ${w.effect==='def_boost'?`🛡 DEF: <span style="color:#80c0ff">+${w.val}</span>`
+          :w.effect==='resist_dot'?`💎 DoT Resist: <span style="color:#80ffcc">${Math.round(w.val*100)}%</span>`
+          :w.effect==='shield'?`💙 Shield: <span style="color:#40ddff">+${w.val} per floor</span>`
+          :w.effect==='speed_boost'?`👢 Speed: <span style="color:#80ff80">+${Math.round(w.val*100)}%</span>`:''}
+      </div>
+      <div style="color:#9090a0;font-family:'Press Start 2P',monospace;font-size:4px;margin-top:3px;line-height:1.6;">${w.desc}</div>
+      ` : `
       <div style="color:#888;font-family:'Press Start 2P',monospace;font-size:5px;line-height:1.8;">
         DMG: <span style="color:#ff8888">${w.dmg}</span> &nbsp;|&nbsp;
         SPD: <span style="color:#88ff88">${w.spd}x</span> &nbsp;|&nbsp;
         RNG: <span style="color:#88aaff">${w.range}x</span>
       </div>
+      `}
       <div style="color:#c08020;font-family:'Press Start 2P',monospace;font-size:5px;margin-top:4px;">
         💛 Sell: <span style="color:#f0c040">${(w.goldSell||0).toLocaleString()}g</span>
       </div>
@@ -7587,9 +8291,9 @@ function renderLegendItems(){
     actionDiv.style.cssText='text-align:right;min-width:90px;flex-shrink:0;';
 
     const priceEl=document.createElement('div');
-    priceEl.style.cssText=`color:#ffdd00;font-family:'Press Start 2P',monospace;font-size:6px;
-      margin-bottom:6px;text-shadow:0 0 6px #ffdd0099;`;
-    priceEl.textContent=`${li.priceGozo.toLocaleString()} GOZO`;
+    priceEl.style.cssText=`color:${canReclaim?'#40e090':'#ffdd00'};font-family:'Press Start 2P',monospace;font-size:6px;
+      margin-bottom:6px;text-shadow:0 0 6px ${canReclaim?'#40e09099':'#ffdd0099'};`;
+    priceEl.textContent=canReclaim ? '✦ PREVIOUSLY PURCHASED' : `${li.priceGozo.toLocaleString()} GOZO`;
     actionDiv.appendChild(priceEl);
 
     if(owned){
@@ -7599,6 +8303,28 @@ function renderLegendItems(){
         font-family:'Press Start 2P',monospace;font-size:5px;`;
       ownBadge.textContent='✓ OWNED';
       actionDiv.appendChild(ownBadge);
+    } else if(canReclaim){
+      // Free reclaim button — wallet has purchased before
+      const btn=document.createElement('button');
+      btn.onclick=()=>legendReclaim(li.id);
+      btn.style.cssText=`
+        background:rgba(40,180,80,0.2);
+        border:1px solid #40e090;
+        color:#40e090;
+        padding:5px 8px;font-family:'Press Start 2P',monospace;font-size:5px;
+        cursor:pointer;border-radius:3px;
+        white-space:nowrap;display:block;width:100%;
+        transition:background .15s;
+      `;
+      btn.onmouseenter=()=>btn.style.background='rgba(40,180,80,0.4)';
+      btn.onmouseleave=()=>btn.style.background='rgba(40,180,80,0.2)';
+      btn.textContent='🎁 CLAIM FREE';
+      actionDiv.appendChild(btn);
+      // Show small note
+      const note=document.createElement('div');
+      note.style.cssText='color:#406040;font-family:"Press Start 2P",monospace;font-size:4px;margin-top:4px;text-align:center;';
+      note.textContent='prev purchase detected';
+      actionDiv.appendChild(note);
     } else {
       const btn=document.createElement('button');
       btn.onclick=()=>legendBuy(li.id, li.priceGozo);
@@ -7625,22 +8351,28 @@ function renderLegendItems(){
   }
 }
 
-async function legendBuy(weaponId, priceGozo){
+async function legendBuy(itemId, priceGozo){
   if(!legendSigner){ toast('Connect wallet first!'); return; }
-  const w=WEAPONS[weaponId];
+  const li=LEGENDARY_ITEMS.find(x=>x.id===itemId);
+  const isArmor=li?.itemType==='armor';
+  const w=isArmor ? LEGENDARY_ARMORS[itemId] : WEAPONS[itemId];
   const priceWei=BigInt(priceGozo) * BigInt(10**legendDecimals);
   const btn=event.target; btn.textContent='BURNING...'; btn.disabled=true;
   try {
     const contract=new ethers.Contract(GOZO_TOKEN, GOZO_ABI, legendSigner);
-    // Transfer GOZO to dead address (burn)
     const tx=await contract.transfer(DEAD_ADDRESS, priceWei);
     toast(`🔥 Burning ${priceGozo.toLocaleString()} GOZO... tx pending`);
     btn.textContent='WAITING TX...';
     await tx.wait();
-    // Give weapon
-    const added=addToInventory({type:'weapon', id:weaponId, qty:1});
+    if(legendWalletAddr) recordWalletPurchase(legendWalletAddr, itemId);
+    // Add to inventory
+    let added=false;
+    if(isArmor){
+      added=addToInventory({type:'accessory', id:itemId, qty:1, def:w});
+    } else {
+      added=addToInventory({type:'weapon', id:itemId, qty:1});
+    }
     if(!added){ toast('❌ Inventory full!'); btn.textContent='BUY & BURN'; btn.disabled=false; return; }
-    // Deduct from display balance
     legendGozoBal -= priceWei;
     const balDisplay=Number(legendGozoBal/BigInt(10**legendDecimals)).toLocaleString();
     document.getElementById('legend-gozo-bal').textContent=`💰 ${balDisplay} GOZO`;
@@ -7650,6 +8382,22 @@ async function legendBuy(weaponId, priceGozo){
     toast('❌ TX failed: '+(e.shortMessage||e.message||'Unknown error'));
     btn.textContent='BUY & BURN'; btn.disabled=false;
   }
+}
+
+function legendReclaim(itemId){
+  if(!legendWalletAddr || !walletHasPurchased(legendWalletAddr, itemId)){
+    toast('❌ No purchase record found for this wallet!'); return;
+  }
+  const li=LEGENDARY_ITEMS.find(x=>x.id===itemId);
+  const isArmor=li?.itemType==='armor';
+  const w=isArmor ? LEGENDARY_ARMORS[itemId] : WEAPONS[itemId];
+  let added=false;
+  if(isArmor) added=addToInventory({type:'accessory', id:itemId, qty:1, def:w});
+  else added=addToInventory({type:'weapon', id:itemId, qty:1});
+  if(!added){ toast('❌ Inventory full!'); return; }
+  updateHud();
+  toast(`🎁 ${w.name} reclaimed! (Previous purchase detected)`, '#40e090', 3000);
+  renderLegendItems();
 }
 
 function openLegendShop(){
@@ -7682,7 +8430,204 @@ function buildShopTabs(shopType){
     b.onclick=()=>{ shopState.tab=id; shopState.selectedItem=null; shopState.selectedSellSlot=null; buildShopTabs(shopType); renderShopItems(); updateShopAction(null); };
     tabs.appendChild(b);
   }
+  // Show/hide SELL ALL button
+  const saBtn=document.getElementById('shop-sellall-btn');
+  if(saBtn) saBtn.style.display=(shopState.tab==='sell')?'block':'none';
 }
+// ═══════════════════════════════════════════════════════════
+//  ORE PIXEL ART SPRITES  (32×32, cached dataURL)
+// ═══════════════════════════════════════════════════════════
+const _ORE_SPR_CACHE = {};
+function getOreImg(id, size=36){
+  if(!_ORE_SPR_CACHE[id]){
+    const oc=document.createElement('canvas'); oc.width=32; oc.height=32;
+    const c=oc.getContext('2d'); c.imageSmoothingEnabled=false;
+
+    if(id==='iron'){
+      // Grey rocky chunk with metallic veins
+      c.fillStyle='#3a3a3a'; c.fillRect(6,8,20,16);
+      c.fillStyle='#5a5a5a'; c.fillRect(7,7,18,17);
+      c.fillStyle='#787878'; c.fillRect(8,8,14,13);
+      c.fillStyle='#909090'; c.fillRect(8,8,7,6);
+      c.fillStyle='#b0b0b0'; c.fillRect(9,9,4,3);
+      c.fillStyle='#d0d0d0'; c.fillRect(9,9,2,1);
+      // Rocky edges
+      c.fillStyle='#3a3a3a';
+      c.fillRect(6,8,2,2); c.fillRect(24,8,2,2);
+      c.fillRect(6,22,2,2); c.fillRect(24,22,2,2);
+      c.fillRect(8,6,3,2); c.fillRect(21,6,3,2);
+      c.fillRect(8,24,3,2); c.fillRect(21,24,2,2);
+      // Iron vein streaks
+      c.fillStyle='#c0c8d0';
+      c.fillRect(12,10,2,8); c.fillRect(16,11,1,6); c.fillRect(19,10,2,5);
+      c.fillStyle='#e0e8f0';
+      c.fillRect(12,10,1,4); c.fillRect(16,11,1,3);
+      // Shadow base
+      c.fillStyle='rgba(0,0,0,0.3)'; c.fillRect(7,21,18,3);
+
+    } else if(id==='gold'){
+      // Glittery gold nugget, faceted
+      c.fillStyle='#7a6000'; c.fillRect(6,8,20,16);
+      c.fillStyle='#c09020'; c.fillRect(7,7,18,17);
+      c.fillStyle='#e0b030'; c.fillRect(8,8,14,13);
+      c.fillStyle='#f0d050'; c.fillRect(8,8,8,7);
+      c.fillStyle='#ffe870'; c.fillRect(9,9,5,4);
+      c.fillStyle='#ffffff'; c.fillRect(9,9,2,2);
+      // Facet cuts
+      c.fillStyle='#a07010';
+      c.fillRect(16,9,1,10); c.fillRect(20,10,2,8);
+      c.fillRect(10,16,12,1);
+      // Sparkle stars
+      c.fillStyle='#ffffa0';
+      c.fillRect(20,8,1,3); c.fillRect(19,9,3,1); // star 1
+      c.fillRect(13,19,1,3); c.fillRect(12,20,3,1); // star 2
+      c.fillStyle='#ffffff';
+      c.fillRect(20,9,1,1); c.fillRect(13,20,1,1);
+      // Rocky edges
+      c.fillStyle='#7a6000';
+      c.fillRect(6,8,2,3); c.fillRect(24,9,2,3);
+      c.fillRect(9,24,3,2); c.fillRect(20,24,3,2);
+      c.fillRect(9,6,3,2); c.fillRect(20,6,3,2);
+
+    } else if(id==='diamond'){
+      // Classic diamond gem, octagonal, cyan-blue
+      // Outer shape
+      c.fillStyle='#004466';
+      c.fillRect(12,4,8,2); c.fillRect(8,6,16,2);
+      c.fillRect(6,8,20,14); c.fillRect(8,22,16,2);
+      c.fillRect(12,24,8,2);
+      // Main facets
+      c.fillStyle='#0088bb'; c.fillRect(7,8,18,13);
+      c.fillStyle='#00aadd'; c.fillRect(8,7,16,13);
+      // Top bright facet
+      c.fillStyle='#40ddff'; c.fillRect(9,8,8,6);
+      c.fillStyle='#80f0ff'; c.fillRect(10,9,5,3);
+      c.fillStyle='#c0ffff'; c.fillRect(10,9,3,2);
+      c.fillStyle='#ffffff'; c.fillRect(11,9,1,1);
+      // Right dark facet
+      c.fillStyle='#006688'; c.fillRect(17,8,7,12);
+      c.fillStyle='#005577'; c.fillRect(18,9,5,10);
+      // Bottom point
+      c.fillStyle='#0088bb'; c.fillRect(12,21,8,2);
+      c.fillStyle='#00aadd'; c.fillRect(13,23,6,1);
+      c.fillStyle='#40ddff'; c.fillRect(14,24,4,1);
+      c.fillStyle='#80f0ff'; c.fillRect(15,25,2,1);
+      // Dividing lines
+      c.fillStyle='#003355';
+      c.fillRect(16,8,1,14); c.fillRect(8,14,18,1);
+      // Inner glint
+      c.fillStyle='rgba(200,240,255,0.4)'; c.fillRect(9,8,6,4);
+
+    } else if(id==='steel'){
+      // Steel ingot — rectangular polished bar, blue-silver
+      // Ingot body
+      c.fillStyle='#202830'; c.fillRect(5,10,22,14);
+      c.fillStyle='#5070a0'; c.fillRect(6,11,20,12);
+      c.fillStyle='#7090c0'; c.fillRect(7,11,16,9);
+      c.fillStyle='#a0b8e0'; c.fillRect(7,11,9,5);
+      c.fillStyle='#d0e0ff'; c.fillRect(7,11,5,3);
+      c.fillStyle='#ffffff'; c.fillRect(7,11,2,2);
+      // Top bevel
+      c.fillStyle='#90b0d0'; c.fillRect(6,10,20,2);
+      c.fillStyle='#c0d8f0'; c.fillRect(7,10,18,1);
+      // Bottom bevel
+      c.fillStyle='#304060'; c.fillRect(6,22,20,2);
+      c.fillStyle='#202840'; c.fillRect(6,23,20,1);
+      // Side bevel left
+      c.fillStyle='#4060a0'; c.fillRect(5,10,2,14);
+      c.fillStyle='#6080b0'; c.fillRect(5,11,1,12);
+      // Side bevel right
+      c.fillStyle='#304060'; c.fillRect(25,10,2,14);
+      // Steel "S" stamp
+      c.fillStyle='#203050';
+      c.fillRect(14,13,4,1); c.fillRect(13,14,2,1); c.fillRect(14,16,4,1);
+      c.fillRect(17,17,2,1); c.fillRect(14,18,4,1);
+      // Shine sweep
+      c.fillStyle='rgba(200,220,255,0.3)'; c.fillRect(7,11,14,2);
+
+    } else if(id==='titanium'){
+      // Titanium crystal cluster — purple-silver prisms
+      // Crystal 1 (tallest, center)
+      c.fillStyle='#181828'; c.fillRect(14,4,6,22);
+      c.fillStyle='#7080c0'; c.fillRect(15,5,4,20);
+      c.fillStyle='#b0b8ff'; c.fillRect(15,5,2,12);
+      c.fillStyle='#d8dcff'; c.fillRect(15,5,1,6);
+      c.fillStyle='#ffffff'; c.fillRect(15,6,1,3);
+      // Crystal tip
+      c.fillStyle='#c0c8ff'; c.fillRect(15,4,2,2); c.fillRect(16,3,1,2);
+      // Crystal 2 (left)
+      c.fillStyle='#101020'; c.fillRect(8,10,5,16);
+      c.fillStyle='#5060a0'; c.fillRect(9,11,3,14);
+      c.fillStyle='#8090d0'; c.fillRect(9,11,2,8);
+      c.fillStyle='#b0b8ff'; c.fillRect(9,11,1,4);
+      c.fillStyle='#a0a8e0'; c.fillRect(9,10,2,2); c.fillRect(10,9,1,2);
+      // Crystal 3 (right)
+      c.fillStyle='#101020'; c.fillRect(19,8,5,18);
+      c.fillStyle='#5060a0'; c.fillRect(20,9,3,16);
+      c.fillStyle='#8090d0'; c.fillRect(20,9,2,9);
+      c.fillStyle='#b0b8ff'; c.fillRect(20,9,1,5);
+      c.fillStyle='#a0a8e0'; c.fillRect(20,8,2,2); c.fillRect(21,7,1,2);
+      // Base rock
+      c.fillStyle='#303048'; c.fillRect(6,24,20,6);
+      c.fillStyle='#404060'; c.fillRect(7,25,18,4);
+      c.fillStyle='#505080'; c.fillRect(8,25,10,3);
+
+    } else if(id==='tungsten'){
+      // Tungsten heavy block — super dense dark metal, almost black
+      // Outer block shadow
+      c.fillStyle='#080808'; c.fillRect(4,8,24,18);
+      // Main block
+      c.fillStyle='#282828'; c.fillRect(5,9,22,16);
+      c.fillStyle='#404040'; c.fillRect(6,10,18,13);
+      c.fillStyle='#585858'; c.fillRect(6,10,10,7);
+      c.fillStyle='#707070'; c.fillRect(7,10,6,4);
+      c.fillStyle='#909090'; c.fillRect(7,10,3,2);
+      c.fillStyle='#b0b0b0'; c.fillRect(7,10,1,1);
+      // Top bevel — slightly lighter
+      c.fillStyle='#505050'; c.fillRect(5,8,22,3);
+      c.fillStyle='#686868'; c.fillRect(6,9,20,1);
+      // Right bevel — darker
+      c.fillStyle='#202020'; c.fillRect(25,9,3,14);
+      c.fillStyle='#181818'; c.fillRect(26,10,2,12);
+      // Iso top face
+      c.fillStyle='#383838'; c.fillRect(5,6,22,4);
+      c.fillStyle='#484848'; c.fillRect(6,6,20,2);
+      // "W" stamp
+      c.fillStyle='#202020';
+      c.fillRect(11,13,1,5); c.fillRect(14,15,2,3); c.fillRect(17,13,1,5);
+      c.fillRect(12,17,2,1); c.fillRect(15,17,2,1);
+      c.fillStyle='#606060'; c.fillRect(11,13,1,1); c.fillRect(17,13,1,1);
+
+    } else if(id==='chromium'){
+      // Chromium — glowing green metallic geode
+      // Outer geode rock
+      c.fillStyle='#102010'; c.fillRect(5,7,22,18);
+      c.fillStyle='#1a3020'; c.fillRect(6,8,20,16);
+      // Inner crystal cavity
+      c.fillStyle='#104020'; c.fillRect(8,10,16,12);
+      c.fillStyle='#208040'; c.fillRect(9,11,14,10);
+      // Crystal spikes inside
+      c.fillStyle='#30c060';
+      [[10,18,2,5],[13,17,2,6],[16,18,2,5],[19,17,2,4],[11,20,1,3],[18,19,1,3]].forEach(([x,y,w,h])=>c.fillRect(x,y-h,w,h));
+      c.fillStyle='#60ff80';
+      [[10,18,1,3],[13,17,1,4],[16,18,1,3],[19,17,1,2]].forEach(([x,y,w,h])=>c.fillRect(x,y-h,w,h));
+      // Tip gleam
+      c.fillStyle='#c0ffd0';
+      c.fillRect(10,13,1,1); c.fillRect(13,12,1,1); c.fillRect(16,13,1,1); c.fillRect(19,12,1,1);
+      c.fillStyle='#ffffff';
+      c.fillRect(13,12,1,1); c.fillRect(19,12,1,1);
+      // Outer rim highlight
+      c.fillStyle='#40e060'; c.fillRect(6,8,20,1); c.fillRect(6,8,1,16);
+      c.fillStyle='#104020'; c.fillRect(6,23,20,1); c.fillRect(25,9,1,14);
+      // Glow tint
+      c.fillStyle='rgba(0,200,80,0.15)'; c.fillRect(5,7,22,18);
+    }
+
+    _ORE_SPR_CACHE[id]=oc.toDataURL();
+  }
+  return `<img src="${_ORE_SPR_CACHE[id]}" style="width:${size}px;height:${size}px;image-rendering:pixelated;display:block;">`;
+}
+
 function getShopInventory(shopType){
   // Returns list of {id, name, icon, price, desc, tier} for buy
   const items=[];
@@ -7695,15 +8640,15 @@ function getShopInventory(shopType){
     for(const pid in PICKAXES) items.push({id:pid,name:PICKAXES[pid].name,icon:'⛏',price:SHOP_BUY[pid]||100,tier:PICKAXES[pid].tier,desc:`DMG +${PICKAXES[pid].dmg} | ${PICKAXES[pid].tier}`});
   } else if(shopType==='bomb'){
     items.push({id:'bomb',  name:'Bomb',  icon:'💣', price:SHOP_BUY.bomb||200, tier:'Common',   desc:'Blasts rocks in radius'});
-    items.push({id:'ladder',name:'Ladder',icon:'🪜', price:1,                  tier:'Common',   desc:'Instantly go 1 floor deeper'});
+    items.push({id:'ladder',name:'Ladder',icon:'🪜', price:10000,               tier:'Common',   desc:'Instantly go 1 floor deeper'});
   } else if(shopType==='ore'){
-    items.push({id:'iron',    name:'Iron Ore',   icon:'🪨', price:SHOP_BUY.iron||20,     tier:'Common',    desc:'Craft & sell material'});
-    items.push({id:'gold',    name:'Gold Ore',   icon:'✨', price:SHOP_BUY.gold||100,    tier:'Uncommon',  desc:'Valuable ore'});
-    items.push({id:'diamond', name:'Diamond',    icon:'💎', price:SHOP_BUY.diamond||600, tier:'Rare',      desc:'Rare precious gem'});
-    items.push({id:'steel',   name:'Baja',       icon:'🔩', price:SHOP_BUY.steel||1200,  tier:'Epic',      desc:'Deep metal fl.101+ only'});
-    items.push({id:'titanium',name:'Titanium',   icon:'🔷', price:SHOP_BUY.titanium||2500,tier:'Epic',     desc:'Ultra-strong fl.101+ only'});
-    items.push({id:'tungsten',name:'Tungsten',   icon:'⬛', price:SHOP_BUY.tungsten||4000,tier:'Legendary',desc:'Densest metal fl.101+ only'});
-    items.push({id:'chromium',name:'Chromium',   icon:'💚', price:SHOP_BUY.chromium||3000,tier:'Legendary',desc:'Rare alloy fl.101+ only'});
+    items.push({id:'iron',    name:'Iron Ore',   icon:'iron',    price:SHOP_BUY.iron||20,     tier:'Common',    desc:'Craft & sell material'});
+    items.push({id:'gold',    name:'Gold Ore',   icon:'gold',    price:SHOP_BUY.gold||100,    tier:'Uncommon',  desc:'Valuable ore'});
+    items.push({id:'diamond', name:'Diamond',    icon:'diamond', price:SHOP_BUY.diamond||600, tier:'Rare',      desc:'Rare precious gem'});
+    items.push({id:'steel',   name:'Steel',      icon:'steel',   price:SHOP_BUY.steel||1200,  tier:'Epic',      desc:'Deep metal fl.101+ only'});
+    items.push({id:'titanium',name:'Titanium',   icon:'titanium',price:SHOP_BUY.titanium||2500,tier:'Epic',     desc:'Ultra-strong fl.101+ only'});
+    items.push({id:'tungsten',name:'Tungsten',   icon:'tungsten',price:SHOP_BUY.tungsten||4000,tier:'Legendary',desc:'Densest metal fl.101+ only'});
+    items.push({id:'chromium',name:'Chromium',   icon:'chromium',price:SHOP_BUY.chromium||3000,tier:'Legendary',desc:'Rare alloy fl.101+ only'});
   } else if(shopType==='forge'){
     return getShopForgeItems();
   }
@@ -7725,6 +8670,262 @@ function getShopSellItems(shopType){
   }
   return items;
 }
+// ═══════════════════════════════════════════════════════════
+//  FORGE ITEM PIXEL ART SPRITES  (32×32 each, cached as dataURL)
+// ═══════════════════════════════════════════════════════════
+const _FORGE_SPR_CACHE = {};
+function getForgeItemImg(id){
+  if(_FORGE_SPR_CACHE[id]) return `<img src="${_FORGE_SPR_CACHE[id]}" style="width:36px;height:36px;image-rendering:pixelated;display:block;">`;
+  const oc=document.createElement('canvas');
+  oc.width=32; oc.height=32;
+  const c=oc.getContext('2d');
+  c.imageSmoothingEnabled=false;
+
+  if(id==='iron_blade'){
+    c.fillStyle='#1a1a22'; c.fillRect(14,2,4,22);
+    c.fillStyle='#8090a0'; c.fillRect(15,2,2,20);
+    c.fillStyle='#c0d0e0'; c.fillRect(15,2,1,12);
+    c.fillStyle='#d0e8f0'; c.fillRect(15,2,1,3);
+    c.fillStyle='#ffffff'; c.fillRect(15,3,1,2);
+    c.fillStyle='#506070'; c.fillRect(11,21,10,3);
+    c.fillStyle='#80a0b0'; c.fillRect(11,21,10,1);
+    c.fillStyle='#304050'; c.fillRect(11,23,10,1);
+    c.fillStyle='#5a2c10'; c.fillRect(14,24,4,7);
+    c.fillStyle='#8a4c20'; c.fillRect(14,24,2,7);
+    c.fillStyle='#3a1c08'; c.fillRect(14,26,4,2);
+    c.fillStyle='#608090'; c.fillRect(13,30,6,2);
+    c.fillStyle='#90b0c0'; c.fillRect(13,30,6,1);
+
+  } else if(id==='gold_blade'){
+    c.fillStyle='#7a6000'; c.fillRect(13,1,6,22);
+    c.fillStyle='#c09020'; c.fillRect(14,2,4,20);
+    c.fillStyle='#f0c830'; c.fillRect(14,2,2,16);
+    c.fillStyle='#ffe860'; c.fillRect(14,2,1,8);
+    c.fillStyle='#ffffff'; c.fillRect(14,3,1,3);
+    c.fillStyle='#d0a020';
+    for(let i=0;i<3;i++){ c.fillRect(13,6+i*5,2,3); c.fillRect(18,8+i*5,2,3); }
+    c.fillStyle='#8a6000'; c.fillRect(9,21,14,3);
+    c.fillStyle='#f0c830'; c.fillRect(9,21,14,1);
+    c.fillStyle='#ffe060'; c.fillRect(10,21,4,1); c.fillRect(18,21,4,1);
+    c.fillStyle='#5a2c10'; c.fillRect(14,24,4,6);
+    c.fillStyle='#c09020'; c.fillRect(14,25,1,4); c.fillRect(17,25,1,4);
+    c.fillStyle='#c09020'; c.fillRect(12,30,8,2);
+    c.fillStyle='#ffe060'; c.fillRect(13,30,6,1);
+
+  } else if(id==='diamond_blade'){
+    c.fillStyle='#004466'; c.fillRect(13,1,6,23);
+    c.fillStyle='#00aacc'; c.fillRect(14,2,4,21);
+    c.fillStyle='#40ddff'; c.fillRect(14,2,2,14);
+    c.fillStyle='#80ffff'; c.fillRect(14,2,1,7);
+    c.fillStyle='#ffffff'; c.fillRect(14,3,1,4);
+    c.fillStyle='#006688'; c.fillRect(17,5,1,12); c.fillRect(13,5,1,12);
+    c.fillStyle='#00aacc'; c.fillRect(12,22,8,3);
+    c.fillStyle='#40ddff'; c.fillRect(13,22,6,1);
+    c.fillStyle='#003344'; c.fillRect(14,25,4,6);
+    c.fillStyle='#005566'; c.fillRect(14,25,2,6);
+    c.fillStyle='#40ddff'; c.fillRect(13,30,6,2);
+
+  } else if(id==='steel_blade'){
+    c.fillStyle='#202830'; c.fillRect(13,2,5,23);
+    c.fillStyle='#6080a0'; c.fillRect(14,2,3,21);
+    c.fillStyle='#a0c8e0'; c.fillRect(14,2,2,14);
+    c.fillStyle='#d8f0ff'; c.fillRect(14,2,1,7);
+    c.fillStyle='#ffffff'; c.fillRect(14,3,1,4);
+    c.fillStyle='#80a0c0'; c.fillRect(16,8,2,3);
+    c.fillStyle='#304050'; c.fillRect(10,23,12,3);
+    c.fillStyle='#6090b0'; c.fillRect(10,23,12,1);
+    c.fillStyle='#a0d0f0'; c.fillRect(11,23,3,1); c.fillRect(18,23,3,1);
+    c.fillStyle='#1a2830'; c.fillRect(14,26,4,5);
+    for(let i=0;i<3;i++){ c.fillStyle=i%2?'#4080a0':'#203050'; c.fillRect(14,26+i,4,1); }
+    c.fillStyle='#5080a0'; c.fillRect(13,31,6,1);
+
+  } else if(id==='titanium_blade'){
+    c.fillStyle='#181828'; c.fillRect(10,2,12,22);
+    c.fillStyle='#7080c0'; c.fillRect(11,3,10,20);
+    c.fillStyle='#b0b8ff'; c.fillRect(11,3,5,14);
+    c.fillStyle='#d8dcff'; c.fillRect(11,3,2,8);
+    c.fillStyle='#ffffff'; c.fillRect(11,4,1,4);
+    c.fillStyle='#404060'; c.fillRect(19,3,3,20);
+    c.fillStyle='#6068a0'; c.fillRect(19,3,1,20);
+    c.fillStyle='#202030'; c.fillRect(14,24,4,7);
+    c.fillStyle='#9090c0'; c.fillRect(14,24,1,7); c.fillRect(17,24,1,7);
+    c.fillStyle='#b0b0ff'; c.fillRect(12,31,8,1);
+
+  } else if(id==='tungsten_hammer'){
+    // hammerhead
+    c.fillStyle='#101010'; c.fillRect(2,3,26,13);
+    c.fillStyle='#606060'; c.fillRect(3,4,24,11);
+    c.fillStyle='#909090'; c.fillRect(3,4,12,5);
+    c.fillStyle='#d0d0d0'; c.fillRect(3,4,5,3);
+    c.fillStyle='#ffffff'; c.fillRect(3,4,2,2);
+    c.fillStyle='#404040'; c.fillRect(3,4,24,1); c.fillRect(3,14,24,1);
+    c.fillStyle='#c0c0c0';
+    [[5,6],[14,6],[5,11],[14,11]].forEach(([bx,by])=>{ c.fillRect(bx,by,2,2); c.fillStyle='#ffffff'; c.fillRect(bx,by,1,1); c.fillStyle='#c0c0c0'; });
+    // handle
+    c.fillStyle='#2c1808'; c.fillRect(13,16,6,15);
+    c.fillStyle='#6a3820'; c.fillRect(14,16,4,15);
+    for(let i=0;i<4;i++){ c.fillStyle=i%2?'#502810':'#3a1c0c'; c.fillRect(13,17+i*3,6,2); }
+    c.fillStyle='#808080'; c.fillRect(12,30,8,2);
+
+  } else if(id==='chromium_lance'){
+    c.fillStyle='#102010'; c.fillRect(14,1,4,28);
+    c.fillStyle='#20a040'; c.fillRect(15,1,2,26);
+    c.fillStyle='#60ff80'; c.fillRect(15,1,1,14);
+    c.fillStyle='#ffffff'; c.fillRect(15,2,1,5);
+    c.fillStyle='#20a040';
+    c.fillRect(10,14,5,2); c.fillRect(17,14,5,2);
+    c.fillStyle='#40e060';
+    c.fillRect(10,14,4,1); c.fillRect(17,14,4,1);
+    c.fillStyle='#102010'; c.fillRect(14,27,4,5);
+    c.fillStyle='#30c050'; c.fillRect(14,27,1,4); c.fillRect(17,27,1,4);
+    c.fillStyle='#60ff80'; c.fillRect(13,31,6,1);
+
+  } else if(id==='steel_pick'){
+    // handle diagonal
+    c.fillStyle='#3a1808'; c.fillRect(7,18,18,4);
+    c.fillStyle='#7a4820'; c.fillRect(7,18,16,2);
+    // head
+    c.fillStyle='#304050'; c.fillRect(2,7,28,12);
+    c.fillStyle='#6090b0'; c.fillRect(3,8,26,10);
+    c.fillStyle='#90c0e0'; c.fillRect(3,8,13,5);
+    c.fillStyle='#c0e0ff'; c.fillRect(3,8,6,3);
+    c.fillStyle='#ffffff'; c.fillRect(3,9,2,1);
+    // tips
+    c.fillStyle='#d0e8ff'; c.fillRect(1,11,3,2);
+    c.fillStyle='#ffffff'; c.fillRect(1,12,2,1);
+    c.fillStyle='#a0c8e0'; c.fillRect(28,11,3,2);
+    c.fillStyle='#ffffff'; c.fillRect(29,12,1,1);
+    c.fillStyle='#c0d8e8';
+    [[7,9],[16,9],[7,14],[16,14]].forEach(([bx,by])=>{ c.fillRect(bx,by,2,2); });
+
+  } else if(id==='tungsten_pick'){
+    c.fillStyle='#101010'; c.fillRect(1,6,30,14);
+    c.fillStyle='#505050'; c.fillRect(2,7,28,12);
+    c.fillStyle='#909090'; c.fillRect(2,7,14,6);
+    c.fillStyle='#d0d0d0'; c.fillRect(2,7,6,3);
+    c.fillStyle='#ffffff'; c.fillRect(2,8,3,1);
+    c.fillStyle='#c0c0c0'; c.fillRect(0,11,3,2); c.fillStyle='#ffffff'; c.fillRect(0,12,1,1);
+    c.fillStyle='#a0a0a0'; c.fillRect(29,11,3,2); c.fillStyle='#d0d0d0'; c.fillRect(30,11,1,1);
+    c.fillStyle='#181818'; c.fillRect(13,20,6,11);
+    c.fillStyle='#404040'; c.fillRect(14,20,4,11);
+    c.fillStyle='#606060'; c.fillRect(14,20,2,11);
+    for(let i=0;i<3;i++){ c.fillStyle=i%2?'#505050':'#303030'; c.fillRect(13,22+i*3,6,2); }
+    c.fillStyle='#808080'; c.fillRect(12,31,8,1);
+
+  } else if(id==='iron_shield'){
+    c.fillStyle='#182028'; c.fillRect(6,3,20,26);
+    c.fillStyle='#5a7080'; c.fillRect(7,4,18,24);
+    c.fillStyle='#7a9090'; c.fillRect(7,4,9,12);
+    c.fillStyle='#a0b8c0'; c.fillRect(7,4,4,6);
+    c.fillStyle='#304050'; c.fillRect(6,3,20,1); c.fillRect(6,28,20,1); c.fillRect(6,3,1,26); c.fillRect(25,3,1,26);
+    c.fillStyle='#304050'; c.fillRect(15,6,2,20); c.fillRect(8,14,16,2);
+    c.fillStyle='#a0c0d0'; c.fillRect(15,6,1,18); c.fillRect(8,14,14,1);
+    c.fillStyle='#c0d0d0';
+    [[8,5],[22,5],[8,25],[22,25]].forEach(([rx,ry])=>{ c.fillRect(rx,ry,2,2); c.fillStyle='#ffffff'; c.fillRect(rx,ry,1,1); c.fillStyle='#c0d0d0'; });
+
+  } else if(id==='gold_shield'){
+    c.fillStyle='#6a4000'; c.fillRect(6,3,20,26);
+    c.fillStyle='#c09020'; c.fillRect(7,4,18,24);
+    c.fillStyle='#e0b030'; c.fillRect(7,4,9,12);
+    c.fillStyle='#ffe060'; c.fillRect(7,4,4,6);
+    c.fillStyle='#ffffff'; c.fillRect(7,5,2,3);
+    // sun rays
+    c.fillStyle='#8a6010';
+    [[16,9],[16,21],[10,15],[22,15],[11,10],[21,10],[11,20],[21,20]].forEach(([rx,ry])=>c.fillRect(rx,ry,2,2));
+    c.fillStyle='#ffe060'; c.fillRect(14,13,4,5);
+    c.fillStyle='#ffffff'; c.fillRect(15,14,2,1);
+    c.fillStyle='#8a6010'; c.fillRect(6,3,20,1); c.fillRect(6,28,20,1); c.fillRect(6,3,1,26); c.fillRect(25,3,1,26);
+    c.fillStyle='#c09020'; c.fillRect(14,28,4,4);
+    c.fillStyle='#ffe060'; c.fillRect(15,28,2,3);
+
+  } else if(id==='antidote_ring'){
+    // gold band
+    c.fillStyle='#8a6000';
+    c.fillRect(10,7,12,2); c.fillRect(10,22,12,2);
+    c.fillRect(7,9,2,13); c.fillRect(22,9,2,13);
+    // inner highlight
+    c.fillStyle='#e0b030';
+    c.fillRect(11,8,10,1); c.fillRect(11,23,10,1);
+    c.fillRect(8,9,1,13); c.fillRect(23,9,1,13);
+    // clear center hole
+    c.clearRect(9,9,14,14);
+    // teal gem top
+    c.fillStyle='#008870'; c.fillRect(12,2,8,7);
+    c.fillStyle='#00ccaa'; c.fillRect(13,3,6,5);
+    c.fillStyle='#40ffee'; c.fillRect(13,3,3,2);
+    c.fillStyle='#ffffff'; c.fillRect(13,3,1,1);
+    c.fillStyle='#006655'; c.fillRect(15,7,2,1); c.fillRect(12,4,1,4); c.fillRect(19,4,1,4);
+    // gem glow
+    c.fillStyle='rgba(0,200,160,0.25)'; c.fillRect(10,7,12,3);
+
+  } else if(id==='steel_armor'){
+    // chest plate
+    c.fillStyle='#202830'; c.fillRect(6,4,20,24);
+    c.fillStyle='#5070a0'; c.fillRect(7,5,18,22);
+    c.fillStyle='#7090c0'; c.fillRect(7,5,9,11);
+    c.fillStyle='#a0b8e0'; c.fillRect(7,5,4,5);
+    c.fillStyle='#d0e0ff'; c.fillRect(7,5,2,3);
+    // shoulders
+    c.fillStyle='#304060'; c.fillRect(3,4,6,6); c.fillRect(23,4,6,6);
+    c.fillStyle='#6080b0'; c.fillRect(4,5,5,4); c.fillRect(24,5,4,4);
+    c.fillStyle='#90b0d0'; c.fillRect(4,5,3,2); c.fillRect(24,5,2,2);
+    // cross emblem
+    c.fillStyle='#203050'; c.fillRect(14,8,4,10); c.fillRect(10,12,12,4);
+    c.fillStyle='#80a0d0'; c.fillRect(14,8,2,8); c.fillRect(10,12,10,2);
+    // seam
+    c.fillStyle='#304060'; c.fillRect(7,17,18,1);
+    c.fillStyle='#6080a0'; c.fillRect(8,17,16,1);
+    // bolts
+    c.fillStyle='#90b0d0';
+    [[8,6],[22,6],[8,22],[22,22]].forEach(([bx,by])=>{ c.fillRect(bx,by,2,2); c.fillStyle='#c0d8ff'; c.fillRect(bx,by,1,1); c.fillStyle='#90b0d0'; });
+
+  } else if(id==='chromium_boots'){
+    // left boot
+    c.fillStyle='#102010'; c.fillRect(3,6,11,24);
+    c.fillStyle='#208040'; c.fillRect(4,7,9,22);
+    c.fillStyle='#40c060'; c.fillRect(4,7,5,11);
+    c.fillStyle='#80ff90'; c.fillRect(4,7,2,5);
+    c.fillStyle='#ffffff'; c.fillRect(4,8,1,2);
+    c.fillStyle='#30a050'; c.fillRect(3,6,11,3);
+    c.fillStyle='#60ff80'; c.fillRect(3,6,11,1);
+    c.fillStyle='#101010'; c.fillRect(2,28,12,3);
+    c.fillStyle='#208040'; c.fillRect(2,28,12,1);
+    c.fillStyle='#60ff80'; c.fillRect(5,13,2,11);
+    // right boot
+    c.fillStyle='#102010'; c.fillRect(18,6,11,24);
+    c.fillStyle='#208040'; c.fillRect(19,7,9,22);
+    c.fillStyle='#40c060'; c.fillRect(23,7,5,11);
+    c.fillStyle='#80ff90'; c.fillRect(26,7,2,5);
+    c.fillStyle='#ffffff'; c.fillRect(27,8,1,2);
+    c.fillStyle='#30a050'; c.fillRect(18,6,11,3);
+    c.fillStyle='#60ff80'; c.fillRect(18,6,11,1);
+    c.fillStyle='#101010'; c.fillRect(18,28,12,3);
+    c.fillStyle='#208040'; c.fillRect(18,28,12,1);
+    c.fillStyle='#60ff80'; c.fillRect(25,13,2,11);
+  }
+
+  const url=oc.toDataURL();
+  _FORGE_SPR_CACHE[id]=url;
+  return `<img src="${url}" style="width:36px;height:36px;image-rendering:pixelated;display:block;">`;
+}
+
+function buildForgeItemSprite(id){
+  // legacy canvas builder kept for right-panel preview
+  const oc=document.createElement('canvas');
+  oc.width=32; oc.height=32;
+  oc.style.cssText='image-rendering:pixelated;width:48px;height:48px;display:block;';
+  const c=oc.getContext('2d');
+  c.imageSmoothingEnabled=false;
+  // re-use same drawing by getting cached dataURL and drawing it
+  getForgeItemImg(id); // ensure cache populated
+  if(_FORGE_SPR_CACHE[id]){
+    const img=new Image(); img.src=_FORGE_SPR_CACHE[id];
+    img.onload=()=>c.drawImage(img,0,0,32,32);
+    c.drawImage(img,0,0,32,32);
+  }
+  return oc;
+}
+
 function renderShopItems(){
   const grid=document.getElementById('shop-items');
   grid.innerHTML='';
@@ -7738,7 +8939,21 @@ function renderShopItems(){
       d.className='shop-item'+(shopState.selectedItem?.id===r.id?' selected':'');
       d.style.borderColor=tc+'99';
       const costStr=Object.entries(r.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)}`:`${k}×${v}`).join(' ');
-      d.innerHTML=`<div class="si-top"><span class="si-icon">${r.icon}</span><div><div class="si-name">${r.name}</div><div class="si-tier" style="color:${tc}">${r._canAfford?'✅ CAN CRAFT':'❌ NEED MORE'}</div></div></div><div class="si-price" style="font-size:4px">${costStr}</div>`;
+      // Build pixel art sprite
+      const siTop=document.createElement('div');
+      siTop.className='si-top';
+      const iconWrap=document.createElement('span');
+      iconWrap.className='si-icon';
+      iconWrap.innerHTML=getForgeItemImg(r.id);
+      const infoWrap=document.createElement('div');
+      infoWrap.innerHTML=`<div class="si-name">${r.name}</div><div class="si-tier" style="color:${tc}">${r._canAfford?'✅ CAN CRAFT':'❌ NEED MORE'}</div>`;
+      siTop.appendChild(iconWrap);
+      siTop.appendChild(infoWrap);
+      const priceDiv=document.createElement('div');
+      priceDiv.className='si-price'; priceDiv.style.fontSize='4px';
+      priceDiv.textContent=costStr;
+      d.appendChild(siTop);
+      d.appendChild(priceDiv);
       d.onclick=()=>{ shopState.selectedItem=r; renderShopItems(); updateShopAction(r,'forge'); };
       grid.appendChild(d);
     }
@@ -7750,7 +8965,9 @@ function renderShopItems(){
       const tc=TIER_COLOR[item.tier]||'#c0c0c0';
       d.className='shop-item'+(shopState.selectedItem?.id===item.id?' selected':'');
       d.style.borderColor=tc+'88';
-      d.innerHTML=`<div class="si-top"><span class="si-icon">${item.icon}</span><div><div class="si-name">${item.name}</div><div class="si-tier" style="color:${tc}">${item.tier||''}</div></div></div><div class="si-price">💰${fmt(item.price)}</div>`;
+      const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];
+      const iconHtml = oreIds.includes(item.id) ? getOreImg(item.id) : item.icon;
+      d.innerHTML=`<div class="si-top"><span class="si-icon">${iconHtml}</span><div><div class="si-name">${item.name}</div><div class="si-tier" style="color:${tc}">${item.tier||''}</div></div></div><div class="si-price">💰${fmt(item.price)}</div>`;
       d.onclick=()=>{ shopState.selectedItem=item; shopState.selectedSellSlot=null; renderShopItems(); updateShopAction(item,'buy'); };
       grid.appendChild(d);
     }
@@ -7765,7 +8982,7 @@ function renderShopItems(){
       if(item.type==='weapon'){name=WEAPONS[item.id]?.name||'Wpn';icon=WEAPONS[item.id]?.icon||'⚔️';const t=WEAPONS[item.id]?.tierIdx||0;price=Math.floor((WEAPON_SELL[t+1]||30)*0.6);tier=WEAPONS[item.id]?.tier||'Common';}
       else if(item.type==='pickaxe'){name=PICKAXES[item.id]?.name||'Pick';icon='⛏';const ti=PICKAXES[item.id]?.tierIdx||0;price=Math.floor((PICK_SELL[ti]||20)*0.6);tier=PICKAXES[item.id]?.tier||'Common';}
       else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';icon='🧪';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
-      else if(item.type==='ore'){name=item.id;icon=item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
+      else if(item.type==='ore'){name=item.id==='steel'?'Steel':item.id.charAt(0).toUpperCase()+item.id.slice(1);const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];icon=oreIds.includes(item.id)?getOreImg(item.id,24):item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
       else if(item.type==='bomb'){name='Bomb';icon='💣';price=100;}
       const tc=TIER_COLOR[tier]||'#c0c0c0';
       const d=document.createElement('div');
@@ -7784,9 +9001,14 @@ function updateShopAction(item, mode){
   const titleEl=document.getElementById('shop-item-title');
   const descEl=document.getElementById('shop-item-desc');
   buyBtn.disabled=true; sellBtn.disabled=true;
-  if(!item){ iconEl.textContent='🔥'; titleEl.textContent='Select a recipe'; descEl.textContent='Choose what to forge from your ores.'; return; }
+  if(!item){ iconEl.textContent='🔥'; iconEl.style.fontSize='28px'; titleEl.textContent='Select a recipe'; descEl.textContent='Choose what to forge from your ores.'; return; }
   if(mode==='forge'){
-    iconEl.textContent=item.icon||'🔥';
+    // Show pixel art sprite in right panel
+    iconEl.innerHTML='';
+    iconEl.style.fontSize='';
+    const spr=buildForgeItemSprite(item.id);
+    if(spr){ spr.style.cssText='image-rendering:pixelated;width:48px;height:48px;display:block;'; iconEl.appendChild(spr); }
+    else { iconEl.textContent=item.icon||'🔥'; }
     titleEl.textContent=item.name;
     descEl.textContent=item.desc||'';
     const costStr=Object.entries(item.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)} gold`:`${v}x ${k}`).join(', ');
@@ -7848,6 +9070,50 @@ function shopSell(){
   G.inventory[slot]=null;
   updateHud(); updateShopGold();
   toast(`💰 Sold for ${fmt(price)}g!`);
+  shopState.selectedItem=null; shopState.selectedSellSlot=null;
+  renderShopItems(); updateShopAction(null);
+}
+
+function shopSellAll(){
+  const npc=shopState.npc;
+  if(!npc) return;
+  const shopType=npc.shop;
+  // Map shop type to inventory types
+  const typeMap={weapon:['weapon'],pickaxe:['pickaxe'],potion:['potion'],ore:['ore'],bomb:['bomb']};
+  const sellTypes=typeMap[shopType]||[];
+  if(!sellTypes.length){ toast('❌ Nothing to sell here!'); return; }
+
+  let totalGold=0, totalItems=0;
+  for(let i=0;i<(G.invSlots||30);i++){
+    const s=G.inventory[i];
+    if(!s||!sellTypes.includes(s.type)) continue;
+    // Don't sell equipped weapon or pickaxe
+    if(s.type==='weapon'&&s.id===G.equippedWeapon) continue;
+    if(s.type==='pickaxe'&&s.id===G.equippedPickaxe) continue;
+    // Calculate sell price
+    let price=0;
+    if(s.type==='weapon'){
+      const ti=WEAPONS[s.id]?.tierIdx||0;
+      price=Math.floor((WEAPON_SELL[ti+1]||30)*0.6);
+    } else if(s.type==='pickaxe'){
+      const ti=PICKAXES[s.id]?.tierIdx||0;
+      price=Math.floor((PICK_SELL[ti]||20)*0.6);
+    } else if(s.type==='potion'){
+      price=Math.round((SHOP_BUY[s.id]||40)*0.5);
+    } else if(s.type==='ore'){
+      price=(SHOP_SELL[s.id]||10)*(s.qty||1);
+    } else if(s.type==='bomb'){
+      price=100*(s.qty||1);
+    }
+    totalGold+=price;
+    totalItems++;
+    G.inventory[i]=null;
+  }
+
+  if(totalItems===0){ toast('❌ No items to sell! (Equipped items are kept)'); return; }
+  G.coins+=totalGold;
+  updateHud(); updateShopGold();
+  toast(`💰 Sold ${totalItems} items for ${fmt(totalGold)}g!`,'#ffb040',3000);
   shopState.selectedItem=null; shopState.selectedSellSlot=null;
   renderShopItems(); updateShopAction(null);
 }
@@ -9472,7 +10738,7 @@ function smashRock(r){
   if(loot.steel){
     const qty=loot.steel*mag;
     addToInventory({type:'ore',id:'steel',qty});
-    spawnDmg(sx+6, sy-26,`+${qty} baja`,'#a0c8f0',8);
+    spawnDmg(sx+6, sy-26,`+${qty} steel`,'#a0c8f0',8);
   }
   if(loot.titanium){
     const qty=loot.titanium*mag;
