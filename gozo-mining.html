@@ -298,26 +298,52 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
   z-index:200;background:linear-gradient(180deg,#2a1e10,#1a1208);
   border:3px solid #8a6030;border-radius:4px;padding:12px;
-  font-family:'Press Start 2P',monospace;min-width:340px;
+  font-family:'Press Start 2P',monospace;
 }
-#inv-panel.open{display:block;}
+#inv-panel.open{display:flex;flex-direction:column;gap:8px;}
 #inv-panel h3{color:#f0c840;font-size:9px;text-align:center;margin-bottom:10px;border-bottom:1px solid #4a3010;padding-bottom:6px;}
-#inv-grid{display:grid;grid-template-columns:repeat(6,50px);gap:4px;justify-content:center;}
+#inv-body{display:flex;gap:10px;align-items:flex-start;}
+#inv-grid{display:grid;grid-template-columns:repeat(5,52px);gap:4px;flex-shrink:0;}
 .inv-slot{
-  width:50px;height:50px;background:rgba(0,0,0,0.5);
-  border:1px solid #4a3010;border-radius:2px;
+  width:52px;height:52px;background:rgba(0,0,0,0.5);
+  border:2px solid #3a2810;border-radius:3px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   cursor:pointer;position:relative;font-size:18px;
-  transition:border-color .1s;
+  transition:border-color .12s, background .12s;
 }
-.inv-slot:hover{border-color:#e8c060;}
-.inv-slot .inv-qty{position:absolute;bottom:2px;right:3px;font-size:6px;color:#f0c840;font-family:'Press Start 2P',monospace;}
-.inv-slot .inv-name{font-size:5px;color:#a08060;font-family:'Press Start 2P',monospace;margin-top:1px;text-align:center;line-height:1.3;}
-.inv-slot canvas, .inv-slot img, .inv-slot span{ pointer-events:none; }
-.inv-slot.weapon-item{border-color:#c06020;}
+.inv-slot:hover{border-color:#e8c060;background:rgba(255,200,80,0.07);}
+.inv-slot.inv-selected{border-color:#f0c840;background:rgba(240,200,64,0.13);box-shadow:0 0 8px #f0c84066;}
+.inv-slot .inv-qty{position:absolute;bottom:2px;right:3px;font-size:6px;color:#f0c840;font-family:'Press Start 2P',monospace;pointer-events:none;}
+.inv-slot .inv-name{font-size:4px;color:#a08060;font-family:'Press Start 2P',monospace;margin-top:1px;text-align:center;line-height:1.3;pointer-events:none;}
+.inv-slot canvas,.inv-slot img,.inv-slot span{pointer-events:none;}
+.inv-slot.weapon-item{border-color:#804020;}
 .inv-slot.weapon-item:hover{border-color:#f08040;}
-#inv-info{margin-top:8px;padding:6px;background:rgba(0,0,0,0.4);border:1px solid #3a2810;border-radius:2px;min-height:36px;font-size:6px;color:#c0a060;line-height:1.8;}
-#inv-close{margin-top:8px;width:100%;padding:5px;background:transparent;border:1px solid #6a4820;color:#e0c080;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;}
+.inv-slot.equipped-item{border-color:#40c080!important;box-shadow:0 0 6px #40c08066;}
+
+#inv-detail{
+  width:160px;flex-shrink:0;
+  background:rgba(0,0,0,0.45);border:1px solid #4a3010;border-radius:3px;
+  padding:8px;display:flex;flex-direction:column;gap:6px;min-height:280px;
+}
+#inv-detail-icon{display:flex;justify-content:center;align-items:center;height:56px;}
+#inv-detail-name{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;text-align:center;line-height:1.6;}
+#inv-detail-stats{font-family:'Press Start 2P',monospace;font-size:5px;color:#90b0c0;line-height:1.9;text-align:center;}
+#inv-detail-desc{font-family:'Press Start 2P',monospace;font-size:4px;color:#807060;line-height:1.8;text-align:center;}
+#inv-detail-btns{display:flex;flex-direction:column;gap:4px;margin-top:auto;}
+.inv-action-btn{
+  width:100%;padding:5px 4px;
+  font-family:'Press Start 2P',monospace;font-size:5px;
+  border-radius:2px;cursor:pointer;border-width:1px;border-style:solid;
+  transition:filter .1s;
+}
+.inv-action-btn:hover{filter:brightness(1.25);}
+.inv-action-btn:disabled{opacity:0.35;cursor:not-allowed;filter:none;}
+.iab-equip  {background:#0a1a0a;border-color:#40a040;color:#80e080;}
+.iab-unequip{background:#1a0808;border-color:#c04040;color:#ff7070;}
+.iab-use    {background:#0a1020;border-color:#4080e0;color:#80c0ff;}
+.iab-throw  {background:#180808;border-color:#602020;color:#c06060;}
+#inv-info{display:none;}/* legacy hidden */
+#inv-close{width:100%;padding:5px;background:transparent;border:1px solid #6a4820;color:#e0c080;font-family:'Press Start 2P',monospace;font-size:7px;cursor:pointer;border-radius:2px;}
 #inv-close:hover{border-color:#e8c060;}
 
 /* Gozo HP bar */
@@ -415,16 +441,28 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 
   <!-- Inventory Panel -->
   <div id="inv-panel">
-    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #4a3010;padding-bottom:6px;margin-bottom:10px;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:9px;color:#f0c840;">🎒 INVENTORY (I)</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #4a3010;padding-bottom:6px;">
+      <span style="font-family:'Press Start 2P',monospace;font-size:8px;color:#f0c840;">🎒 INVENTORY</span>
       <span id="inv-slot-count" style="font-family:'Press Start 2P',monospace;font-size:6px;color:#a08060;"></span>
     </div>
-    <div id="inv-grid"></div>
-    <div id="inv-expand-row" style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:6px;background:rgba(0,0,0,0.3);border:1px solid #3a2810;border-radius:2px;">
-      <span style="font-family:'Press Start 2P',monospace;font-size:6px;color:#a08060;">+6 SLOTS</span>
-      <button onclick="expandInventory()" id="inv-expand-btn" style="padding:4px 10px;background:#1a1208;border:2px solid #c08020;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 BUY</button>
+    <div id="inv-body">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div id="inv-grid"></div>
+        <div id="inv-expand-row" style="display:flex;align-items:center;justify-content:space-between;padding:5px 6px;background:rgba(0,0,0,0.3);border:1px solid #3a2810;border-radius:2px;">
+          <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:#a08060;">+6 SLOTS</span>
+          <button onclick="expandInventory()" id="inv-expand-btn" style="padding:3px 8px;background:#1a1208;border:1px solid #c08020;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:5px;cursor:pointer;">BUY</button>
+        </div>
+      </div>
+      <!-- Detail panel -->
+      <div id="inv-detail">
+        <div id="inv-detail-icon"><span style="font-size:32px;opacity:0.3">🎒</span></div>
+        <div id="inv-detail-name" style="color:#604030;">Select an item</div>
+        <div id="inv-detail-stats"></div>
+        <div id="inv-detail-desc"></div>
+        <div id="inv-detail-btns"></div>
+      </div>
     </div>
-    <div id="inv-info" style="margin-top:6px;">Click item for details.</div>
+    <div id="inv-info" style="display:none;"></div>
     <button id="inv-close" onclick="toggleInv()">✕ CLOSE</button>
   </div>
   <div id="lm">
@@ -6073,119 +6111,153 @@ function renderInventory(){
 const WEAPON_SELL = {1:30, 2:80, 3:200, 4:500, 5:1500};
 const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200};
 
+let _selectedInvSlot = null;
+
 function onInvClick(i){
-  const s=G.inventory[i];
-  const info=document.getElementById('inv-info');
-  info.dataset.pending='';
-  if(!s){info.innerHTML='<span style="color:#6a5040">Empty slot.</span>';return;}
+  _selectedInvSlot = i;
+  document.querySelectorAll('.inv-slot').forEach((el,idx)=>{
+    el.classList.toggle('inv-selected', idx===i);
+  });
 
-  // Sell button helper — only allowed when correct NPC shop is open
-  function sellBtn(type, coins, label, removeAll=false){
-    const {allowed, hint}=canSellToNpc(type);
-    if(allowed){
-      return `<button onclick="invSellItem(${i},${coins},'${label}'${removeAll?',true':''})" style="flex:1;padding:4px;background:#1a0a08;border:1px solid #c04020;color:#f06040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 SELL +${coins}g</button>`;
-    } else {
-      return `<button disabled title="${hint}" style="flex:1;padding:4px;background:#111;border:1px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:6px;cursor:not-allowed;opacity:0.5;" onclick="invSellItem(${i},${coins},'${label}'${removeAll?',true':''})">🔒 ${hint}</button>`;
-    }
-  }
+  const s = G.inventory[i];
+  const iconEl  = document.getElementById('inv-detail-icon');
+  const nameEl  = document.getElementById('inv-detail-name');
+  const statsEl = document.getElementById('inv-detail-stats');
+  const descEl  = document.getElementById('inv-detail-desc');
+  const btnsEl  = document.getElementById('inv-detail-btns');
+  if(!iconEl) return;
 
-  if(s.type==='potion'){
-    const p=POTIONS[s.id];
-    info.innerHTML=`
-      <b style="color:${p.glowCol}">${p.name}</b> ×${s.qty}<br>
-      <span style="color:#a0c0d0">${p.desc}</span><br>
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        <button onclick="usePotion(${i})" style="flex:1;padding:4px;background:#0a1a10;border:1px solid ${p.glowCol};color:${p.glowCol};font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">🧪 USE NOW</button>
-        ${sellBtn('potion',10,p.name)}
-      </div>`;
+  if(!s){
+    iconEl.innerHTML ='<span style="font-size:28px;opacity:0.25">\u1f3f4</span>';
+    nameEl.textContent='Empty slot';
+    nameEl.style.color='#503828';
+    statsEl.innerHTML=''; descEl.innerHTML=''; btnsEl.innerHTML='';
     return;
   }
+
+  function btn(label, cls, onclick, disabled){
+    const b=document.createElement('button');
+    b.className='inv-action-btn '+cls;
+    b.innerHTML=label;
+    b.disabled=!!disabled;
+    if(!disabled) b.onclick=onclick;
+    return b;
+  }
+
+  function throwBtn(){
+    return btn('\ud83d\uddd1 THROW AWAY','iab-throw',()=>{
+      const item=G.inventory[i];
+      if(!item) return;
+      const name=(item.type==='weapon'?(WEAPONS[item.id]||item.def||item).name
+        :item.type==='pickaxe'?(PICKAXES[item.id]||item.def||item).name
+        :item.type==='potion'?POTIONS[item.id]?.name
+        :item.type==='ore'?item.id
+        :item.type==='accessory'?(item.def||CRAFTED_ITEMS[item.id]||item).name
+        :'item')||'item';
+      if(item.type==='weapon'&&G.equippedWeapon===item.id){ G.equippedWeapon=null; resetWeaponHudSlot(); setText('eq-name','Fists'); }
+      if(item.type==='pickaxe'&&G.equippedPickaxe===item.id){ G.equippedPickaxe='wooden_pick'; }
+      if(item.type==='accessory'&&G.equippedArmor===item.id){ G.equippedArmor=null; }
+      G.inventory[i]=null;
+      updateHud(); renderInventory(); onInvClick(i);
+      toast('\ud83d\uddd1 Threw away '+name);
+    });
+  }
+
+  btnsEl.innerHTML=''; statsEl.innerHTML=''; descEl.innerHTML='';
+
   if(s.type==='weapon'){
-    // Support crafted weapons (resultOverride) stored directly on item
-    const w=WEAPONS[s.id] || s.def || s;
-    if(!w||!w.name){ info.innerHTML='<span style="color:#f06040">Unknown weapon.</span>'; return; }
-    // Legendary weapon — special display + gold sell
-    if(w.legendary){
-      const isEquipped=G.equippedWeapon===s.id;
-      const {allowed,hint}=canSellToNpc('legendary');
-      const sellGold=w.goldSell||0;
-      const sellBtnHtml=allowed
-        ? `<button onclick="invSellLegendary(${i})" style="flex:1;padding:4px;background:#1a0a08;border:1px solid #f0c040;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:5px;cursor:pointer;">💛 SELL ${sellGold.toLocaleString()}g GOLD</button>`
-        : `<button disabled title="${hint}" style="flex:1;padding:4px;background:#111;border:1px solid #333;color:#444;font-family:'Press Start 2P',monospace;font-size:5px;cursor:not-allowed;opacity:0.5;">🔒 ${hint}</button>`;
-      info.innerHTML=`
-        <b style="color:${w.color};text-shadow:0 0 8px ${w.color};">🌟 [LEGENDARY] ${w.name}</b><br>
-        <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
-        <span style="color:#ffdd00;font-size:5px;">Purchased with GOZO token · Sell for gold only</span><br>
-        <div style="display:flex;gap:6px;margin-top:6px;">
-          ${isEquipped
-            ? `<button onclick="invUnequipWeapon(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
-            : `<button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⚔️ EQUIP</button>`
-          }
-          ${sellBtnHtml}
-        </div>`;
-      return;
-    }
-    const tierKey=typeof w.tier==='string'?w.tier:(w.tierIdx||1);
-    const sellVal=WEAPON_SELL[tierKey]||WEAPON_SELL[w.tierIdx]||30;
+    const w=WEAPONS[s.id]||s.def||s;
     const isEquipped=G.equippedWeapon===s.id;
-    const wColor=w.color||'#f0c840';
-    info.innerHTML=`
-      <b style="color:${wColor}">${w.name}</b><br>
-      <span style="color:#a0c0d0">DMG: ${w.dmg||0} &nbsp;|&nbsp; SPD: ${w.spd||1}x &nbsp;|&nbsp; RNG: ${w.range||1}x</span><br>
-      ${w.tier?`<span style="color:#888;font-size:5px;">Tier: ${w.tier}</span><br>`:''}
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        ${isEquipped
-          ? `<button onclick="invUnequipWeapon(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
-          : `<button onclick="invEquipWeapon(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⚔️ EQUIP</button>`
-        }
-        ${sellBtn('weapon',sellVal,w.name)}
-      </div>`;
+    iconEl.innerHTML='';
+    const cvs=document.createElement('canvas'); cvs.width=48; cvs.height=48;
+    cvs.style.cssText='image-rendering:pixelated;width:56px;height:56px;';
+    const ctx=cvs.getContext('2d'); ctx.imageSmoothingEnabled=false;
+    if(w.legendary&&LEGEND_SPR[s.id]){
+      cvs.style.filter='drop-shadow(0 0 6px '+(w.color||'#ff0')+')';
+      let af; function animD(){ const f=LEGEND_SPR[s.id]; ctx.clearRect(0,0,48,48); ctx.drawImage(f[Math.floor(Date.now()/120)%f.length],0,0,48,48); af=requestAnimationFrame(animD); } animD();
+      cvs._stopAnim=()=>cancelAnimationFrame(af); cvs.setAttribute('data-anim','detail');
+    } else if(WEAPON_SPR[s.id]){ ctx.drawImage(WEAPON_SPR[s.id],4,4,40,40); }
+    iconEl.appendChild(cvs);
+    const wc=w.color||'#f0c840';
+    nameEl.innerHTML='<span style="color:'+wc+';text-shadow:0 0 6px '+wc+'88">'+(w.legendary?'\u2b50 ':'')+w.name+'</span>';
+    statsEl.innerHTML='DMG: <span style="color:#ff9090">'+(w.dmg||0)+'</span>  SPD: <span style="color:#90ff90">'+(w.spd||1)+'x</span>  RNG: <span style="color:#90b0ff">'+(w.range||1)+'x</span>'+(w.tier?'<br><span style="color:#888">['+w.tier+']</span>':'');
+    if(isEquipped) btnsEl.appendChild(btn('\u2705 UNEQUIP','iab-unequip',()=>invUnequipWeapon(i)));
+    else btnsEl.appendChild(btn('\u2694\ufe0f EQUIP','iab-equip',()=>invEquipWeapon(i)));
+    const {allowed}=canSellToNpc(w.legendary?'legendary':'weapon');
+    const sv=w.legendary?(w.goldSell||0):(WEAPON_SELL[w.tier]||30);
+    btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(sv)+'g','iab-throw',()=>{ if(w.legendary) invSellLegendary(i); else invSellItem(i,sv,w.name); },!allowed));
+    btnsEl.appendChild(throwBtn());
+
   } else if(s.type==='pickaxe'){
-    const pk=PICKAXES[s.id] || s.def || s;
-    if(!pk||!pk.name){ info.innerHTML='<span style="color:#f06040">Unknown pickaxe.</span>'; return; }
-    const tc=TIER_COLOR[pk.tier]||'#c0c0c0';
-    const sellVal=PICK_SELL[pk.tierIdx||0]||20;
+    const pk=PICKAXES[s.id]||s.def||s;
+    if(!pk||!pk.name){ nameEl.textContent='Unknown pickaxe'; return; }
     const isEquipped=G.equippedPickaxe===s.id;
-    info.innerHTML=`
-      <b style="color:${tc}">[${pk.tier}] ${pk.name}</b><br>
-      <span style="color:#a0c0d0">Mine DMG: +${pk.dmg}</span><br>
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        ${isEquipped
-          ? `<button onclick="invUnequipPickaxe(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
-          : `<button onclick="invEquipPickaxe(${i})" style="flex:1;padding:4px;background:#1a2810;border:1px solid #4a6830;color:#80c060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">⛏ EQUIP</button>`
-        }
-        ${sellBtn('pickaxe',sellVal,pk.name)}
-      </div>`;
+    iconEl.innerHTML='';
+    const cvs=document.createElement('canvas'); cvs.width=48; cvs.height=48;
+    cvs.style.cssText='image-rendering:pixelated;width:56px;height:56px;';
+    const ctx=cvs.getContext('2d'); ctx.imageSmoothingEnabled=false;
+    if(PICK_SPR[s.id]) ctx.drawImage(PICK_SPR[s.id],4,4,40,40);
+    iconEl.appendChild(cvs);
+    const tc=TIER_COLOR[pk.tier]||'#c0c0c0';
+    nameEl.innerHTML='<span style="color:'+tc+'">'+pk.name+'</span>';
+    statsEl.innerHTML='Mine DMG: <span style="color:#90e0ff">+'+(pk.dmg||0)+'</span><br><span style="color:#888">['+pk.tier+']</span>';
+    if(isEquipped) btnsEl.appendChild(btn('\u2705 UNEQUIP','iab-unequip',()=>invUnequipPickaxe(i)));
+    else btnsEl.appendChild(btn('\u26cf EQUIP','iab-equip',()=>invEquipPickaxe(i)));
+    const {allowed}=canSellToNpc('pickaxe');
+    const sv=PICK_SELL[pk.tierIdx||0]||20;
+    btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(sv)+'g','iab-throw',()=>invSellItem(i,sv,pk.name),!allowed));
+    btnsEl.appendChild(throwBtn());
+
+  } else if(s.type==='potion'){
+    const p=POTIONS[s.id];
+    iconEl.innerHTML='';
+    const cvs=document.createElement('canvas'); cvs.width=48; cvs.height=48;
+    cvs.style.cssText='image-rendering:pixelated;width:56px;height:56px;';
+    const ctx=cvs.getContext('2d'); ctx.imageSmoothingEnabled=false;
+    if(POTION_SPR[s.id]) ctx.drawImage(POTION_SPR[s.id],8,4,32,36);
+    iconEl.appendChild(cvs);
+    nameEl.innerHTML='<span style="color:'+p.glowCol+'">'+p.name+'</span> <span style="color:#a08060">\u00d7'+s.qty+'</span>';
+    statsEl.innerHTML='<span style="color:'+p.glowCol+'">'+p.desc+'</span>';
+    btnsEl.appendChild(btn('\ud83e\uddea USE NOW','iab-use',()=>{ usePotion(i); onInvClick(i); }));
+    const {allowed}=canSellToNpc('potion');
+    btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(10)+'g','iab-throw',()=>invSellItem(i,10,p.name),!allowed));
+    btnsEl.appendChild(throwBtn());
+
   } else if(s.type==='ore'){
-    const prices={stone:0,iron:15,gold:80,diamond:500};
-    const p=prices[s.id]||0;
-    const total=p*s.qty;
-    info.innerHTML=`
-      <b style="color:#f0c840">${s.id.toUpperCase()}</b> ×${s.qty}<br>
-      <span style="color:#a0c0d0">💰 ${p}g each &nbsp;=&nbsp; ${total}g total</span><br>
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        ${sellBtn('ore',total,`${s.qty} ${s.id}`,true)}
-      </div>`;
+    iconEl.innerHTML=getOreImg(s.id,52);
+    const oreNames={iron:'Iron Ore',gold:'Gold Ore',diamond:'Diamond',steel:'Steel',titanium:'Titanium',tungsten:'Tungsten',chromium:'Chromium'};
+    const oreColors={iron:'#b0b8c0',gold:'#f0d040',diamond:'#40ddff',steel:'#a0c8f0',titanium:'#c0c8ff',tungsten:'#d0d0d0',chromium:'#60ff80'};
+    const prices={iron:15,gold:80,diamond:500,steel:1200,titanium:2500,tungsten:4000,chromium:3000};
+    const pc=prices[s.id]||0;
+    nameEl.innerHTML='<span style="color:'+(oreColors[s.id]||'#c0c0c0')+'">'+(oreNames[s.id]||s.id)+'</span>';
+    statsEl.innerHTML='\u00d7'+s.qty+' &nbsp; <span style="color:#f0c840">'+fmt(pc)+'g each</span><br>Total: <span style="color:#f0c840">'+fmt(pc*s.qty)+'g</span>';
+    const {allowed}=canSellToNpc('ore');
+    btnsEl.appendChild(btn('\ud83d\udcb0 SELL ALL +'+fmt(pc*s.qty)+'g','iab-use',()=>invSellItem(i,pc*s.qty,s.qty+' '+s.id,true),!allowed));
+    btnsEl.appendChild(throwBtn());
+
   } else if(s.type==='accessory'){
     const a=s.def||CRAFTED_ITEMS[s.id]||{};
     const isEquipped=G.equippedArmor===s.id;
-    const effectLabel=a.effect==='def_boost'?`🛡 +${a.val} DEF`
-      :a.effect==='speed_boost'?`👢 +${Math.round((a.val||0)*100)}% Speed`
-      :a.effect==='shield'?`💙 Shield +${a.val} on floor entry`
-      :a.effect==='resist_dot'?`💍 ${Math.round((a.val||0)*100)}% Resist Poison/Burn`
-      :'?';
-    info.innerHTML=`
-      <b style="color:#80c0ff">${a.icon||'🛡'} ${a.name||s.id}</b><br>
-      <span style="color:#80ffcc">${effectLabel}</span><br>
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        ${isEquipped
-          ? `<button onclick="invUnequipArmorSlot(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
-          : `<button onclick="invEquipArmorSlot(${i})" style="flex:1;padding:4px;background:#0a1828;border:1px solid #4080c0;color:#80c0ff;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">🛡 EQUIP</button>`
-        }
-        <button onclick="invSellAccessory(${i})" style="flex:1;padding:4px;background:#1a1000;border:1px solid #604020;color:#c08040;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">💰 SELL ${fmt(a.goldSell||100)}g</button>
-      </div>`;
+    iconEl.innerHTML='<span style="font-size:38px;line-height:1">'+(a.icon||'\ud83d\udee1')+'</span>';
+    nameEl.innerHTML='<span style="color:'+(a.color||'#80c0ff')+'">'+(a.name||s.id)+'</span>';
+    const eff=a.effect==='def_boost'?'\ud83d\udee1 DEF +'+a.val
+      :a.effect==='speed_boost'?'\ud83d\udc62 Speed +'+Math.round((a.val||0)*100)+'%'
+      :a.effect==='shield'?'\ud83d\udca0 Shield +'+a.val+'/floor'
+      :a.effect==='resist_dot'?'\ud83d\udc8d Resist DoT '+Math.round((a.val||0)*100)+'%':'?';
+    statsEl.innerHTML='<span style="color:#80ffcc">'+eff+'</span>';
+    if(a.desc) descEl.innerHTML='<span style="color:#706050">'+a.desc+'</span>';
+    if(isEquipped) btnsEl.appendChild(btn('\u2705 UNEQUIP ARMOR','iab-unequip',()=>{ invUnequipArmorSlot(i); onInvClick(i); }));
+    else btnsEl.appendChild(btn('\ud83d\udee1 EQUIP ARMOR','iab-equip',()=>{ invEquipArmorSlot(i); onInvClick(i); }));
+    btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(a.goldSell||100)+'g','iab-throw',()=>invSellAccessory(i)));
+    btnsEl.appendChild(throwBtn());
+
+  } else {
+    iconEl.innerHTML='<span style="font-size:28px">\ud83d\udce6</span>';
+    nameEl.textContent=s.id||'Unknown';
+    btnsEl.appendChild(throwBtn());
   }
 }
+
 
 function invEquipWeapon(i){
   const s=G.inventory[i]; if(!s||s.type!=='weapon')return;
