@@ -1530,7 +1530,7 @@ const getDmg  =()=>{
 const getCrit =()=>G.upg.crit.lv*0.10;
 const getLuck =()=>G.upg.lucky.lv*0.09+((typeof BUFFS!=='undefined'&&BUFFS.luck>0)?0.15:0);
 const getMag  =()=>G.upg.magnet.lv>=1?2:1;
-const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1);
+const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1)*(BUFFS.frozen>0?0.35:1);
 const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
 
 // ═══════════════════════════════════════════════════════════
@@ -2412,7 +2412,8 @@ const POTIONS = {
 };
 
 // Active potion buffs (remaining frames)
-const BUFFS = {str:0, speed:0, luck:0, shield:0};
+const BUFFS = {str:0, speed:0, luck:0, shield:0,
+  frozen:0, poisoned:0, poisonDmg:0, burning:0, burnDmg:0, blinded:0, doomed:0};
 
 // Pixel art potion bottle sprite
 const POTION_SPR = {};
@@ -2541,6 +2542,12 @@ function drawBuffHud(){
   if(BUFFS.speed>0)  active.push({label:'💨',val:Math.ceil(BUFFS.speed/60)+'s',col:'#40ffe0'});
   if(BUFFS.luck>0)   active.push({label:'🍀',val:Math.ceil(BUFFS.luck/60)+'s', col:'#70ff30'});
   if(BUFFS.shield>0) active.push({label:'🛡',val:BUFFS.shield+'',              col:'#80b0ff'});
+  // Status debuffs
+  if(BUFFS.frozen>0)   active.push({label:'❄️',val:Math.ceil(BUFFS.frozen/60)+'s',  col:'#80d8ff'});
+  if(BUFFS.poisoned>0) active.push({label:'☠️',val:Math.ceil(BUFFS.poisoned/60)+'s',col:'#60e020'});
+  if(BUFFS.burning>0)  active.push({label:'🔥',val:Math.ceil(BUFFS.burning/60)+'s', col:'#ff6020'});
+  if(BUFFS.blinded>0)  active.push({label:'🌑',val:Math.ceil(BUFFS.blinded/60)+'s', col:'#a040ff'});
+  if(BUFFS.doomed>0)   active.push({label:'💀',val:Math.ceil(BUFFS.doomed/60)+'s',  col:'#ff00ff'});
   active.forEach((b,i)=>{
     const bx=8+i*56, by=cH-82;
     gctx.fillStyle='rgba(0,0,0,0.65)';
@@ -3021,7 +3028,7 @@ const BIOME_MOB_SPR = {};
 //             11=arch-witch, 12=vampire-lord, 13=cyclops, 14=cyclops-king
 //             15=dragon-king, 16=shadow-overlord, 17=abyssal-god
 function buildBiomeMonsterSprite(mobDef, key){
-  const SIZE = mobDef.boss ? 48 : 32;
+  const SIZE = (mobDef.boss && mobDef.shape===17) ? 80 : mobDef.boss ? 48 : 32;
   const FRAMES = 4;
   const shape=mobDef.shape||0, cl=mobDef.cl, hl=mobDef.hl;
   const isBoss = !!mobDef.boss;
@@ -3044,7 +3051,11 @@ function buildBiomeMonsterSprite(mobDef, key){
     const cx=oc.getContext('2d');
     cx.imageSmoothingEnabled=false;
     const bob = Math.sin(f*Math.PI/2)*1.5; // vertical bob per frame
-    const C=SIZE/2, sc=isBoss?1.45:1.0;
+    const C=SIZE/2, sc=(isBoss && shape===17)?1.0 : isBoss?1.45:1.0;
+
+    // Clip to canvas bounds so nothing bleeds outside
+    cx.save();
+    cx.beginPath(); cx.rect(0,0,SIZE,SIZE); cx.clip();
 
     cx.save(); cx.translate(C, C+bob); cx.scale(sc,sc); cx.translate(-C,-C);
 
@@ -4754,7 +4765,8 @@ function buildBiomeMonsterSprite(mobDef, key){
     cx.beginPath();cx.arc(C,C,SIZE/2-1,0,Math.PI*2);cx.fill();
     cx.globalAlpha=1;
 
-    cx.restore();
+    cx.restore(); // end transform
+    cx.restore(); // end clip
     return oc;
   }
 
@@ -4979,6 +4991,60 @@ function updateMonsters(){
         shakeAmt=4;
         const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-20);
         spawnDmg(sx,sy-10,`-${dmg}`,'#f04040',8);
+
+        // === SPECIAL ATTACK EFFECTS ===
+        const spec = def.special;
+        if(spec){
+          // Boss hits apply effect more often; normal monsters 30% chance
+          const proc = m.isBoss ? 0.75 : 0.30;
+          if(Math.random() < proc){
+            if(spec==='freeze'){
+              // FREEZE — slow player movement for 3s, blue flash
+              if(!BUFFS.frozen){
+                BUFFS.frozen = 180; // 3 seconds @ 60fps
+                toast('❄️ FROZEN! Movement slowed!','#80d8ff',2000);
+                spawnDmg(sx,sy-24,'❄️ FREEZE','#80d8ff',9);
+                // blue screen flash
+                screenFlash('#4488ff', 0.35, 20);
+              }
+            } else if(spec==='poison'){
+              // POISON — lose HP over 5s, green tint
+              if(!BUFFS.poisoned){
+                BUFFS.poisoned = 300; // 5 seconds
+                BUFFS.poisonDmg = Math.max(1, Math.floor(def.dmg * 0.08));
+                toast('☠️ POISONED! Taking damage over time!','#60e020',2500);
+                spawnDmg(sx,sy-24,'☠️ POISON','#60e020',9);
+                screenFlash('#20a000', 0.3, 20);
+              }
+            } else if(spec==='burn'){
+              // BURN — lose HP fast for 2s, fire effect
+              if(!BUFFS.burning){
+                BUFFS.burning = 120;
+                BUFFS.burnDmg = Math.max(1, Math.floor(def.dmg * 0.12));
+                toast('🔥 BURNING! Take fire damage!','#ff6020',2000);
+                spawnDmg(sx,sy-24,'🔥 BURN','#ff6020',9);
+                screenFlash('#ff4000', 0.35, 20);
+              }
+            } else if(spec==='blind'){
+              // BLIND — dark overlay covers screen for 2.5s
+              if(!BUFFS.blinded){
+                BUFFS.blinded = 150;
+                toast('🌑 BLINDED! Vision reduced!','#8000ff',2500);
+                spawnDmg(sx,sy-24,'🌑 BLIND','#8000ff',9);
+                screenFlash('#000000', 0.7, 30);
+              }
+            } else if(spec==='doom'){
+              // DOOM — massive extra damage burst on next hit
+              if(!BUFFS.doomed){
+                BUFFS.doomed = 240; // 4 seconds
+                toast('💀 DOOMED! Next hit deals double damage!','#ff00ff',3000);
+                spawnDmg(sx,sy-24,'💀 DOOM','#ff00ff',10);
+                screenFlash('#800080', 0.5, 40);
+              }
+            }
+          }
+        }
+
         if(G.hp<=0 && !G._isDead) handleGozoDeath();
       }
     } else {
@@ -8331,6 +8397,44 @@ function render(){
     gctx.beginPath(); gctx.arc(gfx,gfy,br,0,Math.PI*2); gctx.fill();
   }
   drawBuffHud();
+
+  // === STATUS EFFECT OVERLAYS ===
+  if(BUFFS.blinded>0){
+    const blindAlpha=Math.min(0.88,0.88*(BUFFS.blinded/150));
+    gctx.save();
+    const rg=gctx.createRadialGradient(cW/2,cH/2,cH*0.06,cW/2,cH/2,cH*0.55);
+    rg.addColorStop(0,'rgba(0,0,0,0)');
+    rg.addColorStop(0.4,`rgba(0,0,0,${blindAlpha*0.7})`);
+    rg.addColorStop(1,`rgba(0,0,0,${blindAlpha})`);
+    gctx.fillStyle=rg; gctx.fillRect(0,0,cW,cH);
+    gctx.restore();
+  }
+  if(BUFFS.poisoned>0){
+    const pa=Math.min(0.18,0.18*(BUFFS.poisoned/300));
+    gctx.fillStyle=`rgba(60,200,0,${pa})`; gctx.fillRect(0,0,cW,cH);
+  }
+  if(BUFFS.burning>0){
+    const ba=Math.min(0.2,0.2*(BUFFS.burning/120));
+    gctx.fillStyle=`rgba(255,80,0,${ba})`; gctx.fillRect(0,0,cW,cH);
+    const brg=gctx.createRadialGradient(cW/2,cH/2,cH*0.3,cW/2,cH/2,cH*0.7);
+    brg.addColorStop(0,'rgba(255,60,0,0)'); brg.addColorStop(1,`rgba(255,40,0,${ba*1.5})`);
+    gctx.fillStyle=brg; gctx.fillRect(0,0,cW,cH);
+  }
+  if(BUFFS.frozen>0){
+    const fa2=Math.min(0.22,0.22*(BUFFS.frozen/180));
+    gctx.fillStyle=`rgba(80,160,255,${fa2})`; gctx.fillRect(0,0,cW,cH);
+    gctx.fillStyle=`rgba(180,230,255,${fa2*1.5})`;
+    gctx.fillRect(0,0,30,30); gctx.fillRect(cW-30,0,30,30);
+    gctx.fillRect(0,cH-30,30,30); gctx.fillRect(cW-30,cH-30,30,30);
+  }
+  if(BUFFS.doomed>0){
+    const dp=(Math.sin(Date.now()*0.01)+1)*0.5;
+    gctx.fillStyle=`rgba(180,0,220,${0.12*dp})`; gctx.fillRect(0,0,cW,cH);
+  }
+  if(_sfTimer>0 && _sfAlpha>0.01){
+    gctx.globalAlpha=_sfAlpha; gctx.fillStyle=_sfColor;
+    gctx.fillRect(0,0,cW,cH); gctx.globalAlpha=1;
+  }
 }
 
 // Flickering torch light state
@@ -9460,6 +9564,54 @@ function closeLadder(){document.getElementById('lm').classList.remove('show');}
 function toggleUpgPanel(){document.getElementById('upg-panel').classList.toggle('open');}
 
 // ═══════════════════════════════════════════════════════════
+//  STATUS EFFECTS
+// ═══════════════════════════════════════════════════════════
+let _sfTimer=0, _sfColor='#fff', _sfAlpha=0;
+function screenFlash(col,alpha,dur){_sfColor=col;_sfAlpha=alpha;_sfTimer=dur;}
+
+function tickStatusEffects(){
+  // FREEZE — slow movement
+  if(BUFFS.frozen>0){
+    BUFFS.frozen--;
+    if(BUFFS.frozen<=0) toast('❄️ Thawed!','#a0d8ff',1500);
+  }
+  // POISON — tick damage every 30 frames
+  if(BUFFS.poisoned>0){
+    BUFFS.poisoned--;
+    if(BUFFS.poisoned%30===0 && BUFFS.poisoned>0){
+      G.hp=Math.max(1,G.hp-BUFFS.poisonDmg);
+      updateGozoHpBar();
+      const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-20);
+      spawnDmg(sx,sy-10,`☠️-${BUFFS.poisonDmg}`,'#60e020',7);
+    }
+    if(BUFFS.poisoned<=0){BUFFS.poisonDmg=0; toast('☠️ Poison faded','#a0e060',1500);}
+  }
+  // BURN — tick damage every 20 frames
+  if(BUFFS.burning>0){
+    BUFFS.burning--;
+    if(BUFFS.burning%20===0 && BUFFS.burning>0){
+      G.hp=Math.max(1,G.hp-BUFFS.burnDmg);
+      updateGozoHpBar();
+      const sx=Math.round(gozo.wx-camX), sy=Math.round(gozo.wy-camY-20);
+      spawnDmg(sx,sy-10,`🔥-${BUFFS.burnDmg}`,'#ff6020',7);
+    }
+    if(BUFFS.burning<=0){BUFFS.burnDmg=0; toast('🔥 Fire out','#ffa060',1500);}
+  }
+  // BLIND — tick down (overlay drawn in render)
+  if(BUFFS.blinded>0){
+    BUFFS.blinded--;
+    if(BUFFS.blinded<=0) toast('🌑 Vision restored','#c080ff',1500);
+  }
+  // DOOM — tick down
+  if(BUFFS.doomed>0){
+    BUFFS.doomed--;
+    if(BUFFS.doomed<=0) toast('💀 Doom lifted','#e080ff',1500);
+  }
+  // Screen flash decay
+  if(_sfTimer>0){_sfTimer--;_sfAlpha*=0.82;}
+}
+
+// ═══════════════════════════════════════════════════════════
 //  FX
 // ═══════════════════════════════════════════════════════════
 function spawnDmg(x,y,text,color,size){
@@ -9557,6 +9709,7 @@ function loop(){
     tickRespawnQueue();
     updateMinerNPCs();
     tickBuffs();
+    tickStatusEffects();
     render();
   }
   requestAnimationFrame(loop);
