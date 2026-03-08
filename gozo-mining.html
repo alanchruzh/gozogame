@@ -1622,7 +1622,7 @@ const WEAPONS = {
   omega_hammer:  {name:'Ω Hammer',      dmg:100,spd:0.5, range:1.3, tier:5, icon:'🔨',  color:'#ff80ff', floorMin:98},
   // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
   gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
-  monad_lance:   {name:'Monad Lance',        dmg:140,spd:1.9, range:3.0, tier:6, icon:'⚡', color:'#8844ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
+  monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
   void_sovereign:{name:'Void Sovereign',     dmg:180,spd:0.9, range:1.8, tier:6, icon:'🔨', color:'#00ffcc', floorMin:0, legendary:true, gozoPrice:12000, goldSell:18000},
   abyss_throne:  {name:'Abyss Throne Blade', dmg:200,spd:1.1, range:2.5, tier:6, icon:'⚔️', color:'#ff8800', floorMin:0, legendary:true, gozoPrice:20000, goldSell:30000},
   genesis_reaper:{name:'Genesis Reaper',     dmg:250,spd:1.4, range:2.8, tier:6, icon:'⚔️', color:'#ffff00', floorMin:0, legendary:true, gozoPrice:50000, goldSell:75000},
@@ -1694,49 +1694,60 @@ function buildLegendarySprite(id){
       }
 
     } else if(id==='monad_lance'){
-      // ── MONAD LANCE: Purple-violet energy spear with rune markings ──
-      // Handle
-      cx.fillStyle='#0a0018'; cx.fillRect(20,24,8,22);
-      cx.fillStyle='#220044'; cx.fillRect(21,25,6,20);
-      // Rune markings on handle
-      cx.fillStyle='#8844ff';
-      cx.fillRect(21,28,2,2); cx.fillRect(25,33,2,2); cx.fillRect(21,38,2,2);
-      // Handle end cap
-      cx.fillStyle='#6622cc'; cx.fillRect(19,44,10,4);
-      cx.fillStyle='#aa66ff'; cx.fillRect(20,45,8,2);
-      // Guard ring
-      cx.fillStyle='#4400aa'; cx.fillRect(15,22,18,4);
-      cx.fillStyle='#8844ff'; cx.fillRect(16,23,16,2);
-      cx.fillStyle='rgba(180,100,255,0.5)'; cx.fillRect(17,23,4,1);
-      // Shaft
-      cx.fillStyle='#110022'; cx.fillRect(22,6,4,18);
-      cx.fillStyle='#4400aa'; cx.fillRect(23,7,2,16);
-      // Lance head
-      cx.fillStyle='#1a0044'; cx.fillRect(20,2,8,8);
-      cx.fillStyle='#6622cc'; cx.fillRect(21,3,6,6);
-      cx.fillStyle='#aa66ff'; cx.fillRect(22,3,4,4);
-      cx.fillStyle='#ddaaff'; cx.fillRect(23,2,2,4);
-      // Side blades
-      cx.fillStyle='#8844ff'; cx.fillRect(16,6,6,4); cx.fillRect(26,6,6,4);
-      cx.fillStyle='#4400aa'; cx.fillRect(15,7,4,2); cx.fillRect(29,7,4,2);
-      // Tip gleam
-      cx.fillStyle='#ffffff'; cx.fillRect(23,1,2,2);
-      // Energy orb at guard
-      const orbR=3+pulse*2;
-      const grdOrb=cx.createRadialGradient(24,24,0,24,24,orbR);
-      grdOrb.addColorStop(0,`rgba(220,160,255,${0.9*pulse})`);
-      grdOrb.addColorStop(1,'rgba(80,0,180,0)');
-      cx.fillStyle=grdOrb; cx.beginPath(); cx.arc(24,24,orbR+4,0,Math.PI*2); cx.fill();
-      // ── GLOW ──
-      const grd2=cx.createRadialGradient(24,12,0,24,12,16+pulse*6);
-      grd2.addColorStop(0,`rgba(160,80,255,${0.5*pulse})`);
-      grd2.addColorStop(1,'rgba(0,0,0,0)');
-      cx.fillStyle=grd2; cx.fillRect(0,0,48,48);
-      // Rune sparkles orbit
-      for(let s=0;s<4;s++){
-        const sa=(t*Math.PI*2+s*1.57);
-        const sx=24+Math.cos(sa)*10, sy=14+Math.sin(sa)*4;
-        cx.fillStyle=`rgba(200,150,255,${0.6+0.4*Math.sin(t*Math.PI*2+s)})`;
+      // ── HYPERLIQUID BLADE: Slim futuristic sword, liquid light blue energy ──
+      // Handle base (dark navy)
+      cx.fillStyle='#001830'; cx.fillRect(21,32,6,14);
+      cx.fillStyle='#002a50'; cx.fillRect(22,33,4,12);
+      // Handle grip wraps (light blue bands)
+      for(let i=0;i<3;i++){
+        cx.fillStyle=i%2?'#00c8ff':'#005888';
+        cx.fillRect(21,34+i*3,6,2);
+      }
+      // Pommel (rounded, bright)
+      cx.fillStyle='#003a60'; cx.fillRect(20,44,8,4);
+      cx.fillStyle='#00c8ff'; cx.fillRect(21,45,6,2);
+      cx.fillStyle='rgba(180,240,255,0.8)'; cx.fillRect(22,45,2,1);
+      // Guard — wide flat crossguard
+      cx.fillStyle='#004070'; cx.fillRect(14,30,20,3);
+      cx.fillStyle='#00a8e0'; cx.fillRect(15,31,18,1);
+      // Guard tips
+      cx.fillStyle='#00c8ff'; cx.fillRect(13,30,2,3); cx.fillRect(33,30,2,3);
+      cx.fillStyle='#80eeff'; cx.fillRect(13,31,1,1); cx.fillRect(34,31,1,1);
+      // Blade shaft (slim, dark core)
+      cx.fillStyle='#001428'; cx.fillRect(22,4,4,27);
+      cx.fillStyle='#0088cc'; cx.fillRect(23,5,2,25);
+      cx.fillStyle='#00c8ff'; cx.fillRect(23,5,1,22);
+      // Blade inner shimmer
+      cx.fillStyle=`rgba(180,240,255,${0.7+0.3*pulse})`; cx.fillRect(23,6,1,18);
+      // Blade tip (pointed)
+      cx.fillStyle='#00c8ff'; cx.fillRect(22,2,4,4);
+      cx.fillStyle='#80eeff'; cx.fillRect(23,1,2,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,0,2,2);
+      // Liquid energy droplets floating up blade (animated)
+      for(let i=0;i<4;i++){
+        const dp=(t + i*0.25) % 1.0;
+        const dy=Math.floor(5+dp*22);
+        const da=0.3+0.7*Math.sin((t+i*0.5)*Math.PI*2);
+        cx.fillStyle=`rgba(0,200,255,${da})`; cx.fillRect(21,dy,2,2);
+        cx.fillStyle=`rgba(160,240,255,${da*0.6})`; cx.fillRect(25,dy+1,2,2);
+      }
+      // Glow aura (light blue radial)
+      const grdHL=cx.createRadialGradient(24,14,0,24,14,18+pulse*6);
+      grdHL.addColorStop(0,`rgba(0,200,255,${0.45*pulse})`);
+      grdHL.addColorStop(0.5,`rgba(0,120,200,${0.2*pulse})`);
+      grdHL.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=grdHL; cx.fillRect(0,0,48,48);
+      // Guard glow sweep
+      const grdG=cx.createLinearGradient(13,31,35,31);
+      grdG.addColorStop(0,'rgba(0,200,255,0)');
+      grdG.addColorStop(0.5,`rgba(0,200,255,${0.7*pulse})`);
+      grdG.addColorStop(1,'rgba(0,200,255,0)');
+      cx.fillStyle=grdG; cx.fillRect(13,31,22,1);
+      // Sparkle particles orbiting blade
+      for(let s=0;s<3;s++){
+        const sa=(t*Math.PI*2+s*2.09);
+        const sx=24+Math.cos(sa)*8, sy=14+Math.sin(sa)*3;
+        cx.fillStyle=`rgba(180,240,255,${0.5+0.5*Math.sin(t*Math.PI*2+s*1.5)})`;
         cx.fillRect(sx,sy,2,2);
       }
 
