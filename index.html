@@ -1008,7 +1008,7 @@
     .hero-avatar img { width: 220px; }
     header { padding: 1rem; }
     .logo { font-size: 2rem; }
-    .-links { display: none; }
+    .nav-links { display: none; }
     .stats-bar { gap: 2rem; }
     .game-layout { flex-direction: column; align-items: center; }
     .game-wrapper { border-width: 3px; box-shadow: 0 0 20px rgba(255,215,0,0.2), 5px 5px 0 var(--red); }
@@ -1029,9 +1029,7 @@
       <li><a href="#game-section">GAMES</a></li>
       <li><a href="#tokenomics">TOKEN</a></li>
       <li><a href="farm.html">GOZO FARM</a></li>
-      <li><a href="gozo-fishing.html">FISHING</a></li>
-      <li><a href="gozo-adventure.html">ADVENTURE</a></li>
-      <li><a href="gozo-mining.html"></a></li>
+      <li><a href="gozo-fishing.html"></a></li>
       <li><a href="pixel-homie-gozo.html">PIXIE</a></li>
       <li><a href="gozo-burn-dashboard-v2.html">GOZO BURN</a></li>
     </ul>
@@ -6019,6 +6017,42 @@ rpgCanvas.addEventListener('click', function(e) {
     rpgMovePlayer(0, dy > 0 ? 1 : -1);
   }
 });
+</script>
+
+<script>
+  // Disable right-click context menu
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Disable text selection
+  document.addEventListener('selectstart', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Disable drag
+  document.addEventListener('dragstart', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  // Disable common keyboard shortcuts (Ctrl+U, Ctrl+S, Ctrl+A, F12, Ctrl+Shift+I, Ctrl+Shift+J)
+  document.addEventListener('keydown', function(e) {
+    if (
+      (e.ctrlKey && e.key === 'u') ||  // View Source
+      (e.ctrlKey && e.key === 's') ||  // Save
+      (e.ctrlKey && e.key === 'a') ||  // Select All
+      (e.key === 'F12') ||             // DevTools
+      (e.ctrlKey && e.shiftKey && e.key === 'I') || // DevTools
+      (e.ctrlKey && e.shiftKey && e.key === 'J') || // Console
+      (e.ctrlKey && e.shiftKey && e.key === 'C')    // Inspector
+    ) {
+      e.preventDefault();
+      return false;
+    }
+  });
 </script>
 </body>
 </html>
