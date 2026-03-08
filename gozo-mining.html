@@ -2914,7 +2914,7 @@ function hitMonster(id){
   if(Math.random()<getCrit()){dmg=Math.floor(dmg*3);isCrit=true;}
   m.hp-=dmg;
   shakeAmt=isCrit?5:2;
-  playPickaxeHit('stone',isCrit);
+  playCombatHit(wep?wep.type:'fist', isCrit);
   const sx=Math.round(m.wx-camX), sy=Math.round(m.wy-camY-20);
   spawnDmg(sx,sy,isCrit?`CRIT ${dmg}`:`-${dmg}`,isCrit?'#f0f040':'#f08040',isCrit?9:7);
   if(m.hp<=0)killMonster(id);
@@ -6247,7 +6247,65 @@ let audioCtx = null;
 
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
+}
+
+function playCombatHit(weaponType, isCrit) {
+  try {
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const wep = G.equippedWeapon ? WEAPONS[G.equippedWeapon] : null;
+    const cat = wep ? (wep.legendary ? 'legendary' : wep.type || 'sword') : 'fist';
+
+    // Layer 1: impact thud
+    const bufSize = Math.floor(ctx.sampleRate * 0.18);
+    const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      const t = i / ctx.sampleRate;
+      const noise = (Math.random() * 2 - 1) * Math.exp(-t * 80);
+      let tone = 0;
+      if (cat === 'fist' || cat === 'hammer') {
+        tone = Math.sin(2 * Math.PI * 90 * t) * Math.exp(-t * 30) * 0.8;
+      } else if (cat === 'sword' || cat === 'legendary') {
+        tone = Math.sin(2 * Math.PI * 320 * t) * Math.exp(-t * 55) * 0.5
+             + Math.sin(2 * Math.PI * 1100 * t) * Math.exp(-t * 140) * 0.3;
+      } else if (cat === 'axe') {
+        tone = Math.sin(2 * Math.PI * 140 * t) * Math.exp(-t * 40) * 0.7;
+      } else if (cat === 'spear' || cat === 'bow') {
+        tone = Math.sin(2 * Math.PI * 500 * t) * Math.exp(-t * 90) * 0.4;
+      } else {
+        tone = Math.sin(2 * Math.PI * 200 * t) * Math.exp(-t * 50) * 0.6;
+      }
+      data[i] = (noise * 0.35 + tone) * (isCrit ? 1.4 : 1.0);
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = 0.9 + Math.random() * 0.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(isCrit ? 0.6 : 0.42, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    src.connect(gain); gain.connect(ctx.destination);
+    src.start(now);
+
+    // Layer 2: crit flash — high metallic zing
+    if (isCrit) {
+      const buf2 = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.22), ctx.sampleRate);
+      const d2 = buf2.getChannelData(0);
+      for (let i = 0; i < d2.length; i++) {
+        const t = i / ctx.sampleRate;
+        d2[i] = Math.sin(2 * Math.PI * 2200 * t) * Math.exp(-t * 28)
+               + Math.sin(2 * Math.PI * 3400 * t) * Math.exp(-t * 45) * 0.5;
+      }
+      const s2 = ctx.createBufferSource(); s2.buffer = buf2;
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(0.28, now + 0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+      s2.connect(g2); g2.connect(ctx.destination);
+      s2.start(now + 0.01);
+    }
+  } catch(e) {}
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -7273,6 +7331,9 @@ function initCanvas(){
   gc.width=cW;gc.height=cH;
   gctx=gc.getContext('2d');gctx.imageSmoothingEnabled=false;
   gc.addEventListener('click',onCanvasClick);
+  // Unlock audio context on first interaction
+  const unlockAudio = () => { getAudioCtx(); document.removeEventListener('pointerdown', unlockAudio); };
+  document.addEventListener('pointerdown', unlockAudio);
   fc=document.getElementById('fc');
   fc.width=cW;fc.height=cH;
   fctx=fc.getContext('2d');
