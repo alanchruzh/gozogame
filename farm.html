@@ -472,7 +472,7 @@ header{
     </div>
     <div class="burn-info">
       <div>Token: <span>GOZO</span></div>
-      <div>Contract: <span style="font-size:0.7em">0xB2525F5997e38c23475a124CD5bdbb650b001B35</span></div>
+      <div>Contract: <span style="font-size:0.7em">0xc655797B4FDdE40B4c68CA41C29aadd672d77777</span></div>
       <div>Burn to: <span style="color:#ff4040">0x000...dead</span></div>
       <div>Amount: <span>10 GOZO</span></div>
     </div>
@@ -551,7 +551,7 @@ header{
 // ═══════════════════════════════════════════════════
 // WALLET & BURN GATE
 // ═══════════════════════════════════════════════════
-const GOZO_TOKEN     = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
+const GOZO_TOKEN     = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
 const DEAD_ADDR      = '0x000000000000000000000000000000000000dEaD';
 const MONAD_CHAIN_ID = '0x3e7'; // 999 — HyperEVM
 const BURN_AMOUNT_WEI = '0x' + (BigInt('10000000000000000000')).toString(16); // 10 * 10^18
@@ -7678,6 +7678,12 @@ function importSave(event) {
 // Run train every 5 minutes, first appearance after 30 seconds
 setTimeout(runTrainAnimation, 30000);
 setInterval(runTrainAnimation, 5 * 60 * 1000);
+
+// Disable right-click context menu
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  return false;
+});
 </script>
 </body>
 </html>
