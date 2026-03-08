@@ -5985,7 +5985,7 @@ function renderInventory(){
       if(s.type==='ore'){
         icon=oreEmoji[s.id]||'📦'; name=s.id; qty=s.qty>1?s.qty:'';
       } else if(s.type==='weapon'){
-        const w=WEAPONS[s.id];
+        const w=WEAPONS[s.id] || s.def || s;
         const cvs=document.createElement('canvas');
         cvs.width=36; cvs.height=36;
         cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;';
@@ -6100,7 +6100,9 @@ function onInvClick(i){
     return;
   }
   if(s.type==='weapon'){
-    const w=WEAPONS[s.id];
+    // Support crafted weapons (resultOverride) stored directly on item
+    const w=WEAPONS[s.id] || s.def || s;
+    if(!w||!w.name){ info.innerHTML='<span style="color:#f06040">Unknown weapon.</span>'; return; }
     // Legendary weapon — special display + gold sell
     if(w.legendary){
       const isEquipped=G.equippedWeapon===s.id;
@@ -6122,11 +6124,14 @@ function onInvClick(i){
         </div>`;
       return;
     }
-    const sellVal=WEAPON_SELL[w.tier]||30;
+    const tierKey=typeof w.tier==='string'?w.tier:(w.tierIdx||1);
+    const sellVal=WEAPON_SELL[tierKey]||WEAPON_SELL[w.tierIdx]||30;
     const isEquipped=G.equippedWeapon===s.id;
+    const wColor=w.color||'#f0c840';
     info.innerHTML=`
-      <b style="color:#f0c840">${w.name}</b><br>
-      <span style="color:#a0c0d0">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</span><br>
+      <b style="color:${wColor}">${w.name}</b><br>
+      <span style="color:#a0c0d0">DMG: ${w.dmg||0} &nbsp;|&nbsp; SPD: ${w.spd||1}x &nbsp;|&nbsp; RNG: ${w.range||1}x</span><br>
+      ${w.tier?`<span style="color:#888;font-size:5px;">Tier: ${w.tier}</span><br>`:''}
       <div style="display:flex;gap:6px;margin-top:6px;">
         ${isEquipped
           ? `<button onclick="invUnequipWeapon(${i})" style="flex:1;padding:4px;background:#2a1010;border:1px solid #c04040;color:#ff6060;font-family:'Press Start 2P',monospace;font-size:6px;cursor:pointer;">✅ UNEQUIP</button>`
@@ -6135,9 +6140,10 @@ function onInvClick(i){
         ${sellBtn('weapon',sellVal,w.name)}
       </div>`;
   } else if(s.type==='pickaxe'){
-    const pk=PICKAXES[s.id];
-    const tc=TIER_COLOR[pk.tier];
-    const sellVal=PICK_SELL[pk.tierIdx]||20;
+    const pk=PICKAXES[s.id] || s.def || s;
+    if(!pk||!pk.name){ info.innerHTML='<span style="color:#f06040">Unknown pickaxe.</span>'; return; }
+    const tc=TIER_COLOR[pk.tier]||'#c0c0c0';
+    const sellVal=PICK_SELL[pk.tierIdx||0]||20;
     const isEquipped=G.equippedPickaxe===s.id;
     info.innerHTML=`
       <b style="color:${tc}">[${pk.tier}] ${pk.name}</b><br>
