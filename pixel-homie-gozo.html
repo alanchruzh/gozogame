@@ -1061,6 +1061,14 @@ async function waitForTx(hash, maxAttempts=60, interval=2000) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+// ══════════════════════════════════════════════════════
+//  DISABLE RIGHT CLICK
+// ══════════════════════════════════════════════════════
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  return false;
+});
+
 // ── Account / Chain change listeners ──────────────────
 if (window.ethereum) {
   window.ethereum.on('accountsChanged', accs => {
