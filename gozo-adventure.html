@@ -12725,5 +12725,9 @@ function invsysNotifyNewItem(){
 
 <!-- GOZO MARKET SCREEN -->
 <div id="market-screen" style="display:none;position:fixed;inset:0;background:#020208;z-index:92;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px;"></div>
+  <script>
+    // Disable right-click context menu
+    document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
+  </script>
 </body>
 </html>
