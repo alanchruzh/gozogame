@@ -358,7 +358,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
       <div style="font-size:24px;margin-bottom:4px;">🌟</div>
       <div style="color:#ffdd00;font-size:10px;letter-spacing:2px;">ZAEL THE LEGEND</div>
       <div style="color:#aaa;font-size:6px;margin-top:4px;">Legendary Weapons — GOZO Token Only</div>
-      <div style="color:#555;font-size:5px;margin-top:2px;">Monad Mainnet · Purchased GOZO is burned forever</div>
+      <div style="color:#555;font-size:5px;margin-top:2px;">HyperEVM · Purchased GOZO is burned forever</div>
     </div>
 
     <!-- Wallet status -->
@@ -525,6 +525,9 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="toggleInv()" style="border-color:#a060c0;color:#c080e0;">[I] BAG</button>
     <div style="width:2px;height:40px;background:#4a3010"></div>
+    <button class="hud-btn" id="music-btn" onclick="toggleMusic()" style="border-color:#40a0c0;color:#80d0f0;">🎵 MUSIC</button>
+    <input type="range" id="vol-slider" min="0" max="100" value="22" oninput="setMusicVolume(this.value)" style="width:60px;height:14px;vertical-align:middle;accent-color:#40a0c0;cursor:pointer;" title="Music Volume">
+    <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="saveGame()" style="border-color:#60c890;color:#60c890;">💾 SAVE</button>
   </div>
 </div>
@@ -541,17 +544,17 @@ const SCALE = 3;        // sprite upscale: 16×16 → 48×48... we use TILE=32, 
 
 // ─── Palette ───────────────────────────────────────────────
 const P = {
-  _:null,        // transparent
-  // skin
-  a:'#e0b080', A:'#b07848', z:'#f0c890',
-  // hair
-  h:'#3a2010', H:'#5a3820',
-  // helmet
-  e:'#7a4810', E:'#c07020', Y:'#f0d050',
-  // shirt/jacket (brown like Stardew farmer)
+  _:null,
+  // skin — kuning cerah
+  a:'#f5d020', A:'#c8a800', z:'#f9e060',
+  // topi merah
+  e:'#cc1010', E:'#991010', Y:'#ff3a3a',
+  // brim topi
+  t:'#880808', T:'#aa1414',
+  // shirt/jacket coklat
   r:'#7a3c18', R:'#5a2c10', w:'#9a5428',
-  // pants (dark brown/purple)
-  p:'#3c2848', P:'#2a1c34',
+  // pants biru gelap
+  p:'#2840a0', P:'#1a2c78',
   // boots
   b:'#2a1808', B:'#4a2c10',
   // pickaxe handle
@@ -559,235 +562,312 @@ const P = {
   // pickaxe metal
   m:'#8090a0', M:'#b0c8d8', c:'#d0e8f0',
   // eyes / mouth
-  i:'#180c04',
+  i:'#100800',
   // outline
   k:'#0a0604',
   // shadow
   s:'rgba(0,0,0,0.3)',
+  // scarf/collar putih
+  n:'#e8e0d0', N:'#c8c0b0',
 };
 
-// 16×16 sprite frames — each row is a string of 16 palette keys
-// Gozo facing SOUTH idle (2 frames)
-const FR_S_IDLE = [[
-'________________',
-'________________',
-'___eeeeeeee_____',
-'__eYeeeeeee_____',
-'__eeeeeeeee_____',
-'___aaaaaaa______',
-'___aiaaaia______',
-'___aaaaaaa______',
-'___Aaaaaaaa_____',
-'___rrrwrrr______',
-'__rrrwwrrr______',
-'___ppppppp______',
-'___ppppppp______',
-'__bpppppppb_____',
-'__bb_____bb_____',
-'________________',
-],[
-'________________',
-'________________',
-'___eeeeeeee_____',
-'__eYeeeeeee_____',
-'__eeeeeeeee_____',
-'___aaaaaaa______',
-'___aiaaaia______',
-'___aaaaaaa______',
-'___Aaaaaaaa_____',
-'___rrrwrrr______',
-'__rrrwwrrr______',
-'___ppppppp______',
-'___ppppppp______',
-'__bppppppb______',
-'__bb____b_______',
-'________________',
-]];
+// ── WEAPON PALETTE EXTRAS ──
+// Add weapon-specific colors to P
+Object.assign(P, {
+  // sword/blade
+  '1':'#c8d8e0', '2':'#8898a8', '3':'#e8f0f8',
+  // axe
+  '4':'#d0902a', '5':'#f0b030',
+  // hammer
+  '6':'#6080a0', '7':'#90b0d0',
+  // bow string
+  '8':'#c8a870',
+  // spear tip
+  '9':'#d0d8e0',
+  // legendary glow
+  'L':'#ffff80', 'l':'#ff8800', 'V':'#00ffcc', 'v':'#ff4444', 'G':'#ffdd00',
+});
 
-// Facing SOUTH walk (4 frames)
-const FR_S_WALK = [[
-'________________',
-'________________',
-'___eeeeeeee_____',
-'__eYeeeeeee_____',
-'__eeeeeeeee_____',
-'___aaaaaaa______',
-'___aiaaaia______',
-'___aaaaaaa______',
-'___Aaaaaaaa_____',
-'___rrrwrrr______',
-'__rrrwwrrr______',
-'___ppppppp______',
-'__ppppppp_______',
-'__bpppp_ppb_____',
-'__bb____bb______',
-'________________',
-],[
-'________________',
-'________________',
-'___eeeeeeee_____',
-'__eYeeeeeee_____',
-'__eeeeeeeee_____',
-'___aaaaaaa______',
-'___aiaaaia______',
-'___aaaaaaa______',
-'___Aaaaaaaa_____',
-'___rrrwrrr______',
-'__rrrwwrrr______',
-'___ppppppp______',
-'___ppppppp______',
-'__bpppppppb_____',
-'__bb_____bb_____',
-'________________',
-],[
-'________________',
-'________________',
-'___eeeeeeee_____',
-'__eYeeeeeee_____',
-'__eeeeeeeee_____',
-'___aaaaaaa______',
-'___aiaaaia______',
-'___aaaaaaa______',
-'___Aaaaaaaa_____',
-'___rrrwrrr______',
-'__rrrwwrrr______',
-'___ppppppp______',
-'____ppppppp_____',
-'__bpp_ppppb_____',
-'__bb____bb______',
-'________________',
-],FR_S_IDLE[1]];
+// ── WEAPON ARM OVERLAYS per category ──
+// Each is {idle, walk, mine, attack} arrays of 16x16 frames drawn OVER gozo
+// Positions are relative to gozo sprite (0,0 = top-left of 16x16)
+// Only pixels in hand/arm area have color — rest transparent '_'
 
-// Facing EAST idle (right) — 2 frames
-const FR_E_IDLE = [[
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrr_____x',
-'__rrrwwrrrrxxmm_',
-'___pppppppp_mm__',
-'___pppppppp_____',
-'__bppp_bppp_____',
-'__bb___bb_______',
-'________________',
-],[
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrr_____x',
-'__rrrwwrrrr_xxMm',
-'___pppppppp__mm_',
-'___pppppppp_____',
-'__bppp_bppp_____',
-'__bb___bb_______',
-'________________',
-]];
+const WPN_FRAMES = {};
 
-// Facing EAST walk (4 frames)
-const FR_E_WALK = [FR_E_IDLE[0],[
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrr_____x',
-'__rrrwwrrrr_xxmm',
-'___pppppppp_mm__',
-'__pppppppp______',
-'__bppp__bpp_____',
-'__bb____bb______',
-'________________',
-],FR_E_IDLE[1],[
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrr_____x',
-'__rrrwwrrrrxxmm_',
-'___pppppppp_mm__',
-'____pppppppp____',
-'__bpp__bppp_____',
-'__bb___bb_______',
-'________________',
-]];
+// Helper: empty 20-row frame (matches new 16×20 sprite height)
+const EF=()=>Array(20).fill('________________');
 
-// MINE frames — facing east, 3 frame swing
-const FR_MINE = [[
-// raise
-'________________',
-'___________cMm__',
-'___eeeeeee__mm__',
-'__eYeeeeee_xx___',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrr______',
-'__rrrwwrrrrxx___',
-'___pppppppp_____',
-'___pppppppp_____',
-'__bppp_bppp_____',
-'__bb___bb_______',
-'________________',
-],[
-// mid
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz____cM',
-'___aaaaaaz___mxx',
-'___aaaaaz___mm__',
-'___Aaaaaaa______',
-'___rrrwrrr______',
-'__rrrwwrrrrxx___',
-'___pppppppp_____',
-'___pppppppp_____',
-'__bppp_bppp_____',
-'__bb___bb_______',
-'________________',
-],[
-// strike
-'________________',
-'________________',
-'___eeeeeee______',
-'__eYeeeeee______',
-'__eeeeeeee______',
-'___aaaaaaz______',
-'___aaaaaaz______',
-'___aaaaaz_______',
-'___Aaaaaaa______',
-'___rrrwrrrxxxxxxcMm',
-'__rrrwwrrrrxxmm_____',
-'___pppppppp_________',
-'___pppppppp_____',
-'__bppp_bppp_____',
-'__bb___bb_______',
-'________________',
-]];
+// ── SWORD overlay frames ──
+// idle: sword held at right side, tip down
+WPN_FRAMES.sword = {
+  idle:[
+    (()=>{ const f=EF(); f[8]='______________1_'; f[9]='______________2_'; f[10]='______________3_'; f[11]='______________2_'; f[12]='______________1_'; f[13]='______________k_'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________1_'; f[10]='______________2_'; f[11]='______________3_'; f[12]='______________2_'; f[13]='______________k_'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[8]='______________1_'; f[9]='______________2_'; f[10]='______________3_'; f[11]='______________2_'; f[12]='______________1_'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________1_'; f[8]='______________2_'; f[9]='______________3_'; f[10]='______________2_'; f[11]='______________1_'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________1_'; f[9]='______________2_'; f[10]='______________3_'; f[11]='______________2_'; f[12]='______________1_'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________1_'; f[10]='______________2_'; f[11]='______________3_'; f[12]='______________2_'; f[13]='______________1_'; return f; })(),
+  ],
+  mine:[ // attack swing frames
+    // raise: sword up
+    (()=>{ const f=EF(); f[1]='______________13'; f[2]='_____________122'; f[3]='____________k23_'; f[4]='____________2___'; return f; })(),
+    // mid: sword diagonal
+    (()=>{ const f=EF(); f[4]='____________123_'; f[5]='___________k32__'; f[6]='__________k21___'; return f; })(),
+    // strike: sword horizontal
+    (()=>{ const f=EF(); f[8]='__________k3211_'; f[9]='___________32___'; return f; })(),
+  ],
+};
+
+// ── AXE overlay frames ──
+WPN_FRAMES.axe = {
+  idle:[
+    (()=>{ const f=EF(); f[8]='_____________45_'; f[9]='_____________54_'; f[10]='_____________45_'; f[11]='_____________5__'; f[12]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='_____________45_'; f[10]='_____________54_'; f[11]='_____________45_'; f[12]='_____________5__'; f[13]='_____________k__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[7]='_____________45_'; f[8]='_____________54_'; f[9]='_____________45_'; f[10]='_____________5__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='_____________45_'; f[9]='_____________54_'; f[10]='_____________45_'; f[11]='_____________5__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_____________45_'; f[8]='_____________54_'; f[9]='_____________45_'; f[10]='_____________5__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='_____________45_'; f[10]='_____________54_'; f[11]='_____________45_'; f[12]='_____________5__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[1]='_____________445'; f[2]='____________5544'; f[3]='____________k45_'; f[4]='____________5___'; return f; })(),
+    (()=>{ const f=EF(); f[3]='____________445_'; f[4]='___________k544_'; f[5]='__________k45___'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_________k54451_'; f[8]='__________k45___'; return f; })(),
+  ],
+};
+
+// ── HAMMER overlay frames ──
+WPN_FRAMES.hammer = {
+  idle:[
+    (()=>{ const f=EF(); f[8]='_____________67_'; f[9]='_____________76_'; f[10]='_____________6__'; f[11]='_____________k__'; f[12]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='_____________67_'; f[10]='_____________76_'; f[11]='_____________6__'; f[12]='_____________k__'; f[13]='_____________k__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[8]='_____________67_'; f[9]='_____________76_'; f[10]='_____________6__'; f[11]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_____________67_'; f[8]='_____________76_'; f[9]='_____________6__'; f[10]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='_____________67_'; f[9]='_____________76_'; f[10]='_____________6__'; f[11]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='_____________67_'; f[10]='_____________76_'; f[11]='_____________6__'; f[12]='_____________k__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[0]='_____________677'; f[1]='____________7776'; f[2]='____________k67_'; f[3]='____________k___'; return f; })(),
+    (()=>{ const f=EF(); f[4]='____________677_'; f[5]='___________k776_'; f[6]='___________k67__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='_________k77671_'; f[9]='__________k76___'; return f; })(),
+  ],
+};
+
+// ── BOW overlay frames ──
+WPN_FRAMES.bow = {
+  idle:[
+    (()=>{ const f=EF(); f[6]='______________8_'; f[7]='_____________8__'; f[8]='_____________8__'; f[9]='_____________1__'; f[10]='_____________8__'; f[11]='_____________8__'; f[12]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________8_'; f[8]='_____________8__'; f[9]='_____________1__'; f[10]='_____________8__'; f[11]='_____________8__'; f[12]='_____________8__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[6]='______________8_'; f[7]='_____________8__'; f[8]='_____________1__'; f[9]='_____________8__'; f[10]='_____________8__'; f[11]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________8_'; f[8]='_____________8__'; f[9]='_____________1__'; f[10]='_____________8__'; f[11]='_____________8__'; f[12]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________8_'; f[7]='_____________8__'; f[8]='_____________1__'; f[9]='_____________8__'; f[10]='_____________8__'; f[11]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________8_'; f[9]='_____________8__'; f[10]='_____________1__'; f[11]='_____________8__'; f[12]='______________8_'; return f; })(),
+  ],
+  mine:[ // draw & shoot
+    (()=>{ const f=EF(); f[5]='______________8_'; f[6]='_____________81_'; f[7]='_____________8__'; f[8]='____________k18_'; f[9]='_____________8__'; f[10]='_____________81_'; f[11]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________8_'; f[7]='_____________183'; f[8]='_____________k8_'; f[9]='_____________183'; f[10]='______________8_'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_____________k8_'; f[8]='__________k33k18'; f[9]='_____________k8_'; return f; })(),
+  ],
+};
+
+// ── SPEAR overlay frames ──
+WPN_FRAMES.spear = {
+  idle:[
+    (()=>{ const f=EF(); f[7]='______________9_'; f[8]='_____________9__'; f[9]='_____________k__'; f[10]='_____________k__'; f[11]='_____________k__'; f[12]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________9_'; f[9]='_____________9__'; f[10]='_____________k__'; f[11]='_____________k__'; f[12]='_____________k__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[6]='______________9_'; f[7]='_____________9__'; f[8]='_____________k__'; f[9]='_____________k__'; f[10]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________9_'; f[8]='_____________9__'; f[9]='_____________k__'; f[10]='_____________k__'; f[11]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________9_'; f[7]='_____________9__'; f[8]='_____________k__'; f[9]='_____________k__'; f[10]='_____________k__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________9_'; f[9]='_____________9__'; f[10]='_____________k__'; f[11]='_____________k__'; f[12]='_____________k__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[2]='_____________399'; f[3]='____________k9__'; f[4]='____________k___'; f[5]='____________k___'; f[6]='____________k___'; return f; })(),
+    (()=>{ const f=EF(); f[5]='____________k399'; f[6]='___________k9___'; f[7]='___________k____'; f[8]='___________k____'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_______k9993____'; f[8]='_________k______'; f[9]='_________k______'; return f; })(),
+  ],
+};
+
+// ── LEGENDARY overlay frames (glowing animated) ──
+WPN_FRAMES.legendary = {
+  idle:[
+    (()=>{ const f=EF(); f[7]='______________LG'; f[8]='_____________Gll'; f[9]='_____________lG_'; f[10]='_____________Gl_'; f[11]='_____________lG_'; f[12]='_____________kk_'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________LG'; f[9]='_____________GlL'; f[10]='_____________lG_'; f[11]='_____________Gl_'; f[12]='_____________lG_'; f[13]='_____________kk_'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[7]='______________LG'; f[8]='_____________Gll'; f[9]='_____________lG_'; f[10]='_____________Gl_'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________LG'; f[7]='_____________GlL'; f[8]='_____________lG_'; f[9]='_____________Gl_'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________LG'; f[8]='_____________Gll'; f[9]='_____________lG_'; f[10]='_____________Gl_'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________LG'; f[9]='_____________GlL'; f[10]='_____________lG_'; f[11]='_____________Gl_'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[0]='_____________LGL'; f[1]='____________GlGL'; f[2]='____________lGl_'; f[3]='____________kll_'; return f; })(),
+    (()=>{ const f=EF(); f[3]='____________LGl_'; f[4]='___________GlGL_'; f[5]='___________lGl__'; f[6]='___________kll__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_________kLGlll_'; f[8]='__________kGL___'; f[9]='__________kl____'; return f; })(),
+  ],
+};
+
+// ── FIST (no weapon) overlay — punching ──
+WPN_FRAMES.fist = {
+  idle:[ EF(), EF() ],
+  walk:[ EF(), EF(), EF(), EF() ],
+  mine:[
+    (()=>{ const f=EF(); f[8]='____________aaaa'; f[9]='____________Aaaa'; return f; })(),
+    (()=>{ const f=EF(); f[7]='___________aaaaa'; f[8]='___________Aaaaa'; return f; })(),
+    (()=>{ const f=EF(); f[8]='__________aaaaaa'; f[9]='__________Aaaaaa'; return f; })(),
+  ],
+};
+
+// ══ PICKAXE OVERLAY FRAMES (per tier) ══
+// Colors: x/X=handle, m/M/c=metal (from P palette), special per tier
+// wooden: x/X handle + k/m head
+// stone:  x/X handle + m/2 head  
+// iron:   x/X handle + M/c/1 head (cyan tint from '1')
+// gold:   x/X handle + Y/E head (gold from P.Y,P.E)
+// diamond:x/X handle + c/M/L head (white-cyan + legendary glow L)
+
+const PICK_OVERLAYS = {};
+
+// tier: wooden — plain brown handle, gray head, sober swing
+PICK_OVERLAYS.wooden = {
+  idle:[
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xm_'; f[10]='_____________xk_'; f[11]='_____________x__'; f[12]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________x_'; f[10]='_____________xm_'; f[11]='_____________xk_'; f[12]='_____________x__'; f[13]='_____________x__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xm_'; f[9]='_____________xk_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xm_'; f[10]='_____________xk_'; f[11]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xm_'; f[9]='_____________xk_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________x_'; f[10]='_____________xm_'; f[11]='_____________xk_'; f[12]='_____________x__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[1]='_____________xmk'; f[2]='____________xX__'; f[3]='____________x___'; f[4]='____________x___'; f[5]='____________x___'; return f; })(),
+    (()=>{ const f=EF(); f[4]='____________xmk_'; f[5]='___________xX___'; f[6]='___________x____'; f[7]='___________x____'; return f; })(),
+    (()=>{ const f=EF(); f[8]='_________xxxxxmk'; f[9]='___________kX___'; return f; })(),
+  ],
+};
+
+// tier: stone — same handle, heavier gray+stone head
+PICK_OVERLAYS.stone = {
+  idle:[
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xm_'; f[10]='____________xmk_'; f[11]='_____________x__'; f[12]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________x_'; f[10]='_____________xm_'; f[11]='____________xmk_'; f[12]='_____________x__'; f[13]='_____________x__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xm_'; f[9]='____________xmk_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xm_'; f[10]='____________xmk_'; f[11]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xm_'; f[9]='____________xmk_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[9]='______________x_'; f[10]='_____________xm_'; f[11]='____________xmk_'; f[12]='_____________x__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[1]='____________xmmk'; f[2]='___________xXm__'; f[3]='____________x___'; f[4]='____________x___'; f[5]='____________x___'; return f; })(),
+    (()=>{ const f=EF(); f[4]='____________xmmk'; f[5]='___________xXm__'; f[6]='___________x____'; f[7]='___________x____'; return f; })(),
+    (()=>{ const f=EF(); f[8]='________xxxxxmmk'; f[9]='___________kXm__'; return f; })(),
+  ],
+};
+
+// tier: iron — cyan-tinted head, faster swing feel
+PICK_OVERLAYS.iron = {
+  idle:[
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xM_'; f[9]='____________xMc_'; f[10]='_____________x__'; f[11]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xM_'; f[10]='____________xMc_'; f[11]='_____________x__'; f[12]='_____________x__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xM_'; f[8]='____________xMc_'; f[9]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xM_'; f[9]='____________xMc_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xM_'; f[8]='____________xMc_'; f[9]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xM_'; f[10]='____________xMc_'; f[11]='_____________x__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[0]='____________xMMc'; f[1]='___________xXM__'; f[2]='____________x___'; f[3]='____________x___'; f[4]='____________x___'; return f; })(),
+    (()=>{ const f=EF(); f[3]='____________xMMc'; f[4]='___________xXM__'; f[5]='___________x____'; f[6]='___________x____'; return f; })(),
+    (()=>{ const f=EF(); f[7]='________xxxxxMMc'; f[8]='___________kXM__'; return f; })(),
+  ],
+};
+
+// tier: gold — gold shimmer head, bouncy idle
+PICK_OVERLAYS.gold = {
+  idle:[
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xY_'; f[9]='____________xYE_'; f[10]='_____________xY_'; f[11]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xE_'; f[10]='____________xYE_'; f[11]='_____________xE_'; f[12]='_____________x__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xY_'; f[8]='____________xYE_'; f[9]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xE_'; f[9]='____________xYE_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xY_'; f[8]='____________xYE_'; f[9]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[8]='______________x_'; f[9]='_____________xE_'; f[10]='____________xYE_'; f[11]='_____________x__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[0]='___________xYYEE'; f[1]='__________xXYE__'; f[2]='___________x____'; f[3]='___________x____'; f[4]='___________x____'; return f; })(),
+    (()=>{ const f=EF(); f[2]='___________xYYEE'; f[3]='__________xXYE__'; f[4]='__________x_____'; f[5]='__________x_____'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_______xxxxxYYEE'; f[8]='___________kYE__'; return f; })(),
+  ],
+};
+
+// tier: diamond — white+cyan glowing head, legendary sparkle
+PICK_OVERLAYS.diamond = {
+  idle:[
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xL_'; f[8]='____________xcL_'; f[9]='_____________xc_'; f[10]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xc_'; f[9]='____________xLc_'; f[10]='_____________xL_'; f[11]='_____________x__'; return f; })(),
+  ],
+  walk:[
+    (()=>{ const f=EF(); f[5]='______________x_'; f[6]='_____________xL_'; f[7]='____________xcL_'; f[8]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[6]='______________x_'; f[7]='_____________xc_'; f[8]='____________xLc_'; f[9]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[5]='______________x_'; f[6]='_____________xL_'; f[7]='____________xcL_'; f[8]='_____________x__'; return f; })(),
+    (()=>{ const f=EF(); f[7]='______________x_'; f[8]='_____________xc_'; f[9]='____________xLc_'; f[10]='_____________x__'; return f; })(),
+  ],
+  mine:[
+    (()=>{ const f=EF(); f[0]='___________xcLLc'; f[1]='__________xXcL__'; f[2]='___________x____'; f[3]='___________x____'; return f; })(),
+    (()=>{ const f=EF(); f[2]='___________xcLLc'; f[3]='__________xXcL__'; f[4]='__________x_____'; f[5]='__________x_____'; return f; })(),
+    (()=>{ const f=EF(); f[7]='_______xxxxxcLLc'; f[8]='___________kXcL_'; return f; })(),
+  ],
+};
+
+// Build all weapon overlay sprites
+const WPN_SPR = {};
+const PICK_OVR_SPR = {};
+function buildWeaponOverlaySprites(){
+  for(const cat in WPN_FRAMES){
+    WPN_SPR[cat]={};
+    for(const state in WPN_FRAMES[cat]){
+      WPN_SPR[cat][state]=WPN_FRAMES[cat][state].map(f=>buildSprite(f,SS));
+    }
+  }
+  for(const tier in PICK_OVERLAYS){
+    PICK_OVR_SPR[tier]={};
+    for(const state in PICK_OVERLAYS[tier]){
+      PICK_OVR_SPR[tier][state]=PICK_OVERLAYS[tier][state].map(f=>buildSprite(f,SS));
+    }
+  }
+}
+
+// Overlay sprites are drawn offset to align with canvas-drawn body
+// GW=32 GH=40, SS=2 so overlay is 32×40 native — perfect match
+
+// Get weapon category from equipped weapon
+function getWeaponCategory(){
+  const wid=G.equippedWeapon;
+  if(!wid) return 'fist';
+  const w=WEAPONS[wid];
+  if(!w) return 'fist';
+  if(w.legendary) return 'legendary';
+  if(w.icon==='🪓') return 'axe';
+  if(w.icon==='🔨') return 'hammer';
+  if(w.icon==='🏹') return 'bow';
+  if(w.icon==='⚡') return 'spear';
+  return 'sword'; // ⚔️ 🗡️ 🔪 🏏 all use sword
+}
+
+// (gozo rendering handled by drawGozoAt)
 
 // Sprite builder
 function buildSprite(frame, scale=2) {
@@ -811,16 +891,213 @@ function buildSprite(frame, scale=2) {
 }
 
 let SPR = null;
-const SS = 2; // sprite scale (16 → 32)
+const SS = 2; // sprite scale (16×20 → 32×40, sama dengan NPC miner)
+// ── Canvas-drawn Gozo sprite builder (natural walk animation) ──
+// W=32, H=40 — same as NPC miner canvas size
+const GW=32, GH=40;
+
+function drawGozoFrame(dir, state, frame){
+  const c=document.createElement('canvas');
+  c.width=GW; c.height=GH;
+  const cx=c.getContext('2d');
+  cx.imageSmoothingEnabled=false;
+
+  // Colors
+  const skin='#f5d020', skinD='#c8a800', skinH='#f9e060';
+  const hatR='#cc1010', hatD='#880808', hatH='#ff4444';
+  const shirt='#7a3c18', shirtL='#9a5428', collar='#e0d8c0';
+  const pants='#2840a0', pantsD='#1a2c78';
+  const boot='#3a2010', bootD='#2a1408';
+  const outline='rgba(0,0,0,0.55)';
+
+  const isEast = dir==='E'||dir==='W';
+  const isMine = state==='mine';
+  const isWalk = state==='walk';
+
+  // Body bob: walk frames 1&3 = body up 1px, mine raise = up 2px
+  const bob = (isWalk&&(frame===1||frame===3)) ? -1 : 0;
+
+  // ── Leg angles per frame ──
+  // East walk: legs cross diagonally like reference
+  // fr0: right leg fwd+down, left leg back+up
+  // fr1: passing — both legs near center, body up
+  // fr2: left leg fwd+down, right leg back+up
+  // fr3: passing — mirror fr1
+
+  function drawLegs(){
+    if(isEast){
+      // Front leg (right in east view)
+      let fFwdX, fFwdY, fBackX, fBackY; // foot positions
+      if(state==='mine'){
+        // Feet planted wide during mine
+        cx.fillStyle=pantsD;
+        cx.fillRect(12,25,5,8); cx.fillRect(18,25,5,8);
+        cx.fillStyle=boot; cx.fillRect(11,31,7,4); cx.fillRect(17,31,7,4);
+        return;
+      }
+      if(frame===0){      fFwdX=18;fFwdY=32; fBackX=9; fBackY=28; }
+      else if(frame===1){ fFwdX=15;fFwdY=31; fBackX=12;fBackY=30; }
+      else if(frame===2){ fFwdX=9; fFwdY=32; fBackX=18;fBackY=28; }
+      else{               fFwdX=14;fFwdY=31; fBackX=13;fBackY=30; }
+
+      // Back leg (thigh + shin + foot)
+      cx.fillStyle=pantsD;
+      // thigh back
+      cx.fillRect(fBackX,22+bob,4,6);
+      // shin back — angled
+      cx.fillRect(fBackX+(frame<2?-1:2),27+bob,4,5);
+      // foot back
+      cx.fillStyle=bootD;
+      cx.fillRect(fBackX+(frame<2?-2:2),fBackY+bob,6,3);
+
+      // Front leg (thigh + shin + foot) — drawn over back
+      cx.fillStyle=pants;
+      cx.fillRect(fFwdX,22+bob,5,6);
+      cx.fillRect(fFwdX+(frame<2?2:-2),27+bob,5,5);
+      cx.fillStyle=boot;
+      cx.fillRect(fFwdX+(frame<2?3:-3),fFwdY+bob,7,3);
+
+    } else {
+      // South-facing legs — symmetric stride
+      let lOff=0, rOff=0;
+      if(frame===0){      lOff=-4;rOff=3; }
+      else if(frame===1){ lOff=-1;rOff=1; }
+      else if(frame===2){ lOff=3; rOff=-4; }
+      else{               lOff=1; rOff=-1; }
+      // Left leg
+      cx.fillStyle=pantsD;
+      cx.fillRect(11,24+bob,5,6+Math.abs(lOff/2)|0);
+      cx.fillStyle=bootD;
+      cx.fillRect(10+lOff,33+bob,6,3);
+      // Right leg
+      cx.fillStyle=pants;
+      cx.fillRect(16,24+bob,5,6+Math.abs(rOff/2)|0);
+      cx.fillStyle=boot;
+      cx.fillRect(16+rOff,33+bob,6,3);
+    }
+  }
+
+  function drawArms(){
+    // Arm swing opposite to legs
+    let fArmY=0, bArmY=0;
+    if(isWalk){
+      fArmY = (frame===0||frame===2) ? -3 : -1;
+      bArmY = (frame===0||frame===2) ?  2 : 0;
+    }
+    if(isEast){
+      // Back arm (left)
+      cx.fillStyle=shirtL;
+      cx.fillRect(10,18+bob+bArmY,4,7);
+      cx.fillStyle=skin;
+      cx.fillRect(10,23+bob+bArmY,4,3);
+      // Front arm (right) — over torso
+      cx.fillStyle=shirt;
+      cx.fillRect(21,18+bob+fArmY,4,7);
+      cx.fillStyle=skin;
+      cx.fillRect(21,23+bob+fArmY,4,3);
+    } else {
+      // South: both arms visible at sides
+      const lSwing = isWalk?((frame===0)?-2:(frame===2)?2:0):0;
+      const rSwing = -lSwing;
+      cx.fillStyle=shirt;
+      cx.fillRect(9, 18+bob,4,8);
+      cx.fillStyle=skin; cx.fillRect(9+lSwing,24+bob,4,3);
+      cx.fillRect(19+rSwing,24+bob,4,3);
+      cx.fillStyle=shirt; cx.fillRect(19,18+bob,4,8);
+    }
+  }
+
+  // ── Draw order: back-leg → body → head → hat → front-leg → arms ──
+
+  // BACK LEG first (behind body)
+  drawLegs(); // draws both; front leg drawn again below after body
+
+  // Torso
+  cx.fillStyle=shirt;
+  if(isEast){
+    cx.fillRect(11,18+bob,10,12);
+    // collar
+    cx.fillStyle=collar; cx.fillRect(13,17+bob,5,2);
+  } else {
+    cx.fillRect(10,18+bob,12,12);
+    cx.fillStyle=collar; cx.fillRect(11,17+bob,10,2);
+  }
+
+  // Belt line
+  cx.fillStyle=pantsD;
+  if(isEast) cx.fillRect(11,29+bob,10,2);
+  else cx.fillRect(10,29+bob,12,2);
+
+  // HEAD
+  const hx = isEast ? 12 : 11;
+  cx.fillStyle=skin;
+  cx.fillRect(hx,7+bob,10,9);
+  // Face highlight
+  cx.fillStyle=skinH;
+  cx.fillRect(hx+(isEast?5:3),8+bob,3,4);
+  // Eyes
+  cx.fillStyle='#180800';
+  if(isEast){
+    cx.fillRect(hx+6,10+bob,2,2);
+  } else {
+    cx.fillRect(hx+2,10+bob,2,2);
+    cx.fillRect(hx+6,10+bob,2,2);
+  }
+  // Chin shadow
+  cx.fillStyle=skinD;
+  cx.fillRect(hx,14+bob,10,2);
+
+  // HAT — red miner cap
+  // Brim
+  cx.fillStyle=hatD;
+  cx.fillRect(hx-1,9+bob,12,2);
+  // Crown
+  cx.fillStyle=hatR;
+  cx.fillRect(hx,3+bob,10,7);
+  // Highlight stripe
+  cx.fillStyle=hatH;
+  cx.fillRect(hx+1,3+bob,8,2);
+  // Lamp on hat (orange dot)
+  if(isEast){
+    cx.fillStyle='#ff8800'; cx.fillRect(hx+8,4+bob,3,3);
+    cx.fillStyle='#ffcc00'; cx.fillRect(hx+9,4+bob,2,2);
+  } else {
+    cx.fillStyle='#ff8800'; cx.fillRect(hx+4,2+bob,4,3);
+    cx.fillStyle='#ffcc00'; cx.fillRect(hx+5,2+bob,2,2);
+  }
+
+  // Arms (drawn over torso)
+  drawArms();
+
+  return c;
+}
+
+function buildGozoSpriteSet(){
+  const dirs=['S','E'];
+  const states=['idle','walk','mine'];
+  const counts={idle:2, walk:4, mine:3};
+  const result={};
+  for(const dir of dirs){
+    for(const st of states){
+      const key=`${dir}_${st.toUpperCase()}`;
+      result[key]=[];
+      for(let i=0;i<counts[st];i++){
+        result[key].push(drawGozoFrame(dir,st,i));
+      }
+    }
+  }
+  return result;
+}
+
 function buildAllSprites() {
-  const b = (frs) => frs.map(f=>buildSprite(f,SS));
-  SPR = {
-    S_IDLE: b(FR_S_IDLE),
-    S_WALK: b(FR_S_WALK),
-    E_IDLE: b(FR_E_IDLE),
-    E_WALK: b(FR_E_WALK),
-    MINE:   b(FR_MINE),
-  };
+  SPR = buildGozoSpriteSet();
+  // Remap keys to match getSprFrames expectations
+  SPR.S_IDLE = SPR.S_IDLE;
+  SPR.S_WALK = SPR.S_WALK;
+  SPR.E_IDLE = SPR.E_IDLE;
+  SPR.E_WALK = SPR.E_WALK;
+  SPR.MINE   = SPR.E_MINE;
+  buildWeaponOverlaySprites();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -2693,10 +2970,145 @@ function killMonster(id){
 }
 
 function handleGozoDeath(){
-  G.hp=1; // don't die, just reset floor with penalty
-  toast('💀 Gozo was defeated! Lost some coins...');
-  G.coins=Math.floor(G.coins*0.7);
+  G.hp=0;
+  updateGozoHpBar();
+  // Play death sound
+  try{
+    const ctx=getAudioCtx();
+    const now=ctx.currentTime;
+    // Descending death toll
+    [440,330,220,110].forEach((f,i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.4,now+i*0.18);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.18+0.35);
+      o.connect(g);g.connect(ctx.destination);
+      o.start(now+i*0.18); o.stop(now+i*0.18+0.4);
+    });
+  }catch(e){}
+
+  // Show death overlay
+  showDeathScreen();
+}
+
+function showDeathScreen(){
+  // Remove existing death screen if any
+  const old=document.getElementById('death-screen');
+  if(old) old.remove();
+
+  const lostCoins=Math.floor(G.coins*0.3);
+  const overlay=document.createElement('div');
+  overlay.id='death-screen';
+  overlay.style.cssText=`
+    position:fixed;inset:0;background:rgba(0,0,0,0.88);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:9999;font-family:monospace;animation:fadeInDeath 0.6s ease;
+  `;
+
+  const fromShrineText = G._shrineActivated
+    ? `<p style="color:#a080ff;margin:6px 0;font-size:13px;">⬆️ Soul bound to shrine in Mining Village</p>`
+    : `<p style="color:#808080;margin:6px 0;font-size:13px;">No shrine bound — respawn at surface</p>`;
+
+  overlay.innerHTML=`
+    <style>
+      @keyframes fadeInDeath{from{opacity:0;transform:scale(1.05)}to{opacity:1;transform:scale(1)}}
+      @keyframes pulseSkull{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+      #death-skull{animation:pulseSkull 1.2s ease-in-out infinite;font-size:72px;margin-bottom:12px;}
+      #death-screen button{
+        padding:10px 28px;margin:6px;font-family:monospace;font-size:14px;font-weight:bold;
+        cursor:pointer;border:2px solid;border-radius:4px;background:transparent;
+        transition:background .15s;
+      }
+      #death-screen button:hover{filter:brightness(1.3);}
+    </style>
+    <div id="death-skull">💀</div>
+    <h1 style="color:#ff3030;font-size:32px;margin:0 0 4px;letter-spacing:4px;text-shadow:0 0 20px #ff0000aa;">GOZO DIED</h1>
+    <p style="color:#c08080;font-size:13px;margin:4px 0;">Defeated on Floor ${G.floor}</p>
+    <div style="margin:14px 0;padding:12px 28px;border:1px solid #602020;border-radius:6px;background:rgba(80,0,0,0.3);">
+      <p style="color:#ff8080;margin:4px 0;font-size:13px;">💰 Lost <b style="color:#ffcc00">${lostCoins}</b> coins (30% penalty)</p>
+      <p style="color:#c0c0c0;margin:4px 0;font-size:12px;">🎒 Inventory & equipment preserved</p>
+      ${fromShrineText}
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button id="btn-respawn-shrine" style="color:#a080ff;border-color:#8060c0;">
+        🕯️ RESPAWN AT SHRINE
+      </button>
+      <button id="btn-respawn-surface" style="color:#80c080;border-color:#408040;">
+        🏘 RETURN TO SURFACE
+      </button>
+    </div>
+    <p style="color:#505050;font-size:10px;margin-top:14px;">Press R to respawn at shrine</p>
+  `;
+  document.body.appendChild(overlay);
+
+  // Buttons
+  document.getElementById('btn-respawn-shrine').onclick=()=>respawnAtShrine();
+  document.getElementById('btn-respawn-surface').onclick=()=>respawnAtSurface();
+
+  // Keyboard shortcut
+  const onKey=(e)=>{
+    if(e.key==='r'||e.key==='R'){ respawnAtShrine(); document.removeEventListener('keydown',onKey); }
+  };
+  document.addEventListener('keydown',onKey);
+}
+
+function respawnAtShrine(){
+  const overlay=document.getElementById('death-screen');
+  if(overlay) overlay.remove();
+
+  // Coin penalty
+  const lost=Math.floor(G.coins*0.3);
+  G.coins=G.coins-lost;
+  G.hp=Math.floor(G.maxHp*0.5); // respawn at 50% HP
+
+  // Go back to village, position at shrine
+  G.floor=0;
+  initVillage();
+
+  // Override gozo position to shrine
+  if(G._shrinePos){
+    gozo.wx=G._shrinePos.tx*TILE+TILE/2;
+    gozo.wy=(G._shrinePos.ty+1)*TILE;
+  }
+  G.hp=Math.floor(G.maxHp*0.5);
+  updateGozoHpBar();
   updateHud();
+
+  // Respawn soul stone flash effect
+  G._shrineFlash=Date.now();
+
+  toast(`🕯️ Gozo respawned at the Soul Shrine! Lost ${lost} coins.`);
+
+  // Play respawn chime
+  try{
+    const ctx=getAudioCtx();
+    const now=ctx.currentTime;
+    [220,330,440,660].forEach((f,i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0,now+i*0.12);
+      g.gain.linearRampToValueAtTime(0.3,now+i*0.12+0.04);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.12+0.4);
+      o.connect(g);g.connect(ctx.destination);
+      o.start(now+i*0.12); o.stop(now+i*0.12+0.45);
+    });
+  }catch(e){}
+}
+
+function respawnAtSurface(){
+  const overlay=document.getElementById('death-screen');
+  if(overlay) overlay.remove();
+
+  const lost=Math.floor(G.coins*0.3);
+  G.coins=G.coins-lost;
+  G.hp=Math.floor(G.maxHp*0.35); // weaker if no shrine
+
+  G.floor=0;
+  initVillage();
+  G.hp=Math.floor(G.maxHp*0.35);
+  updateGozoHpBar();
+  updateHud();
+  toast(`🏘 Returned to surface. Lost ${lost} coins.`);
 }
 
 function updateGozoHpBar(){
@@ -2761,6 +3173,10 @@ function expandInventory(){
 function renderInventory(){
   const grid=document.getElementById('inv-grid');
   if(!grid)return;
+  // Cancel any running legendary slot animations before clearing
+  grid.querySelectorAll('canvas[data-anim]').forEach(c=>{
+    if(c._stopAnim) c._stopAnim();
+  });
   grid.innerHTML='';
 
   // Update slot count label
@@ -2816,7 +3232,8 @@ function renderInventory(){
             af=requestAnimationFrame(animSlot);
           }
           animSlot();
-          cvs._stopAnim=()=>{ if(af) cancelAnimationFrame(af); };
+          cvs._stopAnim=()=>{ if(af) cancelAnimationFrame(af); af=null; };
+          cvs.setAttribute('data-anim','1');
           div.appendChild(cvs);
           const nm=document.createElement('span');
           nm.className='inv-name'; nm.style.color=w.color;
@@ -2981,7 +3398,7 @@ function invSellLegendary(i){
   if(!allowed){ toast('🔒 '+hint); return; }
   const goldGain=w.goldSell||0;
   G.coins+=goldGain;
-  if(G.equippedWeapon===s.id){ G.equippedWeapon=null; setText('weapon-icon','👊'); setText('eq-name','Fists'); }
+  if(G.equippedWeapon===s.id){ G.equippedWeapon=null; resetWeaponHudSlot(); setText('eq-name','Fists'); }
   removeFromInventory(i,1);
   updateHud();
   toast(`💛 Sold ${w.name} to Gareth for ${goldGain.toLocaleString()}g gold!`);
@@ -3005,7 +3422,7 @@ function invSellItem(i, coins, label, removeAll=false){
   }
   if(s.type==='weapon'&&G.equippedWeapon===s.id){
     G.equippedWeapon=null;
-    setText('weapon-icon','👊');
+    resetWeaponHudSlot();
     setText('eq-name','Fists');
   }
   removeFromInventory(i, removeAll?99:1);
@@ -3020,6 +3437,15 @@ const setText=(id,v)=>{const e=el(id);if(e)e.textContent=v;};
 const setStyle=(id,prop,v)=>{const e=el(id);if(e)e.style[prop]=v;};
 const addClass=(id,cls)=>{const e=el(id);if(e)e.classList.add(cls);};
 const remClass=(id,cls)=>{const e=el(id);if(e)e.classList.remove(cls);};
+
+function resetWeaponHudSlot(){
+  const slotEl=document.getElementById('slot-weapon');
+  if(!slotEl) return;
+  if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); slotEl._legendAnim=null; }
+  slotEl.innerHTML='<span class="slot-num">2</span><span id="weapon-icon" class="slot-icon">👊</span>';
+  slotEl.style.borderColor='';
+  slotEl.style.boxShadow='';
+}
 
 function equipPickaxe(pid){
   if(!PICKAXES[pid])return;
@@ -3042,7 +3468,7 @@ function equipPickaxe(pid){
   }
   remClass('slot-weapon','active');
   G.equippedWeapon=null;
-  setText('weapon-icon','👊');
+  resetWeaponHudSlot();
   setText('eq-name',`${pk.name} [${pk.tier}]`);
   setStyle('equipped-weapon','borderColor',tc);
   setStyle('eq-name','color',tc);
@@ -3055,43 +3481,52 @@ function equipWeapon(wid,slotIdx){
   const w=WEAPONS[wid];
   const slotEl=document.getElementById('slot-weapon');
 
+  // Kill any old animation
+  if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); slotEl._legendAnim=null; }
+
+  // Rebuild slot contents — pixel art canvas like inventory
+  slotEl.innerHTML='<span class="slot-num">2</span>';
+  slotEl.style.position='relative';
+
+  const cvs=document.createElement('canvas');
+  cvs.width=40; cvs.height=40;
+  cvs.style.cssText='image-rendering:pixelated;width:38px;height:38px;position:absolute;top:1px;left:1px;';
+  const wctx=cvs.getContext('2d');
+  wctx.imageSmoothingEnabled=false;
+
   if(w.legendary && LEGEND_SPR[wid]){
-    // Animated legendary in HUD slot
-    slotEl.innerHTML='<span class="slot-num">2</span>';
-    const cvs=document.createElement('canvas');
-    cvs.width=40; cvs.height=40;
-    cvs.style.cssText='image-rendering:pixelated;width:40px;height:40px;position:absolute;top:0;left:0;';
-    const lctx=cvs.getContext('2d');
-    lctx.imageSmoothingEnabled=false;
-    slotEl.style.position='relative';
+    // Animated legendary
+    slotEl.style.borderColor=w.color;
+    slotEl.style.boxShadow=`0 0 10px ${w.color}cc, 0 0 20px ${w.color}44`;
     slotEl.appendChild(cvs);
-    // Kill old anim
-    if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); }
     function animHudSlot(){
       const frames=LEGEND_SPR[wid];
       if(!frames||G.equippedWeapon!==wid){ slotEl._legendAnim=null; return; }
       const fi=Math.floor(Date.now()/120)%frames.length;
-      lctx.clearRect(0,0,40,40);
-      lctx.drawImage(frames[fi],0,0,40,40);
+      wctx.clearRect(0,0,40,40);
+      wctx.drawImage(frames[fi],0,0,40,40);
       slotEl._legendAnim=requestAnimationFrame(animHudSlot);
     }
     animHudSlot();
-    slotEl.style.borderColor=w.color;
-    slotEl.style.boxShadow=`0 0 10px ${w.color}cc, 0 0 20px ${w.color}44`;
     setText('weapon-icon','');
     setText('eq-name','★ '+w.name);
     setStyle('eq-name','color',w.color);
     setStyle('eq-name','textShadow',`0 0 8px ${w.color}`);
   } else {
-    // Stop any legendary anim
-    if(slotEl._legendAnim){ cancelAnimationFrame(slotEl._legendAnim); slotEl._legendAnim=null; }
-    slotEl.style.boxShadow='';
-    slotEl.style.borderColor='';
-    setText('weapon-icon',w.icon);
+    // Normal weapon — same pixel art as inventory
+    const spr=WEAPON_SPR[wid];
+    if(spr){
+      wctx.drawImage(spr,2,2,36,36);
+    }
+    slotEl.appendChild(cvs);
+    slotEl.style.borderColor=(w.color||'#c0a040')+'cc';
+    slotEl.style.boxShadow=`0 0 6px ${w.color||'#c0a040'}55`;
+    setText('weapon-icon','');
     setText('eq-name',w.name);
     setStyle('eq-name','color','');
     setStyle('eq-name','textShadow','');
   }
+
   addClass('slot-weapon','active');
   remClass('slot-pick','active');
   toast(`⚔️ Equipped ${w.name}!`);
@@ -3101,7 +3536,7 @@ function equipWeapon(wid,slotIdx){
 function equipSlot(slot){
   if(slot==='pick'){
     G.equippedWeapon=null;
-    setText('weapon-icon','👊');
+    resetWeaponHudSlot();
     setText('eq-name','Fists');
     addClass('slot-pick','active');
     remClass('slot-weapon','active');
@@ -3391,6 +3826,7 @@ function updateMinerNPCs(){
 const VILLAGE_W=48, VILLAGE_H=36;
 let villageMap=[], villageTileV=[];
 let villageNPCState={}; // proximity-based interaction flags
+let VILLAGE_NPCS_EXTRA = []; // extra NPCs added at runtime (shrine keeper etc)
 
 function buildVillageSprites(){
   if(!TC._grassBuilt){
@@ -3927,6 +4363,43 @@ function genVillage(){
     houseFurniture[hi].push({type:'plant',   px:fx(6)-2, py:fy(4)-4});
   }
 
+  // === RESPAWN SHRINE (Soul Stone) ===
+  // Top-right area of village, small stone shrine building
+  const shrineX=39, shrineY=2;
+  // 6×7 shrine footprint — stone floor
+  for(let dy=0;dy<7;dy++) for(let dx=0;dx<6;dx++){
+    const tx=shrineX+dx, ty=shrineY+dy;
+    if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_HOUSE;
+  }
+  // Interior — special tile floor
+  for(let dy=1;dy<=5;dy++) for(let dx=1;dx<=4;dx++){
+    const tx=shrineX+dx, ty=shrineY+dy;
+    if(ty<VILLAGE_H&&tx<VILLAGE_W) villageMap[ty][tx]=T_TILE;
+  }
+  // Path to shrine from main road
+  for(let x=shrineX;x<=shrineX+2;x++) villageMap[RY1][x]=T_PATH;
+  for(let y=RY1;y<=shrineY+6;y++) villageMap[y][shrineX]=T_PATH;
+  // Door
+  const shrineDoorX=shrineX+2, shrineDoorY=shrineY+6;
+  villageMap[shrineDoorY][shrineDoorX]=T_PATH;
+  if(shrineDoorY+1<VILLAGE_H) villageMap[shrineDoorY+1][shrineDoorX]=T_PATH;
+
+  // Store shrine position globally
+  G._shrinePos={tx:shrineX+2, ty:shrineY+3};
+  G._shrineActivated=true; // always active by default
+
+  villageDeco.push({type:'shrine_building', tx:shrineX, ty:shrineY, w:6, h:7, doorX:shrineDoorX, doorY:shrineDoorY});
+  villageDeco.push({type:'soul_stone', tx:shrineX+2, ty:shrineY+2});
+
+  // Add Shrine Keeper NPC
+  VILLAGE_NPCS_EXTRA = [{
+    id:'shrinekeeper', name:'Eris the Shrine Keeper', icon:'🕯️', shop:'shrine',
+    tx:shrineX+2, ty:shrineY+2,
+    x:(shrineX+2)*TILE+TILE/2, y:(shrineY+2)*TILE+TILE/2,
+    color:'#8060c0', desc:'Respawn & Soul Binding',
+    doorX:shrineDoorX, doorY:shrineDoorY,
+  }];
+
   // === TREES along outer border ===
   for(let x=0;x<VILLAGE_W;x+=3){
     if(villageMap[0][x]===T_GRASS){ villageMap[0][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:0}); }
@@ -4212,8 +4685,104 @@ function renderVillage(){
         gctx.font='bold 6px monospace';
         gctx.fillText('[E] TRAVEL',px-12,py+TILE+14);
       }
+
+    } else if(d.type==='shrine_building'){
+      // Shrine exterior — dark stone with purple accents
+      const sw=d.w*TILE, sh=d.h*TILE;
+      // Roof
+      gctx.fillStyle='#2a1a40'; gctx.fillRect(px,py,sw,8);
+      gctx.fillStyle='#4a2a70'; gctx.fillRect(px+2,py+2,sw-4,3);
+      // Bottom trim
+      gctx.fillStyle='#1a1030'; gctx.fillRect(px,py+sh-6,sw,6);
+      // Door frame — arched purple
+      const dpx=Math.round(d.doorX*TILE-cx2)+ox;
+      const dpy=Math.round(d.doorY*TILE-cy2)+oy;
+      gctx.fillStyle='#6030a0'; gctx.fillRect(dpx-3,dpy-3,TILE+6,TILE+3);
+      gctx.fillStyle='#100820'; gctx.fillRect(dpx,dpy,TILE,TILE);
+      // Door arch top
+      gctx.fillStyle='#7040b0';
+      gctx.beginPath();
+      gctx.arc(dpx+TILE/2, dpy, TILE/2+3, Math.PI, 0);
+      gctx.fill();
+      gctx.fillStyle='#100820';
+      gctx.beginPath();
+      gctx.arc(dpx+TILE/2, dpy, TILE/2, Math.PI, 0);
+      gctx.fill();
+      // Sign above shrine
+      gctx.fillStyle='rgba(40,10,70,0.92)';
+      gctx.fillRect(dpx-20,dpy-20,TILE+40,14);
+      gctx.fillStyle='#c080ff';
+      gctx.font='bold 6px monospace';
+      gctx.fillText('🕯️ SOUL SHRINE',dpx-18,dpy-9);
+      // Purple candle flames on corners
+      const now2=Date.now();
+      for(let ci=0;ci<2;ci++){
+        const cx3=px+ci*(sw-8)+4, cy3=py+sh-TILE-4;
+        const flicker=Math.sin(now2/120+ci*2)*2;
+        gctx.fillStyle='#6020a0'; gctx.fillRect(cx3,cy3,4,10);
+        gctx.fillStyle=`rgba(160,80,255,${0.7+Math.sin(now2/100+ci)*0.3})`;
+        gctx.beginPath();
+        gctx.ellipse(cx3+2,cy3+flicker,3,5,0,0,Math.PI*2);
+        gctx.fill();
+        gctx.fillStyle='rgba(220,180,255,0.8)';
+        gctx.beginPath();
+        gctx.ellipse(cx3+2,cy3+1+flicker,1.5,2.5,0,0,Math.PI*2);
+        gctx.fill();
+      }
+
+    } else if(d.type==='soul_stone'){
+      // Soul Stone — glowing crystal altar inside shrine
+      const now2=Date.now();
+      const pulse=Math.sin(now2/600)*0.3+0.7;
+      const shrineFlash=G._shrineFlash&&(now2-G._shrineFlash<1500);
+      const flashPulse=shrineFlash?(Math.sin(now2/80)*0.5+0.5):0;
+
+      // Stone pedestal
+      gctx.fillStyle='#3a2860'; gctx.fillRect(px-10,py+4,20,10);
+      gctx.fillStyle='#4a3470'; gctx.fillRect(px-8,py+2,16,6);
+      // Crystal glow
+      const glowR=shrineFlash?`rgba(255,${160+flashPulse*95|0},255,${0.3+flashPulse*0.5})`:`rgba(160,80,255,${0.2*pulse})`;
+      gctx.fillStyle=glowR;
+      gctx.beginPath();gctx.arc(px,py,18*pulse,0,Math.PI*2);gctx.fill();
+      // Crystal shape
+      gctx.fillStyle=shrineFlash?`rgba(255,220,255,${0.9+flashPulse*0.1})`:`rgba(180,100,255,${0.8*pulse})`;
+      gctx.beginPath();
+      gctx.moveTo(px,   py-16);
+      gctx.lineTo(px+8, py-4);
+      gctx.lineTo(px+6, py+2);
+      gctx.lineTo(px-6, py+2);
+      gctx.lineTo(px-8, py-4);
+      gctx.closePath(); gctx.fill();
+      // Inner light
+      gctx.fillStyle=`rgba(230,180,255,${0.9*pulse})`;
+      gctx.beginPath();
+      gctx.moveTo(px,   py-10);
+      gctx.lineTo(px+4, py-3);
+      gctx.lineTo(px-4, py-3);
+      gctx.closePath(); gctx.fill();
+      // Orbiting soul sparks
+      for(let i=0;i<4;i++){
+        const ang=now2/700+i*1.57;
+        const r=14+Math.sin(now2/300+i)*3;
+        const sx3=px+Math.cos(ang)*r, sy3=py+Math.sin(ang)*r*0.5-4;
+        gctx.fillStyle=`rgba(200,130,255,${0.5+Math.sin(now2/200+i)*0.4})`;
+        gctx.beginPath();gctx.arc(sx3,sy3,1.5,0,Math.PI*2);gctx.fill();
+      }
+      // Label
+      gctx.fillStyle='rgba(0,0,0,0.75)'; gctx.fillRect(px-22,py-32,44,12);
+      gctx.fillStyle='#c080ff'; gctx.font='5px monospace';
+      gctx.fillText('SOUL STONE',px-20,py-23);
+      // Proximity E hint
+      const sdx=gozo.wx-(d.tx*TILE+TILE/2), sdy=gozo.wy-(d.ty*TILE+TILE/2);
+      if(Math.sqrt(sdx*sdx+sdy*sdy)<TILE*2.5){
+        gctx.fillStyle='rgba(160,80,255,0.95)';
+        gctx.fillRect(px-26,py+18,52,14);
+        gctx.fillStyle='#fff';
+        gctx.font='bold 6px monospace';
+        gctx.fillText('[E] BIND SOUL',px-24,py+28);
+      }
     }
-  }
+  } // end sortedDeco loop
 
   // Pass 3 — furniture inside houses
   if(houseFurniture && houseFurniture.length){
@@ -4272,16 +4841,7 @@ function renderVillage(){
   // Gozo
   const gfx=Math.round(gozo.wx-cx2)+ox;
   const gfy=Math.round(gozo.wy-cy2)+oy;
-  gctx.fillStyle='rgba(0,0,0,0.28)';
-  gctx.beginPath();gctx.ellipse(gfx,gfy+2,11,5,0,0,Math.PI*2);gctx.fill();
-  const[frs,flip]=getSprFrames();
-  const fi=Math.min(gozo.frame,frs.length-1);
-  const sp2=frs[fi];
-  const SW=sp2.width,SH=sp2.height;
-  gctx.save();gctx.imageSmoothingEnabled=false;
-  if(flip){gctx.translate(gfx,gfy-SH+4);gctx.scale(-1,1);gctx.drawImage(sp2,-SW/2,0);}
-  else gctx.drawImage(sp2,gfx-SW/2,gfy-SH+4);
-  gctx.restore();
+  drawGozoAt(gctx, gfx, gfy);
 
   // Soft daylight overlay
   gctx.fillStyle='rgba(255,220,100,0.05)'; gctx.fillRect(0,0,cW,cH);
@@ -4344,9 +4904,82 @@ function updateGozoVillage(){
     if(Math.sqrt(edx*edx+edy*edy)<TILE*1.5) G._nearMine=true;
     else G._nearMine=false;
   }
+
+  // Check soul stone proximity
+  const ss=villageDeco.find(d=>d.type==='soul_stone');
+  if(ss){
+    const ssdx=gozo.wx-(ss.tx*TILE+TILE/2), ssdy=gozo.wy-(ss.ty*TILE+TILE/2);
+    G._nearShrine = Math.sqrt(ssdx*ssdx+ssdy*ssdy)<TILE*2.5;
+  }
 }
 
-// ── SHOP SYSTEM ──────────────────────────────────────────────
+function interactSoulStone(){
+  // Show shrine bind UI
+  const old=document.getElementById('shrine-modal');
+  if(old){old.remove();return;}
+
+  const modal=document.createElement('div');
+  modal.id='shrine-modal';
+  modal.style.cssText=`
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:linear-gradient(160deg,#0e0820,#1a1040);
+    border:2px solid #7040c0;border-radius:10px;
+    padding:24px 32px;z-index:5000;font-family:monospace;
+    min-width:280px;text-align:center;
+    box-shadow:0 0 40px rgba(120,60,200,0.6);
+  `;
+  modal.innerHTML=`
+    <div style="font-size:36px;margin-bottom:8px;">🕯️</div>
+    <h2 style="color:#c080ff;margin:0 0 6px;font-size:18px;">SOUL SHRINE</h2>
+    <p style="color:#9060c0;font-size:11px;margin:0 0 14px;">Eris the Shrine Keeper</p>
+    <div style="background:rgba(80,30,140,0.3);border:1px solid #5030a0;border-radius:6px;padding:10px;margin-bottom:14px;">
+      <p style="color:#d0a0ff;font-size:12px;margin:4px 0;">
+        Bind your soul to this shrine.<br>
+        If you die in the mines, you will respawn here<br>
+        with 50% HP and a 30% coin penalty.
+      </p>
+      <p style="color:${G._shrineActivated?'#80ff80':'#ff8080'};font-size:13px;font-weight:bold;margin:8px 0 4px;">
+        ${G._shrineActivated?'✅ SOUL BOUND':'⭕ NOT BOUND'}
+      </p>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;">
+      <button onclick="bindSoulStone()" style="
+        background:rgba(100,40,180,0.5);border:2px solid #8050d0;
+        color:#e0b0ff;font-family:monospace;font-size:12px;font-weight:bold;
+        padding:8px 18px;cursor:pointer;border-radius:4px;">
+        ${G._shrineActivated?'🔄 REBIND SOUL':'💜 BIND SOUL'}
+      </button>
+      <button onclick="document.getElementById('shrine-modal').remove()" style="
+        background:rgba(40,20,60,0.5);border:1px solid #4030a0;
+        color:#8060c0;font-family:monospace;font-size:12px;
+        padding:8px 14px;cursor:pointer;border-radius:4px;">
+        CLOSE
+      </button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function bindSoulStone(){
+  G._shrineActivated=true;
+  G._shrineFlash=Date.now();
+  document.getElementById('shrine-modal')?.remove();
+  toast('🕯️ Soul bound to the shrine! You will respawn here if you die.');
+  // Bind sound
+  try{
+    const ctx=getAudioCtx();
+    const now=ctx.currentTime;
+    [330,440,550,880].forEach((f,i)=>{
+      const o=ctx.createOscillator(); const g=ctx.createGain();
+      o.type='sine'; o.frequency.value=f;
+      g.gain.setValueAtTime(0.0,now+i*0.09);
+      g.gain.linearRampToValueAtTime(0.25,now+i*0.09+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001,now+i*0.09+0.5);
+      o.connect(g);g.connect(ctx.destination);
+      o.start(now+i*0.09); o.stop(now+i*0.09+0.55);
+    });
+  }catch(e){}
+}
 function openShop(npcIdx){
   const npc=VILLAGE_NPCS[npcIdx];
   // Legendary NPC opens its own Web3 modal
@@ -4363,9 +4996,9 @@ function openShop(npcIdx){
 // ══════════════════════════════════════════════════════════════
 //  WEB3 — LEGENDARY SHOP  (Monad Mainnet · GOZO token burn)
 // ══════════════════════════════════════════════════════════════
-const GOZO_TOKEN    = '0xc655797B4FDdE40B4c68CA41C29aadd672d77777';
+const GOZO_TOKEN    = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
 const DEAD_ADDRESS  = '0x000000000000000000000000000000000000dEaD';
-const MONAD_CHAIN_ID = 41455n; // Monad mainnet
+const MONAD_CHAIN_ID = 999n; // HyperEVM mainnet
 const GOZO_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
   'function transfer(address to, uint256 amount) returns (bool)',
@@ -4394,15 +5027,15 @@ async function legendConnectWallet(){
     const net = await legendProvider.getNetwork();
     if(net.chainId !== MONAD_CHAIN_ID){
       try {
-        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0xA1EF'}]});
+        await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x3E7'}]});
         legendProvider = new ethers.BrowserProvider(window.ethereum);
         legendSigner = await legendProvider.getSigner();
       } catch(e){
         await window.ethereum.request({method:'wallet_addEthereumChain',params:[{
-          chainId:'0xA1EF', chainName:'Monad Mainnet',
-          nativeCurrency:{name:'MON',symbol:'MON',decimals:18},
-          rpcUrls:['https://rpc.monad.xyz'],
-          blockExplorerUrls:['https://explorer.monad.xyz'],
+          chainId:'0x3E7', chainName:'HyperEVM',
+          nativeCurrency:{name:'HYPE',symbol:'HYPE',decimals:18},
+          rpcUrls:['https://rpc.hyperliquid.xyz/evm'],
+          blockExplorerUrls:['https://explorer.hyperliquid.xyz'],
         }]});
         legendProvider = new ethers.BrowserProvider(window.ethereum);
         legendSigner = await legendProvider.getSigner();
@@ -4428,59 +5061,142 @@ async function legendConnectWallet(){
 function renderLegendItems(){
   const container=document.getElementById('legend-items');
   container.innerHTML='';
+
+  // Cancel old anims
+  document.querySelectorAll('#legend-items canvas[data-anim]').forEach(c=>{ if(c._stop) c._stop(); });
+
   for(const li of LEGENDARY_ITEMS){
     const w=WEAPONS[li.id];
     const priceWei=BigInt(li.priceGozo) * BigInt(10**legendDecimals);
     const owned=G.inventory.some(s=>s&&s.type==='weapon'&&s.id===li.id);
     const canAfford=legendGozoBal>=priceWei;
-    const div=document.createElement('div');
-    div.style.cssText=`background:${owned?'#1a1a08':'#0e0a18'};border:1px solid ${w.color};border-radius:6px;padding:10px;display:flex;align-items:center;gap:10px;`;
 
-    // Animated sprite canvas
+    const card=document.createElement('div');
+    card.style.cssText=`
+      background:${owned?'#1a1808':'#0e0a18'};
+      border:1px solid ${w.color}88;
+      border-radius:8px;
+      padding:10px 12px;
+      display:flex;align-items:center;gap:12px;
+      position:relative;overflow:hidden;
+      transition:border-color .2s;
+    `;
+    card.onmouseenter=()=>card.style.borderColor=w.color;
+    card.onmouseleave=()=>card.style.borderColor=w.color+'88';
+
+    // Glow bg sweep
+    const glowBg=document.createElement('div');
+    glowBg.style.cssText=`position:absolute;inset:0;pointer-events:none;
+      background:radial-gradient(ellipse at 12% 50%, ${w.color}18 0%, transparent 60%);`;
+    card.appendChild(glowBg);
+
+    // ── WEAPON SPRITE (large animated canvas) ──
+    const sprWrap=document.createElement('div');
+    sprWrap.style.cssText=`position:relative;min-width:72px;height:72px;flex-shrink:0;`;
+
     const sprCanvas=document.createElement('canvas');
-    sprCanvas.width=48; sprCanvas.height=48;
-    sprCanvas.style.cssText='image-rendering:pixelated;width:48px;height:48px;min-width:48px;';
+    sprCanvas.width=72; sprCanvas.height=72;
+    sprCanvas.style.cssText='image-rendering:pixelated;width:72px;height:72px;display:block;';
+    sprCanvas.setAttribute('data-anim','1');
     const sprCtx=sprCanvas.getContext('2d');
     sprCtx.imageSmoothingEnabled=false;
-    // Animate — update frame via requestAnimationFrame loop tied to div
-    let sprAnim=null;
-    function animLegendSpr(){
+
+    // Outer glow ring behind sprite
+    const glowCanvas=document.createElement('canvas');
+    glowCanvas.width=72; glowCanvas.height=72;
+    glowCanvas.style.cssText='image-rendering:pixelated;width:72px;height:72px;position:absolute;top:0;left:0;pointer-events:none;';
+    const glowCtx=glowCanvas.getContext('2d');
+
+    let animId=null;
+    function animSprite(){
       const frames=LEGEND_SPR[li.id];
-      if(!frames){sprAnim=null;return;}
-      const fi=Math.floor(Date.now()/120)%frames.length;
-      sprCtx.clearRect(0,0,48,48);
-      sprCtx.drawImage(frames[fi],0,0);
-      sprAnim=requestAnimationFrame(animLegendSpr);
+      if(!frames||!frames.length){ animId=null; return; }
+      const now=Date.now();
+      const fi=Math.floor(now/110)%frames.length;
+      const pulse=0.5+0.5*Math.sin(now/500);
+
+      // Clear
+      sprCtx.clearRect(0,0,72,72);
+      glowCtx.clearRect(0,0,72,72);
+
+      // Draw outer glow halo
+      const grad=glowCtx.createRadialGradient(36,36,8,36,36,34);
+      grad.addColorStop(0,`${w.color}${Math.floor((0.35+0.2*pulse)*255).toString(16).padStart(2,'0')}`);
+      grad.addColorStop(0.5,`${w.color}${Math.floor((0.15+0.1*pulse)*255).toString(16).padStart(2,'0')}`);
+      grad.addColorStop(1,`${w.color}00`);
+      glowCtx.fillStyle=grad;
+      glowCtx.fillRect(0,0,72,72);
+
+      // Draw weapon frame centered (48×48 → centered in 72×72 = offset 12,12)
+      sprCtx.drawImage(frames[fi],12,12,48,48);
+
+      animId=requestAnimationFrame(animSprite);
     }
-    animLegendSpr();
-    // Cancel anim when modal closes (handled in closeLegendShop)
-    sprCanvas._animId=()=>{ if(sprAnim) cancelAnimationFrame(sprAnim); };
+    animSprite();
+    sprCanvas._stop=()=>{ if(animId){ cancelAnimationFrame(animId); animId=null; } };
 
+    sprWrap.appendChild(glowCanvas);
+    sprWrap.appendChild(sprCanvas);
+    card.appendChild(sprWrap);
+
+    // ── INFO SECTION ──
     const infoDiv=document.createElement('div');
-    infoDiv.style.flex='1';
+    infoDiv.style.cssText='flex:1;min-width:0;';
     infoDiv.innerHTML=`
-      <div style="color:${w.color};font-size:7px;margin-bottom:3px;text-shadow:0 0 6px ${w.color};">${w.name}</div>
-      <div style="color:#aaa;font-size:5px;">DMG: ${w.dmg} &nbsp;|&nbsp; SPD: ${w.spd}x &nbsp;|&nbsp; RNG: ${w.range}x</div>
-      <div style="color:#ffaa00;font-size:5px;margin-top:2px;">💛 Sell to Gareth for ${w.goldSell.toLocaleString()}g</div>`;
+      <div style="color:${w.color};font-family:'Press Start 2P',monospace;font-size:7px;
+        text-shadow:0 0 8px ${w.color};margin-bottom:5px;letter-spacing:1px;">
+        ${owned?'★ ':''}${w.name}
+      </div>
+      <div style="color:#888;font-family:'Press Start 2P',monospace;font-size:5px;line-height:1.8;">
+        DMG: <span style="color:#ff8888">${w.dmg}</span> &nbsp;|&nbsp;
+        SPD: <span style="color:#88ff88">${w.spd}x</span> &nbsp;|&nbsp;
+        RNG: <span style="color:#88aaff">${w.range}x</span>
+      </div>
+      <div style="color:#c08020;font-family:'Press Start 2P',monospace;font-size:5px;margin-top:4px;">
+        💛 Sell: <span style="color:#f0c040">${(w.goldSell||0).toLocaleString()}g</span>
+      </div>
+    `;
 
+    // ── PRICE + BUY SECTION ──
     const actionDiv=document.createElement('div');
-    actionDiv.style.cssText='text-align:right;min-width:80px;';
-    actionDiv.innerHTML=`<div style="color:#ffdd00;font-size:6px;margin-bottom:4px;">${li.priceGozo.toLocaleString()} GOZO</div>`;
+    actionDiv.style.cssText='text-align:right;min-width:90px;flex-shrink:0;';
+
+    const priceEl=document.createElement('div');
+    priceEl.style.cssText=`color:#ffdd00;font-family:'Press Start 2P',monospace;font-size:6px;
+      margin-bottom:6px;text-shadow:0 0 6px #ffdd0099;`;
+    priceEl.textContent=`${li.priceGozo.toLocaleString()} GOZO`;
+    actionDiv.appendChild(priceEl);
+
     if(owned){
-      actionDiv.innerHTML+=`<div style="color:#40e090;font-size:5px;">✓ OWNED</div>`;
+      const ownBadge=document.createElement('div');
+      ownBadge.style.cssText=`background:rgba(40,180,80,0.15);border:1px solid #40e090;
+        border-radius:4px;padding:4px 8px;color:#40e090;
+        font-family:'Press Start 2P',monospace;font-size:5px;`;
+      ownBadge.textContent='✓ OWNED';
+      actionDiv.appendChild(ownBadge);
     } else {
       const btn=document.createElement('button');
       btn.onclick=()=>legendBuy(li.id, li.priceGozo);
-      btn.style.cssText=`background:${canAfford?'#1a0030':'#111'};border:1px solid ${canAfford?w.color:'#333'};color:${canAfford?w.color:'#444'};padding:4px 8px;font-family:'Press Start 2P',monospace;font-size:5px;cursor:${canAfford?'pointer':'not-allowed'};border-radius:3px;white-space:nowrap;`;
-      btn.disabled=!canAfford;
-      btn.textContent=legendSigner?(canAfford?'🔥 BUY & BURN':'NOT ENOUGH'):'🔒 CONNECT';
+      const btnActive=legendSigner&&canAfford;
+      btn.style.cssText=`
+        background:${btnActive?`${w.color}22`:'#111'};
+        border:1px solid ${btnActive?w.color:'#333'};
+        color:${btnActive?w.color:'#444'};
+        padding:5px 8px;font-family:'Press Start 2P',monospace;font-size:5px;
+        cursor:${btnActive?'pointer':'not-allowed'};border-radius:3px;
+        white-space:nowrap;display:block;width:100%;
+        transition:background .15s;
+      `;
+      if(btnActive) btn.onmouseenter=()=>btn.style.background=`${w.color}44`;
+      if(btnActive) btn.onmouseleave=()=>btn.style.background=`${w.color}22`;
+      btn.disabled=!btnActive;
+      btn.textContent=legendSigner?(canAfford?'🔥 BUY & BURN':'✗ NOT ENOUGH'):'🔒 CONNECT';
       actionDiv.appendChild(btn);
     }
 
-    div.appendChild(sprCanvas);
-    div.appendChild(infoDiv);
-    div.appendChild(actionDiv);
-    container.appendChild(div);
+    card.appendChild(infoDiv);
+    card.appendChild(actionDiv);
+    container.appendChild(card);
   }
 }
 
@@ -4512,13 +5228,16 @@ async function legendBuy(weaponId, priceGozo){
 }
 
 function openLegendShop(){
+  // Ensure legendary sprites are built
+  for(const li of LEGENDARY_ITEMS){
+    if(!LEGEND_SPR[li.id]) buildLegendarySprite(li.id);
+  }
   const m=document.getElementById('legend-modal');
   m.style.display='flex';
   renderLegendItems();
 }
 function closeLegendShop(){
-  // Cancel all sprite animations
-  document.querySelectorAll('#legend-items canvas').forEach(c=>{ if(c._animId) c._animId(); });
+  document.querySelectorAll('#legend-items canvas[data-anim]').forEach(c=>{ if(c._stop) c._stop(); });
   document.getElementById('legend-modal').style.display='none';
 }
 function closeShop(){
@@ -4707,6 +5426,7 @@ function enterMine(){
   requestAnimationFrame(()=>{fa.style.opacity='1';});
   setTimeout(()=>{
     genFloor(1); updateHud();
+    Music.play(G.floor>=20?'deep':'dungeon');
     fa.style.transition='opacity .5s';fa.style.opacity='0';
     setTimeout(()=>fa.remove(),520);
     toast('⛏ Entered the mine! Floor 1');
@@ -4724,6 +5444,7 @@ function returnToVillage(){
   requestAnimationFrame(()=>{fa.style.opacity='1';});
   setTimeout(()=>{
     genVillage(); updateHud();
+    Music.play('village');
     fa.style.transition='opacity .5s';fa.style.opacity='0';
     setTimeout(()=>fa.remove(),520);
   },300);
@@ -4867,11 +5588,136 @@ const ASPD={idle:22,walk:8,mine:9};
 
 function getSprFrames(){
   const{state,dir}=gozo;
-  if(state==='mine') return[SPR.MINE,false];
+  if(state==='mine') return[SPR.MINE,dir==='W'];
   const east=dir==='E'||dir==='W', flip=dir==='W';
-  if(state==='walk') return[east?SPR.E_WALK:SPR.S_WALK,flip];
-  return[east?SPR.E_IDLE:SPR.S_IDLE,flip];
+  if(state==='walk') return[east?SPR.E_WALK:SPR.S_WALK, flip];
+  return[east?SPR.E_IDLE:SPR.S_IDLE, flip];
 }
+
+function getPickaxeTier(){
+  const pid = G.equippedPickaxe || 'wooden_pick';
+  const pk = PICKAXES[pid];
+  // map tier name to our overlay key
+  const map = {Common:'wooden', Uncommon:'stone', Rare:'iron', Epic:'gold', Legendary:'diamond'};
+  return map[pk?.tier] || 'wooden';
+}
+
+function getWeaponOverlayFrame(){
+  const{state}=gozo;
+
+  // During mining: ALWAYS show pickaxe overlay, regardless of equipped weapon
+  if(state==='mine'){
+    const tier=getPickaxeTier();
+    const frames=PICK_OVR_SPR[tier]?.mine;
+    if(frames&&frames.length){
+      const fi=Math.min(gozo.frame, frames.length-1);
+      return {spr:frames[fi], tier};
+    }
+    return null;
+  }
+
+  // During idle/walk: show weapon overlay if weapon equipped, else pickaxe on back/hip
+  const cat=getWeaponCategory();
+  if(cat!=='fist'){
+    const ovr=WPN_SPR[cat];
+    if(!ovr) return null;
+    const key=state==='walk'?'walk':'idle';
+    const frames=ovr[key]||ovr.idle;
+    if(!frames||!frames.length) return null;
+    const fi=Math.min(gozo.frame, frames.length-1);
+    return {spr:frames[fi], tier:null};
+  }
+
+  // No weapon — show pickaxe idle carry
+  const tier=getPickaxeTier();
+  const key=state==='walk'?'walk':'idle';
+  const frames=PICK_OVR_SPR[tier]?.[key];
+  if(!frames||!frames.length) return null;
+  const fi=Math.min(gozo.frame, frames.length-1);
+  return {spr:frames[fi], tier};
+}
+
+// Draw gozo sprite + weapon overlay at pixel position (px,py = center-bottom)
+function drawGozoAt(ctx, px, py){
+  const[frs,flip]=getSprFrames();
+  const fi=Math.min(gozo.frame,frs.length-1);
+  const sp=frs[fi];
+  const SW=sp.width, SH=sp.height;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(px,py+2,12,5,0,0,Math.PI*2); ctx.fill();
+
+  ctx.save(); ctx.imageSmoothingEnabled=false;
+
+  // Legendary weapon glow aura
+  const cat=getWeaponCategory();
+  if(cat==='legendary'){
+    const wid=G.equippedWeapon;
+    const lw=WEAPONS[wid];
+    if(lw){
+      const t=Date.now()/600;
+      const pulse=0.3+0.25*Math.sin(t);
+      ctx.save();
+      ctx.globalAlpha=pulse;
+      ctx.fillStyle=lw.color;
+      ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.7,SH*0.7,0,0,Math.PI*2); ctx.fill();
+      ctx.globalAlpha=1;
+      ctx.restore();
+    }
+  }
+
+  if(flip){
+    ctx.translate(px,py-SH+4);
+    ctx.scale(-1,1);
+    ctx.drawImage(sp,-SW/2,0);
+    const ov=getWeaponOverlayFrame();
+    if(ov) ctx.drawImage(ov.spr,-SW/2,0);
+  } else {
+    ctx.drawImage(sp,px-SW/2,py-SH+4);
+    const ov=getWeaponOverlayFrame();
+    if(ov) ctx.drawImage(ov.spr,px-SW/2,py-SH+4);
+  }
+  ctx.restore();
+
+  // Pickaxe tier special effects during mining
+  const pTier=getPickaxeTier();
+  if(gozo.state==='mine'){
+    if(pTier==='diamond'){
+      // Cyan sparkles orbit around pick head
+      const now=Date.now();
+      ctx.save();
+      for(let i=0;i<4;i++){
+        const ang=now/280+i*1.57;
+        const r=10+Math.sin(now/200+i)*4;
+        const sx2=px+Math.cos(ang)*r, sy2=py-SH*0.55+Math.sin(ang)*r*0.4;
+        ctx.fillStyle=`rgba(160,248,255,${0.5+0.5*Math.sin(now/150+i)})`;
+        ctx.fillRect(sx2-1,sy2-1,2,2);
+      }
+      ctx.restore();
+    }
+    if(pTier==='gold'&&gozo.frame===2){
+      // Gold glint flash on strike
+      ctx.save();
+      ctx.globalAlpha=0.45;
+      ctx.fillStyle='#ffdd00';
+      ctx.beginPath();ctx.arc(px+8,py-SH+8,5,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
+    if(pTier==='iron'){
+      // Cyan chip sparks on strike frame
+      if(gozo.frame===2){
+        const now=Date.now();
+        ctx.save();
+        for(let i=0;i<3;i++){
+          ctx.fillStyle=`rgba(112,192,216,${0.7-i*0.2})`;
+          ctx.fillRect(px+10+i*3, py-SH+10-i*2, 2, 2);
+        }
+        ctx.restore();
+      }
+    }
+  }
+} // end drawGozoAt
 
 function updateGozo(){
   const spd=getSpd();
@@ -5267,27 +6113,7 @@ function render(){
     gctx.restore();
   }
 
-  gctx.fillStyle='rgba(0,0,0,0.28)';
-  gctx.beginPath();gctx.ellipse(gfx,gfy+2,11,5,0,0,Math.PI*2);gctx.fill();
-
-  // Draw gozo sprite — anchor bottom-center to feet position
-  const [frs,flip]=getSprFrames();
-  const fi=Math.min(gozo.frame,frs.length-1);
-  const spr=frs[fi];
-  const SW=spr.width,SH=spr.height;
-  // Sprite drawn so its bottom edge sits at gfy
-  const drawX = gfx - SW/2;
-  const drawY = gfy - SH + 4; // +4 so feet pixel row aligns to ground
-  gctx.save();
-  gctx.imageSmoothingEnabled=false;
-  if(flip){
-    gctx.translate(gfx, drawY);
-    gctx.scale(-1,1);
-    gctx.drawImage(spr,-SW/2,0);
-  } else {
-    gctx.drawImage(spr, drawX, drawY);
-  }
-  gctx.restore();
+  drawGozoAt(gctx, gfx, gfy);
 
   // Lighting passes
   drawLighting(gfx, gfy);
@@ -5412,6 +6238,468 @@ function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
+
+// ══════════════════════════════════════════════════════════════
+//  🎵 MUSIC SYSTEM — Procedural chiptune via Web Audio API
+// ══════════════════════════════════════════════════════════════
+const Music = (() => {
+  let ctx = null, masterGain = null, compressor = null;
+  let currentTrack = null;
+  let nodes = [];
+  let scheduledTimeouts = [];
+  let isPlaying = false;
+  let muteState = false;
+  let volumeLevel = 0.22;
+
+  function getCtx(){
+    if(!ctx){
+      ctx = getAudioCtx();
+      compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -14;
+      compressor.knee.value = 8;
+      compressor.ratio.value = 3;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.25;
+      compressor.connect(ctx.destination);
+      masterGain = ctx.createGain();
+      masterGain.gain.value = volumeLevel;
+      masterGain.connect(compressor);
+    }
+    return ctx;
+  }
+
+  function stopAll(){
+    nodes.forEach(n=>{ try{ n.stop(0); }catch(e){} });
+    nodes = [];
+    scheduledTimeouts.forEach(t=>clearTimeout(t));
+    scheduledTimeouts = [];
+    isPlaying = false;
+  }
+
+  function schedTimeout(fn, ms){
+    scheduledTimeouts.push(setTimeout(fn, Math.max(0,ms)));
+  }
+
+  function noteHz(name){
+    const notes={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+    const m=name.match(/^([A-G])(b|#?)(\d)$/);
+    if(!m) return 440;
+    const acc = m[2]==='#'?1:m[2]==='b'?-1:0;
+    const semi = notes[m[1]] + acc;
+    const oct = parseInt(m[3]);
+    return 440*Math.pow(2,(semi-9+(oct-4)*12)/12);
+  }
+
+  function playNote(type, freq, start, dur, gainVal=0.5, detune=0, pan=0, attack=0.01, release=0.12){
+    const c=getCtx();
+    const osc=c.createOscillator();
+    const g=c.createGain();
+    const panner=c.createStereoPanner();
+    osc.type=type;
+    osc.frequency.value=freq;
+    if(detune) osc.detune.value=detune;
+    g.gain.setValueAtTime(0.001,start);
+    g.gain.linearRampToValueAtTime(gainVal, start+attack);
+    g.gain.setValueAtTime(gainVal, start+dur*(1-release));
+    g.gain.exponentialRampToValueAtTime(0.001, start+dur);
+    panner.pan.value=Math.max(-1,Math.min(1,pan));
+    osc.connect(g); g.connect(panner); panner.connect(masterGain);
+    osc.start(start); osc.stop(start+dur+0.05);
+    nodes.push(osc);
+  }
+
+  function playChord(freqs, start, dur, gainVal, pan=0){
+    freqs.forEach((f,i)=>playNote('sine',f,start,dur,gainVal*(1-i*0.08),0,pan+i*0.05));
+  }
+
+  function playPerc(freq, start, dur, gainVal=0.3, style='kick'){
+    const c=getCtx();
+    const buf=c.createBuffer(1,Math.ceil(c.sampleRate*dur),c.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<data.length;i++){
+      const t=i/c.sampleRate;
+      const env = style==='kick' ? Math.exp(-t*20) :
+                  style==='snare'? Math.exp(-t*35) :
+                  style==='hihat'? Math.exp(-t*80) :
+                  style==='rim'  ? Math.exp(-t*50) : Math.exp(-t*30);
+      const tone = style==='kick' ? Math.sin(2*Math.PI*(freq-freq*0.8*t)*t) :
+                   style==='snare'? Math.sin(2*Math.PI*freq*t)*0.4 : 0;
+      data[i] = ((Math.random()*2-1)*0.6 + tone) * env;
+    }
+    const src=c.createBufferSource();
+    src.buffer=buf;
+    const g=c.createGain(); g.gain.value=gainVal;
+    // EQ hint — highpass for hihat
+    if(style==='hihat'){
+      const hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=6000;
+      src.connect(hp); hp.connect(g);
+    } else { src.connect(g); }
+    g.connect(masterGain);
+    src.start(start);
+    nodes.push(src);
+  }
+
+  // ── Reverb tail helper (simple convolution reverb) ──
+  function makeReverb(decaySec=1.2, wet=0.18){
+    const c=getCtx();
+    const len=Math.ceil(c.sampleRate*decaySec);
+    const buf=c.createBuffer(2,len,c.sampleRate);
+    for(let ch=0;ch<2;ch++){
+      const d=buf.getChannelData(ch);
+      for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,2);
+    }
+    const conv=c.createConvolver(); conv.buffer=buf;
+    const wg=c.createGain(); wg.gain.value=wet;
+    conv.connect(wg); wg.connect(masterGain);
+    return conv;
+  }
+
+  // ════════════════════════════════════════════════════
+  //  VILLAGE THEME — "Warmth of the Surface"
+  //  Mellow folk, C major, 76 BPM
+  //  Soft acoustic feel: gentle pluck melody + warm bass
+  //  + slow pads + light tambourine, no heavy drums
+  // ════════════════════════════════════════════════════
+  const VM=[
+    // ── Phrase A — gentle opening waltz ──
+    ['E5',.5],['G5',.5],['A5',.5],['G5',.25],['E5',.25],
+    ['D5',.75],['C5',.25],['E5',.5],['G5',.5],
+    ['A5',.5],['G5',.25],['E5',.25],['D5',.5],['C5',.5],
+    ['G4',.5],['A4',.5],['B4',.5],['C5',.5],
+    // ── Phrase B — warm answering phrase ──
+    ['E5',.5],['F5',.25],['E5',.25],['D5',.5],['C5',.5],
+    ['B4',.5],['A4',.5],['G4',.5],['A4',.5],
+    ['B4',.25],['C5',.25],['D5',.5],['E5',.5],['D5',.5],
+    ['C5',1.0],['G4',.5],['E4',.5],
+    // ── Phrase C — tender bridge ──
+    ['A4',.5],['B4',.5],['C5',.25],['B4',.25],['A4',.5],
+    ['G4',.5],['A4',.5],['B4',.5],['C5',.5],
+    ['D5',.5],['E5',.5],['F5',.25],['E5',.25],['D5',.5],
+    ['C5',.75],['B4',.25],['C5',1.0],
+  ];
+  const VB=[
+    ['C3',1],['G2',1],['A2',1],['E2',1],
+    ['F2',1],['C3',1],['G2',1],['G2',1],
+    ['C3',1],['G2',1],['A2',1],['F2',1],
+    ['G2',1],['D3',1],['G2',2],
+  ];
+  const VCP=[
+    [noteHz('C3'),noteHz('E3'),noteHz('G3'),4],
+    [noteHz('F2'),noteHz('A2'),noteHz('C3'),4],
+    [noteHz('G2'),noteHz('B2'),noteHz('D3'),4],
+    [noteHz('A2'),noteHz('C3'),noteHz('E3'),4],
+    [noteHz('C3'),noteHz('E3'),noteHz('G3'),4],
+    [noteHz('F2'),noteHz('A2'),noteHz('C3'),4],
+    [noteHz('G2'),noteHz('B2'),noteHz('D3'),4],
+    [noteHz('C3'),noteHz('E3'),noteHz('G3'),4],
+  ];
+
+  function scheduleVillageTrack(loopStart){
+    if(currentTrack!=='village'||muteState) return;
+    const BPM=76, beat=60/BPM;
+    let t=loopStart;
+
+    // ── Lead melody: triangle wave — soft, flute-like ──
+    for(const[n,d]of VM){
+      playNote('triangle',noteHz(n),t,d*beat*0.85,0.28,0,0,0.025,0.3);
+      t+=d*beat;
+    }
+    const loopLen=t-loopStart;
+
+    // ── Harmony (sine, a third below, panned left) ──
+    t=loopStart;
+    for(const[n,d]of VM){
+      playNote('sine',noteHz(n)*Math.pow(2,-4/12),t,d*beat*0.75,0.11,0,-0.5,0.03,0.35);
+      t+=d*beat;
+    }
+
+    // ── Plucked bass: short square notes ──
+    t=loopStart;
+    for(const[n,d]of VB){
+      playNote('square',noteHz(n),t,d*beat*0.25,0.20,0,0.2,0.003,0.08);
+      t+=d*beat;
+      if(t>=loopStart+loopLen) break;
+    }
+
+    // ── Warm pad chords (sine, long, slow attack) ──
+    t=loopStart;
+    for(const[r,th,fi,dur]of VCP){
+      playNote('sine',r, t,dur*beat*0.95,0.07,0, 0.1,0.2,0.4);
+      playNote('sine',th,t,dur*beat*0.95,0.06,0, 0,  0.2,0.4);
+      playNote('sine',fi,t,dur*beat*0.95,0.05,0,-0.1,0.2,0.4);
+      t+=dur*beat;
+    }
+
+    // ── Gentle counter-pluck (acoustic feel, panned right) ──
+    const cpSeq=[
+      ['G5',.5],['E5',.5],['C5',.5],['D5',.5],
+      ['F5',.5],['E5',.5],['D5',.5],['C5',.5],
+    ];
+    t=loopStart+beat*2;
+    for(let rep=0;rep<3&&t<loopStart+loopLen;rep++){
+      for(const[n,d]of cpSeq){
+        if(t>=loopStart+loopLen) break;
+        playNote('triangle',noteHz(n),t,d*beat*0.4,0.08,0,0.6,0.005,0.25);
+        t+=d*beat;
+      }
+    }
+
+    // ── Light percussion: soft kick + tambourine shake ──
+    const bars=Math.floor(loopLen/(beat*4));
+    for(let bar=0;bar<bars;bar++){
+      for(let b=0;b<4;b++){
+        const bt=loopStart+(bar*4+b)*beat;
+        if(bt>=loopStart+loopLen) break;
+        // Very soft kick on 1 and 3
+        if(b===0||b===2) playPerc(55,bt,0.20,0.14,'kick');
+        // Tambourine-like hi tick on every beat
+        playPerc(7000,bt,0.04,0.06,'hihat');
+        // Soft off-beat shake
+        playPerc(6000,bt+beat*0.5,0.03,0.04,'hihat');
+        // Light rim accent on 2 and 4
+        if(b===1||b===3) playPerc(280,bt,0.06,0.08,'rim');
+      }
+    }
+
+    schedTimeout(()=>scheduleVillageTrack(loopStart+loopLen),(loopLen-0.5)*1000);
+  }
+
+  // ════════════════════════════════════════════════════
+  //  DUNGEON THEME — "Deep Vein Lullaby"
+  //  Mellow cave ambient, A minor, 68 BPM
+  //  Soft picking melody + distant bass drone
+  //  + cave drip percussion + gentle pad wash
+  // ════════════════════════════════════════════════════
+  const DM=[
+    // ── Gentle descending phrase A ──
+    ['A4',.5],['G4',.5],['F4',.5],['E4',.5],
+    ['D4',.75],['E4',.25],['F4',.5],['A4',.5],
+    ['G4',.5],['F4',.25],['E4',.25],['D4',.5],['C4',.5],
+    ['E4',1.0],['A3',.5],['C4',.5],
+    // ── Quiet yearning phrase B ──
+    ['E4',.5],['F4',.5],['G4',.5],['A4',.5],
+    ['B4',.75],['A4',.25],['G4',.5],['F4',.5],
+    ['E4',.5],['D4',.5],['C4',.5],['E4',.5],
+    ['A3',1.5],['A3',.5],
+    // ── Bridge — hopeful glimmer ──
+    ['C5',.5],['B4',.5],['A4',.5],['G4',.5],
+    ['F4',.5],['G4',.25],['A4',.25],['B4',.5],['C5',.5],
+    ['A4',.5],['G4',.5],['E4',.5],['D4',.5],
+    ['E4',.75],['D4',.25],['E4',1.0],
+  ];
+  const DB=[
+    ['A2',2],['E2',2],['F2',2],['C2',2],
+    ['D2',2],['A2',2],['G2',2],['E2',2],
+    ['A2',2],['E2',2],['C2',2],['G2',2],
+    ['D2',2],['E2',2],['A2',4],
+  ];
+  const DCP=[
+    [noteHz('A2'),noteHz('C3'),noteHz('E3'),4],
+    [noteHz('D2'),noteHz('F2'),noteHz('A2'),4],
+    [noteHz('F2'),noteHz('A2'),noteHz('C3'),4],
+    [noteHz('E2'),noteHz('G2'),noteHz('B2'),4],
+    [noteHz('A2'),noteHz('C3'),noteHz('E3'),4],
+    [noteHz('G2'),noteHz('B2'),noteHz('D3'),4],
+    [noteHz('F2'),noteHz('A2'),noteHz('C3'),4],
+    [noteHz('E2'),noteHz('G2'),noteHz('B2'),4],
+  ];
+
+  function schedDungeonTrack(loopStart){
+    if(currentTrack!=='dungeon'||muteState) return;
+    const BPM=68, beat=60/BPM;
+    let t=loopStart;
+
+    // ── Main melody: soft triangle (cave flute) ──
+    for(const[n,d]of DM){
+      playNote('triangle',noteHz(n),t,d*beat*0.88,0.22,0,0,0.03,0.35);
+      t+=d*beat;
+    }
+    const loopLen=t-loopStart;
+
+    // ── Echo melody (triangle, delayed, quieter, opposite pan) ──
+    t=loopStart+beat*1.5;
+    for(const[n,d]of DM){
+      if(t>=loopStart+loopLen) break;
+      playNote('sine',noteHz(n),t,d*beat*0.6,0.07,0,-0.6,0.04,0.45);
+      t+=d*beat;
+    }
+
+    // ── Deep bass drone (long held notes, sine) ──
+    t=loopStart;
+    for(const[n,d]of DB){
+      playNote('sine',noteHz(n),t,d*beat*0.92,0.15,0,0,0.08,0.2);
+      t+=d*beat;
+      if(t>=loopStart+loopLen) break;
+    }
+
+    // ── Sub-bass undertone ──
+    playNote('sine',noteHz('A1'),loopStart,loopLen*0.98,0.08,0,0,0.1,0.15);
+
+    // ── Soft pad wash (very slow attack, ambient) ──
+    t=loopStart;
+    for(const[r,th,fi,dur]of DCP){
+      playNote('sine',r, t,dur*beat*0.96,0.06,0, 0.15,0.5,0.5);
+      playNote('sine',th,t,dur*beat*0.96,0.05,0, 0,   0.5,0.5);
+      playNote('sine',fi,t,dur*beat*0.96,0.04,0,-0.15,0.5,0.5);
+      t+=dur*beat;
+    }
+
+    // ── Cave percussion: sparse, soft ──
+    const totBeats=Math.floor(loopLen/beat);
+    for(let b=0;b<totBeats;b++){
+      const bt=loopStart+b*beat;
+      // Soft thump every 4 beats (footstep / mine impact feel)
+      if(b%8===0) playPerc(48,bt,0.22,0.18,'kick');
+      if(b%8===4) playPerc(52,bt,0.16,0.14,'kick');
+      // Drip / tick — like cave water drop
+      if(b%6===2) playPerc(4000,bt+beat*0.33,0.03,0.05,'hihat');
+      if(b%10===5) playPerc(5000,bt+beat*0.66,0.025,0.04,'hihat');
+      // Occasional stone tap (rim)
+      if(b%12===7) playPerc(260,bt,0.05,0.06,'rim');
+    }
+
+    // ── Pickaxe echo accents — melodic ting ──
+    const tingNotes=[noteHz('A5'),noteHz('E5'),noteHz('C5'),noteHz('G5'),noteHz('F5')];
+    for(let i=0;i<5;i++){
+      const ct=loopStart+((i*9+4)%Math.floor(loopLen/beat))*beat;
+      if(ct<loopStart+loopLen)
+        playNote('triangle',tingNotes[i],ct,beat*3,0.05,0,Math.sin(i)*0.7,0.002,0.6);
+    }
+
+    schedTimeout(()=>schedDungeonTrack(loopStart+loopLen),(loopLen-0.5)*1000);
+  }
+
+  // ════════════════════════════════════════════════════
+  //  DEEP DUNGEON — "Heart of the Mountain" (floor 20+)
+  //  Dark but mellow, E minor, 60 BPM
+  //  Low slow melody + rumbling bass + sparse metal tings
+  //  No heavy drums — deep atmospheric dread
+  // ════════════════════════════════════════════════════
+  const APM=[
+    ['E4',.5],['D4',.5],['B3',.5],['A3',.5],
+    ['G3',.75],['A3',.25],['B3',.5],['E4',.5],
+    ['D4',.5],['C4',.5],['B3',.5],['A3',.5],
+    ['G3',1.0],['B3',.5],['E3',.5],
+    ['F#4',.5],['E4',.5],['D4',.5],['C4',.5],
+    ['B3',.75],['A3',.25],['G3',.5],['A3',.5],
+    ['B3',.5],['C4',.5],['D4',.5],['E4',.5],
+    ['B3',2.0],
+  ];
+
+  function schedDeepTrack(loopStart){
+    if(currentTrack!=='deep'||muteState) return;
+    const BPM=60, beat=60/BPM;
+    let t=loopStart;
+
+    // ── Main melody: sawtooth filtered to near-sine — eerie cello feel ──
+    for(const[n,d]of APM){
+      const hz=noteHz(n);
+      playNote('sawtooth',hz,      t,d*beat*0.9,0.18,0, 0,  0.04,0.4);
+      playNote('sawtooth',hz*1.003,t,d*beat*0.9,0.07,+8,0.3,0.04,0.4);
+      t+=d*beat;
+    }
+    const loopLen=t-loopStart;
+    if(loopLen<=0) return;
+
+    // ── Octave lower shadow melody (triangle) ──
+    t=loopStart;
+    for(const[n,d]of APM){
+      playNote('triangle',noteHz(n)*0.5,t,d*beat*0.85,0.10,0,-0.35,0.06,0.45);
+      t+=d*beat;
+    }
+
+    // ── Slow rumble bass ──
+    const deepB=[
+      ['E2',4],['D2',4],['B1',4],['G1',4],
+      ['A1',4],['B1',4],['E2',8],
+    ];
+    t=loopStart;
+    for(const[n,d]of deepB){
+      playNote('sine',noteHz(n),t,d*beat*0.95,0.16,0,0,0.15,0.3);
+      t+=d*beat;
+      if(t>=loopStart+loopLen) break;
+    }
+
+    // ── Earth tremor sub-drone ──
+    playNote('sine',noteHz('E1'),loopStart,loopLen,0.10,0,0,0.5,0.5);
+    playNote('sine',noteHz('B0'),loopStart,loopLen,0.06,0,0.2,0.8,0.8);
+
+    // ── Eerie pad chords (very slow, dark) ──
+    const deepCP=[
+      [noteHz('E2'),noteHz('G2'),noteHz('B2'),8],
+      [noteHz('D2'),noteHz('F#2'),noteHz('A2'),8],
+      [noteHz('C2'),noteHz('E2'),noteHz('G2'),8],
+      [noteHz('B1'),noteHz('D2'),noteHz('F#2'),8],
+    ];
+    t=loopStart;
+    for(const[r,th,fi,dur]of deepCP){
+      playNote('sine',r, t,dur*beat*0.97,0.07,0, 0.2,0.8,0.8);
+      playNote('sine',th,t,dur*beat*0.97,0.06,0, 0,  0.8,0.8);
+      playNote('sine',fi,t,dur*beat*0.97,0.05,0,-0.2,0.8,0.8);
+      t+=dur*beat;
+      if(t>=loopStart+loopLen) break;
+    }
+
+    // ── Sparse deep percussion: heavy but infrequent ──
+    const totBeats=Math.floor(loopLen/beat);
+    for(let b=0;b<totBeats;b++){
+      const bt=loopStart+b*beat;
+      // Deep stone thud every 8 beats
+      if(b%8===0) playPerc(38,bt,0.35,0.28,'kick');
+      if(b%16===12){ playPerc(42,bt,0.22,0.20,'kick'); playPerc(42,bt+beat*0.5,0.14,0.14,'kick'); }
+      // Very sparse metallic tick
+      if(b%14===7) playPerc(3500,bt,0.03,0.05,'hihat');
+    }
+
+    // ── Crystal/metal ting resonances (long decay, soft) ──
+    const crystalNotes=[noteHz('E5'),noteHz('B4'),noteHz('G5'),noteHz('D5'),noteHz('A4'),noteHz('F#5')];
+    for(let i=0;i<6;i++){
+      const ct=loopStart+((i*13+6)%totBeats)*beat;
+      if(ct<loopStart+loopLen)
+        playNote('triangle',crystalNotes[i],ct,beat*4,0.04,0,Math.cos(i)*0.8,0.001,0.7);
+    }
+
+    // ── Distant mining echoes (very soft pickaxe-like pings) ──
+    for(let i=0;i<3;i++){
+      const pt=loopStart+((i*17+3)%totBeats)*beat;
+      if(pt<loopStart+loopLen){
+        playNote('sawtooth',noteHz('A4')*2,pt,beat*0.06,0.04,800,i%2?0.5:-0.5,0.001,0.5);
+      }
+    }
+
+    schedTimeout(()=>schedDeepTrack(loopStart+loopLen),(loopLen-0.5)*1000);
+  }
+  // ── PUBLIC API ────────────────────────────────────────────
+  return {
+    play(track){
+      if(muteState) return;
+      if(currentTrack===track && isPlaying) return;
+      stopAll();
+      currentTrack=track;
+      isPlaying=true;
+      const c=getCtx();
+      if(c.state==='suspended') c.resume();
+      const startT=c.currentTime+0.15;
+      if(track==='village')  scheduleVillageTrack(startT);
+      else if(track==='dungeon') schedDungeonTrack(startT);
+      else if(track==='deep')    schedDeepTrack(startT);
+    },
+    stop(){ stopAll(); currentTrack=null; },
+    toggleMute(){
+      muteState=!muteState;
+      if(muteState){ stopAll(); }
+      else if(currentTrack){ this.play(currentTrack); }
+      return muteState;
+    },
+    isMuted(){ return muteState; },
+    setVolume(v){
+      volumeLevel=v;
+      if(masterGain) masterGain.gain.setTargetAtTime(v, getCtx().currentTime, 0.05);
+    },
+    getVolume(){ return volumeLevel; },
+  };
+})();
+
 
 function playPickaxeHit(type, isCrit) {
   try {
@@ -5597,28 +6885,128 @@ function playExplosion(){
   try {
     const ctx=getAudioCtx();
     const now=ctx.currentTime;
-    const bufSize=ctx.sampleRate*0.8;
-    const buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
-    const data=buf.getChannelData(0);
-    for(let i=0;i<bufSize;i++){
-      const t=i/ctx.sampleRate;
-      // Deep boom
-      const boom=Math.sin(2*Math.PI*55*t)*Math.exp(-t*8)*0.8;
-      // Mid crunch
-      const crunch=Math.sin(2*Math.PI*120*t)*Math.exp(-t*14)*0.5;
-      // Noise burst
-      const noise=(Math.random()*2-1)*Math.exp(-t*10)*0.6;
-      // High crack
-      const crack=Math.sin(2*Math.PI*800*t)*Math.exp(-t*50)*0.2;
-      data[i]=boom+crunch+noise+crack;
-    }
-    const src=ctx.createBufferSource();
-    src.buffer=buf;
-    const gain=ctx.createGain();
-    gain.gain.setValueAtTime(1.0,now);
-    gain.gain.exponentialRampToValueAtTime(0.001,now+0.8);
-    src.connect(gain); gain.connect(ctx.destination);
-    src.start(now);
+    const sr=ctx.sampleRate;
+
+    // ── Master compressor to glue layers ──
+    const comp=ctx.createDynamicsCompressor();
+    comp.threshold.value=-6; comp.knee.value=3;
+    comp.ratio.value=4; comp.attack.value=0.001; comp.release.value=0.1;
+    const masterGain=ctx.createGain();
+    masterGain.gain.setValueAtTime(1.4,now);
+    comp.connect(masterGain); masterGain.connect(ctx.destination);
+
+    // ── Layer 1: Initial CRACK / pressure wave (0–30ms) ──
+    // Sharp transient burst — the "bang" trigger
+    (()=>{
+      const len=Math.floor(sr*0.03);
+      const buf=ctx.createBuffer(1,len,sr);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<len;i++){
+        const t=i/sr;
+        // White noise burst shaped like a spike
+        d[i]=(Math.random()*2-1)*Math.exp(-t*200)*1.5
+             +Math.sin(2*Math.PI*180*t)*Math.exp(-t*120)*1.2;
+      }
+      const s=ctx.createBufferSource(); s.buffer=buf;
+      const g=ctx.createGain(); g.gain.setValueAtTime(1.6,now);
+      s.connect(g); g.connect(comp); s.start(now);
+    })();
+
+    // ── Layer 2: SHOCKWAVE BASS BOOM (sub 40–80Hz, 0–600ms) ──
+    // The deep physical thump you feel in chest
+    (()=>{
+      const len=Math.floor(sr*0.7);
+      const buf=ctx.createBuffer(1,len,sr);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<len;i++){
+        const t=i/sr;
+        // Pitch drops fast (like a real explosion — starts higher, falls)
+        const freq=80*Math.exp(-t*4)+38;
+        const phase=2*Math.PI*freq*t;
+        const env=Math.exp(-t*3.5);
+        d[i]=Math.sin(phase)*env*1.0
+            +Math.sin(phase*0.5)*env*0.6   // sub-harmonic
+            +Math.sin(phase*2)*env*0.2;    // harmonic richness
+      }
+      const s=ctx.createBufferSource(); s.buffer=buf;
+      // Lowpass: only let bass through
+      const lp=ctx.createBiquadFilter();
+      lp.type='lowpass'; lp.frequency.value=200; lp.Q.value=0.8;
+      const g=ctx.createGain(); g.gain.setValueAtTime(1.8,now);
+      g.gain.exponentialRampToValueAtTime(0.001,now+0.7);
+      s.connect(lp); lp.connect(g); g.connect(comp); s.start(now);
+    })();
+
+    // ── Layer 3: MID EXPLOSION BODY (noise + tone 100–400ms) ──
+    // The "whooomph" body of the explosion
+    (()=>{
+      const len=Math.floor(sr*0.9);
+      const buf=ctx.createBuffer(1,len,sr);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<len;i++){
+        const t=i/sr;
+        const noise=(Math.random()*2-1);
+        const tone=Math.sin(2*Math.PI*(150-t*80)*t);  // sweeping mid
+        // Envelope: fast attack (20ms), then long decay
+        const env = t<0.02 ? t/0.02 : Math.exp(-(t-0.02)*4);
+        d[i]=(noise*0.7+tone*0.3)*env;
+      }
+      const s=ctx.createBufferSource(); s.buffer=buf;
+      const bp=ctx.createBiquadFilter();
+      bp.type='bandpass'; bp.frequency.value=280; bp.Q.value=0.6;
+      const g=ctx.createGain(); g.gain.setValueAtTime(1.1,now);
+      g.gain.exponentialRampToValueAtTime(0.001,now+0.9);
+      s.connect(bp); bp.connect(g); g.connect(comp); s.start(now);
+    })();
+
+    // ── Layer 4: RUMBLE TAIL (0.1s–1.4s) ──
+    // Distant thunder-like roll after initial bang
+    (()=>{
+      const len=Math.floor(sr*1.4);
+      const buf=ctx.createBuffer(1,len,sr);
+      const d=buf.getChannelData(0);
+      // Low-frequency modulated noise (cave rumble)
+      let lfo=0, lfov=0;
+      for(let i=0;i<len;i++){
+        const t=i/sr;
+        // LFO modulates noise amplitude at ~12Hz for rumble texture
+        lfo+=0.00008; // slow wander
+        const rumbleEnv=Math.exp(-t*1.8)*0.6;
+        const noise=(Math.random()*2-1);
+        const mod=0.5+0.5*Math.sin(2*Math.PI*12*t+lfo);
+        d[i]=noise*mod*rumbleEnv;
+      }
+      const s=ctx.createBufferSource(); s.buffer=buf;
+      const lp=ctx.createBiquadFilter();
+      lp.type='lowpass'; lp.frequency.value=120;
+      const g=ctx.createGain(); g.gain.setValueAtTime(0.0,now);
+      g.gain.linearRampToValueAtTime(0.9,now+0.08);  // delayed start
+      g.gain.exponentialRampToValueAtTime(0.001,now+1.4);
+      s.connect(lp); lp.connect(g); g.connect(comp); s.start(now);
+    })();
+
+    // ── Layer 5: DEBRIS RATTLE (hi-freq crackling, 0.05s–0.5s) ──
+    // Rocks and particles hitting surfaces
+    (()=>{
+      const len=Math.floor(sr*0.5);
+      const buf=ctx.createBuffer(1,len,sr);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<len;i++){
+        const t=i/sr;
+        // Sparse clicks — simulates individual debris hits
+        const spark=Math.random()<0.015 ? (Math.random()*2-1)*1.5 : 0;
+        const hiss=(Math.random()*2-1)*Math.exp(-t*6)*0.4;
+        d[i]=spark+hiss;
+      }
+      const s=ctx.createBufferSource(); s.buffer=buf;
+      const hp=ctx.createBiquadFilter();
+      hp.type='highpass'; hp.frequency.value=1200;
+      const g=ctx.createGain(); g.gain.setValueAtTime(0.0,now);
+      g.gain.linearRampToValueAtTime(0.7,now+0.05);
+      g.gain.exponentialRampToValueAtTime(0.001,now+0.5);
+      s.connect(hp); hp.connect(g); g.connect(comp); s.start(now);
+    })();
+
   } catch(e){}
 }
 
@@ -5747,6 +7135,7 @@ function warpToFloor(target){
     G._isVillage=false;
     genFloor(G.floor);
     updateHud();
+    Music.play(G.floor>=20?'deep':'dungeon');
     fa.style.transition='opacity .5s'; fa.style.opacity='0';
     setTimeout(()=>fa.remove(),520);
     toast(`🌀 Warped to Floor ${target}! (${BIOMES[getBiome(target)].name})`);
@@ -5892,6 +7281,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='e'||e.key==='E'){
     if(G.floor===0){
       if(G._nearNPC!=null) openShop(G._nearNPC);
+      else if(G._nearShrine) interactSoulStone();
       else if(G._nearMine) enterMine();
       else if(G._nearPortal) togglePortal();
     } else {
@@ -5972,6 +7362,20 @@ function onFileLoad(e){
   e.target.value = '';
 }
 
+function toggleMusic(){
+  const muted=Music.toggleMute();
+  const btn=document.getElementById('music-btn');
+  if(btn){
+    btn.textContent=muted?'🔇 MUTED':'🎵 MUSIC';
+    btn.style.borderColor=muted?'#664444':'#40a0c0';
+    btn.style.color=muted?'#aa6666':'#80d0f0';
+  }
+  toast(muted?'🔇 Music OFF':'🎵 Music ON');
+}
+function setMusicVolume(val){
+  Music.setVolume(Number(val)/100*0.4); // 0..100 → 0..0.4
+}
+
 function startNewGame(){
   getAudioCtx();
   buildAllSprites();
@@ -5997,6 +7401,7 @@ function startNewGame(){
   setTimeout(()=>equipPickaxe('wooden_pick'),100);
   updateHud();
   updateGozoHpBar();
+  setTimeout(()=>Music.play('village'), 600);
   toast('⛏ WASD=move | Click rock=mine | Click monster=attack | I=bag');
   requestAnimationFrame(loop);
 }
