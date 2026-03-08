@@ -7463,7 +7463,15 @@ function render(){
     if(npc.zone !== _curZone) return;
     const nsx = Math.round(npc.worldX - cx);
     if(nsx < -80 || nsx > W+80) return;
-    drawNpcCharacter(ctx, npc, nsx, GROUND_Y+2, G.t);
+    // Separation: nudge NPC draw position if player is too close (visual only)
+    const _npcDist = G.gz.x - npc.worldX;
+    const _sepRange = 28;
+    let _npcDrawX = nsx;
+    if(Math.abs(_npcDist) < _sepRange){
+      const _push = _sepRange - Math.abs(_npcDist);
+      _npcDrawX = nsx + (_npcDist >= 0 ? -_push : _push);
+    }
+    drawNpcCharacter(ctx, npc, _npcDrawX, GROUND_Y+2, G.t);
     // Interact prompt when close
     const dist = Math.abs(G.gz.x - npc.worldX);
     if(dist < 55){
@@ -8255,9 +8263,10 @@ function _drawNwSprite(ctx, sprite, pal, px, py, ps, flipX){
   }
 }
 
+// Walking NPCs roam the entire world map
 const WALKING_NPCS = [
-  { id:'runner', type:'runner', wx:600,  dir:1,  minX:80, maxX:WORLD_W-80, speed:160, frame:0, frameTick:0, frameRate:0.13 },
-  { id:'office', type:'office', wx:1600, dir:-1, minX:80, maxX:WORLD_W-80, speed:68,  frame:0, frameTick:0, frameRate:0.30 },
+  { id:'runner', type:'runner', wx:400,  dir:1,  minX:80, maxX:WORLD_W-80, speed:160, frame:0, frameTick:0, frameRate:0.13 },
+  { id:'office', type:'office', wx:1200, dir:-1, minX:80, maxX:WORLD_W-80, speed:68,  frame:0, frameTick:0, frameRate:0.30 },
 ];
 
 function updateWalkingNpcs(dt){
@@ -8268,21 +8277,39 @@ function updateWalkingNpcs(dt){
     n.frameTick+=dt;
     if(n.frameTick>=n.frameRate){n.frameTick=0;n.frame=1-n.frame;}
   });
+  // Collision: if two walking NPCs overlap, push apart and reverse directions
+  const SEP = 56;
+  for(let i=0;i<WALKING_NPCS.length;i++){
+    for(let j=i+1;j<WALKING_NPCS.length;j++){
+      const a=WALKING_NPCS[i], b=WALKING_NPCS[j];
+      const diff=a.wx-b.wx;
+      if(Math.abs(diff)<SEP){
+        // Push them apart fully
+        const push=(SEP-Math.abs(diff))/2+1;
+        a.wx += diff>=0?push:-push;
+        b.wx += diff>=0?-push:push;
+        // Reverse directions so they walk away from each other
+        a.dir = diff>=0?1:-1;
+        b.dir = diff>=0?-1:1;
+      }
+    }
+  }
 }
 
 function drawWalkingNpcs(ctx, cx){
   const ps=4, cols=11, rows=18;
   const sprW=cols*ps, sprH=rows*ps;
-  // Vertical center of road (stone floor area)
-  const feetY = GROUND_Y + Math.round((H-GROUND_Y)*0.40);
+  const feetY      = GROUND_Y + Math.round((H-GROUND_Y)*0.40);        // row 1 — runner
+  const feetYLower = GROUND_Y + Math.round((H-GROUND_Y)*0.40) + rows*ps; // row 2 — office lady (1 row bawah)
   WALKING_NPCS.forEach(n=>{
     const sx=Math.round(n.wx-cx);
     if(sx<-60||sx>W+60) return;
     const flipX=(n.dir===-1);
-    const px=sx-sprW/2, py=feetY-sprH;
+    const fy = n.type==='runner' ? feetY : feetYLower;
+    const px=sx-sprW/2, py=fy-sprH;
     // shadow
     ctx.save(); ctx.globalAlpha=0.20; ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.ellipse(sx,feetY+2,18,4,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.ellipse(sx,fy+2,18,4,0,0,Math.PI*2); ctx.fill(); ctx.restore();
     if(n.type==='runner'){
       _drawNwSprite(ctx, n.frame===0?NWR_A:NWR_B, NWR_PAL, px, py, ps, flipX);
       // speed lines
@@ -8494,11 +8521,11 @@ function drawFishingWomanNpc(ctx, npc, cx){
 function _fwNextIdle(n){ n.state='idle'; n.stateT=6+Math.random()*11; n.bobberOff=0; }
 
 const FISHING_WOMAN_NPCS = [
-  {wx:420,        palType:'A', rodRight:false},
+  {wx:750,        palType:'A', rodRight:false},
   {wx:950,        palType:'B', rodRight:true },
-  {wx:2400+380,   palType:'B', rodRight:true },
+  {wx:2400+650,   palType:'B', rodRight:true },
   {wx:2400+1100,  palType:'A', rodRight:false},
-  {wx:4800+300,   palType:'A', rodRight:true },
+  {wx:4800+650,   palType:'A', rodRight:true },
   {wx:4800+1050,  palType:'B', rodRight:false},
   {wx:7200+500,   palType:'B', rodRight:false},
   {wx:7200+1200,  palType:'A', rodRight:true },
@@ -8567,7 +8594,7 @@ function drawFishingWomenNpcs(ctx, cx){
 
 const NPCS = [
   {
-    id: 'merchant', name: '🪣 OLD RIKU', zone: 0, worldX: 320,
+    id: 'merchant', name: '🪣 OLD RIKU', zone: 0, worldX: 520,
     color: '#C08040', hatColor: '#804020',
     greeting: "Ahoy fisher! I sell the finest bait and gear around!",
     shop: true,
