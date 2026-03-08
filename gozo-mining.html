@@ -2785,7 +2785,7 @@ const POTIONS = {
 };
 
 // Active potion buffs (remaining frames)
-const BUFFS = {str:0, speed:0, luck:0, shield:0,
+const BUFFS = {str:0, speed:0, luck:0, shield:0, strMult:1,
   frozen:0, poisoned:0, poisonDmg:0, burning:0, burnDmg:0, blinded:0, doomed:0};
 
 // Pixel art potion bottle sprite — unique shape + symbol per potion type
@@ -5938,6 +5938,10 @@ function updateGozoHpBar(){
 // ═══════════════════════════════════════════════════════════
 function addToInventory(item){
   const slots = G.invSlots || 30;
+  // Sync ore G counter
+  if(item.type==='ore'&&item.id){
+    G[item.id]=(G[item.id]||0)+(item.qty||1);
+  }
   // Stack ore AND potions
   if(item.type==='ore' || item.type==='potion'){
     for(let i=0;i<slots;i++){
@@ -5956,6 +5960,11 @@ function addToInventory(item){
 function removeFromInventory(slot, qty=1){
   const s=G.inventory[slot];
   if(!s)return;
+  // Sync ore G counter down
+  if(s.type==='ore'&&s.id){
+    const remove=Math.min(qty, s.qty||1);
+    G[s.id]=Math.max(0,(G[s.id]||0)-remove);
+  }
   if(s.qty>qty){ s.qty-=qty; }
   else { G.inventory[slot]=null; }
   renderInventory();
@@ -6108,8 +6117,8 @@ function renderInventory(){
 }
 
 // Weapon sell prices by tier
-const WEAPON_SELL = {1:30, 2:80, 3:200, 4:500, 5:1500};
-const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200};
+const WEAPON_SELL = {Common:30, Uncommon:80, Rare:200, Epic:500, Legendary:1500};
+const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200, 5:3000, 6:8000};
 
 let _selectedInvSlot = null;
 
@@ -6303,7 +6312,7 @@ function invSellAccessory(i){
   G.coins+=price;
   updateHud();
   toast(`💰 Sold ${a.name||'item'} for ${fmt(price)}g`);
-  renderInv();
+  renderInventory();
 }
 
 // ── ARMOR SLOT ──
@@ -6363,11 +6372,11 @@ function unequipArmor(){
 }
 
 function openArmorSlot(){
-  // Show a small modal listing craftable accessories in inventory
+  // If already equipped, unequip directly
   if(G.equippedArmor){
-    // If already equipped, prompt unequip
-    const a=CRAFTED_ITEMS[G.equippedArmor];
-    if(confirm(`Unequip ${a?.name||'armor'}?`)) unequipArmor();
+    const a=CRAFTED_ITEMS[G.equippedArmor]||{};
+    unequipArmor();
+    toast(`🫙 Unequipped ${a.name||'armor'}`);
     return;
   }
   // Find accessories in inventory
@@ -6379,16 +6388,21 @@ function openArmorSlot(){
     if(def) accessories.push({slot:i, id:s.id, def});
   }
   if(!accessories.length){
-    toast('🫙 No armor in inventory! Craft one at Drak the Forge Master.');
+    toast('🫙 No armor in inventory! Craft one at the Forge.');
     return;
   }
-  // Show picker toast list — simple prompt
-  const names=accessories.map((a,idx)=>`${idx+1}. ${a.def.name} (${a.def.effect==='def_boost'?'+'+a.def.val+' DEF':a.def.effect==='speed_boost'?'+'+Math.round(a.def.val*100)+'% SPD':a.def.effect==='shield'?'Shield '+a.def.val:a.def.effect==='resist_dot'?'Resist DoT':'?'})`).join('\n');
-  const pick=prompt(`Choose armor to equip:\n${names}\n\nEnter number:`);
-  const idx=parseInt(pick)-1;
-  if(isNaN(idx)||idx<0||idx>=accessories.length) return;
-  equipArmor(accessories[idx].id);
+  // If only one armor, equip it directly
+  if(accessories.length===1){
+    equipArmor(accessories[0].id);
+    const a=accessories[0].def;
+    toast(`🛡 Equipped ${a.name||'armor'}`);
+    return;
+  }
+  // Multiple armors — open inventory and highlight armor slots
+  if(!document.getElementById('inv-panel').classList.contains('open')) toggleInv();
+  toast('🛡 Select armor from inventory to equip');
 }
+
 function invSellLegendary(i){
   const s=G.inventory[i]; if(!s||s.type!=='weapon') return;
   const w=WEAPONS[s.id]; if(!w||!w.legendary) return;
@@ -6400,8 +6414,8 @@ function invSellLegendary(i){
   removeFromInventory(i,1);
   updateHud();
   toast(`💛 Sold ${w.name} to Gareth for ${goldGain.toLocaleString()}g gold!`);
-  const info=document.getElementById('inv-info');
-  if(info) info.innerHTML='<span style="color:#f0c040">Legendary sold for gold!</span>';
+  renderInventory();
+  if(_selectedInvSlot!==null) onInvClick(_selectedInvSlot);
 }
 function invSellItem(i, coins, label, removeAll=false){
   const s=G.inventory[i];
@@ -6425,8 +6439,8 @@ function invSellItem(i, coins, label, removeAll=false){
   }
   removeFromInventory(i, removeAll?99:1);
   updateHud();
-  const info=document.getElementById('inv-info');
-  info.innerHTML='<span style="color:#60e890">Item sold!</span>';
+  renderInventory();
+  if(_selectedInvSlot!==null) onInvClick(_selectedInvSlot);
 }
 
 // Safe element helpers
@@ -6476,7 +6490,7 @@ function equipPickaxe(pid){
 
 function equipWeapon(wid,slotIdx){
   G.equippedWeapon=wid;
-  const w=WEAPONS[wid];
+  const w=WEAPONS[wid]||{};
   const slotEl=document.getElementById('slot-weapon');
 
   // Kill any old animation
@@ -9017,7 +9031,7 @@ function renderShopItems(){
       const tc=r._canAfford?'#ff8020':'#604030';
       d.className='shop-item'+(shopState.selectedItem?.id===r.id?' selected':'');
       d.style.borderColor=tc+'99';
-      const costStr=Object.entries(r.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)}`:`${k}×${v}`).join(' ');
+      const costStr=Object.entries(r.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)}`:`${k}×${v}(${G[k]||0})`).join(' ');
       // Build pixel art sprite
       const siTop=document.createElement('div');
       siTop.className='si-top';
@@ -9058,7 +9072,7 @@ function renderShopItems(){
     }
     for(const{slot,item}of sellItems){
       let name='?',icon='📦',price=0,tier='Common';
-      if(item.type==='weapon'){name=WEAPONS[item.id]?.name||'Wpn';icon=WEAPONS[item.id]?.icon||'⚔️';const t=WEAPONS[item.id]?.tierIdx||0;price=Math.floor((WEAPON_SELL[t+1]||30)*0.6);tier=WEAPONS[item.id]?.tier||'Common';}
+      if(item.type==='weapon'){name=WEAPONS[item.id]?.name||'Wpn';icon=WEAPONS[item.id]?.icon||'⚔️';const t=WEAPONS[item.id]?.tierIdx||0;price=Math.floor((WEAPON_SELL[WEAPONS[item.id]?.tier]||30)*0.6);tier=WEAPONS[item.id]?.tier||'Common';}
       else if(item.type==='pickaxe'){name=PICKAXES[item.id]?.name||'Pick';icon='⛏';const ti=PICKAXES[item.id]?.tierIdx||0;price=Math.floor((PICK_SELL[ti]||20)*0.6);tier=PICKAXES[item.id]?.tier||'Common';}
       else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';icon='🧪';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
       else if(item.type==='ore'){name=item.id==='steel'?'Steel':item.id.charAt(0).toUpperCase()+item.id.slice(1);const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];icon=oreIds.includes(item.id)?getOreImg(item.id,24):item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
@@ -9146,6 +9160,8 @@ function shopSell(){
   // Unequip if selling equipped
   if(inv.type==='weapon'&&G.equippedWeapon===inv.id) G.equippedWeapon=null;
   if(inv.type==='pickaxe'&&G.equippedPickaxe===inv.id) G.equippedPickaxe='wooden_pick';
+  // Sync ore counter when sold
+  if(inv.type==='ore'&&inv.id) G[inv.id]=Math.max(0,(G[inv.id]||0)-(inv.qty||1));
   G.inventory[slot]=null;
   updateHud(); updateShopGold();
   toast(`💰 Sold for ${fmt(price)}g!`);
@@ -9166,14 +9182,15 @@ function shopSellAll(){
   for(let i=0;i<(G.invSlots||30);i++){
     const s=G.inventory[i];
     if(!s||!sellTypes.includes(s.type)) continue;
+    // Sync ore counter
+    if(s.type==='ore'&&s.id) G[s.id]=Math.max(0,(G[s.id]||0)-(s.qty||1));
     // Don't sell equipped weapon or pickaxe
     if(s.type==='weapon'&&s.id===G.equippedWeapon) continue;
     if(s.type==='pickaxe'&&s.id===G.equippedPickaxe) continue;
     // Calculate sell price
     let price=0;
     if(s.type==='weapon'){
-      const ti=WEAPONS[s.id]?.tierIdx||0;
-      price=Math.floor((WEAPON_SELL[ti+1]||30)*0.6);
+      price=Math.floor((WEAPON_SELL[WEAPONS[s.id]?.tier]||30)*0.6);
     } else if(s.type==='pickaxe'){
       const ti=PICKAXES[s.id]?.tierIdx||0;
       price=Math.floor((PICK_SELL[ti]||20)*0.6);
@@ -11172,6 +11189,8 @@ function deployLadder(){
 function goNextFloor(){
   if(!G.ladder){toast('❌ No ladder in inventory!');closeLadder();return;}
   G.ladder--;G.floor=Math.min(G.floor+1,MAX_FLOOR);
+  // Apply armor shield bonus on floor entry
+  const _shieldBonus=getArmorShield(); if(_shieldBonus>0) BUFFS.shield+=_shieldBonus;
   if(G.floor>G.maxFloor)G.maxFloor=G.floor;
   // Track visited floor
   if(!G.visitedFloors) G.visitedFloors=[1];
@@ -11418,11 +11437,11 @@ function openChest(ch){
 
   // Ore reward
   const oreRewards={
-    common:   ()=>{ G.iron+=Math.floor(3+Math.random()*5); rewards.push('🪨 Iron ×'+(Math.floor(3+Math.random()*5))); },
-    uncommon: ()=>{ G.gold+=Math.floor(2+Math.random()*4); rewards.push('✨ Gold ×'+(Math.floor(2+Math.random()*4))); },
-    rare:     ()=>{ G.diamond+=Math.floor(1+Math.random()*3); rewards.push('💎 Diamond ×'+(Math.floor(1+Math.random()*3))); },
-    epic:     ()=>{ G.steel+=Math.floor(2+Math.random()*4); G.titanium+=Math.floor(1+Math.random()*3); rewards.push('🔩 Steel+Titanium'); },
-    legendary:()=>{ G.tungsten+=Math.floor(2+Math.random()*3); G.chromium+=Math.floor(2+Math.random()*3); rewards.push('⬛💚 Tungsten+Chromium'); },
+    common:   ()=>{ const q=Math.floor(3+Math.random()*5); addToInventory({type:'ore',id:'iron',qty:q}); rewards.push('🪨 Iron ×'+q); },
+    uncommon: ()=>{ const q=Math.floor(2+Math.random()*4); addToInventory({type:'ore',id:'gold',qty:q}); rewards.push('✨ Gold ×'+q); },
+    rare:     ()=>{ const q=Math.floor(1+Math.random()*3); addToInventory({type:'ore',id:'diamond',qty:q}); rewards.push('💎 Diamond ×'+q); },
+    epic:     ()=>{ const q1=Math.floor(2+Math.random()*4),q2=Math.floor(1+Math.random()*3); addToInventory({type:'ore',id:'steel',qty:q1}); addToInventory({type:'ore',id:'titanium',qty:q2}); rewards.push('🔩 Steel×'+q1+' Titanium×'+q2); },
+    legendary:()=>{ const q1=Math.floor(2+Math.random()*3),q2=Math.floor(2+Math.random()*3); addToInventory({type:'ore',id:'tungsten',qty:q1}); addToInventory({type:'ore',id:'chromium',qty:q2}); rewards.push('⬛💚 Tungsten×'+q1+' Chromium×'+q2); },
   };
   if(oreRewards[tier]) oreRewards[tier]();
 
