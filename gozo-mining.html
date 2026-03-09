@@ -1855,6 +1855,7 @@ const WEAPONS = {
 // Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
 const WEAPON_SPR = {};
 const LEGEND_SPR = {}; // animated frames for legendary weapons
+const LEGEND_ARMOR_SPR = {}; // animated frames for legendary armors
 
 // ── LEGENDARY PIXEL ART SPRITES (48×48, 2.5D style, 8 animation frames) ──
 function buildLegendarySprite(id){
@@ -6336,7 +6337,6 @@ function renderInventory(){
         // Try legendary armor animated sprite first, then forge sprite
         let accRendered=false;
         if(isLegArmor){
-          if(!LEGEND_ARMOR_SPR) window.LEGEND_ARMOR_SPR={};
           if(!LEGEND_ARMOR_SPR[s.id]){
             // Build single frame from buildLegendarySprite frames cache
             buildLegendarySprite(s.id);
