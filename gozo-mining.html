@@ -6617,13 +6617,16 @@ const CRAFT_RECIPES = [
   // ── WEAPONS ──
   { id:'iron_blade',    name:'Iron Blade',       icon:'🗡️', type:'weapon',
     desc:'Forged iron sword. ATK +22',
-    cost:{iron:8, coins:200},   result:{type:'weapon',id:'iron_sword'},   resultDesc:'Iron Sword (ATK 22)' },
+    cost:{iron:8, coins:200},   result:{type:'weapon',id:'iron_sword'},   resultDesc:'Iron Sword (ATK 22)',
+    resultOverride:{type:'weapon',id:'iron_sword',name:'Iron Blade',dmg:22,spd:1.4,range:1.5,tier:'Common',icon:'🗡️',color:'#c0c0c0',goldSell:30} },
   { id:'gold_blade',    name:'Gold Blade',        icon:'⚔️', type:'weapon',
     desc:'Golden alloy sword. ATK +42',
-    cost:{gold:6, iron:4, coins:600},  result:{type:'weapon',id:'gold_sword'},   resultDesc:'Gold Sword (ATK 42)' },
+    cost:{gold:6, iron:4, coins:600},  result:{type:'weapon',id:'gold_sword'},   resultDesc:'Gold Sword (ATK 42)',
+    resultOverride:{type:'weapon',id:'gold_sword',name:'Gold Blade',dmg:42,spd:1.5,range:1.8,tier:'Uncommon',icon:'⚔️',color:'#f0d040',goldSell:80} },
   { id:'diamond_blade', name:'Diamond Edge',      icon:'💎', type:'weapon',
     desc:'Diamond-edged sword. ATK +75',
-    cost:{diamond:3, gold:4, coins:1500}, result:{type:'weapon',id:'diamond_sword'}, resultDesc:'Diamond Sword (ATK 75)' },
+    cost:{diamond:3, gold:4, coins:1500}, result:{type:'weapon',id:'diamond_sword'}, resultDesc:'Diamond Sword (ATK 75)',
+    resultOverride:{type:'weapon',id:'diamond_sword',name:'Diamond Edge',dmg:75,spd:1.6,range:2.0,tier:'Rare',icon:'💎',color:'#80d0ff',goldSell:200} },
   { id:'steel_blade',   name:'Steel Saber',       icon:'🔩', type:'weapon',
     desc:'Deep-forged steel blade. ATK +95',
     cost:{steel:5, iron:8, coins:2000},  result:{type:'weapon',id:'iron_sword'},   resultDesc:'Steel Saber (ATK 95)',
@@ -6653,11 +6656,11 @@ const CRAFT_RECIPES = [
 
   // ── ARMOR / ACCESSORIES ──
   { id:'iron_shield',   name:'Iron Shield',       icon:'🛡', type:'accessory',
-    desc:'Grants 80 shield points when entering a floor',
+    desc:'Absorbs 80 damage before HP is lost. Resets each floor.',
     cost:{iron:12, coins:400},  result:{type:'accessory',id:'iron_shield'},
     resultOverride:{type:'accessory',id:'iron_shield',name:'Iron Shield',effect:'shield',val:80,icon:'🛡',color:'#70c0d8',goldSell:600} },
   { id:'gold_shield',   name:'Gold Shield',       icon:'🛡', type:'accessory',
-    desc:'Grants 200 shield points when entering a floor',
+    desc:'Absorbs 200 damage before HP is lost. Resets each floor.',
     cost:{gold:8, iron:6, coins:1200}, result:{type:'accessory',id:'gold_shield'},
     resultOverride:{type:'accessory',id:'gold_shield',name:'Gold Shield',effect:'shield',val:200,icon:'🛡',color:'#f0d040',goldSell:2000} },
   { id:'antidote_ring', name:'Antidote Ring',     icon:'💍', type:'accessory',
@@ -6729,11 +6732,16 @@ function doCraft(recipe){
     if(ro.type==='accessory') CRAFTED_ITEMS[ro.id]=ro;
   }
   const res = recipe.resultOverride || recipe.result;
+  const ro  = recipe.resultOverride || res; // always has full data
   // Add to inventory
   let added=false;
   if(res.type==='weapon')    added=addToInventory({type:'weapon',   id:res.id, qty:1});
   if(res.type==='pickaxe')   added=addToInventory({type:'pickaxe',  id:res.id, qty:1});
-  if(res.type==='accessory') added=addToInventory({type:'accessory',id:res.id, qty:1, def:res});
+  if(res.type==='accessory'){
+    // Ensure def is registered before inventory add
+    CRAFTED_ITEMS[ro.id]=ro;
+    added=addToInventory({type:'accessory', id:ro.id, qty:1, def:ro});
+  }
   if(added){
     updateHud();
     toast(`🔥 Crafted: ${res.name||recipe.name}!`,'#ff8020',3000);
@@ -9464,8 +9472,42 @@ function updateShopAction(item, mode){
     if(spr){ spr.style.cssText='image-rendering:pixelated;width:48px;height:48px;display:block;'; iconEl.appendChild(spr); }
     else { iconEl.textContent=item.icon||'🔥'; }
     titleEl.textContent=item.name;
-    descEl.textContent=item.desc||'';
-    const costStr=Object.entries(item.cost).map(([k,v])=>k==='coins'?`💰${fmt(v)} gold`:`${v}x ${k}`).join(', ');
+
+    // ── Build rich stats description ──
+    const ro=item.resultOverride||item.result||{};
+    let statsHtml='';
+    if(ro.type==='weapon'){
+      const tc=TIER_COLOR[ro.tier]||'#c0c0c0';
+      statsHtml+=`<span style="color:${tc};font-weight:bold">[${ro.tier||''}]</span><br>`;
+      if(ro.dmg)   statsHtml+=`⚔️ <span style="color:#ff8888">ATK: ${ro.dmg}</span><br>`;
+      if(ro.spd)   statsHtml+=`⚡ <span style="color:#88ff88">SPD: ${ro.spd}x</span><br>`;
+      if(ro.range) statsHtml+=`🎯 <span style="color:#88aaff">RNG: ${ro.range}x</span><br>`;
+    } else if(ro.type==='pickaxe'){
+      const tc=TIER_COLOR[ro.tier]||'#c0c0c0';
+      statsHtml+=`<span style="color:${tc};font-weight:bold">[${ro.tier||''}]</span><br>`;
+      if(ro.dmg) statsHtml+=`⛏️ <span style="color:#ffaa44">Mine DMG: ${ro.dmg}</span><br>`;
+    } else if(ro.type==='accessory'){
+      const effMap={
+        def_boost:   `🛡 <span style="color:#80c0ff">DEF +${ro.val}</span>`,
+        shield:      `💙 <span style="color:#40ddff">Shield: absorbs ${ro.val} dmg/floor</span>`,
+        speed_boost: `👢 <span style="color:#80ff80">Speed +${Math.round((ro.val||0)*100)}%</span>`,
+        resist_dot:  `💍 <span style="color:#80ffcc">DoT Resist ${Math.round((ro.val||0)*100)}%</span>`,
+      };
+      if(ro.effect) statsHtml+=(effMap[ro.effect]||ro.effect)+'<br>';
+    }
+    // Cost breakdown
+    statsHtml+=`<br><span style="color:#906030">🔨 Cost:</span><br>`;
+    Object.entries(item.cost).forEach(([k,v])=>{
+      const have=k==='coins'?G.coins:(G[k]||0);
+      const ok=have>=v;
+      const col=ok?'#80ff80':'#ff6060';
+      statsHtml+=`<span style="color:${col}">${k==='coins'?'💰':''}${k}: ${v} <span style="color:#888">(have ${k==='coins'?fmt(have):have})</span></span><br>`;
+    });
+    // Sell value
+    if(ro.goldSell) statsHtml+=`<br>💛 <span style="color:#f0c040">Sell: ${fmt(ro.goldSell)}g</span>`;
+
+    descEl.innerHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:5px;line-height:1.9;text-align:left;">${statsHtml}</div>`;
+
     buyBtn.textContent=`🔨 FORGE`;
     buyBtn.disabled=!item._canAfford;
     buyBtn.onclick=()=>doCraft(item);
