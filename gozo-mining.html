@@ -9441,7 +9441,15 @@ function renderShopItems(){
     }
     for(const{slot,item}of sellItems){
       let name='?',icon='📦',price=0,tier='Common';
-      if(item.type==='weapon'){name=WEAPONS[item.id]?.name||'Wpn';icon=WEAPONS[item.id]?.icon||'⚔️';const t=WEAPONS[item.id]?.tierIdx||0;price=Math.floor((WEAPON_SELL[WEAPONS[item.id]?.tier]||30)*0.6);tier=WEAPONS[item.id]?.tier||'Common';}
+      if(item.type==='weapon'){
+        const wd=WEAPONS[item.id]||{};
+        name=wd.name||'Wpn'; icon=wd.icon||'⚔️';
+        const tierVal=wd.tier;
+        // tier can be numeric (1-6) or string name
+        const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+        tier=(typeof tierVal==='number'?tierNameMap[tierVal]:tierVal)||'Common';
+        price=Math.floor((WEAPON_SELL[tier]||30)*0.6);
+      }
       else if(item.type==='pickaxe'){name=PICKAXES[item.id]?.name||'Pick';icon='⛏';const ti=PICKAXES[item.id]?.tierIdx||0;price=Math.floor((PICK_SELL[ti]||20)*0.6);tier=PICKAXES[item.id]?.tier||'Common';}
       else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';icon='🧪';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
       else if(item.type==='ore'){name=item.id==='steel'?'Steel':item.id.charAt(0).toUpperCase()+item.id.slice(1);const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];icon=oreIds.includes(item.id)?getOreImg(item.id,24):item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
@@ -9593,7 +9601,11 @@ function shopSellAll(){
     // Calculate sell price
     let price=0;
     if(s.type==='weapon'){
-      price=Math.floor((WEAPON_SELL[WEAPONS[s.id]?.tier]||30)*0.6);
+      const _wd=WEAPONS[s.id]||{};
+          const _tv=_wd.tier;
+          const _tnm={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+          const _tn=(typeof _tv==='number'?_tnm[_tv]:_tv)||'Common';
+          price=Math.floor((WEAPON_SELL[_tn]||30)*0.6);
     } else if(s.type==='pickaxe'){
       const ti=PICKAXES[s.id]?.tierIdx||0;
       price=Math.floor((PICK_SELL[ti]||20)*0.6);
