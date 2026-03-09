@@ -6234,7 +6234,12 @@ function renderInventory(){
   while(G.inventory.length < slots) G.inventory.push(null);
   for(let i=0;i<slots;i++){
     try{
-    const s=G.inventory[i]||null;
+    let s=G.inventory[i]||null;
+    // Fix legacy saves: if item id is a legendary armor but type is wrong
+    if(s && LEGENDARY_ARMORS[s.id] && s.type!=='accessory'){
+      s = {...s, type:'accessory', def:LEGENDARY_ARMORS[s.id]};
+      G.inventory[i] = s;
+    }
     const div=document.createElement('div');
     div.className='inv-slot'+(s&&(s.type==='weapon'||s.type==='pickaxe')?' weapon-item':'')+(isSlotLocked(i)?' inv-locked':'');
     if(s){
@@ -6594,7 +6599,7 @@ function onInvClick(i){
     btnsEl.appendChild(throwBtn());
 
   } else if(s.type==='accessory'){
-    const a=s.def||CRAFTED_ITEMS[s.id]||{};
+    const a=s.def||CRAFTED_ITEMS[s.id]||LEGENDARY_ARMORS[s.id]||{};
     const isEquipped=G.equippedArmor===s.id;
     iconEl.innerHTML='<span style="font-size:38px;line-height:1">'+(a.icon||'\ud83d\udee1')+'</span>';
     nameEl.innerHTML='<span style="color:'+(a.color||'#80c0ff')+'">'+(a.name||s.id)+'</span>';
@@ -6644,7 +6649,8 @@ function invUnequipPickaxe(i){
 function invEquipArmorSlot(i){
   const s=G.inventory[i]; if(!s||s.type!=='accessory') return;
   // Register in CRAFTED_ITEMS if not already there
-  if(s.def && !CRAFTED_ITEMS[s.id]) CRAFTED_ITEMS[s.id]=s.def;
+  const armorDef=s.def||LEGENDARY_ARMORS[s.id];
+  if(armorDef && !CRAFTED_ITEMS[s.id]) CRAFTED_ITEMS[s.id]=armorDef;
   equipArmor(s.id);
   onInvClick(i);
 }
@@ -6654,7 +6660,7 @@ function invUnequipArmorSlot(i){
 }
 function invSellAccessory(i){
   const s=G.inventory[i]; if(!s||s.type!=='accessory') return;
-  const a=s.def||CRAFTED_ITEMS[s.id]||{};
+  const a=s.def||CRAFTED_ITEMS[s.id]||LEGENDARY_ARMORS[s.id]||{};
   const price=a.goldSell||100;
   if(G.equippedArmor===s.id){ G.equippedArmor=null; }
   G.inventory[i]=null;
@@ -6735,7 +6741,7 @@ function getArmorShield(){
 }
 
 function equipArmor(itemId){
-  const a=CRAFTED_ITEMS[itemId];
+  const a=CRAFTED_ITEMS[itemId]||LEGENDARY_ARMORS[itemId];
   if(!a){ toast('❌ Unknown armor!'); return; }
   G.equippedArmor=itemId;
   // Apply shield effect immediately on equip
@@ -6745,7 +6751,7 @@ function equipArmor(itemId){
 }
 function unequipArmor(){
   if(!G.equippedArmor){ toast('No armor equipped!'); return; }
-  const a=CRAFTED_ITEMS[G.equippedArmor];
+  const a=CRAFTED_ITEMS[G.equippedArmor]||LEGENDARY_ARMORS[G.equippedArmor];
   G.equippedArmor=null;
   updateHud();
   toast(`🫙 ${a?.name||'Armor'} unequipped`);
@@ -6764,7 +6770,7 @@ function openArmorSlot(){
   for(let i=0;i<(G.invSlots||30);i++){
     const s=G.inventory[i];
     if(!s||s.type!=='accessory') continue;
-    const def=s.def||CRAFTED_ITEMS[s.id];
+    const def=s.def||CRAFTED_ITEMS[s.id]||LEGENDARY_ARMORS[s.id];
     if(def) accessories.push({slot:i, id:s.id, def});
   }
   if(!accessories.length){
@@ -12567,8 +12573,9 @@ function onFileLoad(e){
 
       // Re-register any crafted items found in inventory
       for(const slot of G.inventory){
-        if(slot && slot.type==='accessory' && slot.def && slot.id){
-          CRAFTED_ITEMS[slot.id] = slot.def;
+        if(slot && slot.type==='accessory' && slot.id){
+          const adef=slot.def||LEGENDARY_ARMORS[slot.id];
+          if(adef) CRAFTED_ITEMS[slot.id]=adef;
         }
         if(slot && slot.type==='weapon' && slot.def && slot.id){
           if(!WEAPONS[slot.id]) WEAPONS[slot.id] = slot.def;
