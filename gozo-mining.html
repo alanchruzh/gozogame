@@ -6720,12 +6720,9 @@ function equipPickaxe(pid){
     slot.style.borderColor=tc;
     slot.classList.add('active');
   }
-  remClass('slot-weapon','active');
-  G.equippedWeapon=null;
-  resetWeaponHudSlot();
-  setText('eq-name',`${pk.name} [${pk.tier}]`);
-  setStyle('equipped-weapon','borderColor',tc);
-  setStyle('eq-name','color',tc);
+  // Don't unequip weapon — pickaxe and weapon are independent slots
+  setText('eq-name', G.equippedWeapon ? (WEAPONS[G.equippedWeapon]?.name||'Weapon') : `${pk.name} [${pk.tier}]`);
+  setStyle('eq-name','color', G.equippedWeapon ? (WEAPONS[G.equippedWeapon]?.color||tc) : tc);
   toast(`⛏ Equipped ${pk.name}!`);
   renderInventory();
 }
