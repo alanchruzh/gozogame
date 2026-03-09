@@ -577,7 +577,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 const TILE = 32;        // world tile px
 const MAP_W = 48;
 const MAP_H = 48;
-const MAX_FLOOR = 200;
+const MAX_FLOOR = 250;
 const SCALE = 3;        // sprite upscale: 16×16 → 48×48... we use TILE=32, sprite native 16 scaled ×2
 
 // ─── Palette ───────────────────────────────────────────────
@@ -1850,6 +1850,12 @@ const WEAPONS = {
   chaos_blade:      {name:'Chaos Blade',       dmg:440,spd:1.4, range:2.6, tier:8, icon:'🔥', color:'#ff6600', floorMin:180, bossDrop:true, goldSell:70000,  legendary:true},
   soul_lance:       {name:'Soul Lance',        dmg:500,spd:1.1, range:3.5, tier:8, icon:'💠', color:'#00aaff', floorMin:190, bossDrop:true, goldSell:90000,  legendary:true},
   omega_destroyer:  {name:'Omega Destroyer',   dmg:600,spd:1.0, range:3.0, tier:8, icon:'⚡', color:'#ffff00', floorMin:200, bossDrop:true, goldSell:120000, legendary:true},
+  // ── TIER 9 — APOCALYPSE BOSS DROP WEAPONS (floors 201-250) ──
+  rift_slicer:         {name:'Rift Slicer',          dmg:750, spd:1.3, range:3.2, tier:9, icon:'🌀', color:'#9900ff', floorMin:210, bossDrop:true, goldSell:200000, legendary:true},
+  godkiller_blade:     {name:"Godkiller's Blade",     dmg:900, spd:1.0, range:2.8, tier:9, icon:'💀', color:'#ff2200', floorMin:220, bossDrop:true, goldSell:280000, legendary:true},
+  storm_herald:        {name:'Storm Herald',          dmg:1000,spd:1.6, range:3.5, tier:9, icon:'⚡', color:'#88aaff', floorMin:230, bossDrop:true, goldSell:360000, legendary:true},
+  necrotic_scythe:     {name:'Necrotic Scythe',       dmg:1100,spd:0.9, range:3.8, tier:9, icon:'☠️', color:'#55ff22', floorMin:240, bossDrop:true, goldSell:450000, legendary:true},
+  genesis_annihilator: {name:'Genesis Annihilator',   dmg:1300,spd:1.0, range:3.0, tier:9, icon:'✨', color:'#ffff00', floorMin:250, bossDrop:true, goldSell:600000, legendary:true},
   // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
   gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
   monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
@@ -1861,6 +1867,7 @@ const WEAPONS = {
 // Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
 const WEAPON_SPR = {};
 const LEGEND_SPR = {}; // animated frames for legendary weapons
+const _ORE_SPR_CACHE = {}; // pixel art ore sprite cache
 
 // ── LEGENDARY PIXEL ART SPRITES (48×48, 2.5D style, 8 animation frames) ──
 function buildLegendarySprite(id){
@@ -2397,7 +2404,6 @@ function buildLegendarySprite(id){
           Math.cos(ra)*len|0, Math.sin(ra)*len*0.5|0);
       }
     }
-
     // ── TIER 8 LEGENDARY WEAPONS ──
     else if(id==='void_sovereign'){
       // Void Sovereign: twin-bladed purple void scythe with orbiting void runes
@@ -2646,7 +2652,491 @@ function buildLegendarySprite(id){
       }
     }
 
-    // ── TIER 3 LEGENDARY ARMORS ──
+    // ── TIER 9 APOCALYPSE WEAPONS ──
+    else if(id==='rift_slicer'){
+      // Rift Slicer: blade that tears dimensional fabric — jagged violet-black with void tears
+      const rAura=cx.createRadialGradient(24,24,3,24,24,26);
+      rAura.addColorStop(0,`rgba(100,0,255,${0.5*pulse})`);
+      rAura.addColorStop(0.5,`rgba(40,0,120,${0.2*pulse})`);
+      rAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=rAura; cx.fillRect(0,0,48,48);
+      // Dimensional rift tears orbiting
+      for(let r=0;r<5;r++){
+        const ra=t*Math.PI/4+r*1.257;
+        const rx=24+Math.cos(ra)*16, ry=22+Math.sin(ra)*12;
+        cx.save(); cx.translate(rx,ry); cx.rotate(ra);
+        cx.fillStyle=`rgba(120,0,255,${0.4*pulse})`;
+        cx.fillRect(-1,-5,2,10); cx.restore();
+      }
+      // Void blade — jagged asymmetric
+      cx.fillStyle='#08001a'; cx.fillRect(19,3,10,40);
+      cx.fillStyle='#1a0040'; cx.fillRect(20,4,8,38);
+      cx.fillStyle='#3300aa'; cx.fillRect(21,4,6,36);
+      cx.fillStyle='#6600cc'; cx.fillRect(22,4,4,30);
+      cx.fillStyle='#9900ff'; cx.fillRect(23,4,2,22);
+      cx.fillStyle='#cc44ff'; cx.fillRect(23,4,1,14);
+      // Jagged edge serrations (left)
+      cx.fillStyle='#08001a';
+      for(let s=0;s<5;s++) cx.fillRect(18,6+s*7,3,4);
+      // Dimensional cracks glowing on blade
+      cx.strokeStyle=`rgba(180,80,255,${0.6*pulse})`; cx.lineWidth=1;
+      [[21,8,25,14],[22,18,26,24],[20,28,24,34]].forEach(([x1,y1,x2,y2])=>{
+        cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+      });
+      // Blade tip — pointed void spike
+      cx.fillStyle='#08001a'; cx.fillRect(20,40,8,6);
+      cx.fillStyle='#3300aa'; cx.fillRect(21,41,6,5);
+      cx.fillStyle='#6600cc'; cx.fillRect(22,43,4,4);
+      cx.fillStyle='#9900ff'; cx.fillRect(23,46,2,2);
+      cx.fillStyle='rgba(160,0,255,0.8)'; cx.fillRect(23,47,2,1);
+      // Dark crossguard with rift gems
+      cx.fillStyle='#100028'; cx.fillRect(8,36,32,7);
+      cx.fillStyle='#2a0066'; cx.fillRect(9,37,30,5);
+      cx.fillStyle='#5500aa'; cx.fillRect(10,38,28,3);
+      cx.fillStyle='#7700bb'; cx.fillRect(8,37,4,5); cx.fillRect(36,37,4,5);
+      cx.fillStyle=`rgba(180,0,255,${0.9*pulse})`; cx.fillRect(9,38,2,3); cx.fillRect(37,38,2,3);
+      // Handle
+      cx.fillStyle='#06000f'; cx.fillRect(21,42,6,8);
+      cx.fillStyle='#3300aa';
+      for(let w=0;w<3;w++) cx.fillRect(21,43+w*2,6,1);
+      // Void pommel
+      cx.fillStyle='#08001a'; cx.fillRect(20,49,8,4);
+      cx.fillStyle='#6600cc'; cx.fillRect(21,49,6,3);
+      cx.fillStyle=`rgba(120,0,255,${0.9*pulse})`; cx.fillRect(22,50,4,2);
+      // Rift portal at tip (frames 2-3)
+      if(fr>=2){
+        const rfGrd=cx.createRadialGradient(24,2,0,24,2,6+pulse*4);
+        rfGrd.addColorStop(0,'rgba(0,0,0,0.95)');
+        rfGrd.addColorStop(0.4,'rgba(80,0,200,0.7)');
+        rfGrd.addColorStop(1,'rgba(0,0,0,0)');
+        cx.fillStyle=rfGrd; cx.fillRect(0,0,48,12);
+      }
+    }
+    else if(id==='godkiller_blade'){
+      // Godkiller's Blade: brutal blood-red executioner greatblade, dripping god-blood
+      const gkAura=cx.createRadialGradient(24,24,3,24,24,26);
+      gkAura.addColorStop(0,`rgba(200,0,0,${0.45*pulse})`);
+      gkAura.addColorStop(0.5,`rgba(80,0,0,${0.2*pulse})`);
+      gkAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=gkAura; cx.fillRect(0,0,48,48);
+      // Falling blood drops
+      for(let d=0;d<5;d++){
+        const dy=(fr*10+d*9)%44;
+        cx.fillStyle=`rgba(180,0,0,${0.6-dy*0.012})`;
+        cx.fillRect(16+d*4,dy,2,3+d%2);
+      }
+      // Brutally thick greatblade
+      cx.fillStyle='#1e0000'; cx.fillRect(16,2,16,40);
+      cx.fillStyle='#500000'; cx.fillRect(17,3,14,38);
+      cx.fillStyle='#880000'; cx.fillRect(18,3,12,36);
+      cx.fillStyle='#cc0000'; cx.fillRect(19,3,10,32);
+      cx.fillStyle='#ee2200'; cx.fillRect(20,3,8,26);
+      cx.fillStyle='#ff4422'; cx.fillRect(21,3,6,18);
+      cx.fillStyle='#ff8866'; cx.fillRect(22,3,4,10);
+      // Blood groove down center
+      cx.fillStyle='#0a0000'; cx.fillRect(23,4,2,30);
+      cx.fillStyle=`rgba(180,0,0,${0.5*pulse})`; cx.fillRect(23,4,1,28);
+      // Serrated spine teeth (left edge)
+      cx.fillStyle='#1e0000';
+      for(let s=0;s<6;s++) cx.fillRect(15,5+s*6,4,4);
+      cx.fillStyle='#cc0000';
+      for(let s=0;s<6;s++) cx.fillRect(16,6+s*6,2,2);
+      // Blade tip — chipped brutal
+      cx.fillStyle='#1e0000'; cx.fillRect(17,40,14,8);
+      cx.fillStyle='#500000'; cx.fillRect(18,41,12,6);
+      cx.fillStyle='#880000'; cx.fillRect(19,43,10,4);
+      cx.fillStyle='#cc0000'; cx.fillRect(20,45,8,3);
+      cx.fillStyle='#ee2200'; cx.fillRect(22,47,4,2);
+      // Godkiller crossguard (wide, brutal)
+      cx.fillStyle='#1e0000'; cx.fillRect(6,36,36,8);
+      cx.fillStyle='#500000'; cx.fillRect(7,37,34,6);
+      cx.fillStyle='#880000'; cx.fillRect(8,38,32,4);
+      // Skull engravings on guard
+      cx.fillStyle='#0a0000';
+      cx.fillRect(8,38,5,4); cx.fillRect(35,38,5,4);
+      cx.fillStyle='#cc0000'; cx.fillRect(9,39,2,2); cx.fillRect(36,39,2,2);
+      // Handle — bone-wrapped
+      cx.fillStyle='#0c0000'; cx.fillRect(21,43,6,10);
+      cx.fillStyle='#d0b080';
+      for(let w=0;w<4;w++) cx.fillRect(21,44+w*2,6,1);
+      // Pommel — blood gem
+      cx.fillStyle='#1e0000'; cx.fillRect(20,52,8,4);
+      cx.fillStyle='#cc0000'; cx.fillRect(21,52,6,3);
+      cx.fillStyle=`rgba(255,0,0,${0.9*pulse})`; cx.fillRect(22,53,4,2);
+      // God-blood drip from blade (animated)
+      if(fr>=1){
+        cx.fillStyle='rgba(200,0,0,0.85)';
+        cx.fillRect(23,44+fr*2,2,5); cx.fillRect(22,46+fr*2,4,3);
+      }
+    }
+    else if(id==='storm_herald'){
+      // Storm Herald: crackling golden-blue thunder lance, bolts of eternal storm
+      const shAura=cx.createRadialGradient(24,24,3,24,24,26);
+      shAura.addColorStop(0,`rgba(80,140,255,${0.5*pulse})`);
+      shAura.addColorStop(0.5,`rgba(20,40,120,${0.2*pulse})`);
+      shAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=shAura; cx.fillRect(0,0,48,48);
+      // Orbiting lightning motes
+      for(let m=0;m<8;m++){
+        const ma=t*Math.PI/3+m*0.785;
+        const mr=14+pulse*6;
+        cx.fillStyle=`rgba(150,200,255,${0.5*pulse})`;
+        cx.fillRect(24+Math.cos(ma)*mr-1,22+Math.sin(ma)*mr*0.5-1,2,2);
+      }
+      // Long lance shaft — storm steel
+      cx.fillStyle='#001028'; cx.fillRect(21,2,6,42);
+      cx.fillStyle='#002860'; cx.fillRect(22,3,4,40);
+      cx.fillStyle='#0044aa'; cx.fillRect(22,3,4,38);
+      cx.fillStyle='#0066cc'; cx.fillRect(23,3,2,34);
+      cx.fillStyle='#2288ee'; cx.fillRect(23,3,2,26);
+      cx.fillStyle=`rgba(120,200,255,${0.8*pulse})`; cx.fillRect(23,3,1,18);
+      // Lightning veins
+      cx.strokeStyle=`rgba(180,220,255,${0.5*pulse})`; cx.lineWidth=1;
+      [[22,6,26,12],[21,18,25,24],[22,30,26,36]].forEach(([x1,y1,x2,y2])=>{
+        cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+      });
+      // Spearhead — storm crystal
+      cx.fillStyle='#001028'; cx.fillRect(19,0,10,6);
+      cx.fillStyle='#0033aa'; cx.fillRect(20,1,8,5);
+      cx.fillStyle='#0066cc'; cx.fillRect(21,1,6,4);
+      cx.fillStyle='#2288ee'; cx.fillRect(22,1,4,3);
+      cx.fillStyle='#88ccff'; cx.fillRect(23,1,2,2);
+      cx.fillStyle=`rgba(200,240,255,${0.95*pulse})`; cx.fillRect(23,0,2,1);
+      // Storm crossguard
+      cx.fillStyle='#001028'; cx.fillRect(10,38,28,7);
+      cx.fillStyle='#0044aa'; cx.fillRect(11,39,26,5);
+      cx.fillStyle='#0066cc'; cx.fillRect(12,40,24,3);
+      // Crossguard lightning tips
+      cx.fillStyle=`rgba(100,180,255,${0.85*pulse})`;
+      cx.fillRect(10,39,4,5); cx.fillRect(34,39,4,5);
+      // Handle — wrapped copper
+      cx.fillStyle='#001028'; cx.fillRect(21,44,6,8);
+      cx.fillStyle='#004488';
+      for(let w=0;w<3;w++) cx.fillRect(21,45+w*2,6,1);
+      // Pommel — storm sphere
+      cx.fillStyle='#001028'; cx.fillRect(20,51,8,4);
+      cx.fillStyle='#0055bb'; cx.fillRect(21,51,6,3);
+      cx.fillStyle=`rgba(100,180,255,${0.9*pulse})`; cx.fillRect(22,52,4,2);
+      // Lightning bolt from tip
+      if(fr>=2){
+        cx.strokeStyle=`rgba(200,230,255,${0.9*pulse})`; cx.lineWidth=2;
+        cx.beginPath(); cx.moveTo(24,0); cx.lineTo(27,-4); cx.lineTo(22,-7); cx.lineTo(26,-10); cx.stroke();
+        cx.strokeStyle=`rgba(255,255,255,0.7)`; cx.lineWidth=1;
+        cx.beginPath(); cx.moveTo(24,0); cx.lineTo(26,-3); cx.lineTo(23,-6); cx.stroke();
+      }
+    }
+    else if(id==='necrotic_scythe'){
+      // Necrotic Scythe: plague-rotted bone scythe, death energy and spores
+      const nsAura=cx.createRadialGradient(24,24,3,24,24,26);
+      nsAura.addColorStop(0,`rgba(60,200,20,${0.4*pulse})`);
+      nsAura.addColorStop(0.5,`rgba(20,60,0,${0.2*pulse})`);
+      nsAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=nsAura; cx.fillRect(0,0,48,48);
+      // Rising spores
+      for(let s=0;s<6;s++){
+        const sy=46-(fr*8+s*7)%46;
+        cx.fillStyle=`rgba(80,200,20,${0.3+s*0.03})`;
+        cx.beginPath(); cx.arc(12+s*5,sy,2,0,Math.PI*2); cx.fill();
+      }
+      // Long plague staff
+      cx.fillStyle='#040c00'; cx.fillRect(22,10,4,38);
+      cx.fillStyle='#0c1e00'; cx.fillRect(23,11,2,36);
+      cx.fillStyle=`rgba(60,120,10,${0.4*pulse})`; cx.fillRect(23,11,1,34);
+      // Necrotic scythe blade (curved — using multiple rect strips)
+      cx.fillStyle='#040c00'; cx.fillRect(8,2,28,8);
+      cx.fillStyle='#0c1e00'; cx.fillRect(9,3,26,6);
+      cx.fillStyle='#204000'; cx.fillRect(10,3,24,4);
+      cx.fillStyle='#408000'; cx.fillRect(11,4,22,2);
+      cx.fillStyle='#60aa00'; cx.fillRect(12,4,20,1);
+      // Blade curve extension (down the right)
+      cx.fillStyle='#0c1e00'; cx.fillRect(33,8,6,8);
+      cx.fillStyle='#204000'; cx.fillRect(34,9,4,6);
+      cx.fillStyle='#408000'; cx.fillRect(34,10,3,4);
+      // Blade inner (hollow)
+      cx.fillStyle='#020800'; cx.fillRect(10,3,22,5);
+      cx.fillStyle='#030a00'; cx.fillRect(11,4,20,3);
+      // Plague veins on blade
+      cx.strokeStyle=`rgba(80,200,20,${0.5*pulse})`; cx.lineWidth=1;
+      cx.beginPath(); cx.moveTo(12,5); cx.lineTo(20,7); cx.lineTo(28,5); cx.stroke();
+      cx.beginPath(); cx.moveTo(14,4); cx.lineTo(22,6); cx.stroke();
+      // Bone handle wrapping
+      cx.fillStyle='#b0b888';
+      for(let w=0;w<5;w++) cx.fillRect(22,13+w*5,4,2);
+      // Skull pommel
+      cx.fillStyle='#a0b080'; cx.fillRect(20,46,8,7);
+      cx.fillStyle='#c0c8a0'; cx.fillRect(21,47,6,5);
+      cx.fillStyle='#040800'; cx.fillRect(21,47,2,3); cx.fillRect(25,47,2,3);
+      cx.fillStyle=`rgba(80,220,20,${0.7*pulse})`; cx.fillRect(21,48,2,2); cx.fillRect(25,48,2,2);
+      // Death runes on blade
+      cx.fillStyle=`rgba(60,200,20,${0.6*pulse})`;
+      cx.fillRect(18,4,2,2); cx.fillRect(24,4,2,2); cx.fillRect(20,5,6,1);
+      // Plague drip from blade
+      if(fr>=2){
+        cx.fillStyle='rgba(60,200,20,0.8)';
+        cx.fillRect(16,9,2,fr*3); cx.fillRect(22,9,2,fr*2+1);
+        cx.fillRect(27,9,2,fr*2);
+      }
+    }
+    else if(id==='genesis_annihilator'){
+      // Genesis Annihilator: primordial creation-destruction sword, all elements combined
+      const gaAura=cx.createRadialGradient(24,24,4,24,24,26);
+      gaAura.addColorStop(0,`rgba(255,220,0,${0.5*pulse})`);
+      gaAura.addColorStop(0.4,`rgba(255,100,0,${0.2*pulse})`);
+      gaAura.addColorStop(0.7,`rgba(0,100,255,${0.15*pulse})`);
+      gaAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=gaAura; cx.fillRect(0,0,48,48);
+      // Creation burst rays (all element colors)
+      const gaColors=['#ff4400','#ffaa00','#ffff00','#44ff00','#00ffaa','#0088ff','#aa00ff','#ff00aa'];
+      for(let r=0;r<16;r++){
+        const ra=t*Math.PI/8+r*0.393;
+        cx.save(); cx.translate(24,20); cx.rotate(ra);
+        cx.fillStyle=`rgba(255,200,50,${0.25*pulse})`;
+        cx.fillRect(-1,-22,2,22); cx.restore();
+      }
+      // Elemental orbs orbiting
+      for(let o=0;o<8;o++){
+        const oa=t*Math.PI/4+o*0.785;
+        cx.fillStyle=gaColors[o];
+        cx.fillRect(24+Math.cos(oa)*16-1,20+Math.sin(oa)*10-1,3,3);
+        cx.fillStyle='rgba(255,255,255,0.6)';
+        cx.fillRect(24+Math.cos(oa)*16,20+Math.sin(oa)*10,1,1);
+      }
+      // DIVINE BLADE (golden-white, thick)
+      cx.fillStyle='#181200'; cx.fillRect(18,2,12,38);
+      cx.fillStyle='#402800'; cx.fillRect(19,3,10,36);
+      cx.fillStyle='#885000'; cx.fillRect(20,3,8,34);
+      cx.fillStyle='#cc8800'; cx.fillRect(21,3,6,30);
+      cx.fillStyle='#ffcc00'; cx.fillRect(22,3,4,26);
+      cx.fillStyle='#ffee80'; cx.fillRect(22,3,3,20);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,3,2,14);
+      // Multi-element veins on blade
+      const veinColors=[`rgba(255,80,0,${0.4*pulse})`,`rgba(0,120,255,${0.4*pulse})`,`rgba(80,255,20,${0.35*pulse})`,`rgba(200,0,255,${0.35*pulse})`];
+      [[22,5,25,11],[21,14,25,20],[22,22,26,28],[21,31,25,36]].forEach(([x1,y1,x2,y2],vi)=>{
+        cx.strokeStyle=veinColors[vi%4]; cx.lineWidth=1;
+        cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+      });
+      // Genesis rune — Ω + cross
+      cx.fillStyle=`rgba(255,240,150,${0.6*pulse})`;
+      cx.fillRect(23,6,2,2); cx.fillRect(22,9,4,1); cx.fillRect(22,12,4,1);
+      cx.fillRect(23,9,1,5);
+      // Pointed blade tip
+      cx.fillStyle='#181200'; cx.fillRect(19,38,10,8);
+      cx.fillStyle='#cc8800'; cx.fillRect(20,39,8,6);
+      cx.fillStyle='#ffcc00'; cx.fillRect(21,41,6,5);
+      cx.fillStyle='#ffee80'; cx.fillRect(22,43,4,4);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,46,2,2);
+      // Creation crossguard — jeweled, multi-element
+      cx.fillStyle='#181200'; cx.fillRect(6,34,36,8);
+      cx.fillStyle='#cc8800'; cx.fillRect(7,35,34,6);
+      cx.fillStyle='#ffcc00'; cx.fillRect(8,36,32,4);
+      cx.fillStyle='#ffee80'; cx.fillRect(8,36,32,1);
+      // 4 element gems on crossguard
+      ['#ff4400','#0088ff','#44ff00','#cc00ff'].forEach((gc,gi)=>{
+        const gx=10+gi*8;
+        cx.fillStyle=gc; cx.fillRect(gx,35,4,5);
+        cx.fillStyle='rgba(255,255,255,0.6)'; cx.fillRect(gx+1,36,2,2);
+      });
+      // Handle
+      cx.fillStyle='#0a0800'; cx.fillRect(21,41,6,8);
+      cx.fillStyle='#cc8800';
+      for(let w=0;w<3;w++) cx.fillRect(21,42+w*2,6,1);
+      // Genesis pommel — creation orb (all colors merging)
+      cx.fillStyle='#181200'; cx.fillRect(20,48,8,5);
+      cx.fillStyle='#885000'; cx.fillRect(21,49,6,3);
+      cx.fillStyle=`rgba(255,200,0,${0.9*pulse})`; cx.fillRect(22,50,4,2);
+      cx.fillStyle='rgba(255,255,255,0.7)'; cx.fillRect(23,50,2,1);
+      // Creation explosion (frame 3)
+      if(fr===3){
+        gaColors.forEach((gc,gi)=>{
+          const gra=gi*0.785;
+          cx.fillStyle=gc; cx.globalAlpha=0.7;
+          cx.fillRect(24+Math.cos(gra)*20-1,20+Math.sin(gra)*14-1,4,4);
+          cx.globalAlpha=1;
+        });
+      }
+    }
+
+    // ── TIER 4 LEGENDARY ARMORS ──
+    else if(id==='rift_mantle'){
+      // Rift Mantle: dimensional fabric robe, torn void portals, phase shifting
+      const rmAura=cx.createRadialGradient(24,24,3,24,24,26);
+      rmAura.addColorStop(0,`rgba(80,0,220,${0.3*pulse})`);
+      rmAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=rmAura; cx.fillRect(0,0,48,48);
+      // Void portal tears on robe
+      for(let r=0;r<4;r++){
+        const ra=t*Math.PI/3+r*1.571;
+        const rx=24+Math.cos(ra)*14, ry=24+Math.sin(ra)*10;
+        cx.save(); cx.translate(rx,ry); cx.rotate(ra);
+        cx.fillStyle=`rgba(100,0,255,${0.35*pulse})`; cx.fillRect(-1,-6,2,12); cx.restore();
+      }
+      cx.fillStyle='#040010'; cx.fillRect(8,8,32,38);
+      cx.fillStyle='#09001e'; cx.fillRect(9,9,30,36);
+      // Dimensional weave pattern
+      cx.strokeStyle=`rgba(60,0,200,${0.4*pulse})`; cx.lineWidth=1;
+      for(let i=0;i<7;i++){
+        cx.beginPath(); cx.moveTo(9,9+i*5); cx.lineTo(38,9+i*5); cx.stroke();
+        cx.beginPath(); cx.moveTo(9+i*5,9); cx.lineTo(9+i*5,45); cx.stroke();
+      }
+      // Void core gem
+      const vcGrd=cx.createRadialGradient(24,24,0,24,24,8+pulse*4);
+      vcGrd.addColorStop(0,`rgba(160,0,255,0.9)`);
+      vcGrd.addColorStop(0.4,'rgba(60,0,130,0.7)');
+      vcGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=vcGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#09001e'; cx.fillRect(20,20,8,8);
+      cx.fillStyle='#4400bb'; cx.fillRect(21,21,6,6);
+      cx.fillStyle='#8800ff'; cx.fillRect(22,22,4,4);
+      cx.fillStyle='#bb44ff'; cx.fillRect(23,23,2,2);
+      // Rift tears at hem
+      cx.fillStyle=`rgba(100,0,255,${0.4*pulse})`;
+      for(let t2=0;t2<5;t2++) cx.fillRect(10+t2*6,43,3,5);
+    }
+    else if(id==='godkiller_plate'){
+      // Godkiller's Plate: heavy crimson god-bone plate, skull motifs, dripping divine blood
+      const gkAura=cx.createRadialGradient(24,24,3,24,24,26);
+      gkAura.addColorStop(0,`rgba(200,0,0,${0.3*pulse})`);
+      gkAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=gkAura; cx.fillRect(0,0,48,48);
+      // Armor body — massive plate
+      cx.fillStyle='#280000'; cx.fillRect(8,8,32,38);
+      cx.fillStyle='#500000'; cx.fillRect(9,9,30,36);
+      cx.fillStyle='#880000'; cx.fillRect(10,10,28,34);
+      // Plate lines
+      cx.fillStyle='#280000';
+      cx.fillRect(10,22,28,2); cx.fillRect(10,30,28,2); cx.fillRect(10,38,28,2);
+      // Skull motif on chest
+      cx.fillStyle='#aa0000';
+      cx.fillRect(19,12,10,8); // skull head
+      cx.fillRect(18,18,12,4); // jaw
+      cx.fillStyle='#000a00'; cx.fillRect(19,12,3,5); cx.fillRect(26,12,3,5); // eye sockets
+      cx.fillStyle=`rgba(255,0,0,${0.7*pulse})`; cx.fillRect(20,13,2,3); cx.fillRect(27,13,2,3);
+      for(let t2=0;t2<4;t2++) cx.fillRect(19+t2*3,20,2,3); // teeth
+      // God-blood rivers
+      cx.strokeStyle=`rgba(200,0,0,${0.5*pulse})`; cx.lineWidth=1;
+      cx.beginPath(); cx.moveTo(14,10); cx.lineTo(12,24); cx.lineTo(14,38); cx.stroke();
+      cx.beginPath(); cx.moveTo(34,10); cx.lineTo(36,24); cx.lineTo(34,38); cx.stroke();
+      // Blood drip from bottom
+      if(fr>=1){
+        cx.fillStyle='rgba(180,0,0,0.8)';
+        [[14,45],[20,46],[26,45],[32,46]].forEach(([bx,by])=>{
+          cx.fillRect(bx,by,2,fr*2+2); cx.fillRect(bx-1,by+fr*2+2,4,2);
+        });
+      }
+    }
+    else if(id==='storm_aegis'){
+      // Storm Aegis: lightning-forged thunder shield-armor, crackling storm energy
+      const saAura=cx.createRadialGradient(24,24,3,24,24,26);
+      saAura.addColorStop(0,`rgba(80,140,255,${0.4*pulse})`);
+      saAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=saAura; cx.fillRect(0,0,48,48);
+      // Crackling lightning arcs
+      cx.strokeStyle=`rgba(140,200,255,${0.6*pulse})`; cx.lineWidth=1;
+      for(let l=0;l<5;l++){
+        const la=t*Math.PI*0.5+l*1.257;
+        cx.beginPath(); cx.moveTo(24+Math.cos(la)*8,24+Math.sin(la)*8);
+        cx.lineTo(24+Math.cos(la)*22,24+Math.sin(la)*18); cx.stroke();
+      }
+      // Storm armor body
+      cx.fillStyle='#00082a'; cx.fillRect(8,8,32,38);
+      cx.fillStyle='#000f40'; cx.fillRect(9,9,30,36);
+      cx.fillStyle='#001a6a'; cx.fillRect(10,10,28,34);
+      // Lightning vein armor plating
+      cx.strokeStyle=`rgba(80,150,255,${0.5*pulse})`; cx.lineWidth=1;
+      [[10,10,37,10],[10,22,37,22],[10,34,37,34],[10,10,10,44],[37,10,37,44]].forEach(([x1,y1,x2,y2])=>{
+        cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+      });
+      // Storm core orb
+      const scGrd=cx.createRadialGradient(24,24,0,24,24,8+pulse*4);
+      scGrd.addColorStop(0,`rgba(150,210,255,0.9)`);
+      scGrd.addColorStop(0.5,'rgba(40,100,200,0.7)');
+      scGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=scGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#00082a'; cx.fillRect(20,20,8,8);
+      cx.fillStyle='#0055bb'; cx.fillRect(21,21,6,6);
+      cx.fillStyle='#0088ee'; cx.fillRect(22,22,4,4);
+      cx.fillStyle='#aaddff'; cx.fillRect(23,23,2,2);
+      cx.fillStyle='rgba(255,255,255,0.9)'; cx.fillRect(23,23,1,1);
+    }
+    else if(id==='necrotic_shroud'){
+      // Necrotic Shroud: rotting plague robe, festering green corruption
+      const nkAura=cx.createRadialGradient(24,24,3,24,24,26);
+      nkAura.addColorStop(0,`rgba(60,180,20,${0.35*pulse})`);
+      nkAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=nkAura; cx.fillRect(0,0,48,48);
+      // Rising plague spores
+      for(let s=0;s<7;s++){
+        const sy=46-(fr*7+s*6)%44;
+        cx.fillStyle=`rgba(80,200,20,${0.3+s*0.03})`;
+        cx.beginPath(); cx.arc(10+s*4,sy,1+s%2,0,Math.PI*2); cx.fill();
+      }
+      // Necrotic robe
+      cx.fillStyle='#020a00'; cx.fillRect(8,8,32,38);
+      cx.fillStyle='#040e00'; cx.fillRect(9,9,30,36);
+      // Plague decay pattern
+      cx.fillStyle='rgba(60,120,10,0.3)';
+      for(let r=0;r<3;r++) for(let c=0;c<3;c++)
+        cx.fillRect(10+c*9,10+r*10,7,8);
+      // Festering plague runes
+      cx.fillStyle=`rgba(60,200,20,${0.5*pulse})`;
+      cx.fillRect(22,12,2,6); cx.fillRect(21,14,4,1); cx.fillRect(21,16,4,1);
+      cx.fillRect(22,22,2,6); cx.fillRect(21,24,4,1);
+      cx.fillRect(22,32,2,4); cx.fillRect(20,34,6,1);
+      // Plague core gem
+      const pgGrd2=cx.createRadialGradient(24,24,0,24,24,7+pulse*4);
+      pgGrd2.addColorStop(0,`rgba(100,255,30,0.85)`);
+      pgGrd2.addColorStop(0.5,'rgba(30,100,10,0.6)');
+      pgGrd2.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=pgGrd2; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#020a00'; cx.fillRect(20,20,8,8);
+      cx.fillStyle='#1a5500'; cx.fillRect(21,21,6,6);
+      cx.fillStyle='#40aa00'; cx.fillRect(22,22,4,4);
+      cx.fillStyle='#88ee20'; cx.fillRect(23,23,2,2);
+    }
+    else if(id==='genesis_crown'){
+      // Genesis Crown: circlet of all creation, elemental jewels, radiant primordial energy
+      const gcAura=cx.createRadialGradient(24,22,3,24,22,26);
+      gcAura.addColorStop(0,`rgba(255,200,0,${0.5*pulse})`);
+      gcAura.addColorStop(0.4,'rgba(200,100,0,0.2)');
+      gcAura.addColorStop(0.7,'rgba(0,80,200,0.15)');
+      gcAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=gcAura; cx.fillRect(0,0,48,48);
+      // Creation burst
+      for(let r=0;r<12;r++){
+        const ra=t*Math.PI/6+r*0.524;
+        cx.save(); cx.translate(24,22); cx.rotate(ra);
+        cx.fillStyle=`rgba(255,${180+r*6},0,${0.2*pulse})`;
+        cx.fillRect(-1,-24,2,24); cx.restore();
+      }
+      // Crown band
+      cx.fillStyle='#201000'; cx.fillRect(8,22,32,10);
+      cx.fillStyle='#503000'; cx.fillRect(9,23,30,8);
+      cx.fillStyle='#a06000'; cx.fillRect(10,23,28,7);
+      cx.fillStyle='#d09030'; cx.fillRect(10,23,28,2); // top edge gold
+      // Crown spires (5 tall)
+      const spireColors=['#ff4400','#ffcc00','#ffffff','#00ccff','#aa00ff'];
+      for(let s=0;s<5;s++){
+        const sx=10+s*7;
+        cx.fillStyle='#402000'; cx.fillRect(sx,8,5,16);
+        cx.fillStyle='#905000'; cx.fillRect(sx+1,9,3,14);
+        cx.fillStyle='#d09030'; cx.fillRect(sx+1,9,3,8);
+        // Gem on each spire
+        cx.fillStyle=spireColors[s]; cx.fillRect(sx+1,10,3,4);
+        cx.fillStyle='rgba(255,255,255,0.7)'; cx.fillRect(sx+2,11,1,2);
+      }
+      // Genesis rune on crown front
+      cx.fillStyle=`rgba(255,220,60,${0.7*pulse})`;
+      cx.fillRect(22,25,4,1); cx.fillRect(23,24,2,5); // cross
+      cx.fillRect(21,27,6,1);
+      // Elemental sparkle from gems
+      if(fr>=1){
+        spireColors.forEach((sc,si)=>{
+          cx.fillStyle=sc; cx.globalAlpha=0.6*pulse;
+          cx.fillRect(12+si*7-1,7,3,2);
+          cx.globalAlpha=1;
+        });
+      }
+    }
     else if(id==='void_mantle'){
       // Void Mantle: dark robe woven from void strands, pulsing purple portals
       const vmAura=cx.createRadialGradient(24,24,3,24,24,26);
@@ -3816,10 +4306,21 @@ const BIOMES = {
   chaos_forge:  { name:'Chaos Forge',      floors:[], bgColor:'#000000', ambientRgb:'30,10,0',    warmRgb:'255,80,0',    fogRgb:'30,10,0'    },
   soul_prison:  { name:'Soul Prison',      floors:[], bgColor:'#000000', ambientRgb:'0,5,20',     warmRgb:'0,150,255',   fogRgb:'0,5,20'     },
   omega_core:   { name:'Omega Core',       floors:[], bgColor:'#000000', ambientRgb:'15,0,15',    warmRgb:'255,255,0',   fogRgb:'15,0,15'    },
+  // ── TIER 4 BIOMES — floors 201-250 (APOCALYPTIC) ──
+  abyssal_rift:    { name:'Abyssal Rift',     floors:[], bgColor:'#000000', ambientRgb:'2,0,8',      warmRgb:'60,0,180',    fogRgb:'2,0,8'      },
+  godkiller_wastes:{ name:"Godkiller's Wastes",floors:[],bgColor:'#000000', ambientRgb:'8,0,0',      warmRgb:'255,20,0',    fogRgb:'8,0,0'      },
+  eternal_storm:   { name:'Eternal Storm',    floors:[], bgColor:'#000000', ambientRgb:'0,0,8',      warmRgb:'80,80,255',   fogRgb:'0,0,8'      },
+  necrotic_abyss:  { name:'Necrotic Abyss',   floors:[], bgColor:'#000000', ambientRgb:'4,8,0',      warmRgb:'60,255,20',   fogRgb:'4,8,0'      },
+  genesis_void:    { name:'Genesis Void',     floors:[], bgColor:'#000000', ambientRgb:'8,6,0',      warmRgb:'255,240,100', fogRgb:'8,6,0'      },
 };
 
 // Determine biome by floor
 function getBiome(fl){
+  // Special floors 201-250: 5 apocalyptic biomes, 10 floors each
+  if(fl>=201&&fl<=250){
+    const seg=Math.floor((fl-201)/10);
+    return ['abyssal_rift','godkiller_wastes','eternal_storm','necrotic_abyss','genesis_void'][Math.min(seg,4)];
+  }
   // Special floors 151-200: 5 omega biomes, 10 floors each
   if(fl>=151&&fl<=200){
     const seg=Math.floor((fl-151)/10);
@@ -4043,7 +4544,134 @@ function makeFloorTileBiome(variant, biome){
     cx.strokeStyle='rgba(255,0,255,0.35)';cx.lineWidth=1;
     for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE);cx.stroke();}
     cx.fillStyle='rgba(220,0,220,0.1)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,5,4,0,0,Math.PI*2);cx.fill();
-    cx.fillStyle='rgba(255,0,255,0.05)';cx.fillRect(0,0,TILE,TILE); // subtle glow over all
+    cx.fillStyle='rgba(255,0,255,0.05)';cx.fillRect(0,0,TILE,TILE);
+
+  } else if(biome==='void_realm'){
+    // Deep void floor — cracked black stone with purple fissures
+    cx.fillStyle=['#07001a','#060018','#080020','#050015'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Void crack network
+    cx.strokeStyle='rgba(100,0,255,0.55)'; cx.lineWidth=1;
+    for(let i=0;i<4;i++){
+      cx.beginPath(); cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);
+      cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE); cx.stroke();
+    }
+    // Void pools (dark purple glowing)
+    cx.fillStyle='rgba(80,0,200,0.18)';
+    cx.beginPath(); cx.ellipse(rng(20)*TILE,rng(21)*TILE,4+rng(22)*5,3,0,0,Math.PI*2); cx.fill();
+    // Void sparkle
+    cx.fillStyle='rgba(180,60,255,0.5)';
+    cx.fillRect(rng(30)*TILE,rng(31)*TILE,2,2);
+    cx.fillRect(rng(32)*TILE,rng(33)*TILE,1,1);
+    // Overall purple haze
+    cx.fillStyle='rgba(50,0,100,0.08)'; cx.fillRect(0,0,TILE,TILE);
+
+  } else if(biome==='death_plane'){
+    // Blood-red cracked stone floor
+    cx.fillStyle=['#1a0000','#150000','#1e0000','#120000'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Blood crack veins
+    cx.strokeStyle='rgba(200,0,0,0.6)'; cx.lineWidth=1;
+    for(let i=0;i<4;i++){
+      cx.beginPath(); cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);
+      cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE); cx.stroke();
+    }
+    // Blood pools
+    cx.fillStyle='rgba(180,0,0,0.2)';
+    cx.beginPath(); cx.ellipse(rng(20)*TILE,rng(21)*TILE,5+rng(22)*4,3,0,0,Math.PI*2); cx.fill();
+    // Bone shards
+    cx.fillStyle='rgba(180,160,120,0.3)';
+    cx.fillRect(rng(40)*TILE,rng(41)*TILE,2,1); cx.fillRect(rng(42)*TILE,rng(43)*TILE,1,2);
+    // Death red glow
+    cx.fillStyle='rgba(100,0,0,0.1)'; cx.fillRect(0,0,TILE,TILE);
+
+  } else if(biome==='chaos_forge'){
+    // Molten orange-black forged metal floor
+    cx.fillStyle=['#1e0800','#280a00','#1a0600','#240900'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Lava crack veins (glowing orange)
+    cx.strokeStyle='rgba(255,80,0,0.65)'; cx.lineWidth=1;
+    for(let i=0;i<3;i++){
+      cx.beginPath(); cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);
+      cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE); cx.stroke();
+    }
+    // Forge sparks
+    cx.fillStyle='rgba(255,180,0,0.45)';
+    cx.fillRect(rng(20)*TILE,rng(21)*TILE,2,2);
+    cx.fillStyle='rgba(255,255,100,0.35)';
+    cx.fillRect(rng(22)*TILE,rng(23)*TILE,1,1);
+    // Molten metal pools
+    cx.fillStyle='rgba(255,60,0,0.15)';
+    cx.beginPath(); cx.ellipse(rng(30)*TILE,rng(31)*TILE,4+rng(32)*5,3,0,0,Math.PI*2); cx.fill();
+    // Hot metal sheen
+    cx.fillStyle='rgba(180,40,0,0.1)'; cx.fillRect(0,0,TILE,TILE);
+
+  } else if(biome==='soul_prison'){
+    // Ice-blue crystal prison floor
+    cx.fillStyle=['#000c20','#000a1c','#000e24','#000818'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    // Crystal lattice lines
+    cx.strokeStyle='rgba(0,120,255,0.4)'; cx.lineWidth=1;
+    for(let i=0;i<3;i++){
+      cx.beginPath(); cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);
+      cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE); cx.stroke();
+    }
+    // Soul wisps (tiny floating faces)
+    cx.fillStyle='rgba(100,180,255,0.2)';
+    cx.beginPath(); cx.ellipse(rng(20)*TILE,rng(21)*TILE,4,3,0,0,Math.PI*2); cx.fill();
+    // Ice crystals
+    cx.fillStyle='rgba(150,220,255,0.35)';
+    cx.fillRect(rng(30)*TILE,rng(31)*TILE,2,2); cx.fillRect(rng(32)*TILE,rng(33)*TILE,1,1);
+    // Blue haze
+    cx.fillStyle='rgba(0,50,120,0.1)'; cx.fillRect(0,0,TILE,TILE);
+
+  } else if(biome==='omega_core'){
+    cx.fillStyle=['#181800','#141400','#1c1c00','#101000'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(255,200,0,0.55)'; cx.lineWidth=1;
+    for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(255,220,0,0.18)';cx.beginPath();cx.ellipse(rng(20)*TILE,rng(21)*TILE,5+rng(22)*4,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(255,255,100,0.45)';cx.fillRect(rng(30)*TILE,rng(31)*TILE,2,2);cx.fillRect(rng(32)*TILE,rng(33)*TILE,1,1);
+    cx.fillStyle='rgba(100,80,0,0.12)'; cx.fillRect(0,0,TILE,TILE);
+  } else if(biome==='abyssal_rift'){
+    cx.fillStyle=['#02000a','#03000c','#01000a','#04000e'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(80,0,220,0.8)'; cx.lineWidth=1.5;
+    for(let i=0;i<3;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.strokeStyle='rgba(160,60,255,0.5)'; cx.lineWidth=1;
+    for(let i=3;i<6;i++){cx.beginPath();cx.moveTo(rng(i*5)*TILE,rng(i*5+1)*TILE);cx.lineTo(rng(i*5+2)*TILE,rng(i*5+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(50,0,160,0.3)';cx.beginPath();cx.ellipse(rng(20)*TILE,rng(21)*TILE,5+rng(22)*4,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(180,80,255,0.7)';cx.fillRect(rng(30)*TILE,rng(31)*TILE,2,2);cx.fillRect(rng(32)*TILE,rng(33)*TILE,1,1);
+    cx.fillStyle='rgba(255,200,255,0.35)';cx.fillRect(rng(34)*TILE,rng(35)*TILE,1,1);
+    cx.fillStyle='rgba(20,0,60,0.15)';cx.fillRect(0,0,TILE,TILE);
+  } else if(biome==='godkiller_wastes'){
+    cx.fillStyle=['#160000','#1a0000','#120000','#1e0000'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(220,0,0,0.75)'; cx.lineWidth=1.5;
+    for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(200,170,100,0.4)';cx.fillRect(rng(20)*TILE,rng(21)*TILE,3,1);cx.fillRect(rng(22)*TILE,rng(23)*TILE,1,3);cx.fillRect(rng(24)*TILE,rng(25)*TILE,4,1);
+    cx.fillStyle='rgba(200,0,0,0.25)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,6+rng(32)*4,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(100,0,0,0.15)';cx.fillRect(0,0,TILE,TILE);
+  } else if(biome==='eternal_storm'){
+    cx.fillStyle=['#000010','#000012','#00000e','#000014'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(80,120,255,0.7)'; cx.lineWidth=1;
+    for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.lineTo(rng(i*6+4)*TILE,rng(i*6+5)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(100,160,255,0.45)';cx.fillRect(rng(20)*TILE,rng(21)*TILE,2,2);cx.fillRect(rng(22)*TILE,rng(23)*TILE,3,3);
+    cx.fillStyle='rgba(200,220,255,0.6)';cx.fillRect(rng(24)*TILE,rng(25)*TILE,1,1);
+    cx.fillStyle='rgba(40,80,200,0.15)';cx.beginPath();cx.ellipse(rng(30)*TILE,rng(31)*TILE,5+rng(32)*4,3,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(0,0,50,0.15)';cx.fillRect(0,0,TILE,TILE);
+  } else if(biome==='necrotic_abyss'){
+    cx.fillStyle=['#020800','#030a00','#020700','#030900'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    cx.strokeStyle='rgba(60,180,20,0.65)'; cx.lineWidth=1;
+    for(let i=0;i<4;i++){cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(80,200,20,0.35)';cx.beginPath();cx.arc(rng(20)*TILE,rng(21)*TILE,3+rng(22)*3,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(170,180,140,0.3)';cx.fillRect(rng(24)*TILE,rng(25)*TILE,3,1);cx.fillRect(rng(26)*TILE,rng(27)*TILE,1,3);
+    cx.fillStyle='rgba(60,255,20,0.45)';cx.fillRect(rng(30)*TILE,rng(31)*TILE,2,2);cx.fillRect(rng(32)*TILE,rng(33)*TILE,1,1);
+    cx.fillStyle='rgba(10,20,0,0.15)';cx.fillRect(0,0,TILE,TILE);
+  } else if(biome==='genesis_void'){
+    cx.fillStyle=['#0e0a00','#100c00','#0c0900','#140e00'][variant%4]; cx.fillRect(0,0,TILE,TILE);
+    const gColors=['rgba(255,200,0,0.55)','rgba(255,100,0,0.4)','rgba(100,200,255,0.4)','rgba(100,255,80,0.35)'];
+    for(let i=0;i<4;i++){cx.strokeStyle=gColors[i%4];cx.lineWidth=1;cx.beginPath();cx.moveTo(rng(i*6)*TILE,rng(i*6+1)*TILE);cx.lineTo(rng(i*6+2)*TILE,rng(i*6+3)*TILE);cx.stroke();}
+    cx.fillStyle='rgba(255,200,50,0.2)';
+    const gx=rng(20)*16+4, gy=rng(21)*16+4;
+    cx.fillRect(gx,gy,6,1);cx.fillRect(gx+2,gy-3,1,6);
+    ['rgba(255,80,0,0.5)','rgba(0,150,255,0.5)','rgba(80,255,20,0.45)','rgba(200,100,255,0.45)'].forEach((c2,ci)=>{
+      cx.fillStyle=c2; cx.fillRect(rng(28+ci*2)*TILE,rng(29+ci*2)*TILE,1+ci%2,1+ci%2);
+    });
+    cx.fillStyle='rgba(50,40,0,0.12)';cx.fillRect(0,0,TILE,TILE);
 
   } else { // default cave
     return makeFloorTile(variant);
@@ -4089,13 +4717,15 @@ function makeWallTileBiome(variant, biome){
       frost_hell:'#050e1e', poison_bog:'#040900', inferno:'#1e0100',
       demon_realm:'#0e0008', witch_wood:'#060010', blood_crypt:'#120000',
       cyclops_range:'#0e0b00', dragon_peak:'#000e04', shadow_void:'#060010', abyss_core:'#060006',
-      void_realm:'#030008', death_plane:'#0a0000', chaos_forge:'#0e0400', soul_prison:'#000408', omega_core:'#080800'
+      void_realm:'#030008', death_plane:'#0a0000', chaos_forge:'#0e0400', soul_prison:'#000408', omega_core:'#080800',
+      abyssal_rift:'#01000a', godkiller_wastes:'#160000', eternal_storm:'#00000e', necrotic_abyss:'#020800', genesis_void:'#0c0800'
     };
     const specAcc={
       frost_hell:'rgba(40,100,200,0.2)', poison_bog:'rgba(60,180,10,0.2)', inferno:'rgba(255,50,0,0.25)',
       demon_realm:'rgba(180,0,30,0.2)', witch_wood:'rgba(140,30,255,0.18)', blood_crypt:'rgba(200,0,0,0.25)',
       cyclops_range:'rgba(160,100,10,0.2)', dragon_peak:'rgba(20,180,60,0.2)', shadow_void:'rgba(140,0,200,0.22)', abyss_core:'rgba(200,0,200,0.3)',
-      void_realm:'rgba(80,0,255,0.35)', death_plane:'rgba(255,0,0,0.4)', chaos_forge:'rgba(255,100,0,0.35)', soul_prison:'rgba(0,100,255,0.35)', omega_core:'rgba(255,255,0,0.3)'
+      void_realm:'rgba(80,0,255,0.35)', death_plane:'rgba(255,0,0,0.4)', chaos_forge:'rgba(255,100,0,0.35)', soul_prison:'rgba(0,100,255,0.35)', omega_core:'rgba(255,255,0,0.3)',
+      abyssal_rift:'rgba(100,0,255,0.55)', godkiller_wastes:'rgba(255,0,0,0.6)', eternal_storm:'rgba(80,130,255,0.55)', necrotic_abyss:'rgba(60,200,20,0.5)', genesis_void:'rgba(255,200,0,0.5)'
     };
     cx.fillStyle=specWallCol[biome]||'#0a0a0a'; cx.fillRect(0,0,TILE,TILE);
     cx.fillStyle=specAcc[biome]||'rgba(100,100,100,0.15)';
@@ -4131,6 +4761,11 @@ function makeWallFaceTileBiome(variant, biome){
     chaos_forge: {top:'#301000', bot:'#000000', rim:'rgba(255,80,0,0.9)',  strata:'rgba(30,10,0,0.35)'},
     soul_prison: {top:'#001020', bot:'#000000', rim:'rgba(0,150,255,0.9)', strata:'rgba(0,10,20,0.35)'},
     omega_core:  {top:'#202000', bot:'#000000', rim:'rgba(255,255,0,0.95)',strata:'rgba(20,20,0,0.35)'},
+    abyssal_rift:    {top:'#080020', bot:'#000000', rim:'rgba(100,0,255,1.0)',   strata:'rgba(8,0,20,0.4)'},
+    godkiller_wastes:{top:'#500000', bot:'#000000', rim:'rgba(255,0,0,1.0)',     strata:'rgba(40,0,0,0.4)'},
+    eternal_storm:   {top:'#000030', bot:'#000000', rim:'rgba(100,150,255,1.0)', strata:'rgba(0,0,30,0.4)'},
+    necrotic_abyss:  {top:'#0a2000', bot:'#000000', rim:'rgba(60,220,20,1.0)',   strata:'rgba(8,20,0,0.4)'},
+    genesis_void:    {top:'#302000', bot:'#000000', rim:'rgba(255,220,60,1.0)',  strata:'rgba(25,18,0,0.4)'},
   };
   const cfg=configs[biome]||configs.lava;
   const grad=cx.createLinearGradient(0,0,0,TILE);
@@ -4389,6 +5024,67 @@ const BIOME_MOBS = {
     {n:'Omega God',       cl:'#303000',hl:'#ffff80',hp:16000,dmg:300,spd:0.6,shape:5, drop:'omega_destroyer',  special:'doom'},
     {n:'THE OMEGA',       cl:'#101000',hl:'#ffffff',hp:30000,dmg:400,spd:0.5,shape:22,drop:'omega_destroyer',  special:'doom',boss:true},
   ],
+  // ── TIER 4 BIOME MONSTERS — floors 201-250 (APOCALYPTIC) ──
+  abyssal_rift: [
+    {n:'Rift Shade',      cl:'#04000e',hl:'#4000ff',hp:20000,dmg:420,spd:1.8,shape:5, drop:'rift_slicer',     special:'doom'},
+    {n:'Void Devourer',   cl:'#06000f',hl:'#5500ee',hp:22000,dmg:440,spd:1.6,shape:5, drop:'rift_slicer',     special:'blind'},
+    {n:'Rift Stalker',    cl:'#08001a',hl:'#7700ff',hp:24000,dmg:450,spd:1.7,shape:5, drop:'rift_slicer',     special:'doom'},
+    {n:'Null Tyrant',     cl:'#0a0020',hl:'#9900ff',hp:26000,dmg:460,spd:1.3,shape:3, drop:'rift_slicer',     special:'doom'},
+    {n:'Abyss Predator',  cl:'#050015',hl:'#6600dd',hp:28000,dmg:470,spd:1.5,shape:5, drop:'rift_slicer',     special:'blind'},
+    {n:'Rift Colossus',   cl:'#080028',hl:'#aa00ff',hp:32000,dmg:480,spd:0.9,shape:3, drop:'rift_slicer',     special:'doom'},
+    {n:'Void Obliterator',cl:'#040010',hl:'#cc22ff',hp:36000,dmg:495,spd:1.0,shape:5, drop:'rift_slicer',     special:'doom'},
+    {n:'Rift Sovereign',  cl:'#06001a',hl:'#bb00ee',hp:40000,dmg:510,spd:0.8,shape:3, drop:'rift_slicer',     special:'blind'},
+    {n:'Abyssal Tyrant',  cl:'#090028',hl:'#dd44ff',hp:45000,dmg:530,spd:0.8,shape:5, drop:'rift_slicer',     special:'doom'},
+    {n:'RIFT ARCHON',     cl:'#020006',hl:'#9900ff',hp:80000,dmg:600,spd:0.5,shape:23,drop:'rift_slicer',     special:'doom',boss:true},
+  ],
+  godkiller_wastes: [
+    {n:'Godkiller Revenant',cl:'#120000',hl:'#ff1100',hp:22000,dmg:440,spd:1.7,shape:5,drop:'godkiller_blade',special:'doom'},
+    {n:'Wrath Specter',   cl:'#180000',hl:'#ff2200',hp:24000,dmg:460,spd:1.5,shape:5, drop:'godkiller_blade', special:'burn'},
+    {n:'Crimson Abolisher',cl:'#1e0000',hl:'#ff3300',hp:26000,dmg:470,spd:1.6,shape:5,drop:'godkiller_blade', special:'doom'},
+    {n:'Blood Titan',     cl:'#240000',hl:'#ff1010',hp:28000,dmg:480,spd:1.0,shape:3, drop:'godkiller_blade', special:'burn'},
+    {n:'Godkiller Drake', cl:'#1a0000',hl:'#ff4400',hp:30000,dmg:495,spd:1.1,shape:7, drop:'godkiller_blade', special:'doom'},
+    {n:'Wrath Colossus',  cl:'#280000',hl:'#ff2200',hp:34000,dmg:510,spd:0.8,shape:3, drop:'godkiller_blade', special:'burn'},
+    {n:'Blood Sovereign', cl:'#1e0000',hl:'#ff0044',hp:38000,dmg:525,spd:0.9,shape:5, drop:'godkiller_blade', special:'doom'},
+    {n:'Crimson Obliter', cl:'#200000',hl:'#ff5555',hp:42000,dmg:540,spd:0.8,shape:5, drop:'godkiller_blade', special:'burn'},
+    {n:'Death Sovereign', cl:'#2a0000',hl:'#ff6600',hp:48000,dmg:560,spd:0.7,shape:5, drop:'godkiller_blade', special:'doom'},
+    {n:'THE GODKILLER',   cl:'#0a0000',hl:'#ff2200',hp:90000,dmg:660,spd:0.5,shape:24,drop:'godkiller_blade', special:'doom',boss:true},
+  ],
+  eternal_storm: [
+    {n:'Storm Wraith',    cl:'#000010',hl:'#4488ff',hp:24000,dmg:450,spd:2.0,shape:5, drop:'storm_herald',    special:'freeze'},
+    {n:'Lightning Shade', cl:'#000015',hl:'#6699ff',hp:26000,dmg:465,spd:1.8,shape:5, drop:'storm_herald',    special:'blind'},
+    {n:'Thunder Revenant',cl:'#000018',hl:'#88aaff',hp:28000,dmg:475,spd:1.9,shape:5, drop:'storm_herald',    special:'doom'},
+    {n:'Tempest Titan',   cl:'#00001e',hl:'#5577ee',hp:30000,dmg:485,spd:1.2,shape:3, drop:'storm_herald',    special:'freeze'},
+    {n:'Storm Dragon',    cl:'#000012',hl:'#7799ff',hp:32000,dmg:498,spd:1.3,shape:7, drop:'storm_herald',    special:'blind'},
+    {n:'Thunder Colossus',cl:'#000018',hl:'#99bbff',hp:36000,dmg:512,spd:0.9,shape:3, drop:'storm_herald',    special:'doom'},
+    {n:'Storm Sovereign', cl:'#00001a',hl:'#aaccff',hp:40000,dmg:530,spd:1.0,shape:5, drop:'storm_herald',    special:'freeze'},
+    {n:'Eternal Thunder', cl:'#000020',hl:'#bbddff',hp:44000,dmg:545,spd:0.8,shape:5, drop:'storm_herald',    special:'doom'},
+    {n:'Sky Obliterator', cl:'#000025',hl:'#cceeff',hp:50000,dmg:565,spd:0.8,shape:3, drop:'storm_herald',    special:'blind'},
+    {n:'THE ETERNAL STORM',cl:'#000008',hl:'#aaddff',hp:95000,dmg:700,spd:0.5,shape:25,drop:'storm_herald',   special:'doom',boss:true},
+  ],
+  necrotic_abyss: [
+    {n:'Necrotic Wraith', cl:'#020800',hl:'#44ff22',hp:25000,dmg:455,spd:1.7,shape:5, drop:'necrotic_scythe', special:'poison'},
+    {n:'Plague Sovereign',cl:'#031000',hl:'#55ff33',hp:27000,dmg:470,spd:1.5,shape:5, drop:'necrotic_scythe', special:'doom'},
+    {n:'Rot Specter',     cl:'#040c00',hl:'#66ee22',hp:29000,dmg:480,spd:1.6,shape:5, drop:'necrotic_scythe', special:'poison'},
+    {n:'Blight Titan',    cl:'#050e00',hl:'#44dd11',hp:31000,dmg:492,spd:1.0,shape:3, drop:'necrotic_scythe', special:'doom'},
+    {n:'Necrotic Drake',  cl:'#030900',hl:'#77ff44',hp:33000,dmg:505,spd:1.1,shape:7, drop:'necrotic_scythe', special:'poison'},
+    {n:'Plague Colossus', cl:'#041200',hl:'#55ff22',hp:37000,dmg:520,spd:0.8,shape:3, drop:'necrotic_scythe', special:'doom'},
+    {n:'Rot Sovereign',   cl:'#060f00',hl:'#88ff44',hp:41000,dmg:535,spd:0.9,shape:5, drop:'necrotic_scythe', special:'poison'},
+    {n:'Blight Obliter',  cl:'#050c00',hl:'#66ee33',hp:46000,dmg:555,spd:0.8,shape:5, drop:'necrotic_scythe', special:'doom'},
+    {n:'Death Blossom',   cl:'#080f00',hl:'#99ff55',hp:52000,dmg:575,spd:0.7,shape:5, drop:'necrotic_scythe', special:'poison'},
+    {n:'THE NECROLORD',   cl:'#010400',hl:'#55ff22',hp:100000,dmg:720,spd:0.5,shape:26,drop:'necrotic_scythe', special:'doom',boss:true},
+  ],
+  genesis_void: [
+    {n:'Genesis Shade',   cl:'#100c00',hl:'#ffee00',hp:28000,dmg:470,spd:1.8,shape:5, drop:'genesis_annihilator',special:'doom'},
+    {n:'Origin Specter',  cl:'#140e00',hl:'#ffdd00',hp:30000,dmg:488,spd:1.6,shape:5, drop:'genesis_annihilator',special:'blind'},
+    {n:'First Sin',       cl:'#180f00',hl:'#ffcc00',hp:32000,dmg:500,spd:1.7,shape:5, drop:'genesis_annihilator',special:'doom'},
+    {n:'Creation Tyrant', cl:'#1e1000',hl:'#ffee22',hp:35000,dmg:515,spd:1.2,shape:3, drop:'genesis_annihilator',special:'doom'},
+    {n:'Genesis Dragon',  cl:'#141000',hl:'#fff044',hp:38000,dmg:530,spd:1.1,shape:7, drop:'genesis_annihilator',special:'blind'},
+    {n:'Origin Colossus', cl:'#181200',hl:'#ffdd33',hp:42000,dmg:548,spd:0.9,shape:3, drop:'genesis_annihilator',special:'doom'},
+    {n:'First Sovereign', cl:'#1c1400',hl:'#fff055',hp:48000,dmg:565,spd:0.9,shape:5, drop:'genesis_annihilator',special:'doom'},
+    {n:'Creation God',    cl:'#201500',hl:'#ffee66',hp:55000,dmg:585,spd:0.8,shape:5, drop:'genesis_annihilator',special:'blind'},
+    {n:'Origin Obliter',  cl:'#281800',hl:'#ffff88',hp:62000,dmg:610,spd:0.7,shape:5, drop:'genesis_annihilator',special:'doom'},
+    {n:'THE GENESIS GOD', cl:'#0a0800',hl:'#ffffff',hp:120000,dmg:800,spd:0.4,shape:27,drop:'genesis_annihilator',special:'doom',boss:true},
+  ],
 };
 
 // Build biome monster sprites
@@ -4399,7 +5095,7 @@ const BIOME_MOB_SPR = {};
 //             11=arch-witch, 12=vampire-lord, 13=cyclops, 14=cyclops-king
 //             15=dragon-king, 16=shadow-overlord, 17=abyssal-god
 function buildBiomeMonsterSprite(mobDef, key){
-  const SIZE = (mobDef.boss && mobDef.shape===17) ? 80 : mobDef.boss ? 48 : 32;
+  const SIZE = (mobDef.boss && mobDef.shape===17) ? 80 : (mobDef.boss && mobDef.shape>=23) ? 96 : mobDef.boss ? 48 : 32;
   const FRAMES = 4;
   const shape=mobDef.shape||0, cl=mobDef.cl, hl=mobDef.hl;
   const isBoss = !!mobDef.boss;
@@ -4415,6 +5111,7 @@ function buildBiomeMonsterSprite(mobDef, key){
     cyclops_range:'rgba(255,160,20,0.35)', dragon_peak:'rgba(40,255,100,0.4)',
     shadow_void:'rgba(180,0,255,0.45)', abyss_core:'rgba(255,0,255,0.5)',
     void_realm:'rgba(80,0,255,0.55)', death_plane:'rgba(255,0,0,0.55)', chaos_forge:'rgba(255,80,0,0.5)', soul_prison:'rgba(0,120,255,0.5)', omega_core:'rgba(220,220,0,0.5)',
+    abyssal_rift:'rgba(60,0,200,0.7)', godkiller_wastes:'rgba(255,10,0,0.7)', eternal_storm:'rgba(80,120,255,0.7)', necrotic_abyss:'rgba(60,255,20,0.65)', genesis_void:'rgba(255,240,80,0.7)',
   };
   const auraCol = auraMap[biomeKey] || 'rgba(200,200,255,0.2)';
 
@@ -6328,7 +7025,7 @@ function buildBiomeMonsterSprite(mobDef, key){
       cx.fillStyle='#0088ff';
       cx.fillRect(C-11,C-32,1,4); cx.fillRect(C-3,C-34,1,6); cx.fillRect(C+6,C-34,1,6); cx.fillRect(C+10,C-32,1,4);
 
-    } else if(shape===22){ // THE OMEGA — god of destruction, pure golden energy being with 8 arms and star core
+    } else if(shape===22){ // THE OMEGA, pure golden energy being with 8 arms and star core
       const pulse=0.7+f*0.1;
       const spin =f*Math.PI/4;
       const glow =f%2===0?1.0:0.65;
@@ -6406,6 +7103,486 @@ function buildBiomeMonsterSprite(mobDef, key){
       // ancient mouth line
       cx.fillStyle='rgba(0,0,0,0.4)'; cx.fillRect(C-4,C+1,8,1);
       cx.fillStyle=`rgba(255,220,0,${0.6*pulse})`; cx.fillRect(C-3,C+2,6,1);
+
+    } else if(shape===23){ // RIFT ARCHON — colossus of cracked void dimension, 3 pairs of arms, dimensional rifts orbit it
+      const pulse=0.7+f*0.08, wriggle=f%2===0?1:-1, orbit=f*Math.PI/2;
+      // === RIFT DIMENSIONAL TEARS (background) ===
+      cx.fillStyle=`rgba(60,0,180,${0.3*pulse})`;
+      cx.beginPath(); cx.arc(C,C,44,0,Math.PI*2); cx.fill();
+      for(let r=0;r<6;r++){
+        const ra=orbit*0.4+r*Math.PI/3;
+        const rx=C+Math.cos(ra)*36, ry=C+Math.sin(ra)*28;
+        cx.fillStyle=`rgba(100,0,255,${0.45*pulse})`;
+        cx.save(); cx.translate(rx,ry); cx.rotate(ra);
+        cx.fillRect(-2,-12,4,24); cx.fillStyle=`rgba(200,100,255,${0.5*pulse})`; cx.fillRect(-1,-10,2,20);
+        cx.restore();
+      }
+      // === MASSIVE LEGS ===
+      cx.fillStyle='#080015';
+      cx.fillRect(C-14,C+22,12,18); cx.fillRect(C+2,C+22,12,18);
+      cx.fillStyle='#3300aa'; cx.fillRect(C-13,C+22,10,3); cx.fillRect(C+3,C+22,10,3);
+      // void rune on knee
+      cx.fillStyle=`rgba(120,0,255,${0.7*pulse})`;
+      cx.fillRect(C-9,C+28,3,1); cx.fillRect(C-8,C+26,1,5);
+      cx.fillRect(C+6,C+28,3,1); cx.fillRect(C+7,C+26,1,5);
+      // feet
+      cx.fillStyle='#050010'; cx.fillRect(C-15,C+39,13,5); cx.fillRect(C+2,C+39,13,5);
+      // === TORSO ===
+      cx.fillStyle='#0a0020';
+      cx.fillRect(C-18,C-10,36,33);
+      cx.fillStyle='#180040'; cx.fillRect(C-16,C-8,32,28);
+      // Void cracks on chest
+      cx.strokeStyle=`rgba(120,0,255,${0.6*pulse})`; cx.lineWidth=1.5;
+      [[C-10,C-5,C+5,C+10],[C-12,C+5,C-2,C+15],[C+2,C+3,C+14,C+18]].forEach(([x1,y1,x2,y2])=>{
+        cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+      });
+      // === 3 PAIRS OF ARMS ===
+      const armDefs=[[-20,C-5, -35,C-18, -44,C-28], [C-20,C+5, C-38,C+2, C-48,C+5], [C-20,C+16, C-36,C+20, C-46,C+30]];
+      const rarmDefs=[[C+20,C-5, C+35,C-18, C+44,C-28],[C+20,C+5, C+38,C+2, C+48,C+5],[C+20,C+16, C+36,C+20, C+46,C+30]];
+      cx.fillStyle='#0a0020';
+      armDefs.forEach(([x1,y1,x2,y2,x3,y3],ai)=>{
+        const sw=f%2===0?1:-1;
+        cx.fillRect(x1-3,y1-3,8,6); cx.fillRect(x2-3,y2-3+sw*ai,8,6); cx.fillRect(x3-3,y3-3,7,6);
+      });
+      rarmDefs.forEach(([x1,y1,x2,y2,x3,y3],ai)=>{
+        const sw=f%2===0?-1:1;
+        cx.fillRect(x1-3,y1-3,8,6); cx.fillRect(x2-3,y2-3+sw*ai,8,6); cx.fillRect(x3-3,y3-3,7,6);
+      });
+      // Claw tips
+      cx.fillStyle=`rgba(150,0,255,${0.8*pulse})`;
+      [[-44,C-31],[-50,C+2],[-47,C+27],[C+40,C-31],[C+46,C+2],[C+43,C+27]].forEach(([cx2,cy])=>{
+        cx.fillRect(cx2,cy,4,3); cx.fillRect(cx2-1,cy-2,2,2);
+      });
+      // === NECK + HEAD ===
+      cx.fillStyle='#0a0020'; cx.fillRect(C-8,C-18,16,10);
+      cx.fillStyle='#100030'; cx.fillRect(C-12,C-34,24,17);
+      cx.fillRect(C-10,C-36,20,4);
+      cx.fillRect(C-14,C-28,28,8); // jawline wide
+      // === VOID CROWN (3 giant spines) ===
+      cx.fillStyle='#1a0040';
+      cx.fillRect(C-3,C-42,6,9); cx.fillRect(C-1,C-44,4,5); // center spine
+      cx.fillRect(C-12,C-38,4,7); cx.fillRect(C+8,C-38,4,7); // side spines
+      cx.fillStyle=`rgba(120,0,255,${0.8*pulse})`;
+      cx.fillRect(C-2,C-42,2,6); cx.fillRect(C-11,C-38,2,5); cx.fillRect(C+9,C-38,2,5);
+      // === VOID EYES (4 glowing eyes) ===
+      cx.fillStyle='#04000c';
+      cx.fillRect(C-10,C-32,7,6); cx.fillRect(C+3,C-32,7,6);
+      cx.fillRect(C-7,C-26,5,4); cx.fillRect(C+2,C-26,5,4);
+      cx.fillStyle=`rgba(140,0,255,${0.9*pulse})`;
+      cx.fillRect(C-9,C-31,5,4); cx.fillRect(C+4,C-31,5,4);
+      cx.fillRect(C-6,C-25,3,3); cx.fillRect(C+3,C-25,3,3);
+      cx.fillStyle=`rgba(220,120,255,${0.5*pulse})`;
+      cx.beginPath(); cx.arc(C-7,C-29,5,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+7,C-29,5,0,Math.PI*2); cx.fill();
+      // === VOID MOUTH ===
+      cx.fillStyle='#000000'; cx.fillRect(C-7,C-22,14,4);
+      cx.fillStyle=`rgba(80,0,200,${0.6*pulse})`; cx.fillRect(C-6,C-22,12,3);
+      // Dimensional void at torso center
+      const vgrd=cx.createRadialGradient(C,C+8,0,C,C+8,12+pulse*4);
+      vgrd.addColorStop(0,`rgba(0,0,0,0.95)`);
+      vgrd.addColorStop(0.4,`rgba(40,0,120,0.7)`);
+      vgrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=vgrd; cx.fillRect(C-14,C-2,28,24);
+      // Orbiting void motes
+      for(let m=0;m<8;m++){
+        const ma=orbit*1.5+m*Math.PI/4;
+        const mr=30+pulse*4;
+        cx.fillStyle=`rgba(120,0,255,${0.55*pulse})`;
+        cx.fillRect(C+Math.cos(ma)*mr-1,C+Math.sin(ma)*mr*0.7-1,3,3);
+      }
+
+    } else if(shape===24){ // THE GODKILLER — colossal blood-red armored death titan, dual godkiller blades
+      const armSwing=f%2===0?5:-5, breathe=f%2===0?0:1, pulse=f%2===0?1.0:0.65;
+      // === BLOOD AURA ===
+      cx.fillStyle=`rgba(200,0,0,${0.3*pulse})`;
+      cx.beginPath(); cx.arc(C,C,46,0,Math.PI*2); cx.fill();
+      // Falling blood drops
+      for(let d=0;d<6;d++){
+        const da=(f*12+d*16)%44;
+        cx.fillStyle=`rgba(180,0,0,${0.6-da*0.01})`;
+        cx.fillRect(C-20+d*8,C+da-22,2,3+d%2);
+      }
+      // === MASSIVE LEGS + ARMORED SABATONS ===
+      cx.fillStyle='#3a0000';
+      cx.fillRect(C-14,C+20,12,22+breathe); cx.fillRect(C+2,C+20,12,22+breathe);
+      cx.fillStyle='#8a0000'; cx.fillRect(C-13,C+20,10,4); cx.fillRect(C+3,C+20,10,4);
+      cx.fillStyle='#cc0000'; cx.fillRect(C-13,C+20,10,1); cx.fillRect(C+3,C+20,10,1);
+      // Greaves spikes
+      cx.fillStyle='#aa0000';
+      cx.fillRect(C-15,C+28,4,6); cx.fillRect(C+11,C+28,4,6);
+      cx.fillStyle='#ff2200'; cx.fillRect(C-14,C+28,2,4); cx.fillRect(C+12,C+28,2,4);
+      // Sabatons (huge feet)
+      cx.fillStyle='#2a0000'; cx.fillRect(C-15,C+41,13,6); cx.fillRect(C+2,C+41,13,6);
+      cx.fillStyle='#880000'; cx.fillRect(C-15,C+41,13,2); cx.fillRect(C+2,C+41,13,2);
+      // === MASSIVE ARMORED TORSO ===
+      cx.fillStyle='#500000';
+      cx.fillRect(C-20,C-12,40,33+breathe);
+      cx.fillStyle='#880000'; cx.fillRect(C-18,C-10,36,28);
+      cx.fillStyle='#aa0000'; cx.fillRect(C-16,C-8,32,24);
+      // Armor plate lines
+      cx.fillStyle='#400000';
+      cx.fillRect(C-18,C-2,36,2); cx.fillRect(C-18,C+8,36,2);
+      // Skull runes on chest
+      cx.fillStyle=`rgba(255,0,0,${0.7*pulse})`;
+      cx.fillRect(C-3,C-5,6,2); cx.fillRect(C-1,C-7,2,8);
+      cx.fillRect(C-4,C,8,2); cx.fillRect(C-3,C+3,3,3); cx.fillRect(C+1,C+3,3,3);
+      // === SHOULDER ARMOR (MASSIVE SPIKED) ===
+      cx.fillStyle='#600000'; cx.fillRect(C-22,C-14,8,16); cx.fillRect(C+14,C-14,8,16);
+      cx.fillStyle='#aa0000'; cx.fillRect(C-21,C-14,6,3); cx.fillRect(C+15,C-14,6,3);
+      // Shoulder spikes (3 each)
+      cx.fillStyle='#880000';
+      for(let s=0;s<3;s++){
+        cx.fillRect(C-23+s*3,C-18,3,6); cx.fillRect(C+14+s*3,C-18,3,6);
+        cx.fillRect(C-22+s*3,C-20,2,4); cx.fillRect(C+15+s*3,C-20,2,4);
+      }
+      cx.fillStyle='#ff1100';
+      cx.fillRect(C-22,C-19,1,4); cx.fillRect(C-19,C-19,1,4); cx.fillRect(C-16,C-19,1,4);
+      cx.fillRect(C+15,C-19,1,4); cx.fillRect(C+18,C-19,1,4); cx.fillRect(C+21,C-19,1,4);
+      // === GODKILLER ARMS ===
+      cx.fillStyle='#500000';
+      cx.fillRect(C-28,C-14+armSwing,10,16); cx.fillRect(C+18,C-14-armSwing,10,16);
+      cx.fillStyle='#880000';
+      cx.fillRect(C-28,C-14+armSwing,10,4); cx.fillRect(C+18,C-14-armSwing,10,4);
+      // Gauntlets
+      cx.fillStyle='#cc0000';
+      cx.fillRect(C-30,C+1+armSwing,12,8); cx.fillRect(C+18,C+1-armSwing,12,8);
+      cx.fillStyle='#ff1100'; cx.fillRect(C-30,C+1+armSwing,12,2); cx.fillRect(C+18,C+1-armSwing,12,2);
+      // === LEFT GODKILLER BLADE (massive diagonal) ===
+      cx.save(); cx.translate(C-30,C+6+armSwing); cx.rotate(-0.5);
+      cx.fillStyle='#200000'; cx.fillRect(-3,-36,6,50);
+      cx.fillStyle='#880000'; cx.fillRect(-2,-35,4,48);
+      cx.fillStyle='#cc0000'; cx.fillRect(-1,-35,3,44);
+      cx.fillStyle='#ff2200'; cx.fillRect(-1,-35,2,36);
+      cx.fillStyle='#ff6666'; cx.fillRect(-1,-35,1,24);
+      // Serrated edge
+      cx.fillStyle='#200000';
+      for(let s=0;s<6;s++) cx.fillRect(-3,-34+s*7,3,4);
+      // Blood drip
+      cx.fillStyle=`rgba(200,0,0,${0.8*pulse})`;
+      cx.fillRect(-1,-35+f*4,1,4);
+      cx.restore();
+      // === RIGHT GODKILLER BLADE ===
+      cx.save(); cx.translate(C+30,C+6-armSwing); cx.rotate(0.5);
+      cx.fillStyle='#200000'; cx.fillRect(-3,-36,6,50);
+      cx.fillStyle='#880000'; cx.fillRect(-2,-35,4,48);
+      cx.fillStyle='#cc0000'; cx.fillRect(-1,-35,3,44);
+      cx.fillStyle='#ff2200'; cx.fillRect(-1,-35,2,36);
+      cx.fillStyle='#ff6666'; cx.fillRect(0,-35,1,24);
+      cx.fillStyle='#200000';
+      for(let s=0;s<6;s++) cx.fillRect(0,-34+s*7,3,4);
+      cx.restore();
+      // === THICK NECK ===
+      cx.fillStyle='#500000'; cx.fillRect(C-7,C-20,14,9);
+      // === GODKILLER SKULL HEAD ===
+      cx.fillStyle='#600000'; cx.fillRect(C-14,C-38,28,19);
+      cx.fillRect(C-12,C-40,24,5); // skull top
+      cx.fillRect(C-16,C-30,32,10); // massive jaw
+      // Brow plate
+      cx.fillStyle='#400000'; cx.fillRect(C-14,C-38,28,4);
+      cx.fillStyle='#880000'; cx.fillRect(C-12,C-37,24,3);
+      // Eye sockets
+      cx.fillStyle='#0a0000'; cx.fillRect(C-12,C-36,9,8); cx.fillRect(C+3,C-36,9,8);
+      cx.fillStyle=`rgba(255,0,0,${0.95*pulse})`;
+      cx.fillRect(C-11,C-35,7,6); cx.fillRect(C+4,C-35,7,6);
+      cx.fillStyle=`rgba(255,100,100,${0.6*pulse})`;
+      cx.beginPath(); cx.arc(C-8,C-32,7,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+8,C-32,7,0,Math.PI*2); cx.fill();
+      // Bone teeth (huge)
+      cx.fillStyle='#d0c080';
+      for(let t2=0;t2<6;t2++) cx.fillRect(C-10+t2*4,C-24,3,5);
+      // Blood dripping from jaw
+      if(f>=2){
+        cx.fillStyle='rgba(200,0,0,0.9)';
+        [[C-8,C-20],[C-3,C-19],[C+3,C-20],[C+8,C-19]].forEach(([bx,by])=>{
+          cx.fillRect(bx,by,2,5+f); cx.fillRect(bx-1,by+5+f,4,3);
+        });
+      }
+      // Crown of skulls
+      cx.fillStyle='#3a0000';
+      cx.fillRect(C-16,C-42,32,5);
+      cx.fillStyle='#600000';
+      for(let s=0;s<5;s++){
+        const sx=C-14+s*7;
+        cx.fillRect(sx,C-48,5,7); cx.fillRect(sx+1,C-50,3,4);
+        cx.fillStyle='#0a0000'; cx.fillRect(sx+1,C-47,1,2); cx.fillRect(sx+3,C-47,1,2);
+        cx.fillStyle='#ff0000'; cx.fillRect(sx+1,C-46,1,1); cx.fillRect(sx+3,C-46,1,1);
+        cx.fillStyle='#600000';
+      }
+
+    } else if(shape===25){ // THE ETERNAL STORM — colossal thunder serpent, crackling with lightning
+      const pulse=0.7+f*0.09, spin=f*Math.PI/3, crackle=f%2===0;
+      // === STORM AURA ===
+      cx.fillStyle=`rgba(40,80,255,${0.25*pulse})`;
+      cx.beginPath(); cx.arc(C,C,46,0,Math.PI*2); cx.fill();
+      // Lightning arcs around body
+      cx.strokeStyle=`rgba(150,200,255,${0.7*pulse})`; cx.lineWidth=1.5;
+      for(let l=0;l<6;l++){
+        const la=spin+l*Math.PI/3;
+        const lx1=C+Math.cos(la)*24, ly1=C+Math.sin(la)*20;
+        const lx2=C+Math.cos(la)*40, ly2=C+Math.sin(la)*32;
+        cx.beginPath(); cx.moveTo(lx1,ly1);
+        cx.lineTo(lx1+3*((l%2)*2-1),ly1+6);
+        cx.lineTo(lx2,ly2); cx.stroke();
+      }
+      // === SERPENTINE TAIL (left side) ===
+      cx.fillStyle='#001840';
+      cx.fillRect(C-46,C+14,12,8); cx.fillRect(C-40,C+18,10,7); cx.fillRect(C-32,C+20,9,6);
+      cx.fillRect(C-24,C+20,8,6); cx.fillRect(C-18,C+18,7,5);
+      cx.fillStyle='#0044aa'; cx.fillRect(C-45,C+14,10,2); cx.fillRect(C-39,C+18,8,2);
+      // Tail tip spike
+      cx.fillStyle='#66aaff'; cx.fillRect(C-48,C+12,4,5); cx.fillRect(C-50,C+11,3,4);
+      // === MASSIVE COILED BODY ===
+      cx.fillStyle='#001840';
+      cx.fillRect(C-20,C-10,40,32); // core body
+      cx.fillRect(C-18,C-18,36,10); // upper body
+      // Scale texture
+      cx.fillStyle='#002060';
+      for(let r=0;r<4;r++) for(let c2=0;c2<5;c2++)
+        cx.fillRect(C-18+c2*8,C-8+r*7,6,5);
+      cx.fillStyle='#0033aa';
+      for(let r=0;r<4;r++) for(let c2=0;c2<5;c2++)
+        cx.fillRect(C-16+c2*8,C-7+r*7,2,2);
+      // Lightning spine
+      cx.fillStyle=`rgba(100,180,255,${0.7*pulse})`;
+      for(let s=0;s<8;s++) cx.fillRect(C-14+s*4,C-20,2,6+s%2*4);
+      // === NECK + SERPENT HEAD ===
+      cx.fillStyle='#001840'; cx.fillRect(C+18,C-16,12,12);
+      cx.fillRect(C+26,C-28,16,14); // head
+      cx.fillRect(C+28,C-30,12,4);  // skull top
+      cx.fillRect(C+24,C-20,20,8);  // snout/jaw
+      // Hood frills
+      cx.fillStyle='#002860';
+      cx.fillRect(C+22,C-30,8,4); cx.fillRect(C+38,C-28,6,8);
+      cx.fillStyle='#0055cc'; cx.fillRect(C+23,C-30,6,2); cx.fillRect(C+39,C-27,4,5);
+      // === LIGHTNING EYES (2 huge) ===
+      cx.fillStyle='#000a20'; cx.fillRect(C+27,C-27,7,6); cx.fillRect(C+36,C-26,7,6);
+      cx.fillStyle=crackle?'#aaddff':'#88bbee';
+      cx.fillRect(C+28,C-26,5,4); cx.fillRect(C+37,C-25,5,4);
+      cx.fillStyle=`rgba(150,220,255,${0.5*pulse})`;
+      cx.beginPath(); cx.arc(C+30,C-24,5,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+39,C-23,5,0,Math.PI*2); cx.fill();
+      // === FANGS ===
+      cx.fillStyle='#d8e8ff';
+      cx.fillRect(C+26,C-18,3,6); cx.fillRect(C+30,C-17,3,5); cx.fillRect(C+35,C-18,3,6); cx.fillRect(C+39,C-17,3,5);
+      cx.fillStyle=`rgba(100,180,255,${0.5*pulse})`;
+      cx.fillRect(C+27,C-18,1,4); cx.fillRect(C+31,C-17,1,3); cx.fillRect(C+36,C-18,1,4); cx.fillRect(C+40,C-17,1,3);
+      // === LIGHTNING BREATH (frames 2-3) ===
+      if(f>=2){
+        cx.strokeStyle=`rgba(200,230,255,${0.95*pulse})`; cx.lineWidth=2;
+        cx.beginPath(); cx.moveTo(C+44,C-17);
+        cx.lineTo(C+52,C-14); cx.lineTo(C+48,C-10); cx.lineTo(C+58,C-8); cx.lineTo(C+52,C-4);
+        cx.stroke();
+        cx.strokeStyle=`rgba(255,255,255,0.8)`; cx.lineWidth=1;
+        cx.beginPath(); cx.moveTo(C+44,C-17);
+        cx.lineTo(C+50,C-13); cx.lineTo(C+47,C-9); cx.lineTo(C+56,C-7);
+        cx.stroke();
+      }
+      // === COILING FRONT CLAWS ===
+      cx.fillStyle='#001840';
+      cx.fillRect(C-20,C+20,8,8); cx.fillRect(C+12,C+20,8,8);
+      cx.fillStyle='#66aaff';
+      for(let c2=0;c2<3;c2++){
+        cx.fillRect(C-21+c2*3,C+27,2,5); cx.fillRect(C+12+c2*3,C+27,2,5);
+      }
+
+    } else if(shape===26){ // THE NECROLORD — rotting lich emperor, plague staff, necrotic shroud, 1000 years of death
+      const pulse=0.65+f*0.1, float=f%2===0?0:2, decay=f%2===0?'#1a3a00':'#2a5000';
+      // === PLAGUE AURA ===
+      cx.fillStyle=`rgba(60,180,20,${0.2*pulse})`;
+      cx.beginPath(); cx.arc(C,C,46,0,Math.PI*2); cx.fill();
+      // Rising plague spores
+      for(let s=0;s<8;s++){
+        const sy=C+20-(f*8+s*12)%50;
+        cx.fillStyle=`rgba(80,200,20,${0.3+s*0.04})`;
+        cx.beginPath(); cx.arc(C-20+s*6,sy,2+s%2,0,Math.PI*2); cx.fill();
+      }
+      // === TATTERED NECROTIC ROBE ===
+      cx.fillStyle='#060e00';
+      cx.beginPath();
+      cx.moveTo(C-30,C+44+float); cx.lineTo(C-22,C-12);
+      cx.lineTo(C+22,C-12); cx.lineTo(C+30,C+44+float); cx.closePath(); cx.fill();
+      // Robe tatter shreds
+      cx.fillStyle='rgba(0,0,0,0.7)';
+      for(let t2=0;t2<6;t2++){
+        const tx=C-24+t2*10, ty=C+30+float;
+        cx.fillRect(tx,ty,4,12+t2%3*4); cx.fillRect(tx+2,ty+2,2,8);
+      }
+      // Plague runes on robe (glowing green)
+      cx.fillStyle=`rgba(60,220,20,${0.5*pulse})`;
+      [[C-12,C+2],[C-4,C+14],[C+8,C+6],[C-8,C+24]].forEach(([rx,ry])=>{
+        cx.fillRect(rx,ry,2,6); cx.fillRect(rx-1,ry+2,4,1); cx.fillRect(rx-1,ry+4,4,1);
+      });
+      // Robe hem glow
+      const rGrd=cx.createLinearGradient(C-28,C+40,C-28,C+48);
+      rGrd.addColorStop(0,'rgba(60,200,20,0)');
+      rGrd.addColorStop(1,`rgba(80,255,20,${0.35*pulse})`);
+      cx.fillStyle=rGrd; cx.fillRect(C-28,C+40,56,8);
+      // === SLEEVES + BONE ARMS ===
+      cx.fillStyle='#080e00';
+      cx.fillRect(C-28,C-8+float,8,18); cx.fillRect(C+20,C-8-float,8,18);
+      // Rotting flesh patches
+      cx.fillStyle='rgba(60,120,0,0.3)';
+      cx.fillRect(C-27,C-4+float,6,10); cx.fillRect(C+21,C-4-float,6,10);
+      // Skeletal forearms
+      cx.fillStyle='#b0c090'; cx.fillRect(C-30,C+8+float,8,10); cx.fillRect(C+22,C+8-float,8,10);
+      // Bone detail
+      cx.fillStyle='rgba(0,0,0,0.35)';
+      cx.fillRect(C-30,C+9+float,1,8); cx.fillRect(C-28,C+9+float,1,8); cx.fillRect(C-26,C+9+float,1,8);
+      cx.fillRect(C+22,C+9-float,1,8); cx.fillRect(C+24,C+9-float,1,8); cx.fillRect(C+26,C+9-float,1,8);
+      // === PLAGUE STAFF (left hand) ===
+      cx.save(); cx.translate(C-30,C+14+float); cx.rotate(-0.3);
+      cx.fillStyle='#0c1400'; cx.fillRect(-2,-30,4,44);
+      cx.fillStyle='#204000'; cx.fillRect(-1,-29,2,42);
+      // Staff skull head
+      cx.fillStyle='#a0b080'; cx.fillRect(-5,-36,10,8); cx.fillRect(-4,-38,8,4);
+      cx.fillStyle='#080c00'; cx.fillRect(-4,-36,3,5); cx.fillRect(1,-36,3,5);
+      cx.fillStyle=`rgba(60,220,20,${0.7*pulse})`;
+      cx.fillRect(-3,-35,2,3); cx.fillRect(2,-35,2,3);
+      cx.fillStyle=`rgba(80,255,20,${0.4*pulse})`;
+      cx.beginPath(); cx.arc(-2,-33,4,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(3,-33,4,0,Math.PI*2); cx.fill();
+      // Dripping plague from staff
+      cx.fillStyle=`rgba(60,200,20,${0.6*pulse})`;
+      cx.fillRect(-1,-32+f*3,1,6); cx.fillRect(0,-34+f*2,1,4);
+      cx.restore();
+      // === RIBCAGE (exposed necrotic) ===
+      cx.fillStyle='#909870';
+      cx.fillRect(C-10,C-8,20,18);
+      cx.fillStyle='rgba(0,0,0,0.5)';
+      for(let r=0;r<4;r++){
+        cx.fillRect(C-10,C-7+r*4,20,1);
+        cx.fillRect(C-9,C-6+r*4,4,3); cx.fillRect(C+5,C-6+r*4,4,3);
+      }
+      // Festering plague core in chest
+      const pgGrd=cx.createRadialGradient(C,C+2,0,C,C+2,7+pulse*3);
+      pgGrd.addColorStop(0,`rgba(100,255,30,0.8)`);
+      pgGrd.addColorStop(0.5,'rgba(40,120,10,0.5)');
+      pgGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=pgGrd; cx.fillRect(C-8,C-6,16,16);
+      // === SKULL CROWN HEAD ===
+      cx.fillStyle='#a0b888'; cx.fillRect(C-12,C-28,24,14);
+      cx.fillRect(C-10,C-30,20,4); // skull dome
+      cx.fillRect(C-14,C-20,28,7); // wide jaw
+      // Decay cracks on skull
+      cx.strokeStyle='rgba(0,0,0,0.4)'; cx.lineWidth=1;
+      cx.beginPath(); cx.moveTo(C-8,C-28); cx.lineTo(C-4,C-22); cx.stroke();
+      cx.beginPath(); cx.moveTo(C+6,C-27); cx.lineTo(C+2,C-21); cx.stroke();
+      // Eye sockets deep
+      cx.fillStyle='#040800'; cx.fillRect(C-10,C-27,8,7); cx.fillRect(C+2,C-27,8,7);
+      cx.fillStyle=`rgba(80,255,20,${0.85*pulse})`;
+      cx.fillRect(C-9,C-26,6,5); cx.fillRect(C+3,C-26,6,5);
+      cx.fillStyle=`rgba(140,255,80,${0.5*pulse})`;
+      cx.beginPath(); cx.arc(C-6,C-24,5,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+6,C-24,5,0,Math.PI*2); cx.fill();
+      // Plague crown (bone + necrotic)
+      cx.fillStyle='#606850'; cx.fillRect(C-14,C-33,28,6);
+      cx.fillRect(C-15,C-38,5,6); cx.fillRect(C-5,C-40,6,8); cx.fillRect(C+4,C-40,6,8); cx.fillRect(C+10,C-38,5,6);
+      cx.fillStyle=`rgba(60,220,20,${0.6*pulse})`;
+      cx.fillRect(C-4,C-41,3,4); cx.fillRect(C+5,C-41,3,4);
+      cx.fillRect(C-13,C-37,3,3); cx.fillRect(C+10,C-37,3,3);
+      // Jaw necrosis — teeth falling
+      cx.fillStyle='#b0b888';
+      cx.fillRect(C-10,C-18,3,5); cx.fillRect(C-5,C-18,3,5);
+      cx.fillRect(C+2,C-18,3,5); cx.fillRect(C+7,C-18,3,5);
+      cx.fillStyle='rgba(60,200,20,0.3)';
+      cx.fillRect(C-10,C-18,3,2); cx.fillRect(C+2,C-18,3,2);
+
+    } else if(shape===27){ // THE GENESIS GOD — primordial creator-destroyer, sphere of creation emanating ALL elements
+      const pulse=0.65+f*0.1, spin=f*Math.PI/3, glow=f%2===0?1.0:0.6;
+      // === GENESIS CREATION FIELD (blinding aura) ===
+      cx.fillStyle=`rgba(255,240,100,${0.4*pulse})`;
+      cx.beginPath(); cx.arc(C,C,46,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(255,255,200,${0.2*pulse})`;
+      cx.beginPath(); cx.arc(C,C,48,0,Math.PI*2); cx.fill();
+      // === 20-POINTED CREATION BURST ===
+      for(let r=0;r<20;r++){
+        const ra=spin+r*Math.PI/10;
+        const len=24+(r%5===0?12:r%2===0?8:4);
+        cx.save(); cx.translate(C,C); cx.rotate(ra);
+        cx.fillStyle=`rgba(255,${200+r*3},${50+r*8},${0.4*glow})`;
+        cx.fillRect(-1.5,-len,3,len); cx.restore();
+      }
+      // === 4 ELEMENTAL RINGS (orbiting creation rings) ===
+      const elColors=['rgba(255,60,0,0.6)','rgba(0,160,255,0.6)','rgba(60,255,20,0.55)','rgba(200,150,255,0.6)'];
+      for(let e=0;e<4;e++){
+        const er=22+e*4, ea=spin*(0.5+e*0.2);
+        cx.strokeStyle=elColors[e]; cx.lineWidth=2; cx.globalAlpha=0.5+pulse*0.3;
+        cx.beginPath(); cx.ellipse(C,C,er,er*(0.5+e*0.1),ea,0,Math.PI*2); cx.stroke();
+        cx.globalAlpha=1;
+      }
+      // === CORE BODY (primordial sphere, layered) ===
+      cx.fillStyle='#1a0e00';
+      cx.beginPath(); cx.arc(C,C,22,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#3a2000';
+      cx.beginPath(); cx.arc(C,C,18,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#6a4000';
+      cx.beginPath(); cx.arc(C,C,14,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#cc8000';
+      cx.beginPath(); cx.arc(C,C,10,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffcc00';
+      cx.beginPath(); cx.arc(C,C,7,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#fff060';
+      cx.beginPath(); cx.arc(C,C,4,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffffff';
+      cx.beginPath(); cx.arc(C,C,2,0,Math.PI*2); cx.fill();
+      // Creation vein pattern on body
+      cx.strokeStyle=`rgba(255,200,0,${0.5*pulse})`; cx.lineWidth=1;
+      for(let v=0;v<8;v++){
+        const va=spin*0.3+v*Math.PI/4;
+        cx.beginPath();
+        cx.moveTo(C+Math.cos(va)*7,C+Math.sin(va)*7);
+        cx.lineTo(C+Math.cos(va)*21,C+Math.sin(va)*21); cx.stroke();
+      }
+      // === GENESIS RUNE (Ω overlaid with creation cross) ===
+      cx.fillStyle=`rgba(50,30,0,${0.8*pulse})`;
+      cx.fillRect(C-7,C-2,14,2); cx.fillRect(C-1,C-8,2,14); // cross
+      cx.fillRect(C-5,C-2,10,1); // Ω top
+      cx.fillRect(C-6,C-1,4,4); cx.fillRect(C+2,C-1,4,4); // Ω sides
+      // === 8 ELEMENTAL ORB HANDS ===
+      const orbColors=[
+        '#ff4400','#ff8800','#ffff00','#44ff00',
+        '#00ffaa','#0088ff','#aa00ff','#ff00aa',
+      ];
+      for(let o=0;o<8;o++){
+        const oa=spin*0.6+o*Math.PI/4;
+        const ox=C+Math.cos(oa)*30, oy=C+Math.sin(oa)*30;
+        cx.fillStyle=orbColors[o];
+        cx.beginPath(); cx.arc(ox,oy,5,0,Math.PI*2); cx.fill();
+        cx.fillStyle='rgba(255,255,255,0.8)';
+        cx.beginPath(); cx.arc(ox-1,oy-1,2,0,Math.PI*2); cx.fill();
+        // Elemental connection line
+        cx.strokeStyle=orbColors[o]; cx.lineWidth=1; cx.globalAlpha=0.4*pulse;
+        cx.beginPath(); cx.moveTo(C,C); cx.lineTo(ox,oy); cx.stroke();
+        cx.globalAlpha=1;
+        // Elemental spark
+        cx.fillStyle=`rgba(255,255,255,${0.6*glow})`;
+        cx.fillRect(ox+3,oy-3,2,2);
+      }
+      // === FACE (ancient primordial — 3 eyes, vertical) ===
+      cx.fillStyle='rgba(0,0,0,0.6)';
+      cx.fillRect(C-2,C-7,5,4); // top eye socket
+      cx.fillRect(C-2,C-2,5,4); // mid eye socket
+      cx.fillRect(C-2,C+3,5,4); // bottom eye socket
+      cx.fillStyle=`rgba(255,255,200,${0.95*pulse})`;
+      cx.fillRect(C-1,C-6,3,3);
+      cx.fillRect(C-1,C-1,3,3);
+      cx.fillRect(C-1,C+4,3,3);
+      // Outer glowing halos on eyes
+      [C-4, C+1, C+6].forEach((ey,i)=>{
+        cx.fillStyle=`rgba(${i===0?'255,100,0':i===1?'255,255,255':'100,200,255'},${0.35*pulse})`;
+        cx.beginPath(); cx.arc(C,ey,6,0,Math.PI*2); cx.fill();
+      });
+      // === CREATION EXPLOSION (frames 3) ===
+      if(f===3){
+        cx.fillStyle=`rgba(255,240,100,0.3)`;
+        cx.beginPath(); cx.arc(C,C,48,0,Math.PI*2); cx.fill();
+        for(let r=0;r<8;r++){
+          const ra2=r*Math.PI/4;
+          cx.fillStyle=orbColors[r]; cx.globalAlpha=0.6;
+          cx.fillRect(C+Math.cos(ra2)*36-2,C+Math.sin(ra2)*36-2,5,5);
+          cx.globalAlpha=1;
+        }
+      }
 
     } else { // shape 17: ABYSSAL GOD — colossal eye with writhing tentacles
       const pulse  = 0.75 + f*0.08;
@@ -6598,7 +7775,8 @@ function spawnMonsters(fl){
 
   // Check if this is a boss floor (101,106,...,146 = every 5 fl in special zone; 160,170,...,200 = every 10 fl in tier3)
   const isBossFloor = (fl>=101 && fl<=150 && ((fl-101)%5===4))
-                   || (fl>=151 && fl<=200 && ((fl-151)%10===9));
+                   || (fl>=151 && fl<=200 && ((fl-151)%10===9))
+                   || (fl>=201 && fl<=250 && ((fl-201)%10===9));
 
   // Choose monster pool — biome monsters if in biome floor, else MOB_DEFS
   const isBiomeFloor = biome !== 'cave';
@@ -6925,6 +8103,25 @@ function killMonster(id){
           setTimeout(()=>toast(`🏆 BOSS SLAIN! You obtained: ${WEAPONS[wid].name}!`,'#ffd700',5000),200);
           playBossAlert(); // victory fanfare reuse
         }
+      }
+    }
+  }
+  // ── Tier 4 Boss Armor Drops (floors 201-250) ──
+  const tier4ArmorMap = {
+    'RIFT ARCHON':      'rift_mantle',
+    'THE GODKILLER':    'godkiller_plate',
+    'THE ETERNAL STORM':'storm_aegis',
+    'THE NECROLORD':    'necrotic_shroud',
+    'THE GENESIS GOD':  'genesis_crown',
+  };
+  if(isBossKill && tier4ArmorMap[def.n]){
+    const aid = tier4ArmorMap[def.n];
+    const adef = LEGENDARY_ARMORS[aid];
+    if(adef){
+      const added2 = addToInventory({type:'armor', id:aid, qty:1});
+      if(added2){
+        setTimeout(()=>spawnDmg(sx,sy-48,`${adef.icon} ${adef.name}`,adef.color||'#ffd700',14),300);
+        setTimeout(()=>toast(`✨ LEGENDARY ARMOR! You obtained: ${adef.name}!`,adef.color||'#ffd700',6000),600);
       }
     }
   }
@@ -7257,7 +8454,23 @@ function renderInventory(){
     if(s){
       let icon='',name='',qty='';
       if(s.type==='ore'){
-        icon=oreEmoji[s.id]||'📦'; name=s.id; qty=s.qty>1?s.qty:'';
+        // Pixel art ore sprite in inventory via getOreImg
+        const oreColors={iron:'#909090',gold:'#f0d050',diamond:'#40ddff',steel:'#a0b8e0',titanium:'#b0b8ff',tungsten:'#707070',chromium:'#60ff80'};
+        div.style.borderColor=(oreColors[s.id]||'#c0c0c0')+'aa';
+        div.innerHTML=getOreImg(s.id,32);
+        if(s.qty>1){
+          const qsp=document.createElement('span');
+          qsp.className='inv-qty'; qsp.textContent=s.qty; div.appendChild(qsp);
+        }
+        const nm=document.createElement('span');
+        nm.className='inv-name';
+        nm.style.color=oreColors[s.id]||'#c0c0c0';
+        nm.textContent=s.id.charAt(0).toUpperCase()+s.id.slice(1);
+        div.appendChild(nm);
+        div.onclick=()=>onInvClick(i);
+        setupInvDrag(div,i);
+        grid.appendChild(div);
+        continue;
       } else if(s.type==='weapon'){
         const w=WEAPONS[s.id] || s.def || s;
         const cvs=document.createElement('canvas');
@@ -7470,7 +8683,7 @@ function setupInvDrag(el, idx){
 }
 
 // Weapon sell prices by tier
-const WEAPON_SELL = {Common:30, Uncommon:80, Rare:200, Epic:500, Legendary:1500, BossDrop:3000, OmegaDrop:8000};
+const WEAPON_SELL = {Common:30, Uncommon:80, Rare:200, Epic:500, Legendary:1500, BossDrop:3000, OmegaDrop:8000, ApocalypseDrop:20000};
 const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200, 5:3000, 6:8000};
 
 let _selectedInvSlot = null;
@@ -9916,6 +11129,17 @@ const LEGENDARY_ITEMS = [
   {id:'void_sovereign', priceGozo:12000, itemType:'weapon'},
   {id:'abyss_throne',   priceGozo:20000, itemType:'weapon'},
   {id:'genesis_reaper', priceGozo:50000, itemType:'weapon'},
+  // Tier 8 boss-drop weapons (floors 151-200)
+  {id:'death_scythe',   priceGozo:80000,  itemType:'weapon'},
+  {id:'chaos_blade',    priceGozo:100000, itemType:'weapon'},
+  {id:'soul_lance',     priceGozo:120000, itemType:'weapon'},
+  {id:'omega_destroyer',priceGozo:150000, itemType:'weapon'},
+  // Tier 9 apocalypse weapons (floors 201-250)
+  {id:'rift_slicer',         priceGozo:250000,  itemType:'weapon'},
+  {id:'godkiller_blade',     priceGozo:350000,  itemType:'weapon'},
+  {id:'storm_herald',        priceGozo:450000,  itemType:'weapon'},
+  {id:'necrotic_scythe',     priceGozo:600000,  itemType:'weapon'},
+  {id:'genesis_annihilator', priceGozo:800000,  itemType:'weapon'},
   // ── LEGENDARY ARMORS ──
   {id:'crimson_mantle', priceGozo:3000,  itemType:'armor'},
   {id:'void_carapace',  priceGozo:7000,  itemType:'armor'},
@@ -9928,6 +11152,12 @@ const LEGENDARY_ITEMS = [
   {id:'chaos_plate',    priceGozo:120000, itemType:'armor'},
   {id:'soul_barrier',   priceGozo:150000, itemType:'armor'},
   {id:'omega_aegis',    priceGozo:200000, itemType:'armor'},
+  // Tier 4 — boss drops only
+  {id:'rift_mantle',     priceGozo:300000, itemType:'armor'},
+  {id:'godkiller_plate', priceGozo:400000, itemType:'armor'},
+  {id:'storm_aegis',     priceGozo:500000, itemType:'armor'},
+  {id:'necrotic_shroud', priceGozo:650000, itemType:'armor'},
+  {id:'genesis_crown',   priceGozo:1000000,itemType:'armor'},
 ];
 
 // Register legendary armors into CRAFTED_ITEMS
@@ -9973,6 +11203,27 @@ const LEGENDARY_ARMORS = {
     effect:'def_boost',    val:666, color:'#ffff00',
     desc:'The final armor. DEF +666. Radiates omega energy.',
     goldSell:200000 },
+  // ── TIER 4 LEGENDARY ARMORS — APOCALYPTIC (floors 201-250) ──
+  rift_mantle:     { id:'rift_mantle',      name:"Rift Mantle",           icon:'🌀', type:'accessory',
+    effect:'def_boost',    val:800,  color:'#9900ff',
+    desc:'Woven from torn dimensional fabric. DEF +800. Phase through reality.',
+    goldSell:300000 },
+  godkiller_plate: { id:'godkiller_plate',  name:"Godkiller's Plate",     icon:'💀', type:'accessory',
+    effect:'def_boost',    val:999,  color:'#ff2200',
+    desc:'Forged from the bones of fallen gods. DEF +999. Strikes fear in divinity.',
+    goldSell:400000 },
+  storm_aegis:     { id:'storm_aegis',      name:"Storm Aegis",           icon:'⚡', type:'accessory',
+    effect:'shield',       val:5000, color:'#88aaff',
+    desc:'Eternal storm contained in armor. +5000 shield/floor. Untouchable.',
+    goldSell:500000 },
+  necrotic_shroud: { id:'necrotic_shroud',  name:"Necrotic Shroud",       icon:'☠️', type:'accessory',
+    effect:'def_boost',    val:1200, color:'#55ff22',
+    desc:'Death itself as clothing. DEF +1200. All poison heals instead of harms.',
+    goldSell:650000 },
+  genesis_crown:   { id:'genesis_crown',    name:"Genesis Crown",         icon:'✨', type:'accessory',
+    effect:'speed_boost',  val:2.0,  color:'#ffff88',
+    desc:'Crown worn before creation. +200% speed. Grants dominion over existence.',
+    goldSell:1000000 },
 };
 Object.assign(CRAFTED_ITEMS, LEGENDARY_ARMORS);
 
@@ -10325,7 +11576,6 @@ function buildShopTabs(shopType){
 // ═══════════════════════════════════════════════════════════
 //  ORE PIXEL ART SPRITES  (32×32, cached dataURL)
 // ═══════════════════════════════════════════════════════════
-const _ORE_SPR_CACHE = {};
 function getOreImg(id, size=36){
   if(!_ORE_SPR_CACHE[id]){
     const oc=document.createElement('canvas'); oc.width=32; oc.height=32;
@@ -10520,7 +11770,7 @@ function getShopInventory(shopType){
   // Returns list of {id, name, icon, price, desc, tier} for buy
   const items=[];
   if(shopType==='weapon'){
-    const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
+    const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop',9:'ApocalypseDrop'};
     const wids=Object.keys(WEAPONS).filter(w=>!WEAPONS[w].starter);
     for(const wid of wids) if(SHOP_BUY[wid]){
       const ww=WEAPONS[wid];
@@ -10871,7 +12121,8 @@ function renderShopItems(){
       if(oreIds.includes(item.id)){
         iconHtml=getOreImg(item.id,40)||`<span style="font-size:22px">🪨</span>`;
       } else if(item._type==='weapon'||WEAPONS[item.id]){
-        iconHtml=sprToImg(WEAPON_SPR[item.id],48)||`<span style="font-size:22px">${item.icon||'⚔️'}</span>`;
+        const _wspr=LEGEND_SPR[item.id]?LEGEND_SPR[item.id][0]:WEAPON_SPR[item.id];
+        iconHtml=sprToImg(_wspr,48)||`<span style="font-size:22px">${item.icon||'⚔️'}</span>`;
       } else if(item._type==='pickaxe'||PICKAXES[item.id]){
         iconHtml=sprToImg(PICK_SPR[item.id],48)||`<span style="font-size:22px">${item.icon||'⛏️'}</span>`;
       } else if(item._type==='potion'||POTIONS[item.id]){
@@ -10891,7 +12142,7 @@ function renderShopItems(){
     }
     for(const{slot,item}of sellItems){
       let name='?',iconHtml='📦',price=0,tier='Common';
-      const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
+      const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop',9:'ApocalypseDrop'};
       function sprToImg2(spr,size){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=size;cv.height=size;cv.getContext('2d').drawImage(spr,0,0,size,size);return `<img src="${cv.toDataURL()}" style="width:${size}px;height:${size}px;image-rendering:pixelated;">`; }
       if(item.type==='weapon'){
         const wd=WEAPONS[item.id]||{};
@@ -10899,7 +12150,8 @@ function renderShopItems(){
         const tierVal=wd.tier;
         tier=(typeof tierVal==='number'?tierNameMap[tierVal]:tierVal)||'Common';
         price = wd.goldSell ? wd.goldSell : Math.floor((WEAPON_SELL[tier]||30)*0.6);
-        iconHtml=sprToImg2(WEAPON_SPR[item.id],48)||`<span style="font-size:22px">${wd.icon||'⚔️'}</span>`;
+        const _wspr2=LEGEND_SPR[item.id]?LEGEND_SPR[item.id][0]:WEAPON_SPR[item.id];
+        iconHtml=sprToImg2(_wspr2,48)||`<span style="font-size:22px">${wd.icon||'⚔️'}</span>`;
       }
       else if(item.type==='pickaxe'){
         name=PICKAXES[item.id]?.name||'Pick';
@@ -11080,7 +12332,7 @@ function shopSellAll(){
     if(s.type==='weapon'){
       const _wd=WEAPONS[s.id]||{};
           const _tv=_wd.tier;
-          const _tnm={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
+          const _tnm={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop',9:'ApocalypseDrop'};
           const _tn=(typeof _tv==='number'?_tnm[_tv]:_tv)||'Common';
           price = _wd.goldSell ? _wd.goldSell : Math.floor((WEAPON_SELL[_tn]||30)*0.6);
     } else if(s.type==='pickaxe'){
