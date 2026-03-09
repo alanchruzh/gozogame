@@ -6982,120 +6982,245 @@ function buildVillageSprites(){
   if(!TC._grassBuilt){
     TC._grassBuilt=true;
 
-    // ── GRASS tiles ──
+    // ── GRASS tiles — rich multi-tone 2.5D ──
     TC.grass=[];
+    const grassBase=['#7ab040','#82b848','#78aa3c','#80b044'];
+    const grassDark=['#5a8828','#609030','#587e24','#5e8a2c'];
+    const grassMid= ['#6a9e34','#72a63c','#679630','#6fa238'];
+    const grassHigh=['#94cc58','#9cd460','#90c454','#98cc5c'];
     for(let v=0;v<4;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      cx.fillStyle=['#8aaa50','#90b055','#86a44c','#8cac52'][v]; cx.fillRect(0,0,TILE,TILE);
-      cx.fillStyle='rgba(0,0,0,0.06)'; cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
-      for(let i=0;i<4;i++){
-        const gx=4+Math.floor((i*11)%28),gy=4+Math.floor((i*7)%24);
-        cx.fillStyle='#6a8a38'; cx.fillRect(gx,gy,2,3); cx.fillRect(gx+1,gy-1,1,2);
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      // Base fill
+      cx.fillStyle=grassBase[v]; cx.fillRect(0,0,TILE,TILE);
+      // Subtle dark patches — organic feel
+      cx.fillStyle=grassDark[v];
+      const darkPts=[[2,18,8,6],[18,4,6,8],[22,20,10,5],[6,26,7,4]];
+      for(const[x,y,w,h] of darkPts) cx.fillRect(x,y,w,h);
+      // Mid tone noise
+      cx.fillStyle=grassMid[v];
+      const midPts=[[5,8,5,4],[16,14,6,3],[8,22,4,5],[24,8,4,6],[12,28,6,3]];
+      for(const[x,y,w,h] of midPts) cx.fillRect(x,y,w,h);
+      // Highlight spots
+      cx.fillStyle=grassHigh[v];
+      const hiPts=[[4,4,2,2],[20,10,2,2],[10,18,3,2],[26,22,2,3],[14,6,2,2]];
+      for(const[x,y,w,h] of hiPts) cx.fillRect(x,y,w,h);
+      // Grass blades — varied heights
+      const blades=[[3,26,2,5],[7,22,1,4],[9,26,2,6],[14,20,1,5],[18,24,2,4],[22,22,1,6],[26,26,2,5],[29,20,1,4],[5,14,1,3],[20,16,2,4]];
+      for(const[x,y,w,h] of blades){
+        cx.fillStyle=grassDark[v]; cx.fillRect(x,y,w,h);
+        cx.fillStyle=grassHigh[v]; cx.fillRect(x,y,1,2); // blade tip highlight
       }
-      TC.grass.push(c);
+      // Tiny flowers occasional
+      if(v===1){ cx.fillStyle='#ffe060'; cx.fillRect(11,12,2,2); cx.fillStyle='#fff'; cx.fillRect(10,11,1,1); cx.fillRect(12,11,1,1); }
+      if(v===3){ cx.fillStyle='#ff8888'; cx.fillRect(23,18,2,2); cx.fillStyle='#fff'; cx.fillRect(22,17,1,1); }
+      // Edge shadow for 2.5D depth
+      cx.fillStyle='rgba(0,0,0,0.10)'; cx.fillRect(0,TILE-2,TILE,2);
+      cx.fillStyle='rgba(255,255,255,0.06)'; cx.fillRect(0,0,TILE,1);
+      TC.grass.push(cv);
     }
 
-    // ── PATH tiles ──
+    // ── PATH tiles — cobblestone 2.5D ──
     TC.path=[];
-    for(let v=0;v<2;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      cx.fillStyle=v===0?'#b8905a':'#b08850'; cx.fillRect(0,0,TILE,TILE);
-      cx.fillStyle='rgba(0,0,0,0.08)'; cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
-      cx.fillStyle='#9a7a48';
-      for(let i=0;i<5;i++) cx.fillRect(3+i*6,3+((i*7)%26),2,2);
-      TC.path.push(c);
+    for(let v=0;v<4;v++){
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      const pb=['#c09a6a','#b89060','#c4a070','#b88e5e'][v];
+      const pd=['#8a6a3c','#826232','#8e7040','#806030'][v];
+      const ph=['#d4b482','#ccac78','#d8b888','#caa870'][v];
+      cx.fillStyle=pb; cx.fillRect(0,0,TILE,TILE);
+      // Cobblestone pattern — staggered stones
+      const stones=[
+        [1,1,13,9],[15,1,15,9],    // row 0
+        [1,11,9,9],[11,11,11,9],[23,11,8,9], // row 1
+        [1,21,15,9],[17,21,13,9], // row 2
+      ];
+      for(const[x,y,w,h] of stones){
+        // Stone top
+        cx.fillStyle=ph; cx.fillRect(x+1,y+1,w-2,3);
+        cx.fillStyle=pb; cx.fillRect(x+1,y+4,w-2,h-5);
+        // Left highlight
+        cx.fillStyle=ph; cx.fillRect(x,y,1,h);
+        // Bottom shadow
+        cx.fillStyle=pd; cx.fillRect(x,y+h-2,w,2);
+        // Right shadow
+        cx.fillStyle=pd; cx.fillRect(x+w-1,y,1,h);
+        // Grout gap
+        cx.fillStyle='#6a4e2c'; cx.fillRect(x-1,y-1,w+2,1); cx.fillRect(x-1,y-1,1,h+2);
+      }
+      // Worn center scuff
+      if(v%2===0){ cx.fillStyle='rgba(0,0,0,0.07)'; cx.fillRect(10,10,12,12); }
+      // Edge depth
+      cx.fillStyle='rgba(0,0,0,0.14)'; cx.fillRect(0,TILE-2,TILE,2);
+      cx.fillStyle='rgba(255,255,255,0.08)'; cx.fillRect(0,0,TILE,1);
+      TC.path.push(cv);
     }
 
-    // ── CEMENT WALL tile (exterior) ──
+    // ── STONE WALL tile (exterior) — warm stone blocks 2.5D ──
     TC.cementWall=[];
     for(let v=0;v<2;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      // Base cement grey
-      cx.fillStyle=v===0?'#7a8090':'#727888'; cx.fillRect(0,0,TILE,TILE);
-      // Brick pattern
-      const brickH=8, brickW=16;
-      for(let row=0;row<TILE/brickH;row++){
-        const off=(row%2===0)?0:brickW/2;
-        for(let col=-1;col<TILE/brickW+1;col++){
-          cx.fillStyle='rgba(0,0,0,0.18)';
-          cx.fillRect(off+col*brickW,row*brickH,1,brickH); // vertical joint
-          cx.fillRect(0,row*brickH,TILE,1); // horizontal joint
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      const wb=v===0?'#a09070':'#988860';  // stone base
+      const wd=v===0?'#706040':'#685838';  // dark mortar
+      const wh=v===0?'#c0b090':'#b8a880';  // highlight
+      cx.fillStyle=wb; cx.fillRect(0,0,TILE,TILE);
+      // Stone brick rows — alternating offset
+      const bH=10, bW=16;
+      for(let row=0;row<Math.ceil(TILE/bH);row++){
+        const off=(row%2===0)?0:bW/2;
+        const ry=row*bH;
+        for(let col=-1;col<Math.ceil(TILE/bW)+1;col++){
+          const rx=off+col*bW;
+          if(rx>=TILE||rx+bW<=0) continue;
+          const bx=Math.max(0,rx), by=Math.max(0,ry);
+          const bw2=Math.min(rx+bW,TILE)-bx, bh2=Math.min(ry+bH,TILE)-by;
+          // Stone face with subtle variation
+          const tone=((row+col)%3===0)?wd:((row*col)%5===0)?wh:wb;
+          cx.fillStyle=tone; cx.fillRect(bx+1,by+1,bw2-2,bh2-3);
+          // Top highlight bevel
+          cx.fillStyle=wh; cx.fillRect(bx+1,by+1,bw2-2,2);
+          // Bottom shadow bevel
+          cx.fillStyle=wd; cx.fillRect(bx+1,by+bh2-3,bw2-2,2);
+        }
+        // Mortar line
+        cx.fillStyle=wd; cx.fillRect(0,ry,TILE,1);
+      }
+      // Vertical mortar
+      for(let row=0;row<Math.ceil(TILE/bH);row++){
+        const off=(row%2===0)?0:bW/2;
+        for(let col=-1;col<Math.ceil(TILE/bW)+1;col++){
+          cx.fillStyle=wd; cx.fillRect(off+col*bW,row*bH,1,bH);
         }
       }
-      // Highlight top edge
-      cx.fillStyle='rgba(255,255,255,0.12)'; cx.fillRect(0,0,TILE,2);
-      TC.cementWall.push(c);
+      cx.fillStyle='rgba(255,255,255,0.10)'; cx.fillRect(0,0,TILE,2);
+      cx.fillStyle='rgba(0,0,0,0.18)'; cx.fillRect(0,TILE-2,TILE,2);
+      TC.cementWall.push(cv);
     }
 
-    // ── CEMENT WALL FACE (front face below wall top) ──
+    // ── STONE WALL FACE — front-facing shadow side ──
     TC.cementFace=[];
     for(let v=0;v<2;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE/2;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      cx.fillStyle=v===0?'#606870':'#585e68'; cx.fillRect(0,0,TILE,TILE/2);
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE/2;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=v===0?'#786848':'#706040'; cx.fillRect(0,0,TILE,TILE/2);
+      // Shadowed stone bricks
       for(let row=0;row<2;row++){
         const off=(row%2===0)?0:8;
         for(let col=-1;col<3;col++){
-          cx.fillStyle='rgba(0,0,0,0.22)';
+          cx.fillStyle='rgba(0,0,0,0.25)';
           cx.fillRect(off+col*16,row*8,1,8);
           cx.fillRect(0,row*8,TILE,1);
         }
       }
-      cx.fillStyle='rgba(0,0,0,0.35)'; cx.fillRect(0,TILE/2-2,TILE,2);
-      TC.cementFace.push(c);
+      // Bottom ground shadow
+      cx.fillStyle='rgba(0,0,0,0.45)'; cx.fillRect(0,TILE/2-3,TILE,3);
+      cx.fillStyle='rgba(0,0,0,0.20)'; cx.fillRect(0,TILE/2-6,TILE,3);
+      TC.cementFace.push(cv);
     }
 
-    // ── WOOD FLOOR tile (interior) ──
+    // ── WOOD FLOOR tile — rich planks 2.5D ──
     TC.woodFloor=[];
+    const wfBase=['#c8904a','#c08040','#ca9450','#be8845'];
+    const wfDark=['#9a6830','#926028','#9c6e34','#906225'];
+    const wfLight=['#daa862','#d2a058','#dcac68','#d09e52'];
     for(let v=0;v<4;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      cx.fillStyle=['#c8904a','#c08040','#ca9450','#be8845'][v]; cx.fillRect(0,0,TILE,TILE);
-      // Wood plank lines
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      cx.fillStyle=wfBase[v]; cx.fillRect(0,0,TILE,TILE);
+      // Planks — horizontal strips with shading
+      const pH=8;
       for(let i=0;i<4;i++){
-        cx.fillStyle='rgba(0,0,0,0.12)'; cx.fillRect(0,i*8,TILE,1);
-        cx.fillStyle='rgba(255,255,255,0.06)'; cx.fillRect(0,i*8+1,TILE,1);
+        const py2=i*pH;
+        // Plank top highlight
+        cx.fillStyle=wfLight[v]; cx.fillRect(0,py2,TILE,2);
+        // Plank middle
+        cx.fillStyle=wfBase[v]; cx.fillRect(0,py2+2,TILE,pH-4);
+        // Plank bottom shadow
+        cx.fillStyle=wfDark[v]; cx.fillRect(0,py2+pH-2,TILE,2);
+        // Wood grain lines
+        cx.fillStyle='rgba(0,0,0,0.06)';
+        for(let g=0;g<4;g++){
+          const gx=((v*5+i*7+g*8)%26)+1;
+          cx.fillRect(gx,py2+2,1,pH-4);
+        }
+        // Knot detail
+        if((v+i)%3===0){
+          const kx=((v*7+i*11)%22)+4;
+          cx.fillStyle='rgba(0,0,0,0.12)'; cx.fillRect(kx,py2+3,3,3);
+          cx.fillStyle=wfLight[v]; cx.fillRect(kx+1,py2+3,1,1);
+        }
       }
-      // Grain detail
-      cx.fillStyle='rgba(0,0,0,0.07)';
-      for(let i=0;i<3;i++) cx.fillRect(4+i*10,2+v*2,2,28);
-      TC.woodFloor.push(c);
+      // Plank gap lines
+      cx.fillStyle=wfDark[v];
+      for(let i=0;i<4;i++) cx.fillRect(0,i*pH,TILE,1);
+      TC.woodFloor.push(cv);
     }
 
-    // ── TILE FLOOR (bathroom/kitchen) ──
+    // ── TILE FLOOR — ceramic tiles 2.5D ──
     TC.tileFloor=[];
-    for(let v=0;v<2;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      const cols=['#c8d0d8','#d0d8e0'];
-      cx.fillStyle=cols[v]; cx.fillRect(0,0,TILE,TILE);
-      for(let ty2=0;ty2<4;ty2++) for(let tx2=0;tx2<4;tx2++){
-        cx.fillStyle=(tx2+ty2)%2===0?'rgba(0,0,0,0.05)':'rgba(255,255,255,0.08)';
-        cx.fillRect(tx2*8,ty2*8,8,8);
-        cx.fillStyle='rgba(0,0,0,0.15)';
-        cx.fillRect(tx2*8,ty2*8,8,1); cx.fillRect(tx2*8,ty2*8,1,8);
+    for(let v=0;v<4;v++){
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      const tb=['#d8ceb8','#c8bea8','#d4cac0','#ccc4b0'][v];
+      const td=['#a09080','#988878','#9c8c84','#948c7c'][v];
+      const th=['#ece4d0','#dcd4c0','#e8e0d4','#e0d8c8'][v];
+      cx.fillStyle=tb; cx.fillRect(0,0,TILE,TILE);
+      // 4 tiles in 2x2 grid with grout
+      const tileW=14, tileH=14, grout=2;
+      const offsets=[[1,1],[17,1],[1,17],[17,17]];
+      for(let t=0;t<4;t++){
+        const[tx,ty]=offsets[t];
+        cx.fillStyle=(t%2===v%2)?tb:th; cx.fillRect(tx,ty,tileW,tileH);
+        // Top highlight bevel
+        cx.fillStyle=th; cx.fillRect(tx,ty,tileW,2); cx.fillRect(tx,ty,2,tileH);
+        // Bottom shadow bevel
+        cx.fillStyle=td; cx.fillRect(tx,ty+tileH-2,tileW,2); cx.fillRect(tx+tileW-2,ty,2,tileH);
+        // Center subtle pattern
+        cx.fillStyle='rgba(0,0,0,0.04)'; cx.fillRect(tx+4,ty+4,tileW-8,tileH-8);
       }
-      TC.tileFloor.push(c);
+      // Grout lines
+      cx.fillStyle=td;
+      cx.fillRect(0,15,TILE,grout); cx.fillRect(15,0,grout,TILE);
+      cx.fillRect(0,0,TILE,1); cx.fillRect(0,0,1,TILE);
+      cx.fillRect(0,TILE-1,TILE,1); cx.fillRect(TILE-1,0,1,TILE);
+      TC.tileFloor.push(cv);
     }
 
-    // ── CARPET tile (bedroom) ──
+    // ── CARPET — rich patterned rug 2.5D ──
     TC.carpet=[];
-    for(let v=0;v<2;v++){
-      const c=document.createElement('canvas');c.width=TILE;c.height=TILE;
-      const cx=c.getContext('2d');cx.imageSmoothingEnabled=false;
-      cx.fillStyle=v===0?'#7060a8':'#6858a0'; cx.fillRect(0,0,TILE,TILE);
-      // Pattern
-      cx.fillStyle='rgba(255,255,255,0.08)';
-      for(let i=0;i<4;i++) cx.fillRect(i*8,0,1,TILE);
-      for(let i=0;i<4;i++) cx.fillRect(0,i*8,TILE,1);
-      cx.fillStyle='rgba(255,255,255,0.12)';
-      cx.fillRect(4,4,TILE-8,TILE-8);
-      cx.fillStyle='rgba(255,255,255,0)'; // clear
-      cx.fillStyle='rgba(255,200,100,0.1)'; cx.fillRect(8,8,TILE-16,TILE-16);
-      TC.carpet.push(c);
+    for(let v=0;v<4;v++){
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      const cb=['#8a2020','#7a3a18','#203060','#2a5020'][v];
+      const cp=['#d04040','#c06030','#4060b0','#408040'][v];
+      const ca=['#f0a040','#f0c040','#80c0f0','#80e880'][v]; // accent
+      cx.fillStyle=cb; cx.fillRect(0,0,TILE,TILE);
+      // Border frame
+      cx.fillStyle=cp; cx.fillRect(2,2,TILE-4,TILE-4);
+      cx.fillStyle=cb; cx.fillRect(4,4,TILE-8,TILE-8);
+      // Diamond center pattern
+      cx.fillStyle=cp;
+      cx.beginPath();
+      cx.moveTo(TILE/2,6); cx.lineTo(TILE-6,TILE/2);
+      cx.lineTo(TILE/2,TILE-6); cx.lineTo(6,TILE/2);
+      cx.closePath(); cx.fill();
+      cx.fillStyle=cb;
+      cx.beginPath();
+      cx.moveTo(TILE/2,10); cx.lineTo(TILE-10,TILE/2);
+      cx.lineTo(TILE/2,TILE-10); cx.lineTo(10,TILE/2);
+      cx.closePath(); cx.fill();
+      // Center dot
+      cx.fillStyle=ca; cx.fillRect(TILE/2-3,TILE/2-3,6,6);
+      cx.fillStyle=cp; cx.fillRect(TILE/2-1,TILE/2-1,2,2);
+      // Corner accents
+      for(const[x,y] of [[4,4],[TILE-8,4],[4,TILE-8],[TILE-8,TILE-8]]){
+        cx.fillStyle=ca; cx.fillRect(x,y,4,4);
+        cx.fillStyle=cb; cx.fillRect(x+1,y+1,2,2);
+      }
+      // Depth shadow bottom
+      cx.fillStyle='rgba(0,0,0,0.15)'; cx.fillRect(0,TILE-2,TILE,2);
+      TC.carpet.push(cv);
     }
 
     // ── INNER WALL (room divider) ──
@@ -7113,12 +7238,104 @@ function buildVillageSprites(){
     TC.houseWall=TC.cementWall[0];
     TC.houseDoor=TC.woodFloor[0];
 
-    // ── TREE ──
-    TC.tree=document.createElement('canvas');TC.tree.width=TILE;TC.tree.height=TILE*2;
-    const tc3=TC.tree.getContext('2d');tc3.imageSmoothingEnabled=false;
-    tc3.fillStyle='#604020'; tc3.fillRect(13,TILE,6,TILE-2);
-    tc3.fillStyle='#38802a'; tc3.beginPath();tc3.arc(TILE/2,TILE/2,14,0,Math.PI*2);tc3.fill();
-    tc3.fillStyle='#48a034'; tc3.beginPath();tc3.arc(TILE/2-4,TILE/2-4,9,0,Math.PI*2);tc3.fill();
+    // ── TREES — 6 pixel art variants ──
+    TC.trees=[];
+    function makeTree(type){
+      const cv=document.createElement('canvas');cv.width=TILE;cv.height=TILE*2;
+      const cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+      const W=TILE, H=TILE*2;
+      const trunk1='#7a4a1a', trunk2='#5a3210', leaf1='#2a8c1e', leaf2='#38b028', leaf3='#1e6614', leaf4='#50cc38';
+      if(type===0){
+        // Pine / Spruce — tall triangle
+        cx.fillStyle=trunk1; cx.fillRect(13,42,6,14);
+        cx.fillStyle=trunk2; cx.fillRect(13,42,3,14);
+        // 3 layers of triangles
+        cx.fillStyle=leaf3;
+        cx.beginPath();cx.moveTo(W/2,4);cx.lineTo(W/2+12,22);cx.lineTo(W/2-12,22);cx.closePath();cx.fill();
+        cx.fillStyle=leaf1;
+        cx.beginPath();cx.moveTo(W/2,8);cx.lineTo(W/2+11,24);cx.lineTo(W/2-11,24);cx.closePath();cx.fill();
+        cx.fillStyle=leaf3;
+        cx.beginPath();cx.moveTo(W/2,18);cx.lineTo(W/2+14,36);cx.lineTo(W/2-14,36);cx.closePath();cx.fill();
+        cx.fillStyle=leaf1;
+        cx.beginPath();cx.moveTo(W/2,22);cx.lineTo(W/2+13,38);cx.lineTo(W/2-13,38);cx.closePath();cx.fill();
+        cx.fillStyle=leaf3;
+        cx.beginPath();cx.moveTo(W/2,30);cx.lineTo(W/2+15,46);cx.lineTo(W/2-15,46);cx.closePath();cx.fill();
+        cx.fillStyle=leaf1;
+        cx.beginPath();cx.moveTo(W/2,34);cx.lineTo(W/2+14,48);cx.lineTo(W/2-14,48);cx.closePath();cx.fill();
+        // highlight
+        cx.fillStyle=leaf4; cx.fillRect(W/2-1,8,3,6); cx.fillRect(W/2-2,22,3,5);
+      } else if(type===1){
+        // Round broad oak — wide fluffy top
+        cx.fillStyle=trunk1; cx.fillRect(12,38,8,18);
+        cx.fillStyle=trunk2; cx.fillRect(12,38,4,18);
+        // bark lines
+        cx.fillStyle=trunk2; cx.fillRect(14,42,2,8);
+        // foliage — big round blob
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,24,17,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf1; cx.beginPath();cx.arc(W/2,24,15,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-4,20,10,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2+5,22,9,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf4; cx.fillRect(W/2-5,14,4,4); cx.fillRect(W/2+2,17,3,3);
+        // dark underside
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,30,10,0,Math.PI*2);cx.fill();
+      } else if(type===2){
+        // Wide bush-top tree — asymmetric fluffy
+        cx.fillStyle=trunk1; cx.fillRect(11,40,9,16);
+        cx.fillStyle=trunk2; cx.fillRect(11,40,4,16);
+        cx.fillStyle=trunk2; cx.fillRect(13,44,3,8);
+        // wide asymmetric canopy
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,22,18,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf1; cx.beginPath();cx.arc(W/2+2,22,16,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-6,18,11,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2+7,20,10,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-2,26,8,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf4; cx.fillRect(W/2-8,13,3,3); cx.fillRect(W/2+2,14,4,4);
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2+4,30,8,0,Math.PI*2);cx.fill();
+      } else if(type===3){
+        // Small skinny pine / bush — short version
+        cx.fillStyle=trunk1; cx.fillRect(14,44,5,12);
+        cx.fillStyle=trunk2; cx.fillRect(14,44,3,12);
+        // 2 triangle tiers only — shorter
+        cx.fillStyle=leaf3;
+        cx.beginPath();cx.moveTo(W/2,12);cx.lineTo(W/2+10,28);cx.lineTo(W/2-10,28);cx.closePath();cx.fill();
+        cx.fillStyle=leaf1;
+        cx.beginPath();cx.moveTo(W/2,16);cx.lineTo(W/2+9,30);cx.lineTo(W/2-9,30);cx.closePath();cx.fill();
+        cx.fillStyle=leaf3;
+        cx.beginPath();cx.moveTo(W/2,24);cx.lineTo(W/2+13,44);cx.lineTo(W/2-13,44);cx.closePath();cx.fill();
+        cx.fillStyle=leaf1;
+        cx.beginPath();cx.moveTo(W/2,28);cx.lineTo(W/2+12,46);cx.lineTo(W/2-12,46);cx.closePath();cx.fill();
+        cx.fillStyle=leaf4; cx.fillRect(W/2-1,14,3,5);
+      } else if(type===4){
+        // Tall oak — high trunk, round top
+        cx.fillStyle=trunk1; cx.fillRect(13,30,7,26);
+        cx.fillStyle=trunk2; cx.fillRect(13,30,3,26);
+        cx.fillStyle=trunk2; cx.fillRect(15,36,2,14);
+        // round canopy up high
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,18,16,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf1; cx.beginPath();cx.arc(W/2,17,14,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-5,14,9,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2+6,15,8,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf4; cx.fillRect(W/2-3,9,4,4); cx.fillRect(W/2+3,12,3,3);
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,24,9,0,Math.PI*2);cx.fill();
+      } else {
+        // Dense layered round tree — fullest canopy
+        cx.fillStyle=trunk1; cx.fillRect(12,36,8,20);
+        cx.fillStyle=trunk2; cx.fillRect(12,36,4,20);
+        cx.fillStyle=trunk2; cx.fillRect(14,40,2,10);
+        // multi-blob canopy
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,20,18,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf1; cx.beginPath();cx.arc(W/2,20,16,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-7,16,11,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2+6,14,10,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2+2,22,9,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf2; cx.beginPath();cx.arc(W/2-5,23,8,0,Math.PI*2);cx.fill();
+        cx.fillStyle=leaf4; cx.fillRect(W/2-6,10,3,4); cx.fillRect(W/2+3,11,4,3);
+        cx.fillStyle=leaf3; cx.beginPath();cx.arc(W/2,28,10,0,Math.PI*2);cx.fill();
+      }
+      return cv;
+    }
+    for(let i=0;i<6;i++) TC.trees.push(makeTree(i));
+    TC.tree=TC.trees[0]; // fallback
 
     // ── SIGN ──
     TC.sign=document.createElement('canvas');TC.sign.width=TILE;TC.sign.height=TILE;
@@ -7553,21 +7770,21 @@ function genVillage(){
 
   // === TREES along outer border ===
   for(let x=0;x<VILLAGE_W;x+=3){
-    if(villageMap[0][x]===T_GRASS){ villageMap[0][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:0}); }
+    if(villageMap[0][x]===T_GRASS){ villageMap[0][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:0,variant:Math.floor(Math.random()*6)}); }
     const last=VILLAGE_H-1;
-    if(villageMap[last]?.[x]===T_GRASS){ villageMap[last][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:last}); }
+    if(villageMap[last]?.[x]===T_GRASS){ villageMap[last][x]=T_TREE; villageDeco.push({type:'tree',tx:x,ty:last,variant:Math.floor(Math.random()*6)}); }
   }
   for(let y=0;y<VILLAGE_H;y+=3){
-    if(villageMap[y][0]===T_GRASS){ villageMap[y][0]=T_TREE; villageDeco.push({type:'tree',tx:0,ty:y}); }
+    if(villageMap[y][0]===T_GRASS){ villageMap[y][0]=T_TREE; villageDeco.push({type:'tree',tx:0,ty:y,variant:Math.floor(Math.random()*6)}); }
     const last=VILLAGE_W-1;
-    if(villageMap[y][last]===T_GRASS){ villageMap[y][last]=T_TREE; villageDeco.push({type:'tree',tx:last,ty:y}); }
+    if(villageMap[y][last]===T_GRASS){ villageMap[y][last]=T_TREE; villageDeco.push({type:'tree',tx:last,ty:y,variant:Math.floor(Math.random()*6)}); }
   }
   // A few interior trees scattered
   const intTrees=[[14,13],[14,14],[33,13],[33,14],[14,20],[14,21],[33,20],[33,21]];
   for(const[tx,ty]of intTrees){
     if(ty<VILLAGE_H&&tx<VILLAGE_W&&villageMap[ty][tx]===T_GRASS){
       villageMap[ty][tx]=T_TREE;
-      villageDeco.push({type:'tree',tx,ty});
+      villageDeco.push({type:'tree',tx,ty,variant:Math.floor(Math.random()*6)});
     }
   }
 
@@ -7636,79 +7853,144 @@ function renderVillage(){
       const px=Math.round(tx2*TILE-cx2)+ox;
       const py=Math.round(ty2*TILE-cy2)+oy;
       if(t===T_GRASS&&TC.grass)            gctx.drawImage(TC.grass[v%4],px,py);
-      else if(t===T_PATH&&TC.path)          gctx.drawImage(TC.path[v%2],px,py);
+      else if(t===T_PATH&&TC.path)          gctx.drawImage(TC.path[v%4],px,py);
       else if(t===T_FLOOR&&TC.floor)        gctx.drawImage(TC.floor[v%4],px,py);
       else if(t===T_TREE&&TC.grass)         gctx.drawImage(TC.grass[0],px,py);
       else if(t===T_WOOD&&TC.woodFloor)     gctx.drawImage(TC.woodFloor[v%4],px,py);
       else if(t===T_TILE&&TC.tileFloor)     gctx.drawImage(TC.tileFloor[v%2],px,py);
       else if(t===T_CARPET&&TC.carpet)      gctx.drawImage(TC.carpet[v%2],px,py);
       else if(t===T_IWALL&&TC.innerWall){
-        // Inner wall — draw floor beneath first based on context
+        // Inner wall — plaster wall with wood base
         gctx.drawImage(TC.woodFloor[0],px,py);
-        gctx.fillStyle='rgba(0,0,0,0.45)'; gctx.fillRect(px,py,TILE,4);
-        gctx.fillStyle='#c8bca0'; gctx.fillRect(px,py,TILE,3);
-        gctx.fillStyle='rgba(255,255,255,0.08)'; gctx.fillRect(px,py+3,TILE,1);
+        // Plaster wall face
+        gctx.fillStyle='#d4c8a8'; gctx.fillRect(px,py,TILE,6);
+        gctx.fillStyle='#e0d4b8'; gctx.fillRect(px,py,TILE,2); // highlight
+        gctx.fillStyle='#b8a888'; gctx.fillRect(px,py+4,TILE,2); // shadow
+        // Baseboard
+        gctx.fillStyle='#7a5828'; gctx.fillRect(px,py+6,TILE,3);
+        gctx.fillStyle='#9a7038'; gctx.fillRect(px,py+6,TILE,1);
       }
       else if(t===T_HOUSE){
-        // Cement exterior wall — thick gray blocks
-        gctx.fillStyle='#909090'; gctx.fillRect(px,py,TILE,TILE);
-        gctx.fillStyle='#a8a8a8'; gctx.fillRect(px+1,py+1,TILE-2,4);
-        gctx.fillStyle='#787878'; gctx.fillRect(px,py,TILE,1); gctx.fillRect(px,py,1,TILE);
-        gctx.fillStyle='#b0b0b0'; gctx.fillRect(px+2,py+2,TILE-4,2);
-        // Stone block seams
-        gctx.fillStyle='rgba(0,0,0,0.18)';
-        gctx.fillRect(px,py+TILE/2,TILE,1);
-        gctx.fillRect(px+TILE/2,py,1,TILE/2);
-        gctx.fillRect(px+TILE/4,py+TILE/2,1,TILE/2);
-        gctx.fillRect(px+3*TILE/4,py+TILE/2,1,TILE/2);
-        // Face/shadow below wall
-        gctx.fillStyle='#606060'; gctx.fillRect(px,py+TILE-4,TILE,4);
+        // Stone wall — warm tan brick from TC
+        const wv=(tx2+ty2)%2;
+        if(TC.cementWall) gctx.drawImage(TC.cementWall[wv],px,py);
+        else{
+          gctx.fillStyle='#a09070'; gctx.fillRect(px,py,TILE,TILE);
+        }
+        // Bottom face shadow
+        if(TC.cementFace) gctx.drawImage(TC.cementFace[wv],px,py+TILE);
       }
     }
   }
 
-  // Pass 1.5 — house exterior details: roof trim, windows, door frames
+  // Pass 1.4 — grass edge micro-shadows
+  for(let ty2=Math.max(0,sy);ty2<ey;ty2++){
+    for(let tx2=Math.max(0,sx);tx2<ex;tx2++){
+      const t=villageMap[ty2]?.[tx2];
+      if(t!==T_GRASS) continue;
+      const px2=Math.round(tx2*TILE-cx2)+ox;
+      const py2=Math.round(ty2*TILE-cy2)+oy;
+      const tN=villageMap[ty2-1]?.[tx2], tS=villageMap[ty2+1]?.[tx2];
+      const tW=villageMap[ty2]?.[tx2-1], tE=villageMap[ty2]?.[tx2+1];
+      if(tN===T_PATH||tN===T_HOUSE){ gctx.fillStyle='rgba(0,0,0,0.13)'; gctx.fillRect(px2,py2,TILE,5); }
+      if(tS===T_PATH||tS===T_HOUSE){ gctx.fillStyle='rgba(0,0,0,0.09)'; gctx.fillRect(px2,py2+TILE-4,TILE,4); }
+      if(tW===T_PATH||tW===T_HOUSE){ gctx.fillStyle='rgba(0,0,0,0.09)'; gctx.fillRect(px2,py2,4,TILE); }
+      if(tE===T_PATH||tE===T_HOUSE){ gctx.fillStyle='rgba(0,0,0,0.07)'; gctx.fillRect(px2+TILE-4,py2,4,TILE); }
+    }
+  }
+
+  // Pass 1.5 — house exterior details: roof, windows, door frames
   for(let hi=0;hi<houseDefs.length;hi++){
     const h=houseDefs[hi];
     const bpx=Math.round(h.tx*TILE-cx2)+ox;
     const bpy=Math.round(h.ty*TILE-cy2)+oy;
     const bw=h.w*TILE, bh=h.h*TILE;
-    // Roof color strip on top row
-    gctx.fillStyle='#704830'; gctx.fillRect(bpx,bpy,bw,6);
-    gctx.fillStyle='#904830'; gctx.fillRect(bpx+2,bpy+2,bw-4,2);
-    // Bottom trim
-    gctx.fillStyle='#504028'; gctx.fillRect(bpx,bpy+bh-6,bw,6);
-    // Door frame
+
+    // ── ROOF — layered tile roof with ridge ──
+    // Roof base (dark eave)
+    gctx.fillStyle='#4a3020'; gctx.fillRect(bpx-3,bpy-4,bw+6,8);
+    // Roof shingles strip
+    gctx.fillStyle='#7a4828'; gctx.fillRect(bpx-2,bpy-6,bw+4,6);
+    gctx.fillStyle='#9a5a30'; gctx.fillRect(bpx-1,bpy-6,bw+2,3);
+    // Roof ridge top
+    gctx.fillStyle='#c06030'; gctx.fillRect(bpx+2,bpy-8,bw-4,4);
+    gctx.fillStyle='#d07840'; gctx.fillRect(bpx+4,bpy-8,bw-8,2);
+    // Shingle row detail
+    for(let sx=bpx;sx<bpx+bw;sx+=12){
+      gctx.fillStyle='rgba(0,0,0,0.15)'; gctx.fillRect(sx,bpy-5,1,4);
+    }
+    // Eave shadow
+    gctx.fillStyle='rgba(0,0,0,0.25)'; gctx.fillRect(bpx,bpy,bw,4);
+
+    // ── FOUNDATION / BOTTOM TRIM ──
+    gctx.fillStyle='#6a5030'; gctx.fillRect(bpx,bpy+bh-6,bw,6);
+    gctx.fillStyle='#7a6040'; gctx.fillRect(bpx,bpy+bh-6,bw,2);
+    gctx.fillStyle='rgba(0,0,0,0.3)'; gctx.fillRect(bpx,bpy+bh,bw,3);
+
+    // ── DOOR ──
     const doorPx=Math.round(h.doorX*TILE-cx2)+ox;
     const doorPy=Math.round(h.doorY*TILE-cy2)+oy;
-    gctx.fillStyle='#704020'; gctx.fillRect(doorPx-2,doorPy-2,TILE+4,TILE+4);
-    gctx.fillStyle='#8a5030'; gctx.fillRect(doorPx,doorPy,TILE,TILE);
-    // Door panel
-    gctx.fillStyle='#6a3818'; gctx.fillRect(doorPx+2,doorPy+2,TILE-4,TILE-4);
-    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+3,doorPy+3,TILE/2-4,TILE/2-3);
-    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+TILE/2+1,doorPy+3,TILE/2-4,TILE/2-3);
-    gctx.fillStyle='#904028'; gctx.fillRect(doorPx+3,doorPy+TILE/2+1,TILE-6,TILE/2-4);
+    // Door arch frame
+    gctx.fillStyle='#5a3010'; gctx.fillRect(doorPx-3,doorPy-4,TILE+6,TILE+6);
+    // Door arch top
+    gctx.fillStyle='#8a5028'; gctx.fillRect(doorPx-2,doorPy-6,TILE+4,6);
+    gctx.fillStyle='#6a3818'; gctx.fillRect(doorPx-1,doorPy-5,TILE+2,4);
+    // Door body
+    gctx.fillStyle='#7a4018'; gctx.fillRect(doorPx,doorPy,TILE,TILE);
+    // Door panels (4 raised panels)
+    gctx.fillStyle='#8a5028'; gctx.fillRect(doorPx+2,doorPy+2,TILE/2-3,TILE/2-2);
+    gctx.fillStyle='#8a5028'; gctx.fillRect(doorPx+TILE/2+1,doorPy+2,TILE/2-3,TILE/2-2);
+    gctx.fillStyle='#8a5028'; gctx.fillRect(doorPx+2,doorPy+TILE/2,TILE-4,TILE/2-3);
+    // Panel highlights
+    gctx.fillStyle='#aa6838'; gctx.fillRect(doorPx+3,doorPy+3,TILE/2-5,2);
+    gctx.fillStyle='#aa6838'; gctx.fillRect(doorPx+TILE/2+2,doorPy+3,TILE/2-5,2);
+    gctx.fillStyle='#aa6838'; gctx.fillRect(doorPx+3,doorPy+TILE/2+1,TILE-6,2);
+    // Door shadow on ground
+    gctx.fillStyle='rgba(0,0,0,0.18)'; gctx.fillRect(doorPx,doorPy+TILE,TILE,3);
     // Doorknob
-    gctx.fillStyle='#f0c840'; gctx.fillRect(doorPx+TILE-8,doorPy+TILE/2-1,3,3);
-    // Windows — top row left and right
-    const winY=bpy+8;
-    for(const winOffX of [TILE+4, bw-TILE*1.5-4]){
+    gctx.fillStyle='#f0d050'; gctx.fillRect(doorPx+TILE-7,doorPy+TILE/2-1,4,4);
+    gctx.fillStyle='#ffeC70'; gctx.fillRect(doorPx+TILE-6,doorPy+TILE/2-1,2,2);
+
+    // ── WINDOWS ──
+    const winY=bpy+10;
+    const winOffsets=bw>=TILE*4?[TILE+6,bw-TILE*1.5-6]:[TILE*0.5+2,bw-TILE*1.2];
+    for(const winOffX of winOffsets){
       const wpx=bpx+winOffX;
-      gctx.fillStyle='#504028'; gctx.fillRect(wpx,winY,TILE-4,TILE-8);
-      gctx.fillStyle='#90c8f0'; gctx.fillRect(wpx+2,winY+2,TILE-8,TILE-12);
-      // Window cross
-      gctx.fillStyle='#504028'; gctx.fillRect(wpx+2+(TILE-8)/2-1,winY+2,(TILE-8)/2,TILE-12);
-      gctx.fillRect(wpx+2,winY+2+(TILE-12)/2-1,TILE-8,2);
-      // Reflection
-      gctx.fillStyle='rgba(255,255,255,0.3)'; gctx.fillRect(wpx+3,winY+3,4,4);
+      const ww=TILE-2, wh2=TILE-6;
+      // Window frame
+      gctx.fillStyle='#5a3810'; gctx.fillRect(wpx-2,winY-2,ww+4,wh2+4);
+      // Sill
+      gctx.fillStyle='#7a5828'; gctx.fillRect(wpx-3,winY+wh2+2,ww+6,4);
+      // Glass — sky blue tint
+      gctx.fillStyle='#7ab8d8'; gctx.fillRect(wpx,winY,ww,wh2);
+      // Glass inner light
+      gctx.fillStyle='#9ad0f0'; gctx.fillRect(wpx+1,winY+1,ww-2,4);
+      // Window cross divider
+      gctx.fillStyle='#5a3810';
+      gctx.fillRect(wpx+ww/2-1,winY,2,wh2);
+      gctx.fillRect(wpx,winY+wh2/2-1,ww,2);
+      // Reflection sparkle
+      gctx.fillStyle='rgba(255,255,255,0.55)'; gctx.fillRect(wpx+2,winY+2,4,3);
+      gctx.fillStyle='rgba(255,255,255,0.25)'; gctx.fillRect(wpx+2,winY+6,2,2);
+      // Night glow hint
+      gctx.fillStyle='rgba(255,220,100,0.08)'; gctx.fillRect(wpx,winY,ww,wh2);
     }
-    // NPC shop sign above door
+
+    // ── WALL TRIM lines ──
+    gctx.fillStyle='rgba(0,0,0,0.10)';
+    gctx.fillRect(bpx,bpy,1,bh);
+    gctx.fillRect(bpx+bw-1,bpy,1,bh);
+
+    // ── NPC shop sign above door ──
     const npc=VILLAGE_NPCS[h.npcIdx];
-    gctx.fillStyle=npc.color+'cc';
-    gctx.fillRect(doorPx-12,doorPy-16,TILE+24,14);
+    // Sign board
+    gctx.fillStyle='#5a3010'; gctx.fillRect(doorPx-14,doorPy-20,TILE+28,3);
+    gctx.fillStyle='#8a6030'; gctx.fillRect(doorPx-14,doorPy-20,TILE+28,1);
+    gctx.fillStyle=npc.color+'dd'; gctx.fillRect(doorPx-13,doorPy-18,TILE+26,14);
+    gctx.fillStyle='rgba(0,0,0,0.4)'; gctx.fillRect(doorPx-13,doorPy-5,TILE+26,2);
     gctx.fillStyle='#000';
     gctx.font='bold 6px monospace';
-    gctx.fillText(npc.icon+' '+npc.name.split(' ')[0],doorPx-10,doorPy-5);
+    gctx.fillText(npc.icon+' '+npc.name.split(' ')[0],doorPx-11,doorPy-7);
   }
 
   // Pass 1.8 — draw furniture sorted by py (depth)
@@ -7727,8 +8009,9 @@ function renderVillage(){
     const py=Math.round(d.ty*TILE-cy2)+oy;
     const now=Date.now();
 
-    if(d.type==='tree'&&TC.tree){
-      gctx.drawImage(TC.tree,px,py-TILE);
+    if(d.type==='tree'&&TC.trees&&TC.trees.length){
+      const tv=TC.trees[d.variant||0];
+      gctx.drawImage(tv,px,py-TILE);
 
     } else if(d.type==='sign'){
       if(TC.sign) gctx.drawImage(TC.sign,px,py);
@@ -7740,42 +8023,106 @@ function renderVillage(){
       gctx.fillText(npc.icon+' '+npc.desc,px-18,py-6);
 
     } else if(d.type==='well'){
-      // Stone well
-      gctx.fillStyle='#706050'; gctx.fillRect(px-10,py-8,20,16);
-      gctx.fillStyle='#504030'; gctx.fillRect(px-12,py-10,24,6);
-      gctx.fillStyle='#303060'; gctx.fillRect(px-6,py-4,12,10);
-      gctx.fillStyle='#a08060'; gctx.fillRect(px-12,py+2,24,4);
-      // Rope
-      gctx.strokeStyle='#c8a060'; gctx.lineWidth=1;
-      gctx.beginPath(); gctx.moveTo(px,py-14); gctx.lineTo(px-8,py-10); gctx.stroke();
-      gctx.beginPath(); gctx.moveTo(px,py-14); gctx.lineTo(px+8,py-10); gctx.stroke();
+      // Stone well — 2.5D pixel art
+      // Ground shadow
+      gctx.fillStyle='rgba(0,0,0,0.20)'; gctx.fillRect(px-14,py+8,28,6);
+      // Well base — stone ring
+      gctx.fillStyle='#706848'; gctx.fillRect(px-12,py-2,24,14);
+      gctx.fillStyle='#887860'; gctx.fillRect(px-12,py-2,24,4); // top highlight
+      gctx.fillStyle='#504030'; gctx.fillRect(px-12,py+10,24,3); // bottom shadow
+      // Inner water
+      gctx.fillStyle='#1840a0'; gctx.fillRect(px-9,py,18,10);
+      gctx.fillStyle='#2858c8'; gctx.fillRect(px-9,py,18,3); // water glint
+      gctx.fillStyle='rgba(255,255,255,0.3)'; gctx.fillRect(px-7,py+1,6,1);
+      // Stone block seams on well body
+      gctx.fillStyle='rgba(0,0,0,0.20)';
+      gctx.fillRect(px-12,py+6,24,1); gctx.fillRect(px,py-2,1,12);
+      // Wooden posts
+      gctx.fillStyle='#8a5820'; gctx.fillRect(px-13,py-18,4,22);
+      gctx.fillStyle='#a06830'; gctx.fillRect(px-13,py-18,4,2); // post top
+      gctx.fillStyle='#8a5820'; gctx.fillRect(px+9,py-18,4,22);
+      gctx.fillStyle='#a06830'; gctx.fillRect(px+9,py-18,4,2);
+      // Crossbeam
+      gctx.fillStyle='#7a4a18'; gctx.fillRect(px-13,py-18,26,5);
+      gctx.fillStyle='#9a6030'; gctx.fillRect(px-13,py-18,26,2); // beam highlight
+      // Roof (small triangle shape)
+      gctx.fillStyle='#5a3010'; gctx.fillRect(px-15,py-22,30,5);
+      gctx.fillStyle='#7a4820'; gctx.fillRect(px-13,py-22,26,3);
+      gctx.fillStyle='#9a5828'; gctx.fillRect(px-11,py-22,22,2);
+      // Rope + bucket
+      gctx.strokeStyle='#d4a060'; gctx.lineWidth=1.5;
+      gctx.beginPath(); gctx.moveTo(px-1,py-16); gctx.lineTo(px-1,py-4); gctx.stroke();
+      gctx.fillStyle='#8a4820'; gctx.fillRect(px-4,py-8,8,7); // bucket
+      gctx.fillStyle='#a05830'; gctx.fillRect(px-4,py-8,8,2);  // bucket rim
+      gctx.fillStyle='#304888'; gctx.fillRect(px-3,py-6,6,4);  // water in bucket
 
     } else if(d.type==='ladder_down'){
-      // Mine staircase — stone arch + ladder
-      // Stone arch
-      gctx.fillStyle='#302018';
-      gctx.fillRect(px-TILE,py-TILE/2,TILE*2,TILE);
-      // Dark void inside
-      gctx.fillStyle='#080408';
-      gctx.fillRect(px-TILE+6,py-TILE/2+4,TILE*2-12,TILE-4);
-      // Ladder rungs
-      gctx.fillStyle='#c8a060';
-      gctx.fillRect(px-6,py-TILE/2+2,3,TILE-4);
-      gctx.fillRect(px+3,py-TILE/2+2,3,TILE-4);
-      for(let r=0;r<4;r++) gctx.fillRect(px-6,py-TILE/2+4+r*6,12,2);
-      // Stone pillars
-      gctx.fillStyle='#505040';
-      gctx.fillRect(px-TILE+2,py-TILE*1.2,8,TILE*1.4);
-      gctx.fillRect(px+TILE-10,py-TILE*1.2,8,TILE*1.4);
-      // Arch top
-      gctx.fillStyle='#403020';
-      gctx.fillRect(px-TILE,py-TILE*1.2,TILE*2,8);
-      // Label
-      gctx.fillStyle='rgba(0,0,0,0.8)';
-      gctx.fillRect(px-28,py-TILE*1.2-16,56,12);
+      // Mine entrance — 2.5D stone arch with depth
+      const ay=py-TILE*1.3;
+      // Ground shadow
+      gctx.fillStyle='rgba(0,0,0,0.30)'; gctx.fillRect(px-TILE+4,py-4,TILE*2-8,10);
+      // Deep void (abyss)
+      gctx.fillStyle='#05030a';
+      gctx.fillRect(px-TILE+8,ay+10,TILE*2-16,TILE*1.4);
+      // Void depth gradient
+      gctx.fillStyle='#100820'; gctx.fillRect(px-TILE+8,ay+10,TILE*2-16,10);
+      // Distant glow in the void
+      const vg=gctx.createRadialGradient(px,ay+TILE*0.8,2,px,ay+TILE*0.8,20);
+      vg.addColorStop(0,'rgba(120,50,200,0.4)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+      gctx.fillStyle=vg; gctx.fillRect(px-22,ay+18,44,28);
+
+      // Stone floor around entrance
+      gctx.fillStyle='#6a6050'; gctx.fillRect(px-TILE,py-6,TILE*2,10);
+      gctx.fillStyle='#7a7060'; gctx.fillRect(px-TILE,py-6,TILE*2,3);
+
+      // Left pillar
+      gctx.fillStyle='#504838'; gctx.fillRect(px-TILE+2,ay,10,TILE*1.5);
+      gctx.fillStyle='#686050'; gctx.fillRect(px-TILE+2,ay,10,4); // pillar top highlight
+      gctx.fillStyle='rgba(0,0,0,0.25)'; gctx.fillRect(px-TILE+10,ay,2,TILE*1.5); // right edge shadow
+      // Left pillar detail
+      for(let r=0;r<4;r++){ gctx.fillStyle='rgba(0,0,0,0.12)'; gctx.fillRect(px-TILE+2,ay+r*12,10,1); }
+
+      // Right pillar
+      gctx.fillStyle='#504838'; gctx.fillRect(px+TILE-12,ay,10,TILE*1.5);
+      gctx.fillStyle='#686050'; gctx.fillRect(px+TILE-12,ay,10,4);
+      gctx.fillStyle='rgba(255,255,255,0.06)'; gctx.fillRect(px+TILE-12,ay,2,TILE*1.5);
+      for(let r=0;r<4;r++){ gctx.fillStyle='rgba(0,0,0,0.12)'; gctx.fillRect(px+TILE-12,ay+r*12,10,1); }
+
+      // Arch lintel (top beam)
+      gctx.fillStyle='#403020'; gctx.fillRect(px-TILE,ay-2,TILE*2,12);
+      gctx.fillStyle='#5a4830'; gctx.fillRect(px-TILE,ay-2,TILE*2,5);
+      gctx.fillStyle='#6a5838'; gctx.fillRect(px-TILE+2,ay-2,TILE*2-4,3);
+      // Arch keystone
+      gctx.fillStyle='#706050'; gctx.fillRect(px-7,ay-2,14,14);
+      gctx.fillStyle='#887868'; gctx.fillRect(px-6,ay-1,12,5);
+      // Carved rune on keystone
+      gctx.fillStyle='rgba(150,80,200,0.6)'; gctx.fillRect(px-2,ay+3,4,4);
+      gctx.fillStyle='rgba(180,120,255,0.4)'; gctx.fillRect(px-1,ay+4,2,2);
+
+      // Ladder in void
+      gctx.fillStyle='#b08040';
+      gctx.fillRect(px-5,ay+12,3,TILE*1.1);
+      gctx.fillRect(px+2,ay+12,3,TILE*1.1);
+      gctx.fillStyle='#c89050';
+      for(let r=0;r<6;r++) gctx.fillRect(px-5,ay+14+r*8,10,2);
+
+      // Torch lights on pillars
+      const tf=Math.sin(Date.now()/200)*0.15+0.85;
+      // Left torch
+      gctx.fillStyle='#c84010'; gctx.fillRect(px-TILE+13,ay+8,4,6);
+      gctx.fillStyle=`rgba(255,${Math.floor(160+80*tf)},0,0.9)`; gctx.fillRect(px-TILE+13,ay+4,4,5);
+      gctx.fillStyle=`rgba(255,220,0,${0.5*tf})`; gctx.fillRect(px-TILE+12,ay+2,6,4);
+      // Right torch
+      gctx.fillStyle='#c84010'; gctx.fillRect(px+TILE-17,ay+8,4,6);
+      gctx.fillStyle=`rgba(255,${Math.floor(160+80*tf)},0,0.9)`; gctx.fillRect(px+TILE-17,ay+4,4,5);
+      gctx.fillStyle=`rgba(255,220,0,${0.5*tf})`; gctx.fillRect(px+TILE-18,ay+2,6,4);
+
+      // Sign label
+      gctx.fillStyle='rgba(0,0,0,0.85)';
+      gctx.fillRect(px-30,ay-18,60,13);
       gctx.fillStyle='#f0c840';
       gctx.font='bold 6px monospace';
-      gctx.fillText('⬇ MINE FL.1',px-26,py-TILE*1.2-7);
+      gctx.fillText('⬇ MINE FL.1',px-28,ay-8);
       // Proximity hint
       const edx=gozo.wx-(d.tx*TILE+TILE/2), edy=gozo.wy-(d.ty*TILE+TILE-4);
       if(Math.sqrt(edx*edx+edy*edy)<TILE*2.5){
