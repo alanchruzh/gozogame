@@ -1844,6 +1844,12 @@ const WEAPONS = {
   dragonscale_sword:{name:'Dragonscale Sword',dmg:170,spd:1.3,range:2.2,tier:7,icon:'⚔️',color:'#20ffa0', floorMin:136, bossDrop:true, goldSell:10000},
   shadowfire_lance:{name:'Shadowfire Lance',dmg:190,spd:1.1, range:2.6, tier:7, icon:'⚡', color:'#ff40ff', floorMin:141, bossDrop:true, goldSell:12000},
   abyssal_reaper: {name:'Abyssal Reaper',  dmg:220,spd:1.0, range:2.4, tier:7, icon:'⚔️', color:'#ff0000', floorMin:146, bossDrop:true, goldSell:15000},
+  // ── TIER 8 — BOSS DROP WEAPONS (floors 151-200) ──
+  void_sovereign:   {name:'Void Sovereign',   dmg:320,spd:1.2, range:2.8, tier:8, icon:'🌀', color:'#8800ff', floorMin:160, bossDrop:true, goldSell:40000,  legendary:true},
+  death_scythe:     {name:'Death Scythe',      dmg:380,spd:0.9, range:3.2, tier:8, icon:'💀', color:'#ff0000', floorMin:170, bossDrop:true, goldSell:55000,  legendary:true},
+  chaos_blade:      {name:'Chaos Blade',       dmg:440,spd:1.4, range:2.6, tier:8, icon:'🔥', color:'#ff6600', floorMin:180, bossDrop:true, goldSell:70000,  legendary:true},
+  soul_lance:       {name:'Soul Lance',        dmg:500,spd:1.1, range:3.5, tier:8, icon:'💠', color:'#00aaff', floorMin:190, bossDrop:true, goldSell:90000,  legendary:true},
+  omega_destroyer:  {name:'Omega Destroyer',   dmg:600,spd:1.0, range:3.0, tier:8, icon:'⚡', color:'#ffff00', floorMin:200, bossDrop:true, goldSell:120000, legendary:true},
   // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
   gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
   monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
@@ -1855,7 +1861,6 @@ const WEAPONS = {
 // Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
 const WEAPON_SPR = {};
 const LEGEND_SPR = {}; // animated frames for legendary weapons
-const LEGEND_ARMOR_SPR = {}; // animated frames for legendary armors
 
 // ── LEGENDARY PIXEL ART SPRITES (48×48, 2.5D style, 8 animation frames) ──
 function buildLegendarySprite(id){
@@ -2390,6 +2395,498 @@ function buildLegendarySprite(id){
         cx.fillStyle=`rgba(255,200,0,${0.2*pulse})`;
         cx.fillRect(24+Math.cos(ra)*4,18+Math.sin(ra)*2,
           Math.cos(ra)*len|0, Math.sin(ra)*len*0.5|0);
+      }
+    }
+
+    // ── TIER 8 LEGENDARY WEAPONS ──
+    else if(id==='void_sovereign'){
+      // Void Sovereign: twin-bladed purple void scythe with orbiting void runes
+      const vAura=cx.createRadialGradient(24,24,2,24,24,24);
+      vAura.addColorStop(0,`rgba(120,0,255,${0.4*pulse})`);
+      vAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=vAura; cx.fillRect(0,0,48,48);
+      // Staff — void black with purple inlay
+      cx.fillStyle='#0a0014'; cx.fillRect(22,6,4,38);
+      cx.fillStyle='#5500aa';
+      for(let i=0;i<6;i++) cx.fillRect(22,8+i*6,4,2);
+      cx.fillStyle='#8800ff'; cx.fillRect(22,4,4,4); cx.fillRect(22,44,4,4);
+      // Scythe blade upper — massive void crescent
+      cx.fillStyle='#1a0040'; cx.fillRect(2,2,20,14);
+      cx.fillStyle='#3a0080'; cx.fillRect(3,3,18,12);
+      cx.fillStyle='#6600cc'; cx.fillRect(4,3,16,10);
+      cx.fillStyle='#9900ff'; cx.fillRect(5,3,14,8);
+      cx.fillStyle='#cc44ff'; cx.fillRect(5,3,7,3);
+      cx.fillStyle='#1a0040'; cx.fillRect(2,12,8,5); cx.fillRect(8,14,4,4);
+      // Scythe blade lower — mirror
+      cx.fillStyle='#1a0040'; cx.fillRect(2,32,20,14);
+      cx.fillStyle='#3a0080'; cx.fillRect(3,34,18,12);
+      cx.fillStyle='#6600cc'; cx.fillRect(4,35,16,10);
+      cx.fillStyle='#9900ff'; cx.fillRect(5,37,14,8);
+      cx.fillStyle='#cc44ff'; cx.fillRect(5,45,7,3);
+      cx.fillStyle='#1a0040'; cx.fillRect(2,31,8,5); cx.fillRect(8,30,4,4);
+      // Orbiting void runes
+      for(let r=0;r<4;r++){
+        const ra=t*Math.PI*2+r*1.571;
+        const rx=24+Math.cos(ra)*14, ry=24+Math.sin(ra)*10;
+        cx.fillStyle=`rgba(160,0,255,${0.7*pulse})`;
+        cx.fillRect(rx-2,ry-2,4,4);
+        cx.fillStyle=`rgba(220,120,255,${0.5*pulse})`;
+        cx.fillRect(rx-1,ry-1,2,2);
+      }
+      // Void center gem
+      cx.fillStyle='#33005a'; cx.fillRect(21,21,6,6);
+      cx.fillStyle='#8800ff'; cx.fillRect(22,22,4,4);
+      cx.fillStyle='#cc80ff'; cx.fillRect(23,23,2,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,23,1,1);
+    }
+
+    else if(id==='death_scythe'){
+      // Death Scythe: massive crimson bone scythe with dripping blood effect
+      const dAura=cx.createRadialGradient(24,24,2,24,24,24);
+      dAura.addColorStop(0,`rgba(200,0,0,${0.35*pulse})`);
+      dAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=dAura; cx.fillRect(0,0,48,48);
+      // Bone shaft
+      cx.fillStyle='#1a1008'; cx.fillRect(22,4,5,42);
+      cx.fillStyle='#c8b890'; cx.fillRect(23,5,3,40);
+      cx.fillStyle='#e0d0a8'; cx.fillRect(23,5,1,40);
+      // Bone knots on shaft
+      cx.fillStyle='#a89870';
+      for(let k=0;k<5;k++) cx.fillRect(22,10+k*8,5,3);
+      // MASSIVE blade — bone-white with blood stain
+      cx.fillStyle='#201008'; cx.fillRect(1,3,22,18);
+      cx.fillStyle='#d8c890'; cx.fillRect(2,4,20,16);
+      cx.fillStyle='#f0e0b0'; cx.fillRect(3,4,18,14);
+      cx.fillStyle='#ffffff'; cx.fillRect(3,4,10,4); // edge gleam
+      // Blood stain on blade
+      cx.fillStyle='rgba(180,0,0,0.7)';
+      cx.fillRect(6,8,14,8); cx.fillRect(4,10,8,6);
+      cx.fillStyle='rgba(220,0,0,0.5)';
+      cx.fillRect(8,7,10,6);
+      // Blade tip (angled)
+      cx.fillStyle='#201008';
+      cx.fillRect(1,18,8,5); cx.fillRect(1,21,4,4);
+      cx.fillStyle='#f0e0b0'; cx.fillRect(2,18,6,4);
+      // Blood drips (animated)
+      const drips=[[8,20],[12,22],[16,21],[20,20]];
+      drips.forEach(([dx,dy],di)=>{
+        if(di<fr+1){
+          cx.fillStyle='rgba(200,0,0,0.9)';
+          cx.fillRect(dx,dy,2,3+di);
+          cx.fillStyle='rgba(150,0,0,0.7)';
+          cx.fillRect(dx,dy+3+di,3,2);
+        }
+      });
+      // Skull pommel
+      cx.fillStyle='#c8b890'; cx.fillRect(20,44,8,5);
+      cx.fillStyle='#1a1008'; cx.fillRect(21,44,2,2); cx.fillRect(25,44,2,2);
+      cx.fillStyle='#080404'; cx.fillRect(21,45,2,2); cx.fillRect(25,45,2,2);
+    }
+
+    else if(id==='chaos_blade'){
+      // Chaos Blade: serrated dual-edged chaos sword, orange-red with black chaos runes
+      const cAura=cx.createRadialGradient(24,24,2,24,24,24);
+      cAura.addColorStop(0,`rgba(255,80,0,${0.4*pulse})`);
+      cAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=cAura; cx.fillRect(0,0,48,48);
+      // Blade — wide serrated chaos sword
+      cx.fillStyle='#200800'; cx.fillRect(16,2,16,44);
+      cx.fillStyle='#601000'; cx.fillRect(17,3,14,42);
+      cx.fillStyle='#cc2800'; cx.fillRect(18,3,12,40);
+      cx.fillStyle='#ff5000'; cx.fillRect(19,3,10,38);
+      cx.fillStyle='#ff8000'; cx.fillRect(20,3,8,36);
+      cx.fillStyle='#ffaa40'; cx.fillRect(21,3,3,30);
+      // Serrated left edge
+      cx.fillStyle='#200800';
+      for(let s=0;s<8;s++) cx.fillRect(16,5+s*5,4,3);
+      // Serrated right edge
+      for(let s=0;s<8;s++) cx.fillRect(28,6+s*5,4,3);
+      // Chaos runes (animated)
+      const runePositions=[[20,8],[22,16],[20,24],[22,32]];
+      runePositions.forEach(([rx,ry],ri)=>{
+        cx.fillStyle=`rgba(255,${180-ri*20},0,${0.6+0.3*pulse})`;
+        cx.fillRect(rx,ry,2,5); cx.fillRect(rx-1,ry+2,4,1);
+      });
+      // Crossguard — barbed
+      cx.fillStyle='#400800'; cx.fillRect(10,36,28,6);
+      cx.fillStyle='#cc2000'; cx.fillRect(11,37,26,4);
+      cx.fillStyle='#ff6000'; cx.fillRect(12,37,24,2);
+      // Crossguard barbs
+      cx.fillStyle='#400800';
+      cx.fillRect(9,34,4,4); cx.fillRect(35,34,4,4);
+      cx.fillStyle='#ff4000'; cx.fillRect(10,35,2,2); cx.fillRect(36,35,2,2);
+      // Handle
+      cx.fillStyle='#200800'; cx.fillRect(21,41,6,7);
+      cx.fillStyle='#ff4000';
+      for(let w=0;w<3;w++) cx.fillRect(21,42+w*2,6,1);
+      // Pommel — chaos sphere
+      cx.fillStyle='#300a00'; cx.beginPath(); cx.arc(24,47,4,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(255,80,0,${0.9*pulse})`; cx.beginPath(); cx.arc(24,47,2,0,Math.PI*2); cx.fill();
+      // Flame licks off blade
+      if(fr>=2){
+        cx.fillStyle='rgba(255,180,0,0.7)';
+        cx.fillRect(16,4,3,8); cx.fillRect(29,6,3,7);
+        cx.fillStyle='rgba(255,240,100,0.5)';
+        cx.fillRect(15,3,2,6); cx.fillRect(31,5,2,5);
+      }
+    }
+
+    else if(id==='soul_lance'){
+      // Soul Lance: long crystalline blue lance, souls trapped in the shaft
+      const sAura=cx.createRadialGradient(24,24,2,24,24,22);
+      sAura.addColorStop(0,`rgba(0,160,255,${0.35*pulse})`);
+      sAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=sAura; cx.fillRect(0,0,48,48);
+      // Lance shaft — crystal
+      cx.fillStyle='#001830'; cx.fillRect(21,4,6,40);
+      cx.fillStyle='#003060'; cx.fillRect(22,5,4,38);
+      cx.fillStyle='#0055a0'; cx.fillRect(23,5,2,38);
+      cx.fillStyle='rgba(100,200,255,0.3)'; cx.fillRect(22,5,1,38);
+      // Crystal shaft facets
+      cx.fillStyle='rgba(0,150,255,0.4)';
+      for(let f2=0;f2<6;f2++) cx.fillRect(21,6+f2*7,6,2);
+      // Spear tip — luminous crystal
+      cx.fillStyle='#001830'; cx.fillRect(19,1,10,6);
+      cx.fillStyle='#0055a0'; cx.fillRect(20,2,8,4);
+      cx.fillStyle='#0099ff'; cx.fillRect(21,2,6,3);
+      cx.fillStyle='#44ccff'; cx.fillRect(22,1,4,3);
+      cx.fillStyle='#88eeff'; cx.fillRect(23,0,2,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,0,1,2);
+      // Tip glow
+      const tipGrd=cx.createRadialGradient(24,2,0,24,2,10+pulse*4);
+      tipGrd.addColorStop(0,`rgba(100,220,255,${0.7*pulse})`);
+      tipGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=tipGrd; cx.fillRect(0,0,48,20);
+      // Trapped souls in shaft (floating faces)
+      const souls=[[24,12],[24,22],[24,32]];
+      souls.forEach(([sx,sy],si)=>{
+        const sf=(fr+si)%4;
+        cx.fillStyle=`rgba(150,220,255,${0.4+sf*0.1})`;
+        cx.beginPath(); cx.arc(sx,sy,3,0,Math.PI*2); cx.fill();
+        cx.fillStyle='rgba(0,20,60,0.8)';
+        cx.fillRect(sx-2,sy-1,1,1); cx.fillRect(sx+1,sy-1,1,1);
+      });
+      // Wing guard — crystal wings
+      cx.fillStyle='#002050'; cx.fillRect(10,38,28,4);
+      cx.fillStyle='#0066cc'; cx.fillRect(11,39,26,2);
+      cx.fillStyle='rgba(100,200,255,0.5)'; cx.fillRect(11,39,26,1);
+      // Wing tips
+      cx.fillStyle='#002050'; cx.fillRect(8,36,4,6); cx.fillRect(36,36,4,6);
+      cx.fillStyle='#0099ff'; cx.fillRect(9,37,2,4); cx.fillRect(37,37,2,4);
+      // Bottom cap
+      cx.fillStyle='#001830'; cx.fillRect(20,42,8,6);
+      cx.fillStyle='#0066cc'; cx.fillRect(21,43,6,4);
+      cx.fillStyle=`rgba(0,200,255,${0.7*pulse})`; cx.fillRect(22,44,4,2);
+    }
+
+    else if(id==='omega_destroyer'){
+      // Omega Destroyer: divine golden greatsword, blinding with sacred runes and star energy
+      const oAura=cx.createRadialGradient(24,24,4,24,24,26);
+      oAura.addColorStop(0,`rgba(255,220,0,${0.5*pulse})`);
+      oAura.addColorStop(0.5,`rgba(180,100,0,${0.2*pulse})`);
+      oAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=oAura; cx.fillRect(0,0,48,48);
+      // Omega star burst (background rays)
+      cx.fillStyle=`rgba(255,200,0,${0.3*pulse})`;
+      for(let r=0;r<12;r++){
+        const ra=t*Math.PI/6+r*Math.PI/6;
+        cx.save(); cx.translate(24,20); cx.rotate(ra);
+        cx.fillRect(-1,-20,2,20); cx.restore();
+      }
+      // MASSIVE blade
+      cx.fillStyle='#402000'; cx.fillRect(18,1,12,38);
+      cx.fillStyle='#804000'; cx.fillRect(19,2,10,36);
+      cx.fillStyle='#c07000'; cx.fillRect(20,2,8,34);
+      cx.fillStyle='#f0a000'; cx.fillRect(21,2,6,32);
+      cx.fillStyle='#ffd040'; cx.fillRect(22,2,4,30);
+      cx.fillStyle='#ffee80'; cx.fillRect(22,2,2,24);
+      cx.fillStyle='#ffffff'; cx.fillRect(22,2,1,16);
+      // Blade tip (pointed)
+      cx.fillStyle='#402000'; cx.fillRect(20,36,8,8);
+      cx.fillStyle='#c07000'; cx.fillRect(21,37,6,6);
+      cx.fillStyle='#ffd040'; cx.fillRect(22,38,4,5);
+      cx.fillStyle='#ffee80'; cx.fillRect(23,40,2,4);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,42,2,2);
+      // Omega rune down center of blade (animated glow)
+      cx.fillStyle=`rgba(255,255,200,${0.7*pulse})`;
+      cx.fillRect(23,4,2,2);
+      cx.fillRect(23,8,2,8); cx.fillRect(22,12,4,1);
+      cx.fillRect(23,16,2,8); cx.fillRect(22,20,4,1);
+      cx.fillRect(22,24,4,2);
+      // Divine crossguard
+      cx.fillStyle='#401800'; cx.fillRect(8,35,32,8);
+      cx.fillStyle='#c07000'; cx.fillRect(9,36,30,6);
+      cx.fillStyle='#ffd040'; cx.fillRect(10,37,28,4);
+      cx.fillStyle='#ffee80'; cx.fillRect(10,37,28,1);
+      // Crossguard end jewels
+      cx.fillStyle='#ff4444'; cx.fillRect(8,37,4,4); cx.fillRect(36,37,4,4);
+      cx.fillStyle='#ff8888'; cx.fillRect(9,38,2,2); cx.fillRect(37,38,2,2);
+      // Handle — wrapped gold
+      cx.fillStyle='#201000'; cx.fillRect(21,42,6,8);
+      cx.fillStyle='#cc8800';
+      for(let w=0;w<4;w++) cx.fillRect(21,43+w*2,6,1);
+      // Pommel — omega sphere
+      cx.fillStyle='#301000'; cx.fillRect(20,48,8,4);
+      cx.fillStyle='#ffd040'; cx.fillRect(21,48,6,3);
+      cx.fillStyle=`rgba(255,255,100,${0.9*pulse})`; cx.fillRect(22,49,4,2);
+      // Star burst from blade tip
+      if(fr>=1){
+        const sby=pulse*3;
+        cx.fillStyle=`rgba(255,240,100,${0.6*pulse})`;
+        cx.fillRect(20,0,8,3-Math.floor(sby));
+        cx.fillStyle=`rgba(255,255,200,${0.4*pulse})`;
+        cx.fillRect(18,-2,12,3);
+      }
+      // Orbiting gold sparks
+      for(let s=0;s<6;s++){
+        const sa=t*Math.PI*2+s*1.047;
+        const sr=12+pulse*5;
+        cx.fillStyle=`rgba(255,${180+s*12},0,${0.6*pulse})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,20+Math.sin(sa)*sr*0.4-1,2,2);
+      }
+    }
+
+    // ── TIER 3 LEGENDARY ARMORS ──
+    else if(id==='void_mantle'){
+      // Void Mantle: dark robe woven from void strands, pulsing purple portals
+      const vmAura=cx.createRadialGradient(24,24,3,24,24,26);
+      vmAura.addColorStop(0,`rgba(100,0,200,${0.3*pulse})`);
+      vmAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=vmAura; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#060010'; cx.fillRect(9,8,30,38);
+      cx.fillStyle='#0e0020'; cx.fillRect(10,9,28,36);
+      // Void strand weave
+      cx.strokeStyle=`rgba(80,0,160,${0.4*pulse})`; cx.lineWidth=1;
+      for(let i=0;i<6;i++){
+        cx.beginPath(); cx.moveTo(10,9+i*6); cx.lineTo(37,9+i*6); cx.stroke();
+        cx.beginPath(); cx.moveTo(10+i*5,9); cx.lineTo(10+i*5,45); cx.stroke();
+      }
+      // Void portal gem
+      const vpGrd=cx.createRadialGradient(24,22,0,24,22,7+pulse*4);
+      vpGrd.addColorStop(0,`rgba(180,0,255,0.9)`);
+      vpGrd.addColorStop(0.5,'rgba(60,0,120,0.7)');
+      vpGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=vpGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#0a0020'; cx.fillRect(20,18,8,8);
+      cx.fillStyle='#5500bb'; cx.fillRect(21,19,6,6);
+      cx.fillStyle='#9900ff'; cx.fillRect(22,20,4,4);
+      cx.fillStyle='#cc44ff'; cx.fillRect(23,21,2,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,21,1,1);
+      // Shoulder void tears
+      cx.fillStyle='#200040'; cx.fillRect(9,9,4,12); cx.fillRect(35,9,4,12);
+      cx.fillStyle=`rgba(100,0,200,${0.5*pulse})`;
+      cx.fillRect(10,10,2,10); cx.fillRect(36,10,2,10);
+      // Orbiting void motes
+      for(let s=0;s<5;s++){
+        const sa=t*Math.PI*2+s*1.257;
+        const sr=11+pulse*3;
+        cx.fillStyle=`rgba(160,0,255,${0.6*pulse})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,22+Math.sin(sa)*sr*0.5-1,2,2);
+      }
+      // Hem fringe
+      const hemFringe=cx.createLinearGradient(10,42,10,48);
+      hemFringe.addColorStop(0,'rgba(80,0,160,0)');
+      hemFringe.addColorStop(1,`rgba(120,0,220,${0.5*pulse})`);
+      cx.fillStyle=hemFringe; cx.fillRect(10,42,28,6);
+    }
+
+    else if(id==='death_shroud'){
+      // Death Shroud: tattered crimson death robe with bone clasps and soul fire
+      const dsAura=cx.createRadialGradient(24,24,4,24,24,26);
+      dsAura.addColorStop(0,`rgba(200,0,0,${0.3*pulse})`);
+      dsAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=dsAura; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#0e0000'; cx.fillRect(9,8,30,38);
+      cx.fillStyle='#1a0000'; cx.fillRect(10,9,28,36);
+      // Tattered edges
+      cx.fillStyle='rgba(0,0,0,0.6)';
+      for(let t2=0;t2<5;t2++){
+        cx.fillRect(10+t2*5,44,3,4+t2%2*2);
+        cx.fillRect(11+t2*5,42,2,3);
+      }
+      // Blood tear marks on robe
+      cx.fillStyle='rgba(160,0,0,0.35)';
+      cx.fillRect(14,12,6,20); cx.fillRect(28,15,6,18);
+      cx.fillRect(20,10,4,24);
+      // Death rune clasp center
+      cx.fillStyle='#300000'; cx.fillRect(19,16,10,12);
+      cx.fillStyle='#880000'; cx.fillRect(20,17,8,10);
+      cx.fillStyle=`rgba(255,0,0,${0.7*pulse})`;
+      // Death rune (☠ approximation)
+      cx.fillRect(23,18,2,2); cx.fillRect(22,20,4,1);
+      cx.fillRect(21,21,6,1); cx.fillRect(22,22,4,3);
+      cx.fillRect(21,24,2,1); cx.fillRect(25,24,2,1);
+      // Bone shoulder clasps
+      cx.fillStyle='#c0b890'; cx.fillRect(9,9,5,5); cx.fillRect(34,9,5,5);
+      cx.fillStyle='rgba(0,0,0,0.4)'; cx.fillRect(10,10,3,3); cx.fillRect(35,10,3,3);
+      cx.fillStyle=`rgba(255,0,0,${0.5*pulse})`; cx.fillRect(11,11,1,1); cx.fillRect(36,11,1,1);
+      // Soul fire glow at hem
+      const sfGrd=cx.createLinearGradient(10,40,10,48);
+      sfGrd.addColorStop(0,'rgba(200,0,0,0)');
+      sfGrd.addColorStop(1,`rgba(255,0,0,${0.4*pulse})`);
+      cx.fillStyle=sfGrd; cx.fillRect(10,40,28,8);
+    }
+
+    else if(id==='chaos_plate'){
+      // Chaos Plate: molten orange-red power armor with erupting lava cracks
+      const cpAura=cx.createRadialGradient(24,24,4,24,24,26);
+      cpAura.addColorStop(0,`rgba(255,60,0,${0.35*pulse})`);
+      cpAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=cpAura; cx.fillRect(0,0,48,48);
+      // Plate layers
+      cx.fillStyle='#300800'; cx.fillRect(8,7,32,38);
+      cx.fillStyle='#601000'; cx.fillRect(9,8,30,36);
+      cx.fillStyle='#981800'; cx.fillRect(10,9,28,34);
+      // Plate segments
+      cx.fillStyle='#401000';
+      for(let i=0;i<3;i++) cx.fillRect(10,16+i*8,28,2);
+      // LAVA CRACKS (glowing, animated)
+      const cracks=[
+        [12,10,1,14],[20,9,1,10],[28,11,1,12],
+        [15,20,8,1],[22,28,10,1],[14,32,6,1],
+      ];
+      cx.fillStyle=`rgba(255,${120+fr*30},0,${0.8*pulse})`;
+      cracks.forEach(([cx2,cy,cw,ch])=> cx.fillRect(cx2,cy,cw,ch));
+      cx.fillStyle=`rgba(255,220,0,${0.6*pulse})`;
+      cracks.forEach(([cx2,cy,cw,ch])=> cx.fillRect(cx2,cy,Math.max(1,cw-1),Math.max(1,ch-1)));
+      // Chaos emblem (burning ☄)
+      cx.fillStyle=`rgba(255,80,0,${0.8*pulse})`;
+      cx.fillRect(21,18,6,2); cx.fillRect(23,16,2,6);
+      cx.fillRect(20,19,8,1);
+      // Shoulder armor (spiked)
+      cx.fillStyle='#500c00'; cx.fillRect(7,8,5,14); cx.fillRect(36,8,5,14);
+      cx.fillStyle='#ff3000'; cx.fillRect(8,8,3,2); cx.fillRect(37,8,3,2);
+      // Spike tips
+      cx.fillStyle='#ff6000';
+      cx.fillRect(7,6,3,3); cx.fillRect(38,6,3,3);
+      cx.fillRect(8,4,2,3); cx.fillRect(38,4,2,3);
+      // Glow at plate joints
+      const jGrd=cx.createRadialGradient(24,24,4,24,24,22);
+      jGrd.addColorStop(0,`rgba(255,80,0,${0.1*pulse})`);
+      jGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=jGrd; cx.fillRect(0,0,48,48);
+      // Erupting fire at top
+      if(fr>=2){
+        cx.fillStyle='rgba(255,120,0,0.7)'; cx.fillRect(18,5,4,5); cx.fillRect(24,4,4,6); cx.fillRect(30,5,4,4);
+        cx.fillStyle='rgba(255,220,0,0.5)'; cx.fillRect(19,4,2,4); cx.fillRect(25,3,2,5); cx.fillRect(31,4,2,3);
+      }
+    }
+
+    else if(id==='soul_barrier'){
+      // Soul Barrier: giant crystalline shield-robe, trapped souls orbiting in blue crystal
+      const sbAura=cx.createRadialGradient(24,24,4,24,24,26);
+      sbAura.addColorStop(0,`rgba(0,150,255,${0.35*pulse})`);
+      sbAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=sbAura; cx.fillRect(0,0,48,48);
+      // Crystal body
+      cx.fillStyle='#001020'; cx.fillRect(9,8,30,38);
+      cx.fillStyle='#001f40'; cx.fillRect(10,9,28,36);
+      // Crystal facets
+      cx.strokeStyle=`rgba(0,150,255,${0.3+0.2*pulse})`; cx.lineWidth=1;
+      for(let i=0;i<5;i++){
+        cx.beginPath(); cx.moveTo(10,9+i*7); cx.lineTo(37,9+i*7); cx.stroke();
+        cx.beginPath(); cx.moveTo(10+i*6,9); cx.lineTo(10+i*6,45); cx.stroke();
+      }
+      // Giant soul gem
+      const sgGrd=cx.createRadialGradient(24,22,0,24,22,9+pulse*4);
+      sgGrd.addColorStop(0,'rgba(150,230,255,0.95)');
+      sgGrd.addColorStop(0.4,'rgba(0,150,255,0.8)');
+      sgGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=sgGrd; cx.fillRect(0,0,48,48);
+      cx.fillStyle='#001830'; cx.fillRect(19,17,10,10);
+      cx.fillStyle='#0055aa'; cx.fillRect(20,18,8,8);
+      cx.fillStyle='#0099ee'; cx.fillRect(21,19,6,6);
+      cx.fillStyle='#55ccff'; cx.fillRect(22,20,4,4);
+      cx.fillStyle='#aaeeff'; cx.fillRect(23,21,2,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(23,21,1,1);
+      // Trapped soul wisps orbiting
+      for(let s=0;s<8;s++){
+        const sa=t*Math.PI*2+s*0.785;
+        const sr=12+pulse*5;
+        const alpha=0.3+0.5*Math.sin(t*Math.PI*2+s);
+        cx.fillStyle=`rgba(100,200,255,${alpha})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,22+Math.sin(sa)*sr*0.5-1,2,2);
+        // soul face
+        if(s%2===0){
+          cx.fillStyle='rgba(0,20,60,0.6)';
+          cx.fillRect(24+Math.cos(sa)*sr-1,22+Math.sin(sa)*sr*0.5-2,1,1);
+          cx.fillRect(24+Math.cos(sa)*sr,  22+Math.sin(sa)*sr*0.5-2,1,1);
+        }
+      }
+      // Crystal shoulder caps
+      cx.fillStyle='#002244'; cx.fillRect(9,9,4,10); cx.fillRect(35,9,4,10);
+      cx.fillStyle='#0066bb'; cx.fillRect(10,10,2,8); cx.fillRect(36,10,2,8);
+      cx.fillStyle=`rgba(100,200,255,${0.5*pulse})`; cx.fillRect(10,10,1,7); cx.fillRect(36,10,1,7);
+      // Crystal hem glow
+      const chGrd=cx.createLinearGradient(10,42,10,48);
+      chGrd.addColorStop(0,'rgba(0,150,255,0)');
+      chGrd.addColorStop(1,`rgba(0,200,255,${0.45*pulse})`);
+      cx.fillStyle=chGrd; cx.fillRect(10,42,28,6);
+    }
+
+    else if(id==='omega_aegis'){
+      // Omega Aegis: ultimate golden divine plate, radiates omega energy and sunburst rays
+      const oaAura=cx.createRadialGradient(24,24,4,24,24,28);
+      oaAura.addColorStop(0,`rgba(255,220,0,${0.5*pulse})`);
+      oaAura.addColorStop(0.5,`rgba(180,100,0,${0.2*pulse})`);
+      oaAura.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=oaAura; cx.fillRect(0,0,48,48);
+      // Divine sunburst rays (background)
+      cx.fillStyle=`rgba(255,200,0,${0.25*pulse})`;
+      for(let r=0;r<12;r++){
+        const ra=t*Math.PI/6+r*Math.PI/6;
+        cx.save(); cx.translate(24,24); cx.rotate(ra);
+        cx.fillRect(-1,-24,2,24); cx.restore();
+      }
+      // Plate body
+      cx.fillStyle='#402000'; cx.fillRect(9,8,30,38);
+      cx.fillStyle='#804000'; cx.fillRect(10,9,28,36);
+      cx.fillStyle='#c06000'; cx.fillRect(11,10,26,34);
+      cx.fillStyle='#e08000'; cx.fillRect(12,11,24,32);
+      // Gold plate sheen
+      const sheenY2=Math.floor(11+((t*36)%36));
+      const sheenGrd2=cx.createLinearGradient(12,sheenY2-3,36,sheenY2+3);
+      sheenGrd2.addColorStop(0,'rgba(255,255,255,0)');
+      sheenGrd2.addColorStop(0.5,`rgba(255,255,200,${0.5*pulse})`);
+      sheenGrd2.addColorStop(1,'rgba(255,255,255,0)');
+      cx.fillStyle=sheenGrd2; cx.fillRect(12,sheenY2-2,24,5);
+      // Plate rivet lines
+      cx.fillStyle='#601000';
+      for(let i=0;i<3;i++) cx.fillRect(12,18+i*8,24,2);
+      // Omega emblem center (Ω in gold)
+      cx.fillStyle='#ffd040';
+      cx.fillRect(19,20,10,2); // top arc
+      cx.fillRect(18,22,4,6); cx.fillRect(26,22,4,6); // sides
+      cx.fillStyle='#ffe060'; cx.fillRect(19,20,3,1); // shine
+      cx.fillStyle='#ffee80'; cx.fillRect(22,21,4,1);
+      // Omega rune glow
+      const oGrd=cx.createRadialGradient(24,24,0,24,24,8+pulse*4);
+      oGrd.addColorStop(0,`rgba(255,220,50,${0.6*pulse})`);
+      oGrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=oGrd; cx.fillRect(0,0,48,48);
+      // Shoulder divine wings
+      cx.fillStyle='#804000'; cx.fillRect(8,9,5,16); cx.fillRect(35,9,5,16);
+      cx.fillStyle='#e08000'; cx.fillRect(9,10,3,14); cx.fillRect(36,10,3,14);
+      // Wing feather hint
+      cx.fillStyle='#ffd040';
+      cx.fillRect(8,10,1,4); cx.fillRect(8,16,1,4);
+      cx.fillRect(35+5,10,1,4); cx.fillRect(35+5,16,1,4);
+      // Divine crown plate top
+      cx.fillStyle='#401800'; cx.fillRect(14,6,20,5);
+      cx.fillStyle='#e08000'; cx.fillRect(15,7,18,3);
+      cx.fillStyle='#ffd040';
+      cx.fillRect(14,5,4,3); cx.fillRect(20,4,8,4); cx.fillRect(30,5,4,3);
+      // Crown jewels
+      cx.fillStyle='#ff2020'; cx.fillRect(23,3,4,3);
+      cx.fillStyle='#00aaff'; cx.fillRect(15,6,3,3); cx.fillRect(30,6,3,3);
+      cx.fillStyle='#ffffff'; cx.fillRect(24,4,2,2);
+      // Orbiting omega stars
+      for(let s=0;s<8;s++){
+        const sa=t*Math.PI*2+s*0.785;
+        const sr=18+pulse*5;
+        const bri=0.25+0.4*Math.sin(t*Math.PI*4+s);
+        cx.fillStyle=`rgba(255,${200+s*7},0,${bri})`;
+        cx.fillRect(24+Math.cos(sa)*sr-1,24+Math.sin(sa)*sr*0.5-1,2,2);
       }
     }
 
@@ -2987,7 +3484,6 @@ const POTIONS = {
   luck_pot:  {name:'Lucky Brew',     color:'#30b010', glowCol:'#70ff30', effect:'luck',   value:2,   desc:'+2× Drop Luck (40s)',    dropW:14},
   bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'AoE blast — deals heavy damage to nearby monsters',  dropW:4},
   maxhp_pot: {name:'Elixir of Life', color:'#c060e0', glowCol:'#f0a0ff', effect:'maxhp',  value:20,  desc:'+20 Max HP permanently', dropW:3},
-  levelup_pot:{name:'Elixir of Wisdom', color:'#ffe040', glowCol:'#fff080', effect:'gainexp', value:100, desc:'Gain 100 EXP instantly!', dropW:0},
 };
 
 // Active potion buffs (remaining frames)
@@ -3181,15 +3677,6 @@ function buildPotionSprite(id){
     heart(16,19,'rgba(255,220,255,0.85)');
     // Star crown
     star(16,14,'rgba(255,200,255,0.7)');
-
-  } else if(id==='levelup_pot'){
-    // Golden flask — upward arrow + star
-    flask(9,11,14,16, 12,8,6, c, darken(c,30), 'rgba(255,255,150,0.35)');
-    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(8,28,16,2);
-    // Up arrow
-    cx.fillStyle='rgba(255,220,50,0.95)';
-    cx.beginPath(); cx.moveTo(16,12); cx.lineTo(11,19); cx.lineTo(14,19); cx.lineTo(14,25); cx.lineTo(18,25); cx.lineTo(18,19); cx.lineTo(21,19); cx.closePath(); cx.fill();
-    star(16,10,'rgba(255,255,100,0.9)');
   }
 
   // Bottle glass sheen (always on top)
@@ -3265,11 +3752,6 @@ function usePotion(slot){
     updateGozoHpBar();
     toast(`✨ ${p.name}! Max HP +${p.value} → ${G.maxHp}`);
     spawnDmg(sx,sy,`♥+${p.value}`,'#f0a0ff',9);
-  } else if(p.effect==='gainexp'){
-    gainExp(p.value);
-    toast(`📖 Elixir of Wisdom! +${p.value} EXP`);
-    spawnDmg(sx,sy,`+${p.value} EXP`,'#ffe040',11);
-    screenFlash('#ffe040',0.3,10);
   }
   removeFromInventory(slot,1);
 }
@@ -3328,10 +3810,21 @@ const BIOMES = {
   dragon_peak:{ name:'Dragon Peak',      floors:[], bgColor:'#000a05', ambientRgb:'0,50,20',    warmRgb:'40,255,120',  fogRgb:'0,40,15'    },
   shadow_void:{ name:'Shadow Void',      floors:[], bgColor:'#020005', ambientRgb:'20,0,40',    warmRgb:'200,40,255',  fogRgb:'15,0,30'    },
   abyss_core: { name:'Abyss Core',       floors:[], bgColor:'#000000', ambientRgb:'10,0,10',    warmRgb:'255,0,200',   fogRgb:'10,0,10'    },
+  // ── TIER 3 BIOMES — floors 151-200 ──
+  void_realm:   { name:'Void Realm',       floors:[], bgColor:'#000000', ambientRgb:'5,0,20',     warmRgb:'100,0,255',   fogRgb:'5,0,20'     },
+  death_plane:  { name:'Death Plane',      floors:[], bgColor:'#000000', ambientRgb:'20,0,0',     warmRgb:'255,0,0',     fogRgb:'20,0,0'     },
+  chaos_forge:  { name:'Chaos Forge',      floors:[], bgColor:'#000000', ambientRgb:'30,10,0',    warmRgb:'255,80,0',    fogRgb:'30,10,0'    },
+  soul_prison:  { name:'Soul Prison',      floors:[], bgColor:'#000000', ambientRgb:'0,5,20',     warmRgb:'0,150,255',   fogRgb:'0,5,20'     },
+  omega_core:   { name:'Omega Core',       floors:[], bgColor:'#000000', ambientRgb:'15,0,15',    warmRgb:'255,255,0',   fogRgb:'15,0,15'    },
 };
 
 // Determine biome by floor
 function getBiome(fl){
+  // Special floors 151-200: 5 omega biomes, 10 floors each
+  if(fl>=151&&fl<=200){
+    const seg=Math.floor((fl-151)/10);
+    return ['void_realm','death_plane','chaos_forge','soul_prison','omega_core'][Math.min(seg,4)];
+  }
   // Special floors 101-150: 10 horrific biomes, 5 floors each
   if(fl>=101&&fl<=150){
     const seg=Math.floor((fl-101)/5);
@@ -3595,12 +4088,14 @@ function makeWallTileBiome(variant, biome){
     const specWallCol={
       frost_hell:'#050e1e', poison_bog:'#040900', inferno:'#1e0100',
       demon_realm:'#0e0008', witch_wood:'#060010', blood_crypt:'#120000',
-      cyclops_range:'#0e0b00', dragon_peak:'#000e04', shadow_void:'#060010', abyss_core:'#060006'
+      cyclops_range:'#0e0b00', dragon_peak:'#000e04', shadow_void:'#060010', abyss_core:'#060006',
+      void_realm:'#030008', death_plane:'#0a0000', chaos_forge:'#0e0400', soul_prison:'#000408', omega_core:'#080800'
     };
     const specAcc={
       frost_hell:'rgba(40,100,200,0.2)', poison_bog:'rgba(60,180,10,0.2)', inferno:'rgba(255,50,0,0.25)',
       demon_realm:'rgba(180,0,30,0.2)', witch_wood:'rgba(140,30,255,0.18)', blood_crypt:'rgba(200,0,0,0.25)',
-      cyclops_range:'rgba(160,100,10,0.2)', dragon_peak:'rgba(20,180,60,0.2)', shadow_void:'rgba(140,0,200,0.22)', abyss_core:'rgba(200,0,200,0.3)'
+      cyclops_range:'rgba(160,100,10,0.2)', dragon_peak:'rgba(20,180,60,0.2)', shadow_void:'rgba(140,0,200,0.22)', abyss_core:'rgba(200,0,200,0.3)',
+      void_realm:'rgba(80,0,255,0.35)', death_plane:'rgba(255,0,0,0.4)', chaos_forge:'rgba(255,100,0,0.35)', soul_prison:'rgba(0,100,255,0.35)', omega_core:'rgba(255,255,0,0.3)'
     };
     cx.fillStyle=specWallCol[biome]||'#0a0a0a'; cx.fillRect(0,0,TILE,TILE);
     cx.fillStyle=specAcc[biome]||'rgba(100,100,100,0.15)';
@@ -3631,6 +4126,11 @@ function makeWallFaceTileBiome(variant, biome){
     dragon_peak:{top:'#005020', bot:'#000800', rim:'rgba(20,255,80,0.7)',strata:'rgba(0,30,10,0.22)'},
     shadow_void:{top:'#200040', bot:'#020003', rim:'rgba(200,0,255,0.75)',strata:'rgba(20,0,40,0.25)'},
     abyss_core:{top:'#200020', bot:'#000000', rim:'rgba(255,0,255,0.85)',strata:'rgba(20,0,20,0.3)'},
+    void_realm:  {top:'#100030', bot:'#000000', rim:'rgba(100,0,255,0.9)', strata:'rgba(10,0,30,0.35)'},
+    death_plane: {top:'#300000', bot:'#000000', rim:'rgba(255,0,0,0.95)',  strata:'rgba(30,0,0,0.35)'},
+    chaos_forge: {top:'#301000', bot:'#000000', rim:'rgba(255,80,0,0.9)',  strata:'rgba(30,10,0,0.35)'},
+    soul_prison: {top:'#001020', bot:'#000000', rim:'rgba(0,150,255,0.9)', strata:'rgba(0,10,20,0.35)'},
+    omega_core:  {top:'#202000', bot:'#000000', rim:'rgba(255,255,0,0.95)',strata:'rgba(20,20,0,0.35)'},
   };
   const cfg=configs[biome]||configs.lava;
   const grad=cx.createLinearGradient(0,0,0,TILE);
@@ -3828,6 +4328,67 @@ const BIOME_MOBS = {
     {n:'Final Specter',  cl:'#200018',hl:'#ff00e0',hp:4000,dmg:125,spd:0.8,shape:5,drop:'abyssal_reaper', special:'doom'},
     {n:'ABYSSAL GOD',    cl:'#080008',hl:'#ff00ff',hp:8000,dmg:160,spd:0.5,shape:17,drop:'abyssal_reaper', special:'doom', boss:true},
   ],
+  // ── TIER 3 BIOME MONSTERS — floors 151-200 ──
+  void_realm: [
+    {n:'Void Phantom',    cl:'#0a0020',hl:'#6000ff',hp:5000, dmg:180,spd:1.6,shape:5, drop:'void_sovereign',  special:'doom'},
+    {n:'Null Wraith',     cl:'#050015',hl:'#8020ff',hp:5500, dmg:190,spd:1.4,shape:5, drop:'void_sovereign',  special:'blind'},
+    {n:'Void Stalker',    cl:'#080028',hl:'#a040ff',hp:6000, dmg:195,spd:1.5,shape:5, drop:'void_sovereign',  special:'doom'},
+    {n:'Rift Demon',      cl:'#100030',hl:'#c060ff',hp:6500, dmg:200,spd:1.2,shape:3, drop:'void_sovereign',  special:'blind'},
+    {n:'Null Colossus',   cl:'#060020',hl:'#7000ff',hp:7000, dmg:210,spd:0.8,shape:3, drop:'void_sovereign',  special:'doom'},
+    {n:'Void Leviathan',  cl:'#0a0030',hl:'#9030ff',hp:7500, dmg:215,spd:1.0,shape:7, drop:'void_sovereign',  special:'doom'},
+    {n:'Rift Sovereign',  cl:'#080028',hl:'#b050ff',hp:8000, dmg:220,spd:0.9,shape:5, drop:'void_sovereign',  special:'blind'},
+    {n:'Null Titan',      cl:'#050018',hl:'#6020ff',hp:9000, dmg:230,spd:0.7,shape:3, drop:'void_sovereign',  special:'doom'},
+    {n:'Void Destroyer',  cl:'#100035',hl:'#d070ff',hp:10000,dmg:240,spd:0.8,shape:5, drop:'void_sovereign',  special:'doom'},
+    {n:'VOID OVERLORD',   cl:'#020008',hl:'#8800ff',hp:18000,dmg:280,spd:0.6,shape:18,drop:'void_sovereign',  special:'doom',boss:true},
+  ],
+  death_plane: [
+    {n:'Death Shade',     cl:'#1a0000',hl:'#ff0000',hp:5500, dmg:185,spd:1.5,shape:5, drop:'death_scythe',    special:'doom'},
+    {n:'Soul Ripper',     cl:'#200000',hl:'#ff2020',hp:6000, dmg:195,spd:1.4,shape:5, drop:'death_scythe',    special:'burn'},
+    {n:'Crimson Reaper',  cl:'#180000',hl:'#ff4040',hp:6500, dmg:200,spd:1.6,shape:5, drop:'death_scythe',    special:'doom'},
+    {n:'Blood Colossus',  cl:'#280000',hl:'#ff1010',hp:7000, dmg:205,spd:0.9,shape:3, drop:'death_scythe',    special:'doom'},
+    {n:'Death Dragon',    cl:'#200000',hl:'#ff3030',hp:7500, dmg:215,spd:0.8,shape:7, drop:'death_scythe',    special:'burn'},
+    {n:'Plague Titan',    cl:'#300000',hl:'#ff5050',hp:8000, dmg:220,spd:0.7,shape:3, drop:'death_scythe',    special:'doom'},
+    {n:'Death Sovereign', cl:'#180000',hl:'#ff0020',hp:9000, dmg:235,spd:0.8,shape:5, drop:'death_scythe',    special:'doom'},
+    {n:'Soul Devourer',   cl:'#100000',hl:'#ff0000',hp:10000,dmg:245,spd:1.0,shape:5, drop:'death_scythe',    special:'doom'},
+    {n:'Crimson God',     cl:'#280000',hl:'#ff6060',hp:11000,dmg:255,spd:0.8,shape:5, drop:'death_scythe',    special:'burn'},
+    {n:'DEATH INCARNATE', cl:'#0a0000',hl:'#ff0000',hp:20000,dmg:300,spd:0.6,shape:19,drop:'death_scythe',    special:'doom',boss:true},
+  ],
+  chaos_forge: [
+    {n:'Chaos Spawn',     cl:'#1e0800',hl:'#ff6000',hp:6000, dmg:190,spd:1.5,shape:3, drop:'chaos_blade',     special:'burn'},
+    {n:'Forge Demon',     cl:'#280a00',hl:'#ff7800',hp:6500, dmg:200,spd:1.3,shape:3, drop:'chaos_blade',     special:'doom'},
+    {n:'Molten Titan',    cl:'#300c00',hl:'#ff8800',hp:7000, dmg:210,spd:0.8,shape:3, drop:'chaos_blade',     special:'burn'},
+    {n:'Chaos Dragon',    cl:'#200800',hl:'#ff6600',hp:7500, dmg:215,spd:0.9,shape:7, drop:'chaos_blade',     special:'doom'},
+    {n:'Infernal Lord',   cl:'#380e00',hl:'#ffa000',hp:8000, dmg:225,spd:0.8,shape:3, drop:'chaos_blade',     special:'burn'},
+    {n:'Chaos Colossus',  cl:'#280a00',hl:'#ff7000',hp:9000, dmg:235,spd:0.7,shape:3, drop:'chaos_blade',     special:'doom'},
+    {n:'Forge Leviathan', cl:'#300c00',hl:'#ff9000',hp:10000,dmg:245,spd:0.7,shape:7, drop:'chaos_blade',     special:'burn'},
+    {n:'Chaos Sovereign', cl:'#200800',hl:'#ff6800',hp:11000,dmg:255,spd:0.8,shape:5, drop:'chaos_blade',     special:'doom'},
+    {n:'Molten God',      cl:'#3a1000',hl:'#ffb000',hp:12000,dmg:265,spd:0.7,shape:5, drop:'chaos_blade',     special:'burn'},
+    {n:'CHAOS EMPEROR',   cl:'#180600',hl:'#ff8000',hp:22000,dmg:320,spd:0.5,shape:20,drop:'chaos_blade',     special:'doom',boss:true},
+  ],
+  soul_prison: [
+    {n:'Cursed Soul',     cl:'#000818',hl:'#0080ff',hp:6000, dmg:195,spd:1.4,shape:5, drop:'soul_lance',      special:'freeze'},
+    {n:'Soul Warden',     cl:'#000a20',hl:'#0060ff',hp:6500, dmg:205,spd:1.2,shape:3, drop:'soul_lance',      special:'blind'},
+    {n:'Frozen Specter',  cl:'#000618',hl:'#00a0ff',hp:7000, dmg:210,spd:1.3,shape:5, drop:'soul_lance',      special:'freeze'},
+    {n:'Soul Titan',      cl:'#000c28',hl:'#0050ff',hp:7500, dmg:220,spd:0.8,shape:3, drop:'soul_lance',      special:'doom'},
+    {n:'Prison Dragon',   cl:'#000818',hl:'#00c0ff',hp:8000, dmg:225,spd:0.9,shape:7, drop:'soul_lance',      special:'freeze'},
+    {n:'Soul Colossus',   cl:'#000a20',hl:'#0070ff',hp:9000, dmg:235,spd:0.7,shape:3, drop:'soul_lance',      special:'blind'},
+    {n:'Cursed Leviathan',cl:'#000c28',hl:'#00d0ff',hp:10000,dmg:245,spd:0.8,shape:7, drop:'soul_lance',      special:'freeze'},
+    {n:'Soul Sovereign',  cl:'#000618',hl:'#0090ff',hp:11000,dmg:255,spd:0.7,shape:5, drop:'soul_lance',      special:'doom'},
+    {n:'Prison God',      cl:'#000a20',hl:'#00e0ff',hp:12000,dmg:265,spd:0.7,shape:5, drop:'soul_lance',      special:'freeze'},
+    {n:'SOUL JAILER',     cl:'#000408',hl:'#00b0ff',hp:24000,dmg:340,spd:0.5,shape:21,drop:'soul_lance',      special:'doom',boss:true},
+  ],
+  omega_core: [
+    {n:'Omega Spawn',     cl:'#181800',hl:'#ffff00',hp:7000, dmg:210,spd:1.5,shape:5, drop:'omega_destroyer',  special:'doom'},
+    {n:'Core Annihilator',cl:'#202000',hl:'#ffee00',hp:7500, dmg:220,spd:1.3,shape:3, drop:'omega_destroyer',  special:'blind'},
+    {n:'Omega Dragon',    cl:'#181800',hl:'#ffff40',hp:8000, dmg:230,spd:1.0,shape:7, drop:'omega_destroyer',  special:'doom'},
+    {n:'Final Titan',     cl:'#282800',hl:'#ffe000',hp:9000, dmg:240,spd:0.8,shape:3, drop:'omega_destroyer',  special:'doom'},
+    {n:'Omega Colossus',  cl:'#202000',hl:'#ffff20',hp:10000,dmg:250,spd:0.8,shape:3, drop:'omega_destroyer',  special:'doom'},
+    {n:'Core Leviathan',  cl:'#181800',hl:'#ffee40',hp:11000,dmg:260,spd:0.8,shape:7, drop:'omega_destroyer',  special:'blind'},
+    {n:'Omega Sovereign', cl:'#282800',hl:'#ffff60',hp:12000,dmg:270,spd:0.7,shape:5, drop:'omega_destroyer',  special:'doom'},
+    {n:'Final Destroyer', cl:'#202000',hl:'#ffe060',hp:14000,dmg:285,spd:0.7,shape:5, drop:'omega_destroyer',  special:'doom'},
+    {n:'Omega God',       cl:'#303000',hl:'#ffff80',hp:16000,dmg:300,spd:0.6,shape:5, drop:'omega_destroyer',  special:'doom'},
+    {n:'THE OMEGA',       cl:'#101000',hl:'#ffffff',hp:30000,dmg:400,spd:0.5,shape:22,drop:'omega_destroyer',  special:'doom',boss:true},
+  ],
 };
 
 // Build biome monster sprites
@@ -3853,6 +4414,7 @@ function buildBiomeMonsterSprite(mobDef, key){
     witch_wood:'rgba(200,60,255,0.4)', blood_crypt:'rgba(255,0,30,0.45)',
     cyclops_range:'rgba(255,160,20,0.35)', dragon_peak:'rgba(40,255,100,0.4)',
     shadow_void:'rgba(180,0,255,0.45)', abyss_core:'rgba(255,0,255,0.5)',
+    void_realm:'rgba(80,0,255,0.55)', death_plane:'rgba(255,0,0,0.55)', chaos_forge:'rgba(255,80,0,0.5)', soul_prison:'rgba(0,120,255,0.5)', omega_core:'rgba(220,220,0,0.5)',
   };
   const auraCol = auraMap[biomeKey] || 'rgba(200,200,255,0.2)';
 
@@ -5412,6 +5974,439 @@ function buildBiomeMonsterSprite(mobDef, key){
       cx.fillRect(C-14,C+12+float,1,2); cx.fillRect(C+13,C+11+float,1,2);
       cx.globalAlpha=1;
 
+    } else if(shape===18){ // VOID OVERLORD — massive floating void eye with 6 orbiting mini-eyes and tentacle crown
+      const pulse  = 0.75 + f*0.08;
+      const wriggle = f%2===0 ? 1 : -1;
+      const orbit = f * Math.PI / 2;
+
+      // === VOID RIFT BACKGROUND ===
+      cx.fillStyle=`rgba(30,0,80,${0.4*pulse})`;
+      cx.beginPath(); cx.arc(C,C,36,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(60,0,140,${0.25*pulse})`;
+      cx.beginPath(); cx.arc(C,C,28,0,Math.PI*2); cx.fill();
+
+      // === TENTACLE CROWN (8 tentacles radiating upward) ===
+      const tCrown=[[-22,-18],[-14,-26],[-4,-30],[6,-30],[16,-26],[22,-18],[26,-8],[-26,-8]];
+      for(let i=0;i<tCrown.length;i++){
+        const[tx,ty]=tCrown[i];
+        cx.fillStyle=i%2===0?'#2a0060':'#3a0080';
+        cx.save(); cx.translate(C+tx+wriggle*(i%3-1),C+ty);
+        cx.rotate(Math.atan2(ty,tx)+Math.PI/2);
+        cx.fillRect(-2,0,4,12); cx.fillRect(-1,-3,2,4);
+        cx.fillStyle='#6000cc'; cx.fillRect(-1,-3,1,3);
+        cx.restore();
+      }
+
+      // === MAIN BODY (dark void sphere) ===
+      cx.fillStyle='#08001a';
+      cx.beginPath(); cx.arc(C,C,18,0,Math.PI*2); cx.fill();
+      // vein cracks
+      cx.strokeStyle='#4000a0'; cx.lineWidth=1.5; cx.globalAlpha=0.6;
+      for(let v=0;v<8;v++){
+        const va=v*Math.PI/4+f*0.08;
+        cx.beginPath(); cx.moveTo(C,C);
+        cx.lineTo(C+Math.cos(va)*18,C+Math.sin(va)*18); cx.stroke();
+      }
+      cx.globalAlpha=1;
+
+      // === IRIS + PUPIL (void purple) ===
+      cx.fillStyle='#5000b0';
+      cx.beginPath(); cx.arc(C,C,14,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#8000ff';
+      cx.beginPath(); cx.arc(C,C,10,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#4000c0';
+      cx.beginPath(); cx.arc(C,C,7,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#000000';
+      cx.beginPath(); cx.arc(C,C,4,0,Math.PI*2); cx.fill();
+      cx.fillStyle='rgba(255,255,255,0.8)'; cx.fillRect(C-2,C-6,3,2); cx.fillRect(C-3,C-5,2,1);
+
+      // === 6 ORBITING MINI-EYES ===
+      for(let e=0;e<6;e++){
+        const ea=orbit+e*Math.PI/3;
+        const er=24;
+        const ex=C+Math.cos(ea)*er, ey=C+Math.sin(ea)*er*0.7;
+        cx.fillStyle='#1a0040';
+        cx.beginPath(); cx.arc(ex,ey,4,0,Math.PI*2); cx.fill();
+        cx.fillStyle='#8800ff';
+        cx.beginPath(); cx.arc(ex,ey,3,0,Math.PI*2); cx.fill();
+        cx.fillStyle='#ff00ff';
+        cx.beginPath(); cx.arc(ex,ey,1.5,0,Math.PI*2); cx.fill();
+        cx.fillStyle='rgba(200,100,255,0.5)';
+        cx.beginPath(); cx.arc(ex,ey,6,0,Math.PI*2); cx.fill();
+      }
+
+      // === PULSING VOID AURA ===
+      cx.fillStyle=`rgba(100,0,200,${0.2*pulse})`;
+      cx.beginPath(); cx.arc(C,C,34,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(180,0,255,${0.12*pulse})`;
+      cx.beginPath(); cx.arc(C,C,38,0,Math.PI*2); cx.fill();
+
+    } else if(shape===19){ // DEATH INCARNATE — massive skeletal reaper with scythe and tattered cloak, all crimson
+      const armSwing = f%2===0?3:-3;
+      const cloakBob = f%2===0?0:2;
+      const pulse = f%2===0?1.0:0.75;
+
+      // === MASSIVE DARK CLOAK (behind everything) ===
+      cx.fillStyle='#1a0000';
+      // cloak body, wide and tattered
+      cx.beginPath();
+      cx.moveTo(C-28,C+35+cloakBob);
+      cx.lineTo(C-22,C-10);
+      cx.lineTo(C+22,C-10);
+      cx.lineTo(C+28,C+35+cloakBob);
+      cx.closePath(); cx.fill();
+      // cloak rips
+      cx.fillStyle='rgba(0,0,0,0.6)';
+      cx.fillRect(C-24,C+18,4,14+cloakBob); cx.fillRect(C-16,C+22,3,12+cloakBob);
+      cx.fillRect(C+12,C+20,4,14+cloakBob); cx.fillRect(C+18,C+24,3,10+cloakBob);
+      cx.fillRect(C-8,C+28,3,8+cloakBob);
+      // cloak highlight edge
+      cx.fillStyle='rgba(180,0,0,0.2)';
+      cx.fillRect(C-22,C-10,2,40); cx.fillRect(C+20,C-10,2,40);
+
+      // === RIBCAGE ===
+      cx.fillStyle='#d0c8b0';
+      cx.fillRect(C-10,C-8,20,16);
+      cx.fillStyle='rgba(0,0,0,0.45)';
+      for(let r=0;r<4;r++){
+        cx.fillRect(C-10,C-8+r*4,20,1);
+        cx.fillRect(C-9,C-7+r*4,4,3); cx.fillRect(C+5,C-7+r*4,4,3);
+      }
+      // sternum
+      cx.fillStyle='#c0b8a0'; cx.fillRect(C-1,C-8,2,16);
+
+      // === SKULL (death mask, huge) ===
+      cx.fillStyle='#d8d0b8';
+      cx.fillRect(C-10,C-28,20,12); // skull block
+      cx.fillRect(C-8, C-30,16,4);  // dome
+      cx.fillRect(C-9, C-18,18,5);  // jaw
+      // brow ridge
+      cx.fillStyle='rgba(0,0,0,0.3)'; cx.fillRect(C-10,C-28,20,3);
+      // eye sockets (deep, crimson glow)
+      cx.fillStyle='#080000'; cx.fillRect(C-9,C-27,7,6); cx.fillRect(C+2,C-27,7,6);
+      cx.fillStyle=`rgba(255,0,0,${0.9*pulse})`;
+      cx.fillRect(C-8,C-26,5,4); cx.fillRect(C+3,C-26,5,4);
+      cx.fillStyle=`rgba(255,100,100,${0.4*pulse})`;
+      cx.beginPath(); cx.arc(C-6,C-24,5,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+6,C-24,5,0,Math.PI*2); cx.fill();
+      // nose hollow
+      cx.fillStyle='rgba(0,0,0,0.8)'; cx.fillRect(C-2,C-22,4,3);
+      // teeth
+      cx.fillStyle='#c0b898';
+      for(let t2=0;t2<5;t2++) cx.fillRect(C-7+t2*3,C-17,2,3);
+      // DEATH CROWN (dark bone crown with red gems)
+      cx.fillStyle='#a09070'; cx.fillRect(C-12,C-33,24,5);
+      cx.fillRect(C-13,C-38,5,6); cx.fillRect(C-4,C-40,8,8); cx.fillRect(C+8,C-38,5,6);
+      cx.fillStyle='#ff0000'; cx.fillRect(C-1,C-41,4,4); // center gem
+      cx.fillStyle='#cc0000'; cx.fillRect(C-12,C-37,3,3); cx.fillRect(C+9,C-37,3,3);
+
+      // === BONE ARMS ===
+      cx.fillStyle='#d0c8b0';
+      cx.fillRect(C-20,C-15+armSwing,6,12); cx.fillRect(C+14,C-15-armSwing,6,12);
+      // forearms
+      cx.fillRect(C-22,C-4+armSwing,5,10); cx.fillRect(C+17,C-4-armSwing,5,10);
+      // bony hands
+      cx.fillStyle='#c0b898';
+      cx.fillRect(C-23,C+5+armSwing,5,6); cx.fillRect(C+18,C+5-armSwing,5,6);
+      cx.fillStyle='rgba(0,0,0,0.3)';
+      for(let fi=0;fi<3;fi++){
+        cx.fillRect(C-23+fi*2,C+10+armSwing,1,4);
+        cx.fillRect(C+18+fi*2,C+10-armSwing,1,4);
+      }
+
+      // === GIANT SCYTHE (left hand, sweeping) ===
+      cx.save(); cx.translate(C-22,C+10+armSwing); cx.rotate(-0.7+armSwing*0.05);
+      // shaft
+      cx.fillStyle='#201010'; cx.fillRect(-2,-28,4,36);
+      cx.fillStyle='#100808'; cx.fillRect(-2,-28,1,36);
+      // blade
+      cx.fillStyle='#ff0000';
+      cx.beginPath(); cx.moveTo(0,-28); cx.lineTo(20,-38); cx.lineTo(18,-24); cx.lineTo(4,-20); cx.closePath(); cx.fill();
+      cx.fillStyle='#ff6060';
+      cx.beginPath(); cx.moveTo(2,-27); cx.lineTo(16,-35); cx.lineTo(14,-25); cx.closePath(); cx.fill();
+      // blade edge glow
+      cx.fillStyle=`rgba(255,100,100,${0.5*pulse})`;
+      cx.beginPath(); cx.moveTo(0,-28); cx.lineTo(20,-38); cx.lineTo(18,-30); cx.closePath(); cx.fill();
+      cx.restore();
+
+      // === BOTTOM CLOAK GLOW (blood red) ===
+      cx.fillStyle=`rgba(200,0,0,${0.15*pulse})`;
+      cx.beginPath(); cx.ellipse(C,C+30,20,8,0,0,Math.PI*2); cx.fill();
+
+    } else if(shape===20){ // CHAOS EMPEROR — titanic fiery armored warlord with two flaming weapons
+      const armSwing=f%2===0?4:-4;
+      const breathe =f%2===0?0:1;
+      const pulse   =f%2===0?1.0:0.7;
+      const flicker =f%2===0?'#ff8000':'#ffaa00';
+
+      // === FIRE AURA (background) ===
+      cx.fillStyle=`rgba(255,80,0,${0.2*pulse})`;
+      cx.beginPath(); cx.arc(C,C,36,0,Math.PI*2); cx.fill();
+
+      // === MASSIVE LEGS + BOOTS ===
+      cx.fillStyle='#601000';
+      cx.fillRect(C-10,C+14,9,12+breathe); cx.fillRect(C+1,C+14,9,12+breathe);
+      cx.fillStyle='#ff4000'; cx.fillRect(C-10,C+14,9,3); cx.fillRect(C+1,C+14,9,3);
+      // fire trim on boots
+      cx.fillStyle=flicker;
+      cx.fillRect(C-11,C+25+breathe,11,3); cx.fillRect(C+0,C+25+breathe,11,3);
+
+      // === ARMORED TORSO (layered plate) ===
+      cx.fillStyle='#800a00';
+      cx.fillRect(C-14,C-8,28,23+breathe);
+      cx.fillStyle='#a01000'; cx.fillRect(C-13,C-7,26,20);
+      // plate segments
+      cx.fillStyle='#600800';
+      for(let i=0;i<3;i++) cx.fillRect(C-13,C-5+i*7,26,2);
+      // chest emblem fire rune
+      cx.fillStyle=flicker;
+      cx.fillRect(C-3,C-4,6,2); cx.fillRect(C-1,C-6,2,8);
+      cx.fillRect(C-4,C+1,8,2);
+      // shoulder plates (massive)
+      cx.fillStyle='#700a00';
+      cx.fillRect(C-18,C-12,8,8); cx.fillRect(C+10,C-12,8,8);
+      cx.fillStyle='#ff4000';
+      cx.fillRect(C-18,C-12,8,2); cx.fillRect(C+10,C-12,8,2);
+
+      // === ARMS ===
+      cx.fillStyle='#800a00';
+      cx.fillRect(C-22,C-10+armSwing,8,12); cx.fillRect(C+14,C-10-armSwing,8,12);
+      cx.fillStyle='#a01000';
+      cx.fillRect(C-22,C-10+armSwing,8,3); cx.fillRect(C+14,C-10-armSwing,8,3);
+      // gauntlets
+      cx.fillStyle='#ff3000';
+      cx.fillRect(C-23,C+1+armSwing,9,6); cx.fillRect(C+14,C+1-armSwing,9,6);
+
+      // === LEFT WEAPON — CHAOS AXE (dual blade) ===
+      cx.save(); cx.translate(C-24,C+4+armSwing); cx.rotate(-0.4);
+      cx.fillStyle='#300800'; cx.fillRect(-2,-22,4,30);
+      // axe blades
+      cx.fillStyle='#ff4000';
+      cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(-14,-30); cx.lineTo(-12,-18); cx.closePath(); cx.fill();
+      cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(14,-30);  cx.lineTo(12,-18);  cx.closePath(); cx.fill();
+      cx.fillStyle=`rgba(255,180,0,${0.7*pulse})`;
+      cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(-10,-28); cx.lineTo(-8,-20); cx.closePath(); cx.fill();
+      cx.beginPath(); cx.moveTo(0,-22); cx.lineTo(10,-28);  cx.lineTo(8,-20);  cx.closePath(); cx.fill();
+      cx.restore();
+
+      // === RIGHT WEAPON — CHAOS MACE (spiked) ===
+      cx.save(); cx.translate(C+22,C+4-armSwing); cx.rotate(0.5);
+      cx.fillStyle='#300800'; cx.fillRect(-2,-22,4,28);
+      // mace head
+      cx.fillStyle='#ff2000'; cx.fillRect(-7,-28,14,12);
+      cx.fillStyle='#ff6000'; cx.fillRect(-6,-27,12,10);
+      // spikes
+      cx.fillStyle='#ffaa00';
+      cx.fillRect(-9,-26,3,3); cx.fillRect(6,-26,3,3);
+      cx.fillRect(-8,-30,3,3); cx.fillRect(5,-30,3,3);
+      cx.fillRect(-2,-32,4,4);
+      cx.restore();
+
+      // === NECK + HEAD ===
+      cx.fillStyle='#700800'; cx.fillRect(C-5,C-14,10,7);
+      cx.fillStyle='#900a00'; cx.fillRect(C-8,C-26,16,13);
+      cx.fillRect(C-9,C-28,18,4); // brow plate
+      cx.fillRect(C-10,C-22,20,6); // jaw
+      // eye slit visor
+      cx.fillStyle='#100000'; cx.fillRect(C-8,C-23,16,4);
+      cx.fillStyle=`rgba(255,${100+f*40},0,${0.9*pulse})`;
+      cx.fillRect(C-7,C-23,14,3);
+      // horns of chaos
+      cx.fillStyle='#500800';
+      cx.fillRect(C-12,C-28,3,8); cx.rotate && cx.fillRect(C+9,C-28,3,8);
+      cx.fillRect(C-13,C-32,2,5); cx.fillRect(C+11,C-32,2,5);
+      cx.fillStyle='#ff4000';
+      cx.fillRect(C-12,C-28,1,6); cx.fillRect(C+10,C-28,1,6);
+      // fire crown eruption
+      cx.fillStyle=`rgba(255,120,0,${0.6*pulse})`;
+      for(let fi=0;fi<5;fi++){
+        const fx=C-8+fi*4, fh=6+fi%2*4;
+        cx.fillRect(fx,C-30-fh,2,fh+2);
+      }
+      // fire breath (frames 2-3)
+      if(f>=2){
+        cx.fillStyle='rgba(255,60,0,0.95)'; cx.fillRect(C+10,C-21,8,5);
+        cx.fillStyle='rgba(255,140,0,0.8)'; cx.fillRect(C+18,C-22,10,8);
+        cx.fillStyle='rgba(255,220,0,0.6)'; cx.fillRect(C+27,C-23,8,9);
+        cx.fillStyle='rgba(255,255,200,0.4)'; cx.fillRect(C+34,C-22,6,7);
+      }
+
+    } else if(shape===21){ // SOUL JAILER — colossal crystalline prison warden, ice-blue cage armor with trapped souls
+      const pulse=f%2===0?1.0:0.7;
+      const float=f%2===0?0:1;
+      const shimmer=f%2===0?'#80d8ff':'#a0eeff';
+
+      // === SOUL AURA ===
+      cx.fillStyle=`rgba(0,120,255,${0.2*pulse})`;
+      cx.beginPath(); cx.arc(C,C,36,0,Math.PI*2); cx.fill();
+
+      // === CAGE ARMOR LEGS ===
+      cx.fillStyle='#001840';
+      cx.fillRect(C-10,C+12,9,14); cx.fillRect(C+1,C+12,9,14);
+      // cage bars on legs
+      cx.fillStyle=shimmer;
+      for(let b=0;b<3;b++){
+        cx.fillRect(C-10+b*3,C+12,1,14); cx.fillRect(C+1+b*3,C+12,1,14);
+      }
+      cx.fillRect(C-10,C+14,9,1); cx.fillRect(C+1,C+14,9,1);
+      cx.fillRect(C-10,C+20,9,1); cx.fillRect(C+1,C+20,9,1);
+      // crystal feet
+      cx.fillStyle='#004488'; cx.fillRect(C-11,C+25,11,3); cx.fillRect(C+0,C+25,11,3);
+      cx.fillStyle='#0088ff'; cx.fillRect(C-11,C+25,11,1); cx.fillRect(C+0,C+25,11,1);
+
+      // === CAGE ARMOR TORSO ===
+      cx.fillStyle='#001030';
+      cx.fillRect(C-14,C-10,28,23);
+      // crystal cage pattern
+      cx.fillStyle=shimmer; cx.globalAlpha=0.6;
+      for(let b=0;b<5;b++) cx.fillRect(C-14+b*6,C-10,1,23);
+      for(let b=0;b<4;b++) cx.fillRect(C-14,C-10+b*6,28,1);
+      cx.globalAlpha=1;
+      // center prison gem
+      const pgrd=cx.createRadialGradient(C,C-1,0,C,C-1,8+pulse*3);
+      pgrd.addColorStop(0,'rgba(0,220,255,0.9)');
+      pgrd.addColorStop(0.5,'rgba(0,100,200,0.6)');
+      pgrd.addColorStop(1,'rgba(0,0,0,0)');
+      cx.fillStyle=pgrd; cx.fillRect(C-12,C-10,24,20);
+      cx.fillStyle='#001840'; cx.fillRect(C-4,C-5,8,8);
+      cx.fillStyle='#0066cc'; cx.fillRect(C-3,C-4,6,6);
+      cx.fillStyle='#00aaff'; cx.fillRect(C-2,C-3,4,4);
+      cx.fillStyle='#80e0ff'; cx.fillRect(C-1,C-2,2,2);
+      cx.fillStyle='#ffffff'; cx.fillRect(C-1,C-2,1,1);
+
+      // === TRAPPED SOULS (floating around jailer) ===
+      const soulPos=[[-28,-5],[28,-5],[-26,10],[26,10],[-24,-18],[24,-18]];
+      soulPos.forEach(([sx,sy],i)=>{
+        const sf=(f+i)%4*0.25;
+        cx.fillStyle=`rgba(100,180,255,${0.5+sf*0.3})`;
+        cx.beginPath(); cx.arc(C+sx,C+sy+float*(i%2),5,0,Math.PI*2); cx.fill();
+        cx.fillStyle='rgba(200,240,255,0.9)';
+        cx.fillRect(C+sx-1,C+sy-2+float*(i%2),2,2);
+        // soul face (tiny)
+        cx.fillStyle='rgba(0,0,80,0.8)';
+        cx.fillRect(C+sx-2,C+sy-1+float*(i%2),1,1);
+        cx.fillRect(C+sx+1,C+sy-1+float*(i%2),1,1);
+      });
+
+      // === ARMS (crystal cage gauntlets) ===
+      cx.fillStyle='#001840';
+      cx.fillRect(C-22,C-10+float,8,14); cx.fillRect(C+14,C-10-float,8,14);
+      cx.fillStyle=shimmer; cx.globalAlpha=0.5;
+      for(let b=0;b<3;b++){
+        cx.fillRect(C-22+b*3,C-10+float,1,14);
+        cx.fillRect(C+14+b*3,C-10-float,1,14);
+      }
+      cx.globalAlpha=1;
+      // giant prison key (right hand)
+      cx.save(); cx.translate(C+22,C+2-float); cx.rotate(0.3);
+      cx.fillStyle='#002060'; cx.fillRect(-2,-20,4,28);
+      cx.fillStyle='#0066cc';
+      cx.fillRect(-2,-20,4,2);
+      cx.fillRect(2,-16,8,3); cx.fillRect(2,-10,6,3);
+      cx.fillStyle='#00aaff';
+      cx.fillRect(-2,-20,4,1); cx.fillRect(2,-16,8,1); cx.fillRect(2,-10,6,1);
+      cx.restore();
+
+      // === HEAD + HELMET (prison cage) ===
+      cx.fillStyle='#001030'; cx.fillRect(C-10,C-26,20,16);
+      cx.fillRect(C-9,C-28,18,4);
+      // cage bars on helmet
+      cx.fillStyle=shimmer; cx.globalAlpha=0.7;
+      for(let b=0;b<4;b++) cx.fillRect(C-9+b*5,C-28,1,16);
+      cx.fillRect(C-10,C-24,20,1);
+      cx.globalAlpha=1;
+      // eyes — cold blue
+      cx.fillStyle='#000a20'; cx.fillRect(C-8,C-25,6,5); cx.fillRect(C+2,C-25,6,5);
+      cx.fillStyle=`rgba(0,180,255,${0.95*pulse})`;
+      cx.fillRect(C-7,C-24,4,3); cx.fillRect(C+3,C-24,4,3);
+      cx.fillStyle=`rgba(150,230,255,${0.5*pulse})`;
+      cx.beginPath(); cx.arc(C-5,C-23,4,0,Math.PI*2); cx.fill();
+      cx.beginPath(); cx.arc(C+5,C-23,4,0,Math.PI*2); cx.fill();
+      // crown spires (prison towers)
+      cx.fillStyle='#002060';
+      cx.fillRect(C-12,C-32,3,5); cx.fillRect(C-4,C-34,4,7); cx.fillRect(C+5,C-34,4,7); cx.fillRect(C+9,C-32,3,5);
+      cx.fillStyle='#0088ff';
+      cx.fillRect(C-11,C-32,1,4); cx.fillRect(C-3,C-34,1,6); cx.fillRect(C+6,C-34,1,6); cx.fillRect(C+10,C-32,1,4);
+
+    } else if(shape===22){ // THE OMEGA — god of destruction, pure golden energy being with 8 arms and star core
+      const pulse=0.7+f*0.1;
+      const spin =f*Math.PI/4;
+      const glow =f%2===0?1.0:0.65;
+
+      // === OMEGA AURA (blinding golden) ===
+      cx.fillStyle=`rgba(255,220,0,${0.3*pulse})`;
+      cx.beginPath(); cx.arc(C,C,38,0,Math.PI*2); cx.fill();
+      cx.fillStyle=`rgba(255,255,100,${0.15*pulse})`;
+      cx.beginPath(); cx.arc(C,C,42,0,Math.PI*2); cx.fill();
+
+      // === 16-POINTED STAR BURST (background) ===
+      cx.fillStyle=`rgba(255,200,0,${0.35*glow})`;
+      for(let r=0;r<16;r++){
+        const ra=spin+r*Math.PI/8;
+        const len=28+((r%2)===0?8:0);
+        cx.save(); cx.translate(C,C); cx.rotate(ra);
+        cx.fillRect(-1,-len,2,len); cx.restore();
+      }
+
+      // === 8 ENERGY ARMS (radiating from center) ===
+      for(let a=0;a<8;a++){
+        const aa=spin*0.5+a*Math.PI/4;
+        const ax=C+Math.cos(aa)*22, ay=C+Math.sin(aa)*22;
+        const ax2=C+Math.cos(aa)*32, ay2=C+Math.sin(aa)*32;
+        // arm glow
+        cx.fillStyle=`rgba(255,220,0,${0.7*glow})`;
+        cx.save(); cx.translate(ax,ay); cx.rotate(aa);
+        cx.fillRect(-3,-5,6,10); cx.restore();
+        // arm tip orb
+        cx.fillStyle=`rgba(255,255,150,${0.9*glow})`;
+        cx.beginPath(); cx.arc(ax2,ay2,4,0,Math.PI*2); cx.fill();
+        cx.fillStyle='#ffffff';
+        cx.beginPath(); cx.arc(ax2,ay2,2,0,Math.PI*2); cx.fill();
+      }
+
+      // === BODY CORE (pure energy) ===
+      cx.fillStyle='#402000';
+      cx.beginPath(); cx.arc(C,C,16,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#c07000';
+      cx.beginPath(); cx.arc(C,C,13,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffc000';
+      cx.beginPath(); cx.arc(C,C,10,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffee40';
+      cx.beginPath(); cx.arc(C,C,7,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffff80';
+      cx.beginPath(); cx.arc(C,C,4,0,Math.PI*2); cx.fill();
+      cx.fillStyle='#ffffff';
+      cx.beginPath(); cx.arc(C,C,2,0,Math.PI*2); cx.fill();
+
+      // === OMEGA RUNE (Ω symbol in center) ===
+      cx.fillStyle=`rgba(80,20,0,${0.8*pulse})`;
+      // Ω approximation in pixels
+      cx.fillRect(C-5,C-4,10,2); // top arc top
+      cx.fillRect(C-6,C-3,3,5); cx.fillRect(C+3,C-3,3,5); // sides
+      cx.fillRect(C-6,C+2,4,2); cx.fillRect(C+2,C+2,4,2); // feet
+
+      // === ENERGY LIGHTNING BOLTS (frames 1-3) ===
+      if(f>=1){
+        cx.fillStyle=`rgba(255,255,200,${0.8*glow})`;
+        const bolts=[[-18,-20],[-22,0],[20,-18],[22,5],[-10,22],[12,20]];
+        bolts.forEach(([bx,by],bi)=>{
+          if(bi<f+1){
+            cx.fillRect(C+bx,C+by,2,2);
+            cx.fillRect(C+bx+(bi%2?1:-1),C+by+3,2,2);
+            cx.fillRect(C+bx,C+by+6,2,2);
+          }
+        });
+      }
+
+      // === FACE (ancient god, minimal, powerful) ===
+      cx.fillStyle='rgba(0,0,0,0.5)';
+      cx.fillRect(C-4,C-5,3,3); cx.fillRect(C+1,C-5,3,3); // eye sockets
+      cx.fillStyle=`rgba(255,255,255,${0.95*pulse})`;
+      cx.fillRect(C-3,C-4,2,2); cx.fillRect(C+2,C-4,2,2); // pure white eyes
+      // ancient mouth line
+      cx.fillStyle='rgba(0,0,0,0.4)'; cx.fillRect(C-4,C+1,8,1);
+      cx.fillStyle=`rgba(255,220,0,${0.6*pulse})`; cx.fillRect(C-3,C+2,6,1);
+
     } else { // shape 17: ABYSSAL GOD — colossal eye with writhing tentacles
       const pulse  = 0.75 + f*0.08;
       const wriggle = f%2===0 ? 1 : -1;
@@ -5601,8 +6596,9 @@ function spawnMonsters(fl){
   const floorMult = 1+(fl-1)*0.15;
   const count = 5 + Math.min(5, Math.floor(fl/12));
 
-  // Check if this is a boss floor (101,106,111,...,146 = every 5 floors in special zone)
-  const isBossFloor = fl>=101 && fl<=150 && ((fl-101)%5===4);
+  // Check if this is a boss floor (101,106,...,146 = every 5 fl in special zone; 160,170,...,200 = every 10 fl in tier3)
+  const isBossFloor = (fl>=101 && fl<=150 && ((fl-101)%5===4))
+                   || (fl>=151 && fl<=200 && ((fl-151)%10===9));
 
   // Choose monster pool — biome monsters if in biome floor, else MOB_DEFS
   const isBiomeFloor = biome !== 'cave';
@@ -6352,6 +7348,7 @@ function renderInventory(){
         // Try legendary armor animated sprite first, then forge sprite
         let accRendered=false;
         if(isLegArmor){
+          if(!LEGEND_ARMOR_SPR) window.LEGEND_ARMOR_SPR={};
           if(!LEGEND_ARMOR_SPR[s.id]){
             // Build single frame from buildLegendarySprite frames cache
             buildLegendarySprite(s.id);
@@ -6997,7 +7994,7 @@ const SHOP_BUY = {
   // Potions
   hp_small:40,    hp_medium:100,  hp_large:280,
   str_pot:120,    speed_pot:100,  shield_pot:90,
-  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,  levelup_pot:1000,
+  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,
   // Bombs
   bomb:200,
   // Ores (buy)
@@ -8924,6 +9921,12 @@ const LEGENDARY_ITEMS = [
   {id:'titan_shell',    priceGozo:15000, itemType:'armor'},
   {id:'soul_aegis',     priceGozo:25000, itemType:'armor'},
   {id:'abyssal_crown',  priceGozo:60000, itemType:'armor'},
+  // Tier 3 — boss drops only (not in shop)
+  {id:'void_mantle',    priceGozo:80000,  itemType:'armor'},
+  {id:'death_shroud',   priceGozo:100000, itemType:'armor'},
+  {id:'chaos_plate',    priceGozo:120000, itemType:'armor'},
+  {id:'soul_barrier',   priceGozo:150000, itemType:'armor'},
+  {id:'omega_aegis',    priceGozo:200000, itemType:'armor'},
 ];
 
 // Register legendary armors into CRAFTED_ITEMS
@@ -8948,6 +9951,27 @@ const LEGENDARY_ARMORS = {
     effect:'speed_boost',  val:1.0, color:'#ffd700',
     desc:'Crown of the Abyss God. +100% movement. Pure dominance.',
     goldSell:90000 },
+  // ── TIER 3 LEGENDARY ARMORS (floors 151-200) ──
+  void_mantle:   { id:'void_mantle',    name:"Void Mantle",         icon:'🌀', type:'accessory',
+    effect:'def_boost',    val:350, color:'#8800ff',
+    desc:'Woven from void fabric. DEF +350. Nullifies all status effects.',
+    goldSell:60000 },
+  death_shroud:  { id:'death_shroud',   name:"Death Shroud",        icon:'💀', type:'accessory',
+    effect:'def_boost',    val:420, color:'#cc0000',
+    desc:'Shroud of Death Incarnate. DEF +420. Fear made armor.',
+    goldSell:80000 },
+  chaos_plate:   { id:'chaos_plate',    name:"Chaos Plate",         icon:'🔥', type:'accessory',
+    effect:'def_boost',    val:500, color:'#ff6600',
+    desc:'Forged in the Chaos Forge. DEF +500. Burns foes on contact.',
+    goldSell:100000 },
+  soul_barrier:  { id:'soul_barrier',   name:"Soul Barrier",        icon:'💠', type:'accessory',
+    effect:'shield',       val:2000, color:'#00aaff',
+    desc:'Prison of a thousand souls. +2000 shield per floor. Unbreakable.',
+    goldSell:130000 },
+  omega_aegis:   { id:'omega_aegis',    name:"Omega Aegis",         icon:'⚡', type:'accessory',
+    effect:'def_boost',    val:666, color:'#ffff00',
+    desc:'The final armor. DEF +666. Radiates omega energy.',
+    goldSell:200000 },
 };
 Object.assign(CRAFTED_ITEMS, LEGENDARY_ARMORS);
 
@@ -12391,7 +13415,6 @@ function loop(){
     updateGozoVillage();
     checkVillageInteractions();
     tickBuffs();
-    tickStatusEffects();
     renderVillage();
   } else {
     updateGozo();
