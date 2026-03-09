@@ -11915,8 +11915,26 @@ function onFileLoad(e){
   const reader = new FileReader();
   reader.onload = (ev) => {
     try {
-      const data = JSON.parse(ev.target.result);
-      if(!data.G || !data.version){ toast('❌ Invalid save file!'); return; }
+      const raw = ev.target.result;
+      let data;
+      try { data = JSON.parse(raw); } 
+      catch(pe){ toast('❌ Save file is corrupted (invalid JSON)'); console.error('JSON parse error:',pe); return; }
+
+      // Support old saves without version field
+      if(!data.G){ toast('❌ Invalid save file — no game data found!'); return; }
+
+      // Merge saved G into current G safely (fill missing keys with defaults)
+      const saved = data.G;
+      // Ensure critical arrays/objects exist
+      if(!saved.inventory || !Array.isArray(saved.inventory)) saved.inventory = Array(30).fill(null);
+      if(!saved.upg) saved.upg = G.upg;
+      if(!saved.visitedFloors) saved.visitedFloors = [0,1];
+      if(!saved.legendPurchases) saved.legendPurchases = {};
+      if(saved.invSlots == null) saved.invSlots = 30;
+      if(saved.floor == null) saved.floor = 1;
+      if(saved.hp == null) saved.hp = 100;
+      if(saved.maxHp == null) saved.maxHp = 100;
+
       getAudioCtx();
       buildAllSprites();
       buildTiles();
@@ -11926,16 +11944,32 @@ function onFileLoad(e){
       buildAllPickaxeSprites();
       buildAllBiomeMonsterSprites();
       buildAllPotionSprites();
-      Object.assign(G, data.G);
+      Object.assign(G, saved);
+
+      // Re-register any crafted items found in inventory
+      for(const slot of G.inventory){
+        if(slot && slot.type==='accessory' && slot.def && slot.id){
+          CRAFTED_ITEMS[slot.id] = slot.def;
+        }
+        if(slot && slot.type==='weapon' && slot.def && slot.id){
+          if(!WEAPONS[slot.id]) WEAPONS[slot.id] = slot.def;
+        }
+        if(slot && slot.type==='pickaxe' && slot.def && slot.id){
+          if(!PICKAXES[slot.id]) PICKAXES[slot.id] = slot.def;
+        }
+      }
+
       initCanvas();
-      genFloor(G.floor);
+      if(G._isVillage || G.floor===0){ genVillage(); }
+      else { genFloor(G.floor); }
       setTimeout(()=>equipPickaxe(G.equippedPickaxe||'wooden_pick'),100);
       updateHud();
       updateGozoHpBar();
-      toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`);
+      toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`,'#40e090',3000);
       requestAnimationFrame(loop);
     } catch(err){
-      toast('❌ Failed to read save file!');
+      console.error('Load error:', err);
+      toast('❌ Load error: '+(err.message||'Unknown'),'#ff4444',4000);
     }
   };
   reader.readAsText(file);
