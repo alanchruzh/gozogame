@@ -2987,6 +2987,7 @@ const POTIONS = {
   luck_pot:  {name:'Lucky Brew',     color:'#30b010', glowCol:'#70ff30', effect:'luck',   value:2,   desc:'+2× Drop Luck (40s)',    dropW:14},
   bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'AoE blast — deals heavy damage to nearby monsters',  dropW:4},
   maxhp_pot: {name:'Elixir of Life', color:'#c060e0', glowCol:'#f0a0ff', effect:'maxhp',  value:20,  desc:'+20 Max HP permanently', dropW:3},
+  levelup_pot:{name:'Elixir of Ascension', color:'#ffe040', glowCol:'#fff080', effect:'levelup', value:1, desc:'Instantly gain 1 Level!', dropW:0},
 };
 
 // Active potion buffs (remaining frames)
@@ -3180,6 +3181,15 @@ function buildPotionSprite(id){
     heart(16,19,'rgba(255,220,255,0.85)');
     // Star crown
     star(16,14,'rgba(255,200,255,0.7)');
+
+  } else if(id==='levelup_pot'){
+    // Golden flask — upward arrow + star
+    flask(9,11,14,16, 12,8,6, c, darken(c,30), 'rgba(255,255,150,0.35)');
+    cx.fillStyle='rgba(0,0,0,0.2)'; cx.fillRect(8,28,16,2);
+    // Up arrow
+    cx.fillStyle='rgba(255,220,50,0.95)';
+    cx.beginPath(); cx.moveTo(16,12); cx.lineTo(11,19); cx.lineTo(14,19); cx.lineTo(14,25); cx.lineTo(18,25); cx.lineTo(18,19); cx.lineTo(21,19); cx.closePath(); cx.fill();
+    star(16,10,'rgba(255,255,100,0.9)');
   }
 
   // Bottle glass sheen (always on top)
@@ -3255,6 +3265,12 @@ function usePotion(slot){
     updateGozoHpBar();
     toast(`✨ ${p.name}! Max HP +${p.value} → ${G.maxHp}`);
     spawnDmg(sx,sy,`♥+${p.value}`,'#f0a0ff',9);
+  } else if(p.effect==='levelup'){
+    const prevLv=G.level;
+    gainExp(expToLevel(G.level));
+    toast(`🌟 Elixir of Ascension! LEVEL UP → LV ${G.level}!`);
+    spawnDmg(sx,sy,`LV UP!`,'#ffe040',13);
+    screenFlash('#ffe040',0.4,15);
   }
   removeFromInventory(slot,1);
 }
@@ -6982,7 +6998,7 @@ const SHOP_BUY = {
   // Potions
   hp_small:40,    hp_medium:100,  hp_large:280,
   str_pot:120,    speed_pot:100,  shield_pot:90,
-  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,
+  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,  levelup_pot:1,
   // Bombs
   bomb:200,
   // Ores (buy)
@@ -12376,6 +12392,7 @@ function loop(){
     updateGozoVillage();
     checkVillageInteractions();
     tickBuffs();
+    tickStatusEffects();
     renderVillage();
   } else {
     updateGozo();
