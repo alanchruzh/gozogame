@@ -3660,8 +3660,13 @@ function buildAllWeaponSprites(){
     if(w.legendary) buildLegendarySprite(id);
     else WEAPON_SPR[id]=buildWeaponSprite(id);
   }
-  // Also build legendary armor sprites
-  for(const id in LEGENDARY_ARMORS) buildLegendarySprite(id);
+  // Build ALL legendary armor sprites
+  for(const id in LEGENDARY_ARMORS){
+    buildLegendarySprite(id);
+    if(!LEGEND_SPR[id] || !LEGEND_SPR[id].length){
+      buildLegendarySprite(id); // retry if failed
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -8482,13 +8487,13 @@ function renderInventory(){
           div.style.borderColor=w.color;
           div.style.boxShadow=`0 0 8px ${w.color}88`;
           let af=null;
-          function animSlot(){
+          const animSlot=()=>{
             const frames=LEGEND_SPR[s.id];
             const fi=Math.floor(Date.now()/120)%frames.length;
             wctx.clearRect(0,0,36,36);
             wctx.drawImage(frames[fi],0,0,36,36);
             af=requestAnimationFrame(animSlot);
-          }
+          };
           animSlot();
           cvs._stopAnim=()=>{ if(af) cancelAnimationFrame(af); af=null; };
           cvs.setAttribute('data-anim','1');
@@ -8558,48 +8563,55 @@ function renderInventory(){
         div.style.borderColor=ac+'aa';
         if(isLegArmor){ div.style.boxShadow=`0 0 8px ${ac}88`; }
         if(G.equippedArmor===s.id) div.classList.add('equipped-item');
-        // Try legendary armor animated sprite first, then forge sprite
-        let accRendered=false;
+        // Build sprite for legendary armor
         if(isLegArmor){
-          if(!LEGEND_ARMOR_SPR) window.LEGEND_ARMOR_SPR={};
-          if(!LEGEND_ARMOR_SPR[s.id]){
-            // Build single frame from buildLegendarySprite frames cache
+          // Ensure frames are built
+          if(!LEGEND_SPR[s.id] || !LEGEND_SPR[s.id].length){
             buildLegendarySprite(s.id);
           }
-          const frames=LEGEND_SPR[s.id];
-          if(frames&&frames.length){
+          const armorFrames=LEGEND_SPR[s.id];
+          if(armorFrames && armorFrames.length){
             const cvs=document.createElement('canvas');
-            cvs.width=36;cvs.height=36;
+            cvs.width=36; cvs.height=36;
             cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
             const lctx=cvs.getContext('2d');
             lctx.imageSmoothingEnabled=false;
+            // Draw first frame immediately so it's visible right away
+            lctx.drawImage(armorFrames[0],0,0,36,36);
             let laf=null;
-            function animArmorSlot(){
-              const fi=Math.floor(Date.now()/150)%frames.length;
-              lctx.clearRect(0,0,36,36);
-              lctx.drawImage(frames[fi],0,0,36,36);
-              laf=requestAnimationFrame(animArmorSlot);
-            }
-            animArmorSlot();
-            cvs._stopAnim=()=>{ if(laf) cancelAnimationFrame(laf); };
+            const animArmor=(()=>{
+              const frames=armorFrames;
+              const ctx2=lctx;
+              return ()=>{
+                const fi=Math.floor(Date.now()/150)%frames.length;
+                ctx2.clearRect(0,0,36,36);
+                ctx2.drawImage(frames[fi],0,0,36,36);
+                laf=requestAnimationFrame(animArmor);
+              };
+            })();
+            laf=requestAnimationFrame(animArmor);
+            cvs._stopAnim=()=>{ if(laf){ cancelAnimationFrame(laf); laf=null; } };
             cvs.setAttribute('data-anim','1');
             div.appendChild(cvs);
-            accRendered=true;
+          } else {
+            // Fallback to emoji if sprite failed
+            const sp=document.createElement('span');
+            sp.style.cssText='font-size:26px;line-height:1;pointer-events:none;';
+            sp.textContent=a.icon||'🛡';
+            div.appendChild(sp);
           }
-        }
-        if(!accRendered){
+        } else {
+          // Non-legendary accessory (gold_shield, crafted items)
           const accSprCanvas=buildForgeItemSprite(s.id);
           if(accSprCanvas&&_FORGE_SPR_CACHE[s.id]){
             accSprCanvas.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
             div.appendChild(accSprCanvas);
-            accRendered=true;
+          } else {
+            const sp=document.createElement('span');
+            sp.style.cssText='font-size:26px;line-height:1;pointer-events:none;';
+            sp.textContent=a.icon||'🛡';
+            div.appendChild(sp);
           }
-        }
-        if(!accRendered){
-          const sp=document.createElement('span');
-          sp.style.cssText='font-size:26px;line-height:1;pointer-events:none;';
-          sp.textContent=a.icon||'🛡';
-          div.appendChild(sp);
         }
         const nm=document.createElement('span');
         nm.className='inv-name'; nm.style.color=ac;
