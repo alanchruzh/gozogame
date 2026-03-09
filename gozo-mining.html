@@ -2389,76 +2389,271 @@ function buildLegendarySprite(id){
 
 function buildWeaponSprite(id) {
   const w = WEAPONS[id];
-  // Legendary weapons get their own animated sprite
   if(w.legendary){ buildLegendarySprite(id); return LEGEND_SPR[id][0]; }
 
   const oc = document.createElement('canvas');
-  oc.width=32; oc.height=32;
+  oc.width=48; oc.height=48;
   const cx = oc.getContext('2d');
   cx.imageSmoothingEnabled=false;
 
-  const c = w.color;
-  const dark = '#1a1010';
-  const light = '#ffffff';
+  const col   = w.color||'#c0c0c0';
+  // Derive shading from weapon color
+  function hexMix(h,amt){ // darken(amt<1) or lighten(amt>1)
+    let r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);
+    r=Math.min(255,Math.round(r*amt)); g=Math.min(255,Math.round(g*amt)); b=Math.min(255,Math.round(b*amt));
+    return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+  }
+  const cD  = hexMix(col,0.55);   // dark shade
+  const cL  = hexMix(col,1.5);    // light highlight
+  const cM  = hexMix(col,0.80);   // mid shade
+  const cLL = '#ffffff';
+  // Handle/grip colors
+  const hC  = '#7a4818'; const hL = '#a06030'; const hD = '#4a2808';
+  // Guard/crossguard color — gold for high tier, iron for low
+  const tierN = typeof w.tier==='number'?w.tier:({Common:1,Uncommon:2,Rare:3,Epic:4,Legendary:5}[w.tier]||1);
+  const gC  = tierN>=4?'#d4a020':tierN>=3?'#a09060':'#787868';
+  const gL  = tierN>=4?'#f0cc50':tierN>=3?'#c0b080':'#a0a080';
+  const gD  = tierN>=4?'#907010':tierN>=3?'#706040':'#505048';
+  // Gem color for high tier
+  const gemC= tierN>=4?col:tierN>=3?cL:null;
 
-  if(w.icon==='⚔️'||w.icon==='🗡️'){
-    // Sword shape
-    cx.fillStyle=dark;   cx.fillRect(14,2,4,24);
-    cx.fillStyle=c;      cx.fillRect(15,3,2,20);
-    cx.fillStyle=light;  cx.fillRect(15,3,1,8);
-    // Guard
-    cx.fillStyle='#a06020'; cx.fillRect(10,20,12,3);
-    cx.fillStyle='#c08030'; cx.fillRect(11,21,10,1);
+  function drawSword(){
+    // Blade — 3-pixel wide with bevel shading
+    cx.fillStyle=cD;   cx.fillRect(22,2,6,26);  // blade shadow outline
+    cx.fillStyle=col;  cx.fillRect(23,3,4,24);  // blade main
+    cx.fillStyle=cL;   cx.fillRect(23,3,2,18);  // blade left highlight
+    cx.fillStyle=cLL;  cx.fillRect(23,3,1,8);   // bright edge
+    cx.fillStyle=cM;   cx.fillRect(25,4,1,22);  // blade right mid
+    cx.fillStyle=cD;   cx.fillRect(26,3,1,24);  // blade right edge
+    // Blade tip — tapered
+    cx.fillStyle=col;  cx.fillRect(24,2,2,2);
+    cx.fillStyle=cL;   cx.fillRect(24,2,1,2);
+    // Blood groove (fuller)
+    cx.fillStyle=cD;   cx.fillRect(24,6,1,14);
+    // Crossguard
+    cx.fillStyle=gD;   cx.fillRect(14,26,20,5);
+    cx.fillStyle=gC;   cx.fillRect(15,26,18,4);
+    cx.fillStyle=gL;   cx.fillRect(15,26,18,2);
+    cx.fillStyle=gD;   cx.fillRect(14,29,2,2); cx.fillRect(32,29,2,2); // guard tips shadow
+    // Guard ornament ends
+    cx.fillStyle=gL;   cx.fillRect(14,27,2,2); cx.fillRect(32,27,2,2);
+    // Grip/handle
+    cx.fillStyle=hD;   cx.fillRect(21,31,8,12);
+    cx.fillStyle=hC;   cx.fillRect(22,31,6,12);
+    cx.fillStyle=hL;   cx.fillRect(22,31,2,10);
+    // Grip wrapping lines
+    cx.fillStyle=hD;
+    for(let i=0;i<4;i++) cx.fillRect(22,33+i*3,6,1);
+    // Pommel
+    cx.fillStyle=gD;   cx.fillRect(20,43,10,4);
+    cx.fillStyle=gC;   cx.fillRect(21,43,8,3);
+    cx.fillStyle=gL;   cx.fillRect(21,43,8,1);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(23,43,4,3); cx.fillStyle='rgba(255,255,255,0.6)'; cx.fillRect(23,43,2,1); }
+  }
+
+  function drawDagger(){
+    // Slim blade
+    cx.fillStyle=cD;   cx.fillRect(22,4,5,20);
+    cx.fillStyle=col;  cx.fillRect(23,5,3,18);
+    cx.fillStyle=cL;   cx.fillRect(23,5,1,12);
+    cx.fillStyle=cLL;  cx.fillRect(23,5,1,5);
+    cx.fillStyle=cD;   cx.fillRect(25,5,1,18);
+    // Tip
+    cx.fillStyle=col;  cx.fillRect(23,4,3,2); cx.fillRect(24,3,1,2);
+    // Small crossguard
+    cx.fillStyle=gD;   cx.fillRect(17,22,14,4);
+    cx.fillStyle=gC;   cx.fillRect(18,22,12,3);
+    cx.fillStyle=gL;   cx.fillRect(18,22,12,1);
+    // Handle — shorter
+    cx.fillStyle=hD;   cx.fillRect(21,26,7,12);
+    cx.fillStyle=hC;   cx.fillRect(22,26,5,12);
+    cx.fillStyle=hL;   cx.fillRect(22,26,2,10);
+    cx.fillStyle=hD;   for(let i=0;i<4;i++) cx.fillRect(22,28+i*3,5,1);
+    // Pommel round
+    cx.fillStyle=gD;   cx.fillRect(20,38,8,5);
+    cx.fillStyle=gC;   cx.fillRect(21,38,6,4);
+    cx.fillStyle=gL;   cx.fillRect(21,38,6,2);
+  }
+
+  function drawAxe(){
     // Handle
-    cx.fillStyle='#6a3a10'; cx.fillRect(13,23,6,6);
-  } else if(w.icon==='🏹'){
-    // Bow shape
-    cx.strokeStyle=c; cx.lineWidth=2;
-    cx.beginPath(); cx.arc(16,16,11,Math.PI*0.15,Math.PI*0.85); cx.stroke();
-    // Arrow
-    cx.fillStyle='#c09050'; cx.fillRect(15,4,2,24);
-    cx.fillStyle=c; cx.fillRect(14,4,4,3);
-  } else if(w.icon==='🪓'){
-    // Axe
-    cx.fillStyle=dark;   cx.fillRect(14,16,4,14);
-    cx.fillStyle='#8a5020'; cx.fillRect(15,17,2,12);
-    cx.fillStyle=c;      cx.fillRect(8,4,16,14);
-    cx.fillStyle=light;  cx.fillRect(9,5,4,4);
-    cx.fillStyle=dark;   cx.fillRect(8,4,16,2); cx.fillRect(8,4,2,14); cx.fillRect(22,4,2,14);
-  } else if(w.icon==='🔨'){
-    // Hammer
-    cx.fillStyle='#8a5020'; cx.fillRect(14,12,4,18);
-    cx.fillStyle='#a06028'; cx.fillRect(15,13,2,16);
-    cx.fillStyle=c;      cx.fillRect(6,4,20,12);
-    cx.fillStyle=light;  cx.fillRect(7,5,6,4);
-    cx.fillStyle=dark;   cx.fillRect(6,4,20,2); cx.fillRect(6,4,2,12); cx.fillRect(24,4,2,12);
-  } else if(w.icon==='🔪'){
-    // Dagger
-    cx.fillStyle=dark;   cx.fillRect(14,4,4,18);
-    cx.fillStyle=c;      cx.fillRect(15,5,2,14);
-    cx.fillStyle=light;  cx.fillRect(15,5,1,6);
-    cx.fillStyle='#805020'; cx.fillRect(13,20,6,8);
-  } else if(w.icon==='🏏'){
-    // Club
-    cx.fillStyle='#8a5020'; cx.fillRect(14,2,4,20);
-    cx.fillStyle=c;      cx.fillRect(9,18,14,10);
-    cx.fillStyle=light;  cx.fillRect(10,19,4,3);
-  } else if(w.icon==='⚡'){
-    // Spear
-    cx.fillStyle='#8a5020'; cx.fillRect(15,12,2,18);
-    cx.fillStyle=c;      cx.fillRect(13,2,6,14);
-    cx.fillStyle=light;  cx.fillRect(14,3,2,6);
-  } else {
-    // Generic sword fallback
-    cx.fillStyle=c; cx.fillRect(14,2,4,24);
-    cx.fillStyle='#a06020'; cx.fillRect(10,20,12,3);
+    cx.fillStyle=hD;   cx.fillRect(22,16,6,28);
+    cx.fillStyle=hC;   cx.fillRect(23,17,4,26);
+    cx.fillStyle=hL;   cx.fillRect(23,17,2,20);
+    cx.fillStyle=hD;   for(let i=0;i<5;i++) cx.fillRect(23,20+i*5,4,1);
+    // Axe head — crescent shape
+    cx.fillStyle=cD;   cx.fillRect(8,3,22,16);
+    cx.fillStyle=col;  cx.fillRect(9,4,20,14);
+    cx.fillStyle=cL;   cx.fillRect(9,4,8,6); cx.fillRect(10,4,6,3);  // top highlight
+    cx.fillStyle=cM;   cx.fillRect(9,14,20,4); // bottom shade
+    // Blade edge taper
+    cx.fillStyle=cD;   cx.fillRect(8,3,1,16); cx.fillRect(29,3,1,16);
+    cx.fillStyle=cL;   cx.fillRect(8,3,22,1); // top edge gleam
+    // Blade cutting edge
+    cx.fillStyle=cLL;  cx.fillRect(8,4,2,14);
+    cx.fillStyle=col;  cx.fillRect(8,14,2,4);
+    // Axe eye/hole
+    cx.fillStyle=cD;   cx.fillRect(20,7,6,6);
+    cx.fillStyle='rgba(0,0,0,0.4)'; cx.fillRect(21,8,4,4);
+    // Binding at handle
+    cx.fillStyle=gC;   cx.fillRect(21,16,8,4);
+    cx.fillStyle=gL;   cx.fillRect(21,16,8,1);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(22,17,6,2); }
+    // Pommel
+    cx.fillStyle=hD;   cx.fillRect(21,44,8,4);
+    cx.fillStyle=hC;   cx.fillRect(22,44,6,3);
   }
-  // Tier glow
-  if(w.tier>=3){
-    cx.globalAlpha=0.25;
-    cx.fillStyle=c; cx.fillRect(0,0,32,32);
-    cx.globalAlpha=1;
+
+  function drawHammer(){
+    // Handle
+    cx.fillStyle=hD;   cx.fillRect(22,14,6,30);
+    cx.fillStyle=hC;   cx.fillRect(23,15,4,28);
+    cx.fillStyle=hL;   cx.fillRect(23,15,2,22);
+    cx.fillStyle=hD;   for(let i=0;i<5;i++) cx.fillRect(23,18+i*5,4,1);
+    // Hammerhead — wide block
+    cx.fillStyle=cD;   cx.fillRect(7,3,34,14);
+    cx.fillStyle=col;  cx.fillRect(8,4,32,12);
+    cx.fillStyle=cL;   cx.fillRect(8,4,12,5);  // left face highlight
+    cx.fillStyle=cM;   cx.fillRect(8,12,32,4); // bottom shadow
+    cx.fillStyle=cLL;  cx.fillRect(8,4,32,1);  // top gleam
+    cx.fillStyle=cD;   cx.fillRect(7,3,1,14); cx.fillRect(39,3,1,14);
+    // Face detail — striking surface
+    cx.fillStyle=cL;   cx.fillRect(8,4,6,12);  // left face
+    cx.fillStyle=cM;   cx.fillRect(34,4,6,12); // right face
+    // Engrave line center
+    cx.fillStyle=cD;   cx.fillRect(22,5,4,10);
+    // Handle collar
+    cx.fillStyle=gC;   cx.fillRect(20,14,10,4);
+    cx.fillStyle=gL;   cx.fillRect(20,14,10,1);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(22,15,6,2); cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(22,15,3,1); }
+    // Pommel
+    cx.fillStyle=gD;   cx.fillRect(20,44,10,4);
+    cx.fillStyle=gC;   cx.fillRect(21,44,8,3);
   }
+
+  function drawBow(){
+    // Bow limbs — curved via rects
+    const pts=[[22,4,4,4],[20,8,4,4],[19,12,3,4],[18,16,3,4],[18,20,3,4],[19,24,3,4],[20,28,4,4],[22,32,4,4]];
+    for(const[x,y,w2,h] of pts){
+      cx.fillStyle=hD; cx.fillRect(x-1,y,w2+2,h);
+      cx.fillStyle=hC; cx.fillRect(x,y,w2,h);
+      cx.fillStyle=hL; cx.fillRect(x,y,1,h);
+    }
+    // Bowstring
+    cx.strokeStyle='rgba(255,255,255,0.7)'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(24,4); cx.lineTo(24,36); cx.stroke();
+    // Arrow on string
+    cx.fillStyle='#c09048'; cx.fillRect(23,6,2,28); // arrow shaft
+    cx.fillStyle=col;       cx.fillRect(22,4,4,5);  // arrowhead
+    cx.fillStyle=cL;        cx.fillRect(22,4,2,3);  // arrowhead highlight
+    cx.fillStyle=cD;        cx.fillRect(24,4,2,5);  // arrowhead shadow
+    // Arrow fletching
+    cx.fillStyle='#e08040'; cx.fillRect(22,32,2,4); cx.fillRect(24,32,2,4);
+    // Grip wrap
+    cx.fillStyle=col+'80'; cx.fillRect(21,18,6,6);
+    cx.fillStyle=gC; cx.fillRect(21,18,6,2);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(22,19,4,3); }
+  }
+
+  function drawSpear(){
+    // Shaft
+    cx.fillStyle=hD;   cx.fillRect(22,14,6,32);
+    cx.fillStyle=hC;   cx.fillRect(23,15,4,30);
+    cx.fillStyle=hL;   cx.fillRect(23,15,2,24);
+    cx.fillStyle=hD;   for(let i=0;i<6;i++) cx.fillRect(23,18+i*5,4,1);
+    // Spearhead — diamond point
+    cx.fillStyle=cD;   cx.fillRect(20,2,9,14);
+    cx.fillStyle=col;  cx.fillRect(21,3,7,12);
+    cx.fillStyle=cL;   cx.fillRect(21,3,3,10);
+    cx.fillStyle=cLL;  cx.fillRect(21,3,1,6);
+    cx.fillStyle=cM;   cx.fillRect(26,4,1,10);
+    cx.fillStyle=cD;   cx.fillRect(27,3,1,12);
+    // Spear tip
+    cx.fillStyle=col;  cx.fillRect(22,2,5,2); cx.fillRect(23,1,3,2); cx.fillRect(24,0,2,2);
+    cx.fillStyle=cL;   cx.fillRect(22,2,2,2);
+    // Wings/crossblades
+    cx.fillStyle=cD;   cx.fillRect(14,12,22,4);
+    cx.fillStyle=cM;   cx.fillRect(15,12,20,3);
+    cx.fillStyle=cL;   cx.fillRect(15,12,8,2);
+    // Socket collar
+    cx.fillStyle=gC;   cx.fillRect(20,14,9,4);
+    cx.fillStyle=gL;   cx.fillRect(20,14,9,1);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(22,15,5,2); cx.fillStyle='rgba(255,255,255,0.5)'; cx.fillRect(22,15,2,1); }
+    // Butt cap
+    cx.fillStyle=gD;   cx.fillRect(21,46,7,2);
+    cx.fillStyle=gC;   cx.fillRect(22,46,5,1);
+  }
+
+  function drawClub(){
+    // Thin handle
+    cx.fillStyle=hD;   cx.fillRect(22,2,6,22);
+    cx.fillStyle=hC;   cx.fillRect(23,3,4,20);
+    cx.fillStyle=hL;   cx.fillRect(23,3,2,16);
+    cx.fillStyle=hD;   for(let i=0;i<4;i++) cx.fillRect(23,6+i*5,4,1);
+    // Club head — bulbous
+    cx.fillStyle=hD;   cx.fillRect(11,22,26,20);
+    cx.fillStyle=hC;   cx.fillRect(12,23,24,18);
+    cx.fillStyle=hL;   cx.fillRect(12,23,10,8);
+    cx.fillStyle='#b0701c'; cx.fillRect(12,23,24,3);
+    // Spikes
+    cx.fillStyle=col;
+    const spikes=[[14,22,4,4],[22,22,4,4],[30,22,4,4],[11,28,3,4],[34,28,3,4],[14,40,4,3],[22,40,4,3],[30,40,4,3]];
+    for(const[x,y,w2,h] of spikes){ cx.fillRect(x,y,w2,h); cx.fillStyle=cL; cx.fillRect(x,y,2,2); cx.fillStyle=col; }
+    // Metal band
+    cx.fillStyle=gC;   cx.fillRect(11,33,26,4);
+    cx.fillStyle=gL;   cx.fillRect(11,33,26,1);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(22,34,4,2); }
+  }
+
+  function drawCrossbow(){
+    // Stock
+    cx.fillStyle=hD;   cx.fillRect(8,22,32,6);
+    cx.fillStyle=hC;   cx.fillRect(9,23,30,4);
+    cx.fillStyle=hL;   cx.fillRect(9,23,14,2);
+    // Bow arms
+    cx.fillStyle=col;  cx.fillRect(8,14,4,10); cx.fillRect(36,14,4,10);
+    cx.fillStyle=cL;   cx.fillRect(8,14,2,8);  cx.fillRect(36,14,2,8);
+    cx.fillStyle=cD;   cx.fillRect(10,14,2,10); cx.fillRect(38,14,2,10);
+    // Bowstring
+    cx.strokeStyle='#e0e0e0'; cx.lineWidth=1;
+    cx.beginPath(); cx.moveTo(10,14); cx.lineTo(24,20); cx.lineTo(38,14); cx.stroke();
+    // Arrow bolt
+    cx.fillStyle='#c09048'; cx.fillRect(20,19,8,4);
+    cx.fillStyle=col;       cx.fillRect(28,19,6,4);
+    cx.fillStyle=cL;        cx.fillRect(28,19,3,2);
+    // Trigger/handle
+    cx.fillStyle=hD;   cx.fillRect(21,28,6,14);
+    cx.fillStyle=hC;   cx.fillRect(22,29,4,12);
+    // Sight
+    cx.fillStyle=gC;   cx.fillRect(22,20,4,4);
+    if(gemC){ cx.fillStyle=gemC; cx.fillRect(23,21,2,2); }
+  }
+
+  // Dispatch by icon
+  const icon=w.icon;
+  if(icon==='⚔️'||icon==='🗡️') drawSword();
+  else if(icon==='🔪')          drawDagger();
+  else if(icon==='🪓')          drawAxe();
+  else if(icon==='🔨')          drawHammer();
+  else if(icon==='🏹')          drawBow();
+  else if(icon==='⚡')          drawSpear();
+  else if(icon==='🏏')          drawClub();
+  else if(icon==='🏹'&&w.range>2.5) drawCrossbow();
+  else                           drawSword(); // fallback
+
+  // Tier aura glow — outer halo for Epic/Legendary
+  if(tierN>=4){
+    cx.save();
+    const grad=cx.createRadialGradient(24,24,8,24,24,24);
+    grad.addColorStop(0,'rgba(0,0,0,0)');
+    grad.addColorStop(0.7,col+'22');
+    grad.addColorStop(1,col+'44');
+    cx.fillStyle=grad; cx.fillRect(0,0,48,48);
+    cx.restore();
+  } else if(tierN===3){
+    cx.globalAlpha=0.12; cx.fillStyle=col; cx.fillRect(0,0,48,48); cx.globalAlpha=1;
+  }
+
   return oc;
 }
 function buildAllWeaponSprites(){
