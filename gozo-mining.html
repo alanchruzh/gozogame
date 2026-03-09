@@ -287,7 +287,14 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 #inv-panel.open{display:flex;flex-direction:column;gap:8px;}
 #inv-panel h3{color:#f0c840;font-size:9px;text-align:center;margin-bottom:10px;border-bottom:1px solid #4a3010;padding-bottom:6px;}
 #inv-body{display:flex;gap:10px;align-items:flex-start;}
-#inv-grid{display:grid;grid-template-columns:repeat(5,52px);gap:4px;flex-shrink:0;}
+#inv-grid-wrap{overflow-y:auto;max-height:420px;flex-shrink:0;padding-right:4px;}
+#inv-grid-wrap::-webkit-scrollbar{width:6px;}
+#inv-grid-wrap::-webkit-scrollbar-track{background:#1a1208;border-radius:3px;}
+#inv-grid-wrap::-webkit-scrollbar-thumb{background:#8a6030;border-radius:3px;}
+#inv-grid-wrap::-webkit-scrollbar-thumb:hover{background:#c09040;}
+#inv-grid{display:grid;grid-template-columns:repeat(5,52px);gap:4px;}
+.inv-slot.drag-over{border-color:#f0c840!important;background:rgba(240,200,64,0.25)!important;box-shadow:0 0 10px #f0c84088!important;}
+.inv-slot.dragging{opacity:0.4;border-color:#808080!important;}
 .inv-slot{
   width:52px;height:52px;background:rgba(0,0,0,0.5);
   border:2px solid #3a2810;border-radius:3px;
@@ -419,7 +426,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     </div>
     <div id="inv-body">
       <div style="display:flex;flex-direction:column;gap:6px;">
-        <div id="inv-grid"></div>
+        <div id="inv-grid-wrap"><div id="inv-grid"></div></div>
         <div id="inv-expand-row" style="display:flex;align-items:center;justify-content:space-between;padding:5px 6px;background:rgba(0,0,0,0.3);border:1px solid #3a2810;border-radius:2px;">
           <span style="font-family:'Press Start 2P',monospace;font-size:5px;color:#a08060;">+6 SLOTS</span>
           <button onclick="expandInventory()" id="inv-expand-btn" style="padding:3px 8px;background:#1a1208;border:1px solid #c08020;color:#f0c040;font-family:'Press Start 2P',monospace;font-size:5px;cursor:pointer;">BUY</button>
@@ -6261,6 +6268,7 @@ function renderInventory(){
           div.appendChild(nm);
         }
         div.onclick=()=>onInvClick(i);
+        setupInvDrag(div,i);
         grid.appendChild(div);
         continue;
       } else if(s.type==='potion'){
@@ -6279,6 +6287,7 @@ function renderInventory(){
           qsp.className='inv-qty';qsp.textContent=s.qty;div.appendChild(qsp);
         }
         div.onclick=()=>onInvClick(i);
+        setupInvDrag(div,i);
         grid.appendChild(div);
         continue;
       } else if(s.type==='pickaxe'){
@@ -6299,6 +6308,7 @@ function renderInventory(){
         nm.textContent=pk.tier;
         div.appendChild(nm);
         div.onclick=()=>onInvClick(i);
+        setupInvDrag(div,i);
         grid.appendChild(div);
         continue;
       }
@@ -6307,6 +6317,45 @@ function renderInventory(){
     }
     grid.appendChild(div);
   }
+}
+
+// ─── Inventory Drag & Drop ───────────────────────────────
+let _invDragSrc = null;
+function setupInvDrag(el, idx){
+  el.setAttribute('draggable','true');
+  el.addEventListener('dragstart', e=>{
+    _invDragSrc = idx;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain', String(idx));
+  }, {passive:true});
+  el.addEventListener('dragend', e=>{
+    el.classList.remove('dragging');
+    document.querySelectorAll('.inv-slot').forEach(s=>s.classList.remove('drag-over'));
+  }, {passive:true});
+  el.addEventListener('dragover', e=>{
+    e.preventDefault();
+    e.dataTransfer.dropEffect='move';
+    el.classList.add('drag-over');
+  });
+  el.addEventListener('dragleave', e=>{
+    el.classList.remove('drag-over');
+  }, {passive:true});
+  el.addEventListener('drop', e=>{
+    e.preventDefault();
+    el.classList.remove('drag-over');
+    const src = _invDragSrc;
+    const dst = idx;
+    if(src === null || src === dst){ _invDragSrc=null; return; }
+    // Swap inventory slots
+    const tmp = G.inventory[src];
+    G.inventory[src] = G.inventory[dst];
+    G.inventory[dst] = tmp;
+    _invDragSrc = null;
+    _selectedInvSlot = dst; // follow the moved item
+    renderInventory();
+    onInvClick(dst);
+  });
 }
 
 // Weapon sell prices by tier
@@ -9683,7 +9732,7 @@ function renderShopItems(){
       d.className='shop-item'+(shopState.selectedSellSlot===slot?' selected':'');
       d.style.borderColor=tc+'88';
       d.innerHTML=`<div class="si-top"><span class="si-icon">${iconHtml}</span><div><div class="si-name">${name}${item.qty>1?' ×'+item.qty:''}</div><div class="si-tier" style="color:${tc}">${tier}</div></div></div><div class="si-sell">+${fmt(price*(item.qty||1))}g</div>`;
-      d.onclick=()=>{ shopState.selectedSellSlot=slot; shopState.selectedItem={...item,_slot:slot,_price:price}; renderShopItems(); updateShopAction({...item,_slot:slot,_price:price,name,icon},'sell'); };
+      d.onclick=()=>{ shopState.selectedSellSlot=slot; shopState.selectedItem={...item,_slot:slot,_price:price,name,tier}; renderShopItems(); updateShopAction({...item,_slot:slot,_price:price,name,tier},'sell'); };
       grid.appendChild(d);
     }
   }
@@ -9748,14 +9797,31 @@ function updateShopAction(item, mode){
   }
   buyBtn.onclick=shopBuy;
   if(mode==='buy'){
-    iconEl.textContent=item.icon||'📦';
+    iconEl.innerHTML='';
+    iconEl.style.fontSize='';
+    function _sprImgB(spr){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=48;cv.height=48;cv.getContext('2d').drawImage(spr,0,0,48,48);const img=new Image();img.src=cv.toDataURL();img.style.cssText='width:48px;height:48px;image-rendering:pixelated;';return img; }
+    let bIcon=null;
+    if(item._type==='weapon'||WEAPONS[item.id])   bIcon=_sprImgB(WEAPON_SPR[item.id]);
+    else if(item._type==='pickaxe'||PICKAXES[item.id]) bIcon=_sprImgB(PICK_SPR[item.id]);
+    else if(item._type==='potion'||POTIONS[item.id])   bIcon=_sprImgB(POTION_SPR[item.id]);
+    if(bIcon){ iconEl.appendChild(bIcon); }
+    else { iconEl.style.fontSize='32px'; iconEl.textContent=item.icon||'📦'; }
     titleEl.textContent=item.name;
     descEl.textContent=item.desc||'';
     buyBtn.textContent=`BUY 💰${fmt(item.price)}`;
     buyBtn.disabled=G.coins<item.price;
     sellBtn.disabled=true;
   } else {
-    iconEl.textContent=item.icon||'📦';
+    // Show pixel art sprite in sell panel
+    iconEl.innerHTML='';
+    iconEl.style.fontSize='';
+    function _sprImg(spr){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=48;cv.height=48;cv.getContext('2d').drawImage(spr,0,0,48,48);const img=new Image();img.src=cv.toDataURL();img.style.cssText='width:48px;height:48px;image-rendering:pixelated;';return img; }
+    let panelIcon=null;
+    if(item.type==='weapon')   panelIcon=_sprImg(WEAPON_SPR[item.id]);
+    else if(item.type==='pickaxe') panelIcon=_sprImg(PICK_SPR[item.id]);
+    else if(item.type==='potion')  panelIcon=_sprImg(POTION_SPR[item.id]);
+    if(panelIcon){ iconEl.appendChild(panelIcon); }
+    else { iconEl.style.fontSize='32px'; iconEl.textContent=item.icon||'📦'; }
     titleEl.textContent=(item.name||'Item')+(item.qty>1?' ×'+item.qty:'');
     descEl.textContent='Sell to NPC';
     const total=item._price*(item.qty||1);
