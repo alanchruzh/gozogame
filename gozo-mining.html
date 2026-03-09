@@ -7470,7 +7470,7 @@ function setupInvDrag(el, idx){
 }
 
 // Weapon sell prices by tier
-const WEAPON_SELL = {Common:30, Uncommon:80, Rare:200, Epic:500, Legendary:1500};
+const WEAPON_SELL = {Common:30, Uncommon:80, Rare:200, Epic:500, Legendary:1500, BossDrop:3000, OmegaDrop:8000};
 const PICK_SELL   = {0:20, 1:60, 2:180, 3:450, 4:1200, 5:3000, 6:8000};
 
 let _selectedInvSlot = null;
@@ -7554,8 +7554,9 @@ function onInvClick(i){
     statsEl.innerHTML='DMG: <span style="color:#ff9090">'+(w.dmg||0)+'</span>  SPD: <span style="color:#90ff90">'+(w.spd||1)+'x</span>  RNG: <span style="color:#90b0ff">'+(w.range||1)+'x</span>'+(w.tier?'<br><span style="color:#888">['+w.tier+']</span>':'');
     if(isEquipped) btnsEl.appendChild(btn('\u2705 UNEQUIP','iab-unequip',()=>invUnequipWeapon(i)));
     else btnsEl.appendChild(btn('\u2694\ufe0f EQUIP','iab-equip',()=>invEquipWeapon(i)));
-    const {allowed}=canSellToNpc(w.legendary?'legendary':'weapon');
-    const sv=w.legendary?(w.goldSell||0):(WEAPON_SELL[w.tier]||30);
+    const hasBossDrop = !!w.goldSell && !w.legendary;
+    const {allowed}=canSellToNpc((w.legendary||hasBossDrop)?'legendary':'weapon');
+    const sv = w.goldSell ? w.goldSell : (WEAPON_SELL[w.tier]||30);
     btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(sv)+'g','iab-throw',()=>{ if(w.legendary) invSellLegendary(i); else invSellItem(i,sv,w.name); },!allowed));
     btnsEl.appendChild(lockBtn());
     btnsEl.appendChild(throwBtn());
@@ -10519,7 +10520,7 @@ function getShopInventory(shopType){
   // Returns list of {id, name, icon, price, desc, tier} for buy
   const items=[];
   if(shopType==='weapon'){
-    const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+    const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
     const wids=Object.keys(WEAPONS).filter(w=>!WEAPONS[w].starter);
     for(const wid of wids) if(SHOP_BUY[wid]){
       const ww=WEAPONS[wid];
@@ -10890,14 +10891,14 @@ function renderShopItems(){
     }
     for(const{slot,item}of sellItems){
       let name='?',iconHtml='📦',price=0,tier='Common';
-      const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+      const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
       function sprToImg2(spr,size){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=size;cv.height=size;cv.getContext('2d').drawImage(spr,0,0,size,size);return `<img src="${cv.toDataURL()}" style="width:${size}px;height:${size}px;image-rendering:pixelated;">`; }
       if(item.type==='weapon'){
         const wd=WEAPONS[item.id]||{};
         name=wd.name||'Wpn';
         const tierVal=wd.tier;
         tier=(typeof tierVal==='number'?tierNameMap[tierVal]:tierVal)||'Common';
-        price=Math.floor((WEAPON_SELL[tier]||30)*0.6);
+        price = wd.goldSell ? wd.goldSell : Math.floor((WEAPON_SELL[tier]||30)*0.6);
         iconHtml=sprToImg2(WEAPON_SPR[item.id],48)||`<span style="font-size:22px">${wd.icon||'⚔️'}</span>`;
       }
       else if(item.type==='pickaxe'){
@@ -11079,9 +11080,9 @@ function shopSellAll(){
     if(s.type==='weapon'){
       const _wd=WEAPONS[s.id]||{};
           const _tv=_wd.tier;
-          const _tnm={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+          const _tnm={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary',7:'BossDrop',8:'OmegaDrop'};
           const _tn=(typeof _tv==='number'?_tnm[_tv]:_tv)||'Common';
-          price=Math.floor((WEAPON_SELL[_tn]||30)*0.6);
+          price = _wd.goldSell ? _wd.goldSell : Math.floor((WEAPON_SELL[_tn]||30)*0.6);
     } else if(s.type==='pickaxe'){
       const ti=PICKAXES[s.id]?.tierIdx||0;
       price=Math.floor((PICK_SELL[ti]||20)*0.6);
