@@ -1845,7 +1845,7 @@ const WEAPONS = {
   shadowfire_lance:{name:'Shadowfire Lance',dmg:190,spd:1.1, range:2.6, tier:7, icon:'⚡', color:'#ff40ff', floorMin:141, bossDrop:true, goldSell:12000},
   abyssal_reaper: {name:'Abyssal Reaper',  dmg:220,spd:1.0, range:2.4, tier:7, icon:'⚔️', color:'#ff0000', floorMin:146, bossDrop:true, goldSell:15000},
   // ── TIER 8 — BOSS DROP WEAPONS (floors 151-200) ──
-  void_sovereign:   {name:'Void Sovereign',   dmg:320,spd:1.2, range:2.8, tier:8, icon:'🌀', color:'#8800ff', floorMin:160, bossDrop:true, goldSell:40000,  legendary:true},
+  void_sovereign_omega:{name:'Void Sovereign Ω', dmg:320,spd:1.2, range:2.8, tier:8, icon:'🌀', color:'#8800ff', floorMin:160, bossDrop:true, goldSell:40000, legendary:true},
   death_scythe:     {name:'Death Scythe',      dmg:380,spd:0.9, range:3.2, tier:8, icon:'💀', color:'#ff0000', floorMin:170, bossDrop:true, goldSell:55000,  legendary:true},
   chaos_blade:      {name:'Chaos Blade',       dmg:440,spd:1.4, range:2.6, tier:8, icon:'🔥', color:'#ff6600', floorMin:180, bossDrop:true, goldSell:70000,  legendary:true},
   soul_lance:       {name:'Soul Lance',        dmg:500,spd:1.1, range:3.5, tier:8, icon:'💠', color:'#00aaff', floorMin:190, bossDrop:true, goldSell:90000,  legendary:true},
@@ -2405,7 +2405,7 @@ function buildLegendarySprite(id){
       }
     }
     // ── TIER 8 LEGENDARY WEAPONS ──
-    else if(id==='void_sovereign'){
+    else if(id==='void_sovereign_omega'){
       // Void Sovereign: twin-bladed purple void scythe with orbiting void runes
       const vAura=cx.createRadialGradient(24,24,2,24,24,24);
       vAura.addColorStop(0,`rgba(120,0,255,${0.4*pulse})`);
@@ -4965,16 +4965,16 @@ const BIOME_MOBS = {
   ],
   // ── TIER 3 BIOME MONSTERS — floors 151-200 ──
   void_realm: [
-    {n:'Void Phantom',    cl:'#0a0020',hl:'#6000ff',hp:5000, dmg:180,spd:1.6,shape:5, drop:'void_sovereign',  special:'doom'},
-    {n:'Null Wraith',     cl:'#050015',hl:'#8020ff',hp:5500, dmg:190,spd:1.4,shape:5, drop:'void_sovereign',  special:'blind'},
-    {n:'Void Stalker',    cl:'#080028',hl:'#a040ff',hp:6000, dmg:195,spd:1.5,shape:5, drop:'void_sovereign',  special:'doom'},
-    {n:'Rift Demon',      cl:'#100030',hl:'#c060ff',hp:6500, dmg:200,spd:1.2,shape:3, drop:'void_sovereign',  special:'blind'},
-    {n:'Null Colossus',   cl:'#060020',hl:'#7000ff',hp:7000, dmg:210,spd:0.8,shape:3, drop:'void_sovereign',  special:'doom'},
-    {n:'Void Leviathan',  cl:'#0a0030',hl:'#9030ff',hp:7500, dmg:215,spd:1.0,shape:7, drop:'void_sovereign',  special:'doom'},
-    {n:'Rift Sovereign',  cl:'#080028',hl:'#b050ff',hp:8000, dmg:220,spd:0.9,shape:5, drop:'void_sovereign',  special:'blind'},
-    {n:'Null Titan',      cl:'#050018',hl:'#6020ff',hp:9000, dmg:230,spd:0.7,shape:3, drop:'void_sovereign',  special:'doom'},
-    {n:'Void Destroyer',  cl:'#100035',hl:'#d070ff',hp:10000,dmg:240,spd:0.8,shape:5, drop:'void_sovereign',  special:'doom'},
-    {n:'VOID OVERLORD',   cl:'#020008',hl:'#8800ff',hp:18000,dmg:280,spd:0.6,shape:18,drop:'void_sovereign',  special:'doom',boss:true},
+    {n:'Void Phantom',    cl:'#0a0020',hl:'#6000ff',hp:5000, dmg:180,spd:1.6,shape:5, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'Null Wraith',     cl:'#050015',hl:'#8020ff',hp:5500, dmg:190,spd:1.4,shape:5, drop:'void_sovereign_omega',  special:'blind'},
+    {n:'Void Stalker',    cl:'#080028',hl:'#a040ff',hp:6000, dmg:195,spd:1.5,shape:5, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'Rift Demon',      cl:'#100030',hl:'#c060ff',hp:6500, dmg:200,spd:1.2,shape:3, drop:'void_sovereign_omega',  special:'blind'},
+    {n:'Null Colossus',   cl:'#060020',hl:'#7000ff',hp:7000, dmg:210,spd:0.8,shape:3, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'Void Leviathan',  cl:'#0a0030',hl:'#9030ff',hp:7500, dmg:215,spd:1.0,shape:7, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'Rift Sovereign',  cl:'#080028',hl:'#b050ff',hp:8000, dmg:220,spd:0.9,shape:5, drop:'void_sovereign_omega',  special:'blind'},
+    {n:'Null Titan',      cl:'#050018',hl:'#6020ff',hp:9000, dmg:230,spd:0.7,shape:3, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'Void Destroyer',  cl:'#100035',hl:'#d070ff',hp:10000,dmg:240,spd:0.8,shape:5, drop:'void_sovereign_omega',  special:'doom'},
+    {n:'VOID OVERLORD',   cl:'#020008',hl:'#8800ff',hp:18000,dmg:280,spd:0.6,shape:18,drop:'void_sovereign_omega',  special:'doom',boss:true},
   ],
   death_plane: [
     {n:'Death Shade',     cl:'#1a0000',hl:'#ff0000',hp:5500, dmg:185,spd:1.5,shape:5, drop:'death_scythe',    special:'doom'},
@@ -11127,6 +11127,7 @@ const LEGENDARY_ITEMS = [
   {id:'gozo_fang',      priceGozo:5000,  itemType:'weapon'},
   {id:'monad_lance',    priceGozo:8000,  itemType:'weapon'},
   {id:'void_sovereign', priceGozo:12000, itemType:'weapon'},
+  {id:'void_sovereign_omega', priceGozo:80000, itemType:'weapon'},
   {id:'abyss_throne',   priceGozo:20000, itemType:'weapon'},
   {id:'genesis_reaper', priceGozo:50000, itemType:'weapon'},
   // Tier 8 boss-drop weapons (floors 151-200)
@@ -11515,8 +11516,12 @@ async function legendBuy(itemId, priceGozo){
     legendGozoBal -= priceWei;
     const balDisplay=Number(legendGozoBal/BigInt(10**legendDecimals)).toLocaleString();
     document.getElementById('legend-gozo-bal').textContent=`💰 ${balDisplay} GOZO`;
+    updateHud();
     toast(`🌟 ${w.name} acquired! GOZO burned forever.`);
     renderLegendItems();
+    // Open inventory so player sees new item
+    const invPanel=document.getElementById('inv-panel');
+    if(!invPanel.classList.contains('open')){ invPanel.classList.add('open'); renderInventory(); }
   } catch(e){
     toast('❌ TX failed: '+(e.shortMessage||e.message||'Unknown error'));
     btn.textContent='BUY & BURN'; btn.disabled=false;
@@ -11537,6 +11542,8 @@ function legendReclaim(itemId){
   updateHud();
   toast(`🎁 ${w.name} reclaimed! (Previous purchase detected)`, '#40e090', 3000);
   renderLegendItems();
+  const _ip=document.getElementById('inv-panel');
+  if(!_ip.classList.contains('open')){ _ip.classList.add('open'); renderInventory(); }
 }
 
 function openLegendShop(){
@@ -12253,7 +12260,7 @@ function updateShopAction(item, mode){
     iconEl.style.fontSize='';
     function _sprImg(spr){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=48;cv.height=48;cv.getContext('2d').drawImage(spr,0,0,48,48);const img=new Image();img.src=cv.toDataURL();img.style.cssText='width:48px;height:48px;image-rendering:pixelated;';return img; }
     let panelIcon=null;
-    if(item.type==='weapon')   panelIcon=_sprImg(WEAPON_SPR[item.id]);
+    if(item.type==='weapon')   panelIcon=_sprImg(LEGEND_SPR[item.id]?LEGEND_SPR[item.id][0]:WEAPON_SPR[item.id]);
     else if(item.type==='pickaxe') panelIcon=_sprImg(PICK_SPR[item.id]);
     else if(item.type==='potion')  panelIcon=_sprImg(POTION_SPR[item.id]);
     if(panelIcon){ iconEl.appendChild(panelIcon); }
