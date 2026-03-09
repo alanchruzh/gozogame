@@ -6591,12 +6591,25 @@ function updateArmorHud(){
   if(!iconEl) return;
   if(G.equippedArmor && CRAFTED_ITEMS[G.equippedArmor]){
     const a=CRAFTED_ITEMS[G.equippedArmor];
-    iconEl.textContent=a.icon||'🛡';
-    if(nameEl) nameEl.textContent=a.name||'';
-    if(slotEl){ slotEl.style.borderColor='#60c0ff'; slotEl.style.background='linear-gradient(135deg,#0a2040,#061828)'; }
+    const ac=a.color||'#60c0ff';
+    // Use pixel art sprite if available
+    iconEl.innerHTML='';
+    iconEl.style.fontSize='';
+    const spr=buildForgeItemSprite(G.equippedArmor);
+    if(spr){
+      spr.style.cssText='image-rendering:pixelated;width:36px;height:36px;display:block;pointer-events:none;';
+      iconEl.appendChild(spr);
+    } else {
+      iconEl.style.fontSize='28px';
+      iconEl.textContent=a.icon||'🛡';
+    }
+    if(nameEl){ nameEl.textContent=a.name||''; nameEl.style.color=ac; }
+    if(slotEl){ slotEl.style.borderColor=ac; slotEl.style.background='linear-gradient(135deg,#0a2040,#061828)'; }
   } else {
+    iconEl.innerHTML='';
+    iconEl.style.fontSize='28px';
     iconEl.textContent='🫙';
-    if(nameEl) nameEl.textContent='';
+    if(nameEl){ nameEl.textContent=''; }
     if(slotEl){ slotEl.style.borderColor=''; slotEl.style.background=''; }
   }
 }
