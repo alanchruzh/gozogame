@@ -12303,7 +12303,14 @@ function onFileLoad(e){
       initCanvas();
       if(G._isVillage || G.floor===0){ genVillage(); }
       else { genFloor(G.floor); }
-      setTimeout(()=>equipPickaxe(G.equippedPickaxe||'wooden_pick'),100);
+      setTimeout(()=>{
+        equipPickaxe(G.equippedPickaxe||'wooden_pick');
+        if(G.equippedWeapon && WEAPONS[G.equippedWeapon]){
+          equipWeapon(G.equippedWeapon, null);
+        }
+        updateArmorHud();
+        updateHud();
+      },150);
       updateHud();
       updateGozoHpBar();
       toast(`📂 Loaded! Floor ${G.floor} | 💰${G.coins}`,'#40e090',3000);
