@@ -939,6 +939,7 @@ function drawGozoFrame(dir, state, frame){
   const outline='rgba(0,0,0,0.55)';
 
   const isEast = dir==='E'||dir==='W';
+  const isNorth = dir==='N';
   const isMine = state==='mine';
   const isWalk = state==='walk';
 
@@ -1046,6 +1047,10 @@ function drawGozoFrame(dir, state, frame){
     cx.fillRect(11,18+bob,10,12);
     // collar
     cx.fillStyle=collar; cx.fillRect(13,17+bob,5,2);
+  } else if(isNorth){
+    // Back of shirt — slightly darker, no collar
+    cx.fillStyle=shirtL;
+    cx.fillRect(10,18+bob,12,12);
   } else {
     cx.fillRect(10,18+bob,12,12);
     cx.fillStyle=collar; cx.fillRect(11,17+bob,10,2);
@@ -1058,40 +1063,58 @@ function drawGozoFrame(dir, state, frame){
 
   // HEAD
   const hx = isEast ? 12 : 11;
-  cx.fillStyle=skin;
-  cx.fillRect(hx,7+bob,10,9);
-  // Face highlight
-  cx.fillStyle=skinH;
-  cx.fillRect(hx+(isEast?5:3),8+bob,3,4);
-  // Eyes
-  cx.fillStyle='#180800';
-  if(isEast){
-    cx.fillRect(hx+6,10+bob,2,2);
+  if(isNorth){
+    // Back of head — no face, dark skin, hat from behind
+    cx.fillStyle=skinD;
+    cx.fillRect(11,7+bob,10,9);
+    // Back of neck
+    cx.fillStyle=skinD;
+    cx.fillRect(13,14+bob,6,2);
+    // HAT back — wider brim visible from behind
+    cx.fillStyle=hatD;
+    cx.fillRect(10,9+bob,12,2); // brim
+    cx.fillStyle=hatR;
+    cx.fillRect(11,3+bob,10,7); // crown
+    // Hat back panel (darker)
+    cx.fillStyle=hatD;
+    cx.fillRect(11,3+bob,10,3);
+    // Hat lamp not visible from back
   } else {
-    cx.fillRect(hx+2,10+bob,2,2);
-    cx.fillRect(hx+6,10+bob,2,2);
-  }
-  // Chin shadow
-  cx.fillStyle=skinD;
-  cx.fillRect(hx,14+bob,10,2);
+    cx.fillStyle=skin;
+    cx.fillRect(hx,7+bob,10,9);
+    // Face highlight
+    cx.fillStyle=skinH;
+    cx.fillRect(hx+(isEast?5:3),8+bob,3,4);
+    // Eyes
+    cx.fillStyle='#180800';
+    if(isEast){
+      cx.fillRect(hx+6,10+bob,2,2);
+    } else {
+      cx.fillRect(hx+2,10+bob,2,2);
+      cx.fillRect(hx+6,10+bob,2,2);
+    }
+    // Chin shadow
+    cx.fillStyle=skinD;
+    cx.fillRect(hx,14+bob,10,2);
 
-  // HAT — red miner cap
-  // Brim
-  cx.fillStyle=hatD;
-  cx.fillRect(hx-1,9+bob,12,2);
-  // Crown
-  cx.fillStyle=hatR;
-  cx.fillRect(hx,3+bob,10,7);
-  // Highlight stripe
-  cx.fillStyle=hatH;
-  cx.fillRect(hx+1,3+bob,8,2);
-  // Lamp on hat (orange dot)
-  if(isEast){
-    cx.fillStyle='#ff8800'; cx.fillRect(hx+8,4+bob,3,3);
-    cx.fillStyle='#ffcc00'; cx.fillRect(hx+9,4+bob,2,2);
-  } else {
-    cx.fillStyle='#ff8800'; cx.fillRect(hx+4,2+bob,4,3);
-    cx.fillStyle='#ffcc00'; cx.fillRect(hx+5,2+bob,2,2);
+    // HAT — red miner cap
+    // Brim
+    cx.fillStyle=hatD;
+    cx.fillRect(hx-1,9+bob,12,2);
+    // Crown
+    cx.fillStyle=hatR;
+    cx.fillRect(hx,3+bob,10,7);
+    // Highlight stripe
+    cx.fillStyle=hatH;
+    cx.fillRect(hx+1,3+bob,8,2);
+    // Lamp on hat (orange dot)
+    if(isEast){
+      cx.fillStyle='#ff8800'; cx.fillRect(hx+8,4+bob,3,3);
+      cx.fillStyle='#ffcc00'; cx.fillRect(hx+9,4+bob,2,2);
+    } else {
+      cx.fillStyle='#ff8800'; cx.fillRect(hx+4,2+bob,4,3);
+      cx.fillStyle='#ffcc00'; cx.fillRect(hx+5,2+bob,2,2);
+    }
   }
 
   // Arms (drawn over torso)
@@ -1101,7 +1124,7 @@ function drawGozoFrame(dir, state, frame){
 }
 
 function buildGozoSpriteSet(){
-  const dirs=['S','E'];
+  const dirs=['S','E','N'];
   const states=['idle','walk','mine'];
   const counts={idle:2, walk:4, mine:3};
   const result={};
@@ -9425,8 +9448,9 @@ function getSprFrames(){
   const{state,dir}=gozo;
   if(state==='mine') return[SPR.MINE,dir==='W'];
   const east=dir==='E'||dir==='W', flip=dir==='W';
-  if(state==='walk') return[east?SPR.E_WALK:SPR.S_WALK, flip];
-  return[east?SPR.E_IDLE:SPR.S_IDLE, flip];
+  const north=dir==='N';
+  if(state==='walk') return[east?SPR.E_WALK:north?SPR.N_WALK:SPR.S_WALK, flip];
+  return[east?SPR.E_IDLE:north?SPR.N_IDLE:SPR.S_IDLE, flip];
 }
 
 function getPickaxeTier(){
