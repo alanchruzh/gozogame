@@ -268,24 +268,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   color:#7a6040;pointer-events:none;z-index:50;letter-spacing:.5px;}
 
 /* SPLASH */
-#splash{position:fixed;inset:0;z-index:1000;background:#0a0604;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
-#spt{font-family:'Press Start 2P',monospace;font-size:22px;color:#e8c060;
-  text-align:center;line-height:1.7;text-shadow:3px 3px 0 #6a3010,0 0 40px rgba(232,192,96,.6);
-  animation:gl 1.8s ease-in-out infinite;}
 @keyframes gl{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
-.ssb{font-size:18px;color:#7a6040;text-align:center;line-height:1.7;}
-.sgi{font-size:50px;animation:hop .75s ease-in-out infinite;}
 @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-#ss{padding:10px 28px;font-family:'Press Start 2P',monospace;font-size:8px;
-  background:transparent;border:2px solid #e8c060;color:#e8c060;cursor:pointer;
-  letter-spacing:1px;animation:bp 1.2s ease-in-out infinite;transition:background .15s;}
-#ss:hover{background:rgba(232,192,96,.15);}
-#ss-load{padding:10px 28px;font-family:'Press Start 2P',monospace;font-size:8px;
-  background:transparent;border:2px solid #60c890;color:#60c890;cursor:pointer;
-  letter-spacing:1px;transition:background .15s;margin-top:8px;}
-#ss-load:hover{background:rgba(96,200,144,.15);}
-#splash-btns{display:flex;flex-direction:column;align-items:center;gap:0;}
 #save-preview{
   margin-top:12px;padding:8px 18px;
   background:rgba(0,0,0,0.5);border:1px solid #4a3820;border-radius:3px;
@@ -370,7 +354,6 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   padding:4px 10px;font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;
   pointer-events:none;}
 
-.hb{font-size:13px;color:#7a6040;border:1px solid #3a2810;padding:5px 14px;line-height:2.1;text-align:center;}
 
 /* TOAST */
 #toast{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);
@@ -408,17 +391,6 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
   </div>
 </div>
 
-<!-- SPLASH -->
-<div id="splash">
-  <div class="sgi">⛏️</div>
-  <div id="spt">GOZO<br>MINING</div>
-  <div class="ssb">Explore the mine dungeon with Gozo!<br>150 floors full of ore & mystery.</div>
-  <div class="hb">🎮 WASD / Arrow = move<br>🖱 Click rock = auto mine<br>🪜 Find ladder → go deeper<br>[T] = open upgrade panel</div>
-  <div id="splash-btns">
-    <button id="ss" onclick="startNewGame()">► NEW GAME</button>
-    <button id="ss-load" onclick="loadGame()">📂 LOAD SAVE</button>
-  </div>
-</div>
 <input type="file" id="file-input" accept=".json" style="display:none" onchange="onFileLoad(event)">
 
 <div id="toast"></div>
@@ -584,6 +556,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     <input type="range" id="vol-slider" min="0" max="100" value="22" oninput="setMusicVolume(this.value)" style="width:60px;height:14px;vertical-align:middle;accent-color:#40a0c0;cursor:pointer;" title="Music Volume">
     <div style="width:2px;height:40px;background:#4a3010"></div>
     <button class="hud-btn" onclick="saveGame()" style="border-color:#60c890;color:#60c890;">💾 SAVE</button>
+    <button class="hud-btn" onclick="loadGame()" style="border-color:#a0c0ff;color:#a0c0ff;">📂 LOAD</button>
   </div>
 </div>
 
@@ -11524,9 +11497,6 @@ function onFileLoad(e){
       buildAllBiomeMonsterSprites();
       buildAllPotionSprites();
       Object.assign(G, data.G);
-      const sp=document.getElementById('splash');
-      sp.style.transition='opacity .5s';sp.style.opacity='0';
-      setTimeout(()=>sp.style.display='none',520);
       initCanvas();
       genFloor(G.floor);
       setTimeout(()=>equipPickaxe(G.equippedPickaxe||'wooden_pick'),100);
@@ -11567,9 +11537,6 @@ function startNewGame(){
   buildAllPickaxeSprites();
   buildAllBiomeMonsterSprites();
   buildAllPotionSprites();
-  const sp=document.getElementById('splash');
-  sp.style.transition='opacity .5s';sp.style.opacity='0';
-  setTimeout(()=>sp.style.display='none',520);
   initCanvas();
   // Start at village (floor 0)
   G.floor=0;
@@ -11588,7 +11555,7 @@ function startNewGame(){
 }
 
 window.addEventListener('load', ()=>{
-  // nothing to preview — file based save
+  startNewGame();
 });
 
 </script>
