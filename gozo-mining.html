@@ -1577,7 +1577,7 @@ const getDmg  =()=>{
 const getCrit =()=>G.upg.crit.lv*0.10;
 const getLuck =()=>G.upg.lucky.lv*0.09+((typeof BUFFS!=='undefined'&&BUFFS.luck>0)?0.15:0);
 const getMag  =()=>G.upg.magnet.lv>=1?2:1;
-const getSpd  =()=>(2.2+G.upg.speed.lv*0.5)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1)*(BUFFS.frozen>0?0.35:1)*(typeof getArmorSpeedMult!=='undefined'?getArmorSpeedMult():1);
+const getSpd  =()=>(2.0+G.upg.speed.lv*0.3)*((typeof BUFFS!=='undefined'&&BUFFS.speed>0)?2:1)*(BUFFS.frozen>0?0.35:1)*(typeof getArmorSpeedMult!=='undefined'?getArmorSpeedMult():1);
 const upgCost =id=>Math.floor(G.upg[id].cost*Math.pow(G.upg[id].mult,G.upg[id].lv));
 
 // ═══════════════════════════════════════════════════════════
