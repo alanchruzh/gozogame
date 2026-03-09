@@ -6381,6 +6381,11 @@ function renderInventory(){
       }
       div.innerHTML=`<span style="font-size:20px">${icon}</span><span class="inv-name">${name}</span>${qty?`<span class="inv-qty">${qty}</span>`:''}`;
       div.onclick=()=>onInvClick(i);
+      setupInvDrag(div,i);
+    } else {
+      // Empty slot — still clickable and draggable
+      div.onclick=()=>onInvClick(i);
+      setupInvDrag(div,i);
     }
     grid.appendChild(div);
   }
