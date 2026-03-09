@@ -162,7 +162,7 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 .shop-item:hover{border-color:#c08030;background:rgba(192,128,48,.1);}
 .shop-item.selected{border-color:#f0c840;background:rgba(240,200,64,.12);}
 .si-top{display:flex;align-items:center;gap:6px;}
-.si-icon{font-size:20px;line-height:1;flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
+.si-icon{font-size:20px;line-height:1;flex-shrink:0;width:48px;height:48px;display:flex;align-items:center;justify-content:center;}
 .si-name{font-family:'Press Start 2P',monospace;font-size:5px;color:#e0c090;line-height:1.5;}
 .si-tier{font-family:'Press Start 2P',monospace;font-size:4px;margin-top:1px;}
 .si-price{font-family:'Press Start 2P',monospace;font-size:6px;color:#f0c840;}
@@ -9289,12 +9289,17 @@ function getShopInventory(shopType){
   // Returns list of {id, name, icon, price, desc, tier} for buy
   const items=[];
   if(shopType==='weapon'){
+    const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
     const wids=Object.keys(WEAPONS).filter(w=>!WEAPONS[w].starter);
-    for(const wid of wids) if(SHOP_BUY[wid]) items.push({id:wid,name:WEAPONS[wid].name,icon:WEAPONS[wid].icon,price:SHOP_BUY[wid],tier:WEAPONS[wid].tier,desc:`ATK ${WEAPONS[wid].dmg} | ${WEAPONS[wid].tier}`});
+    for(const wid of wids) if(SHOP_BUY[wid]){
+      const ww=WEAPONS[wid];
+      const tierStr=(typeof ww.tier==='number'?tierNameMap[ww.tier]:ww.tier)||'Common';
+      items.push({id:wid,name:ww.name,icon:ww.icon,price:SHOP_BUY[wid],tier:tierStr,_type:'weapon',desc:`ATK ${ww.dmg} | SPD ${ww.spd} | ${tierStr}`});
+    }
   } else if(shopType==='potion'){
-    for(const pid in POTIONS) items.push({id:pid,name:POTIONS[pid].name,icon:'🧪',price:SHOP_BUY[pid]||99,tier:POTIONS[pid].tier,desc:POTIONS[pid].desc||'Potion effect'});
+    for(const pid in POTIONS) items.push({id:pid,name:POTIONS[pid].name,icon:'🧪',price:SHOP_BUY[pid]||99,tier:POTIONS[pid].tier,_type:'potion',desc:POTIONS[pid].desc||'Potion effect'});
   } else if(shopType==='pickaxe'){
-    for(const pid in PICKAXES) items.push({id:pid,name:PICKAXES[pid].name,icon:'⛏',price:SHOP_BUY[pid]||100,tier:PICKAXES[pid].tier,desc:`DMG +${PICKAXES[pid].dmg} | ${PICKAXES[pid].tier}`});
+    for(const pid in PICKAXES) items.push({id:pid,name:PICKAXES[pid].name,icon:'⛏',price:SHOP_BUY[pid]||100,tier:PICKAXES[pid].tier,_type:'pickaxe',desc:`DMG +${PICKAXES[pid].dmg} | ${PICKAXES[pid].tier}`});
   } else if(shopType==='bomb'){
     items.push({id:'bomb',  name:'Bomb',  icon:'💣', price:SHOP_BUY.bomb||200, tier:'Common',   desc:'Blasts rocks in radius'});
     items.push({id:'ladder',name:'Ladder',icon:'🪜', price:10000,               tier:'Common',   desc:'Instantly go 1 floor deeper'});
@@ -9627,7 +9632,20 @@ function renderShopItems(){
       d.className='shop-item'+(shopState.selectedItem?.id===item.id?' selected':'');
       d.style.borderColor=tc+'88';
       const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];
-      const iconHtml = oreIds.includes(item.id) ? getOreImg(item.id) : item.icon;
+      // Build icon as dataURL img tag for reliable rendering
+      function sprToImg(spr,size){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=size;cv.height=size;cv.getContext('2d').drawImage(spr,0,0,size,size);return `<img src="${cv.toDataURL()}" style="width:${size}px;height:${size}px;image-rendering:pixelated;">`; }
+      let iconHtml;
+      if(oreIds.includes(item.id)){
+        iconHtml=getOreImg(item.id,40)||`<span style="font-size:22px">🪨</span>`;
+      } else if(item._type==='weapon'||WEAPONS[item.id]){
+        iconHtml=sprToImg(WEAPON_SPR[item.id],48)||`<span style="font-size:22px">${item.icon||'⚔️'}</span>`;
+      } else if(item._type==='pickaxe'||PICKAXES[item.id]){
+        iconHtml=sprToImg(PICK_SPR[item.id],48)||`<span style="font-size:22px">${item.icon||'⛏️'}</span>`;
+      } else if(item._type==='potion'||POTIONS[item.id]){
+        iconHtml=sprToImg(POTION_SPR[item.id],48)||`<span style="font-size:22px">🧪</span>`;
+      } else {
+        iconHtml=`<span style="font-size:22px">${item.icon||'📦'}</span>`;
+      }
       d.innerHTML=`<div class="si-top"><span class="si-icon">${iconHtml}</span><div><div class="si-name">${item.name}</div><div class="si-tier" style="color:${tc}">${item.tier||''}</div></div></div><div class="si-price">💰${fmt(item.price)}</div>`;
       d.onclick=()=>{ shopState.selectedItem=item; shopState.selectedSellSlot=null; renderShopItems(); updateShopAction(item,'buy'); };
       grid.appendChild(d);
@@ -9639,25 +9657,32 @@ function renderShopItems(){
       return;
     }
     for(const{slot,item}of sellItems){
-      let name='?',icon='📦',price=0,tier='Common';
+      let name='?',iconHtml='📦',price=0,tier='Common';
+      const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
+      function sprToImg2(spr,size){ if(!spr) return null; const cv=document.createElement('canvas');cv.width=size;cv.height=size;cv.getContext('2d').drawImage(spr,0,0,size,size);return `<img src="${cv.toDataURL()}" style="width:${size}px;height:${size}px;image-rendering:pixelated;">`; }
       if(item.type==='weapon'){
         const wd=WEAPONS[item.id]||{};
-        name=wd.name||'Wpn'; icon=wd.icon||'⚔️';
+        name=wd.name||'Wpn';
         const tierVal=wd.tier;
-        // tier can be numeric (1-6) or string name
-        const tierNameMap={1:'Common',2:'Uncommon',3:'Rare',4:'Epic',5:'Legendary',6:'Legendary'};
         tier=(typeof tierVal==='number'?tierNameMap[tierVal]:tierVal)||'Common';
         price=Math.floor((WEAPON_SELL[tier]||30)*0.6);
+        iconHtml=sprToImg2(WEAPON_SPR[item.id],48)||`<span style="font-size:22px">${wd.icon||'⚔️'}</span>`;
       }
-      else if(item.type==='pickaxe'){name=PICKAXES[item.id]?.name||'Pick';icon='⛏';const ti=PICKAXES[item.id]?.tierIdx||0;price=Math.floor((PICK_SELL[ti]||20)*0.6);tier=PICKAXES[item.id]?.tier||'Common';}
-      else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';icon='🧪';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
-      else if(item.type==='ore'){name=item.id==='steel'?'Steel':item.id.charAt(0).toUpperCase()+item.id.slice(1);const oreIds=['iron','gold','diamond','steel','titanium','tungsten','chromium'];icon=oreIds.includes(item.id)?getOreImg(item.id,24):item.id==='iron'?'🪨':item.id==='gold'?'✨':'💎';price=SHOP_SELL[item.id]||10;tier='Ore';}
-      else if(item.type==='bomb'){name='Bomb';icon='💣';price=100;}
+      else if(item.type==='pickaxe'){
+        name=PICKAXES[item.id]?.name||'Pick';
+        const ti=PICKAXES[item.id]?.tierIdx||0;
+        tier=PICKAXES[item.id]?.tier||'Common';
+        price=Math.floor((PICK_SELL[ti]||20)*0.6);
+        iconHtml=sprToImg2(PICK_SPR[item.id],48)||'<span style="font-size:22px">⛏️</span>';
+      }
+      else if(item.type==='potion'){name=POTIONS[item.id]?.name||'Pot';iconHtml=sprToImg2(POTION_SPR[item.id],48)||'<span style="font-size:22px">🧪</span>';price=Math.round((SHOP_BUY[item.id]||40)*0.5);tier='Potion';}
+      else if(item.type==='ore'){name=item.id.charAt(0).toUpperCase()+item.id.slice(1);iconHtml=getOreImg(item.id,32)||'<span>🪨</span>';price=SHOP_SELL[item.id]||10;tier='Ore';}
+      else if(item.type==='bomb'){name='Bomb';iconHtml='<span style="font-size:22px">💣</span>';price=100;}
       const tc=TIER_COLOR[tier]||'#c0c0c0';
       const d=document.createElement('div');
       d.className='shop-item'+(shopState.selectedSellSlot===slot?' selected':'');
       d.style.borderColor=tc+'88';
-      d.innerHTML=`<div class="si-top"><span class="si-icon">${icon}</span><div><div class="si-name">${name}${item.qty>1?' ×'+item.qty:''}</div><div class="si-tier" style="color:${tc}">${tier}</div></div></div><div class="si-sell">+${fmt(price*(item.qty||1))}g</div>`;
+      d.innerHTML=`<div class="si-top"><span class="si-icon">${iconHtml}</span><div><div class="si-name">${name}${item.qty>1?' ×'+item.qty:''}</div><div class="si-tier" style="color:${tc}">${tier}</div></div></div><div class="si-sell">+${fmt(price*(item.qty||1))}g</div>`;
       d.onclick=()=>{ shopState.selectedSellSlot=slot; shopState.selectedItem={...item,_slot:slot,_price:price}; renderShopItems(); updateShopAction({...item,_slot:slot,_price:price,name,icon},'sell'); };
       grid.appendChild(d);
     }
