@@ -6313,6 +6313,30 @@ function renderInventory(){
         setupInvDrag(div,i);
         grid.appendChild(div);
         continue;
+      } else if(s.type==='accessory'){
+        const a=s.def||CRAFTED_ITEMS[s.id]||{};
+        const ac=a.color||'#80c0ff';
+        div.style.borderColor=ac+'aa';
+        if(G.equippedArmor===s.id) div.classList.add('equipped-item');
+        // Try pixel art sprite from forge sprites
+        const accSprCanvas=buildForgeItemSprite(s.id);
+        if(accSprCanvas){
+          accSprCanvas.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
+          div.appendChild(accSprCanvas);
+        } else {
+          const sp=document.createElement('span');
+          sp.style.cssText='font-size:26px;line-height:1;pointer-events:none;';
+          sp.textContent=a.icon||'🛡';
+          div.appendChild(sp);
+        }
+        const nm=document.createElement('span');
+        nm.className='inv-name'; nm.style.color=ac;
+        nm.textContent=(a.name||s.id).split(' ')[0];
+        div.appendChild(nm);
+        div.onclick=()=>onInvClick(i);
+        setupInvDrag(div,i);
+        grid.appendChild(div);
+        continue;
       }
       div.innerHTML=`<span style="font-size:20px">${icon}</span><span class="inv-name">${name}</span>${qty?`<span class="inv-qty">${qty}</span>`:''}`;
       div.onclick=()=>onInvClick(i);
