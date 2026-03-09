@@ -9312,11 +9312,15 @@ function getShopInventory(shopType){
   return items;
 }
 function getShopSellItems(shopType){
-  // Returns player inventory items relevant to this shop
+  // Returns player inventory items relevant to this shop — skip equipped items
   const items=[];
   for(let i=0;i<(G.invSlots||30);i++){
     const s=G.inventory[i];
     if(!s) continue;
+    // Skip currently equipped weapon, pickaxe, or armor
+    if(s.type==='weapon'  && s.id===G.equippedWeapon)  continue;
+    if(s.type==='pickaxe' && s.id===G.equippedPickaxe) continue;
+    if(s.type==='accessory' && s.id===G.equippedArmor) continue;
     let match=false;
     if(shopType==='weapon'&&s.type==='weapon') match=true;
     if(shopType==='potion'&&s.type==='potion') match=true;
