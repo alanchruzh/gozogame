@@ -6137,6 +6137,8 @@ function updateGozoHpBar(){
 // ═══════════════════════════════════════════════════════════
 function addToInventory(item){
   const slots = G.invSlots || 30;
+  // Ensure inventory array is large enough
+  while(G.inventory.length < slots) G.inventory.push(null);
   // Sync ore G counter
   if(item.type==='ore'&&item.id){
     G[item.id]=(G[item.id]||0)+(item.qty||1);
@@ -12244,6 +12246,9 @@ function onFileLoad(e){
       buildAllBiomeMonsterSprites();
       buildAllPotionSprites();
       Object.assign(G, saved);
+
+      // Ensure inventory array length matches invSlots (save files may be shorter)
+      while(G.inventory.length < (G.invSlots||30)) G.inventory.push(null);
 
       // Re-register any crafted items found in inventory
       for(const slot of G.inventory){
