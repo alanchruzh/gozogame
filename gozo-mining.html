@@ -294,6 +294,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
 #inv-grid-wrap::-webkit-scrollbar-thumb:hover{background:#c09040;}
 #inv-grid{display:grid;grid-template-columns:repeat(5,52px);gap:4px;}
 .inv-slot.drag-over{border-color:#f0c840!important;background:rgba(240,200,64,0.25)!important;box-shadow:0 0 10px #f0c84088!important;}
+.inv-slot.inv-locked{box-shadow:inset 0 0 0 2px #ff8800,0 0 6px #ff880066!important;}
+.inv-slot.inv-locked::after{content:'🔒';position:absolute;top:1px;left:2px;font-size:8px;pointer-events:none;opacity:0.85;line-height:1;}
 .inv-slot.dragging{opacity:0.4;border-color:#808080!important;}
 .inv-slot{
   width:52px;height:52px;background:rgba(0,0,0,0.5);
@@ -1491,7 +1493,7 @@ const G={
   equippedWeapon:null,
   equippedPickaxe:'wooden_pick',
   equippedArmor:null,  // equipped accessory/armor item id
-  legendPurchases:{},  // wallet addr → [itemIds] (iframe-safe purchase record)
+  legendPurchases:{}, lockedSlots:[],  // wallet addr → [itemIds] (iframe-safe purchase record)
   inventory:Array(30).fill(null),
   invSlots:30,
   upg:{
@@ -2669,6 +2671,8 @@ function buildAllWeaponSprites(){
     if(w.legendary) buildLegendarySprite(id);
     else WEAPON_SPR[id]=buildWeaponSprite(id);
   }
+  // Also build legendary armor sprites
+  for(const id in LEGENDARY_ARMORS) buildLegendarySprite(id);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -6228,7 +6232,7 @@ function renderInventory(){
   for(let i=0;i<slots;i++){
     const s=G.inventory[i];
     const div=document.createElement('div');
-    div.className='inv-slot'+(s&&(s.type==='weapon'||s.type==='pickaxe')?' weapon-item':'');
+    div.className='inv-slot'+(s&&(s.type==='weapon'||s.type==='pickaxe')?' weapon-item':'')+(isSlotLocked(i)?' inv-locked':'');
     if(s){
       let icon='',name='',qty='';
       if(s.type==='ore'){
@@ -6314,16 +6318,50 @@ function renderInventory(){
         grid.appendChild(div);
         continue;
       } else if(s.type==='accessory'){
-        const a=s.def||CRAFTED_ITEMS[s.id]||{};
+        const a=s.def||CRAFTED_ITEMS[s.id]||LEGENDARY_ARMORS[s.id]||{};
+        const isLegArmor=!!LEGENDARY_ARMORS[s.id];
         const ac=a.color||'#80c0ff';
         div.style.borderColor=ac+'aa';
+        if(isLegArmor){ div.style.boxShadow=`0 0 8px ${ac}88`; }
         if(G.equippedArmor===s.id) div.classList.add('equipped-item');
-        // Try pixel art sprite from forge sprites
-        const accSprCanvas=buildForgeItemSprite(s.id);
-        if(accSprCanvas){
-          accSprCanvas.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
-          div.appendChild(accSprCanvas);
-        } else {
+        // Try legendary armor animated sprite first, then forge sprite
+        let accRendered=false;
+        if(isLegArmor){
+          if(!LEGEND_ARMOR_SPR) window.LEGEND_ARMOR_SPR={};
+          if(!LEGEND_ARMOR_SPR[s.id]){
+            // Build single frame from buildLegendarySprite frames cache
+            buildLegendarySprite(s.id);
+          }
+          const frames=LEGEND_SPR[s.id];
+          if(frames&&frames.length){
+            const cvs=document.createElement('canvas');
+            cvs.width=36;cvs.height=36;
+            cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
+            const lctx=cvs.getContext('2d');
+            lctx.imageSmoothingEnabled=false;
+            let laf=null;
+            function animArmorSlot(){
+              const fi=Math.floor(Date.now()/150)%frames.length;
+              lctx.clearRect(0,0,36,36);
+              lctx.drawImage(frames[fi],0,0,36,36);
+              laf=requestAnimationFrame(animArmorSlot);
+            }
+            animArmorSlot();
+            cvs._stopAnim=()=>{ if(laf) cancelAnimationFrame(laf); };
+            cvs.setAttribute('data-anim','1');
+            div.appendChild(cvs);
+            accRendered=true;
+          }
+        }
+        if(!accRendered){
+          const accSprCanvas=buildForgeItemSprite(s.id);
+          if(accSprCanvas&&_FORGE_SPR_CACHE[s.id]){
+            accSprCanvas.style.cssText='image-rendering:pixelated;width:36px;height:36px;pointer-events:none;';
+            div.appendChild(accSprCanvas);
+            accRendered=true;
+          }
+        }
+        if(!accRendered){
           const sp=document.createElement('span');
           sp.style.cssText='font-size:26px;line-height:1;pointer-events:none;';
           sp.textContent=a.icon||'🛡';
@@ -6343,6 +6381,18 @@ function renderInventory(){
     }
     grid.appendChild(div);
   }
+}
+
+// ─── Inventory Lock System ───────────────────────────────
+function isSlotLocked(i){
+  if(!G.lockedSlots) G.lockedSlots=[];
+  return G.lockedSlots.includes(i);
+}
+function toggleSlotLock(i){
+  if(!G.lockedSlots) G.lockedSlots=[];
+  const idx=G.lockedSlots.indexOf(i);
+  if(idx>=0) G.lockedSlots.splice(idx,1);
+  else G.lockedSlots.push(i);
 }
 
 // ─── Inventory Drag & Drop ───────────────────────────────
@@ -6439,6 +6489,15 @@ function onInvClick(i){
       toast('\ud83d\uddd1 Threw away '+name);
     });
   }
+  function lockBtn(){
+    const locked=isSlotLocked(i);
+    const b=document.createElement('button');
+    b.className='iab-btn';
+    b.style.cssText='padding:4px 6px;font-family:"Press Start 2P",monospace;font-size:5px;cursor:pointer;border-radius:2px;width:100%;text-align:left;background:'+(locked?'rgba(255,136,0,0.15)':'rgba(60,60,60,0.15)')+';border:1px solid '+(locked?'#ff8800':'#505050')+';color:'+(locked?'#ffaa44':'#707070')+';margin-top:2px;';
+    b.textContent=locked?'🔒 LOCKED':'🔓 Lock Item';
+    b.onclick=()=>{ toggleSlotLock(i); onInvClick(i); renderInventory(); };
+    return b;
+  }
 
   btnsEl.innerHTML=''; statsEl.innerHTML=''; descEl.innerHTML='';
 
@@ -6463,6 +6522,7 @@ function onInvClick(i){
     const {allowed}=canSellToNpc(w.legendary?'legendary':'weapon');
     const sv=w.legendary?(w.goldSell||0):(WEAPON_SELL[w.tier]||30);
     btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(sv)+'g','iab-throw',()=>{ if(w.legendary) invSellLegendary(i); else invSellItem(i,sv,w.name); },!allowed));
+    btnsEl.appendChild(lockBtn());
     btnsEl.appendChild(throwBtn());
 
   } else if(s.type==='pickaxe'){
@@ -6483,6 +6543,7 @@ function onInvClick(i){
     const {allowed}=canSellToNpc('pickaxe');
     const sv=PICK_SELL[pk.tierIdx||0]||20;
     btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(sv)+'g','iab-throw',()=>invSellItem(i,sv,pk.name),!allowed));
+    btnsEl.appendChild(lockBtn());
     btnsEl.appendChild(throwBtn());
 
   } else if(s.type==='potion'){
@@ -6498,6 +6559,7 @@ function onInvClick(i){
     btnsEl.appendChild(btn('\ud83e\uddea USE NOW','iab-use',()=>{ usePotion(i); onInvClick(i); }));
     const {allowed}=canSellToNpc('potion');
     btnsEl.appendChild(btn('\ud83d\udcb0 SELL +'+fmt(10)+'g','iab-throw',()=>invSellItem(i,10,p.name),!allowed));
+    btnsEl.appendChild(lockBtn());
     btnsEl.appendChild(throwBtn());
 
   } else if(s.type==='ore'){
@@ -6510,6 +6572,7 @@ function onInvClick(i){
     statsEl.innerHTML='\u00d7'+s.qty+' &nbsp; <span style="color:#f0c840">'+fmt(pc)+'g each</span><br>Total: <span style="color:#f0c840">'+fmt(pc*s.qty)+'g</span>';
     const {allowed}=canSellToNpc('ore');
     btnsEl.appendChild(btn('\ud83d\udcb0 SELL ALL +'+fmt(pc*s.qty)+'g','iab-use',()=>invSellItem(i,pc*s.qty,s.qty+' '+s.id,true),!allowed));
+    btnsEl.appendChild(lockBtn());
     btnsEl.appendChild(throwBtn());
 
   } else if(s.type==='accessory'){
@@ -6595,13 +6658,31 @@ function updateArmorHud(){
     // Use pixel art sprite if available
     iconEl.innerHTML='';
     iconEl.style.fontSize='';
-    const spr=buildForgeItemSprite(G.equippedArmor);
-    if(spr){
-      spr.style.cssText='image-rendering:pixelated;width:36px;height:36px;display:block;pointer-events:none;';
-      iconEl.appendChild(spr);
+    // Try legendary animated sprite first
+    const legFrames=LEGEND_SPR[G.equippedArmor];
+    if(legFrames&&legFrames.length){
+      const cvs=document.createElement('canvas');cvs.width=36;cvs.height=36;
+      cvs.style.cssText='image-rendering:pixelated;width:36px;height:36px;display:block;pointer-events:none;';
+      const lc=cvs.getContext('2d');lc.imageSmoothingEnabled=false;
+      const aid=G.equippedArmor;
+      let laf2=null;
+      function animArmorHud(){
+        if(G.equippedArmor!==aid){if(laf2)cancelAnimationFrame(laf2);return;}
+        const fi=Math.floor(Date.now()/150)%legFrames.length;
+        lc.clearRect(0,0,36,36);lc.drawImage(legFrames[fi],0,0,36,36);
+        laf2=requestAnimationFrame(animArmorHud);
+      }
+      animArmorHud();
+      iconEl.appendChild(cvs);
     } else {
-      iconEl.style.fontSize='28px';
-      iconEl.textContent=a.icon||'🛡';
+      const spr=buildForgeItemSprite(G.equippedArmor);
+      if(spr&&_FORGE_SPR_CACHE[G.equippedArmor]){
+        spr.style.cssText='image-rendering:pixelated;width:36px;height:36px;display:block;pointer-events:none;';
+        iconEl.appendChild(spr);
+      } else {
+        iconEl.style.fontSize='28px';
+        iconEl.textContent=a.icon||'🛡';
+      }
     }
     if(nameEl){ nameEl.textContent=a.name||''; nameEl.style.color=ac; }
     if(slotEl){ slotEl.style.borderColor=ac; slotEl.style.background='linear-gradient(135deg,#0a2040,#061828)'; }
@@ -9407,6 +9488,8 @@ function getShopSellItems(shopType){
   for(let i=0;i<(G.invSlots||30);i++){
     const s=G.inventory[i];
     if(!s) continue;
+    // Skip locked slots
+    if(isSlotLocked(i)) continue;
     // Skip currently equipped weapon, pickaxe, or armor
     if(s.type==='weapon'  && s.id===G.equippedWeapon)  continue;
     if(s.type==='pickaxe' && s.id===G.equippedPickaxe) continue;
@@ -9900,6 +9983,7 @@ function shopSell(){
   // Sync ore counter when sold
   if(inv.type==='ore'&&inv.id) G[inv.id]=Math.max(0,(G[inv.id]||0)-(inv.qty||1));
   G.inventory[slot]=null;
+  if(G.lockedSlots){const li=G.lockedSlots.indexOf(slot);if(li>=0)G.lockedSlots.splice(li,1);}
   updateHud(); updateShopGold();
   toast(`💰 Sold for ${fmt(price)}g!`);
   shopState.selectedItem=null; shopState.selectedSellSlot=null;
@@ -9919,6 +10003,8 @@ function shopSellAll(){
   for(let i=0;i<(G.invSlots||30);i++){
     const s=G.inventory[i];
     if(!s||!sellTypes.includes(s.type)) continue;
+    // Skip locked slots
+    if(isSlotLocked(i)) continue;
     // Sync ore counter
     if(s.type==='ore'&&s.id) G[s.id]=Math.max(0,(G[s.id]||0)-(s.qty||1));
     // Don't sell equipped weapon or pickaxe
@@ -10259,12 +10345,66 @@ function drawGozoAt(ctx, px, py){
     const wid=G.equippedWeapon;
     const lw=WEAPONS[wid];
     if(lw){
-      const t=Date.now()/600;
-      const pulse=0.3+0.25*Math.sin(t);
+      const t=Date.now();
+      const pulse=0.3+0.25*Math.sin(t/600);
       ctx.save();
+      // Base glow
       ctx.globalAlpha=pulse;
       ctx.fillStyle=lw.color;
       ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.7,SH*0.7,0,0,Math.PI*2); ctx.fill();
+
+      // Per-weapon unique particle effects
+      if(wid==='gozo_fang'){
+        // Red twin blood drips
+        for(let i=0;i<4;i++){
+          const bx=px-6+i*4, by=py-SH*0.3+Math.sin(t/200+i)*6;
+          ctx.globalAlpha=0.6+0.4*Math.sin(t/150+i);
+          ctx.fillStyle='#ff1100';
+          ctx.fillRect(bx,by,2,3+Math.round(Math.sin(t/120+i)*2));
+        }
+      } else if(wid==='monad_lance'){
+        // Blue energy rings expanding from body
+        for(let r=0;r<2;r++){
+          const rs=8+(r*12)+((t/5)%12);
+          ctx.globalAlpha=Math.max(0, 0.5-rs/30);
+          ctx.strokeStyle='#00aaff';
+          ctx.lineWidth=1;
+          ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,rs,rs*0.5,0,0,Math.PI*2); ctx.stroke();
+        }
+      } else if(wid==='void_sovereign'){
+        // Purple void wisps orbiting
+        for(let i=0;i<6;i++){
+          const ang=t/400+i*1.047;
+          const r=14+Math.sin(t/300+i)*4;
+          ctx.globalAlpha=0.5+0.4*Math.sin(t/200+i);
+          ctx.fillStyle=i%2?'#aa00ff':'#ff44ff';
+          ctx.fillRect(px+Math.cos(ang)*r-1,py-SH*0.4+Math.sin(ang)*r*0.4-1,2,2);
+        }
+      } else if(wid==='abyss_throne'){
+        // Dark crown with falling ash
+        for(let i=0;i<5;i++){
+          const ax=px-10+i*5;
+          const ay=(py-SH+10+(t/3+i*20)%SH);
+          ctx.globalAlpha=0.4+0.3*Math.sin(t/180+i);
+          ctx.fillStyle='#440088';
+          ctx.fillRect(ax,ay,2,2);
+        }
+      } else if(wid==='genesis_reaper'){
+        // White holy light beams shooting upward
+        for(let i=0;i<3;i++){
+          const bx=px-8+i*8;
+          ctx.globalAlpha=0.3+0.3*Math.sin(t/200+i);
+          ctx.fillStyle='#ffffff';
+          const bh=6+Math.round(Math.sin(t/150+i)*4);
+          ctx.fillRect(bx-1,py-SH-bh,2,bh);
+        }
+        // Holy aura ring
+        ctx.globalAlpha=0.2*pulse;
+        ctx.strokeStyle='#ffffaa';
+        ctx.lineWidth=2;
+        ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.8,SH*0.75,0,0,Math.PI*2); ctx.stroke();
+      }
+
       ctx.globalAlpha=1;
       ctx.restore();
     }
@@ -10282,6 +10422,125 @@ function drawGozoAt(ctx, px, py){
     if(ov) ctx.drawImage(ov.spr,px-SW/2,py-SH+4);
   }
   ctx.restore();
+
+  // ── LEGENDARY ARMOR visual effects on Gozo ──
+  const armorId = G.equippedArmor;
+  if(armorId && LEGENDARY_ARMORS[armorId]){
+    const la = LEGENDARY_ARMORS[armorId];
+    const t = Date.now();
+    ctx.save();
+
+    if(armorId==='crimson_mantle'){
+      // Red fire cape trailing behind
+      const pulse=0.4+0.3*Math.sin(t/300);
+      for(let i=0;i<6;i++){
+        const ang=Math.PI*0.5+Math.sin(t/400+i)*0.5;
+        const dist=6+i*3+Math.sin(t/200+i*1.1)*2;
+        const fx=px+Math.cos(ang+Math.PI)*dist*0.8;
+        const fy=py-SH*0.3+i*3+Math.sin(t/250+i)*2;
+        const alpha=(0.6-i*0.08)*pulse;
+        const r=4-i*0.5;
+        ctx.globalAlpha=Math.max(0,alpha);
+        ctx.fillStyle=i<3?'#ff2200':i<5?'#ff8800':'#ffcc00';
+        ctx.beginPath(); ctx.arc(fx,fy,r,0,Math.PI*2); ctx.fill();
+      }
+      // Red aura shimmer
+      ctx.globalAlpha=0.15+0.1*Math.sin(t/400);
+      ctx.fillStyle='#cc1100';
+      ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.6,SH*0.55,0,0,Math.PI*2); ctx.fill();
+    }
+
+    else if(armorId==='void_carapace'){
+      // Purple void particles orbiting
+      for(let i=0;i<8;i++){
+        const ang=t/500+i*(Math.PI*2/8);
+        const r=14+Math.sin(t/300+i)*3;
+        const vx=px+Math.cos(ang)*r;
+        const vy=py-SH*0.45+Math.sin(ang)*r*0.4;
+        ctx.globalAlpha=0.5+0.4*Math.sin(t/200+i);
+        ctx.fillStyle=i%2===0?'#8800ff':'#cc44ff';
+        ctx.fillRect(vx-1,vy-1,2,2);
+      }
+      // Dark void shroud
+      ctx.globalAlpha=0.12+0.06*Math.sin(t/600);
+      ctx.fillStyle='#220033';
+      ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.65,SH*0.6,0,0,Math.PI*2); ctx.fill();
+    }
+
+    else if(armorId==='titan_shell'){
+      // Silver metallic sheen — plate armor glint
+      ctx.globalAlpha=0.18+0.08*Math.sin(t/800);
+      ctx.fillStyle='#c0d8f0';
+      ctx.beginPath(); ctx.ellipse(px,py-SH*0.45,SW*0.55,SH*0.5,0,0,Math.PI*2); ctx.fill();
+      // Glint sparks on edges
+      for(let i=0;i<3;i++){
+        const gx=px-SW*0.3+Math.sin(t/600+i*2.1)*SW*0.6;
+        const gy=py-SH*0.8+i*8;
+        const ga=Math.max(0,Math.sin(t/400+i*1.5))*0.7;
+        ctx.globalAlpha=ga;
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(gx-1,gy-1,2,2);
+      }
+    }
+
+    else if(armorId==='soul_aegis'){
+      // Cyan shield barrier pulse
+      const pulse=0.5+0.5*Math.sin(t/350);
+      ctx.globalAlpha=0.1+0.08*pulse;
+      ctx.fillStyle='#00ddff';
+      ctx.beginPath(); ctx.ellipse(px,py-SH*0.5,SW*0.7,SH*0.65,0,0,Math.PI*2); ctx.fill();
+      // Shield energy rings
+      for(let ring=0;ring<2;ring++){
+        const rScale=0.6+ring*0.25+(t%1000)/1000*0.3;
+        ctx.globalAlpha=(0.4-ring*0.15)*(1-(t%1000)/1000);
+        ctx.strokeStyle='#40ffff';
+        ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.ellipse(px,py-SH*0.5,SW*rScale,SH*rScale*0.8,0,0,Math.PI*2);
+        ctx.stroke();
+      }
+      // Floating soul sparks
+      for(let i=0;i<4;i++){
+        const ang=t/700+i*1.57;
+        const r=16+Math.sin(t/300+i)*4;
+        ctx.globalAlpha=0.6+0.4*Math.sin(t/250+i);
+        ctx.fillStyle='#80ffff';
+        ctx.fillRect(px+Math.cos(ang)*r-1, py-SH*0.5+Math.sin(ang)*r*0.45-1, 2, 2);
+      }
+    }
+
+    else if(armorId==='abyssal_crown'){
+      // Gold crown glow at head + speed lightning
+      // Crown halo
+      const hpulse=0.5+0.5*Math.sin(t/250);
+      ctx.globalAlpha=0.3*hpulse;
+      ctx.fillStyle='#ffd700';
+      ctx.beginPath(); ctx.ellipse(px,py-SH+2,SW*0.5,5,0,0,Math.PI*2); ctx.fill();
+      // Speed lightning streaks behind body
+      ctx.globalAlpha=0.5+0.3*Math.sin(t/150);
+      ctx.strokeStyle='#ffd700';
+      ctx.lineWidth=1;
+      for(let i=0;i<3;i++){
+        const ly=py-SH*0.4+i*8;
+        const lx=px+(gozo.vx||0)>0?-1:1;
+        ctx.beginPath();
+        ctx.moveTo(px+lx*10, ly);
+        ctx.lineTo(px+lx*(18+i*4+Math.sin(t/100+i)*3), ly+Math.sin(t/80+i)*2);
+        ctx.stroke();
+      }
+      // Floating gold crown sparks
+      for(let i=0;i<5;i++){
+        const ang=t/400+i*1.257;
+        const r=10+Math.sin(t/200+i)*3;
+        ctx.globalAlpha=0.5+0.5*Math.sin(t/180+i);
+        ctx.fillStyle='#ffdd00';
+        ctx.fillRect(px+Math.cos(ang)*r-1, py-SH+4+Math.sin(ang)*4-1, 2, 2);
+      }
+    }
+
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
 
   // Pickaxe tier special effects during mining
   const pTier=getPickaxeTier();
