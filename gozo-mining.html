@@ -1484,6 +1484,7 @@ const G={
   equippedWeapon:null,
   equippedPickaxe:'wooden_pick',
   equippedArmor:null,  // equipped accessory/armor item id
+  legendPurchases:{},  // wallet addr → [itemIds] (iframe-safe purchase record)
   inventory:Array(30).fill(null),
   invSlots:30,
   upg:{
@@ -8200,14 +8201,30 @@ let legendProvider=null, legendSigner=null, legendGozoBal=0n, legendDecimals=18;
 // Key: "gozoPurchases_<walletAddr>" → JSON array of weaponIds
 function getWalletPurchases(addr){
   if(!addr) return [];
-  try { return JSON.parse(localStorage.getItem('gozoPurchases_'+addr.toLowerCase())||'[]'); }
-  catch(e){ return []; }
+  // Primary: localStorage
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('gozoPurchases_'+addr.toLowerCase())||'[]'); } catch(e){}
+  // Fallback: G.legendPurchases (survives localStorage wipe in iframes)
+  const gKey = addr.toLowerCase();
+  if(G.legendPurchases && G.legendPurchases[gKey]){
+    for(const id of G.legendPurchases[gKey]){
+      if(!list.includes(id)) list.push(id);
+    }
+  }
+  return list;
 }
 function recordWalletPurchase(addr, weaponId){
   if(!addr) return;
+  // Save to localStorage
   const key='gozoPurchases_'+addr.toLowerCase();
   const list=getWalletPurchases(addr);
-  if(!list.includes(weaponId)){ list.push(weaponId); localStorage.setItem(key, JSON.stringify(list)); }
+  if(!list.includes(weaponId)){ list.push(weaponId); }
+  try { localStorage.setItem(key, JSON.stringify(list)); } catch(e){}
+  // Also save to G state (iframe-safe)
+  if(!G.legendPurchases) G.legendPurchases={};
+  const gKey=addr.toLowerCase();
+  if(!G.legendPurchases[gKey]) G.legendPurchases[gKey]=[];
+  if(!G.legendPurchases[gKey].includes(weaponId)) G.legendPurchases[gKey].push(weaponId);
 }
 function walletHasPurchased(addr, weaponId){
   return getWalletPurchases(addr).includes(weaponId);
