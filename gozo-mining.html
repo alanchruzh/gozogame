@@ -2987,7 +2987,7 @@ const POTIONS = {
   luck_pot:  {name:'Lucky Brew',     color:'#30b010', glowCol:'#70ff30', effect:'luck',   value:2,   desc:'+2× Drop Luck (40s)',    dropW:14},
   bomb_pot:  {name:'Bomb Potion',    color:'#c08000', glowCol:'#ffcc00', effect:'bomb',   value:1,   desc:'AoE blast — deals heavy damage to nearby monsters',  dropW:4},
   maxhp_pot: {name:'Elixir of Life', color:'#c060e0', glowCol:'#f0a0ff', effect:'maxhp',  value:20,  desc:'+20 Max HP permanently', dropW:3},
-  levelup_pot:{name:'Elixir of Ascension', color:'#ffe040', glowCol:'#fff080', effect:'levelup', value:1, desc:'Instantly gain 1 Level!', dropW:0},
+  levelup_pot:{name:'Elixir of Wisdom', color:'#ffe040', glowCol:'#fff080', effect:'gainexp', value:100, desc:'Gain 100 EXP instantly!', dropW:0},
 };
 
 // Active potion buffs (remaining frames)
@@ -3265,12 +3265,11 @@ function usePotion(slot){
     updateGozoHpBar();
     toast(`✨ ${p.name}! Max HP +${p.value} → ${G.maxHp}`);
     spawnDmg(sx,sy,`♥+${p.value}`,'#f0a0ff',9);
-  } else if(p.effect==='levelup'){
-    const prevLv=G.level;
-    gainExp(expToLevel(G.level));
-    toast(`🌟 Elixir of Ascension! LEVEL UP → LV ${G.level}!`);
-    spawnDmg(sx,sy,`LV UP!`,'#ffe040',13);
-    screenFlash('#ffe040',0.4,15);
+  } else if(p.effect==='gainexp'){
+    gainExp(p.value);
+    toast(`📖 Elixir of Wisdom! +${p.value} EXP`);
+    spawnDmg(sx,sy,`+${p.value} EXP`,'#ffe040',11);
+    screenFlash('#ffe040',0.3,10);
   }
   removeFromInventory(slot,1);
 }
@@ -6998,7 +6997,7 @@ const SHOP_BUY = {
   // Potions
   hp_small:40,    hp_medium:100,  hp_large:280,
   str_pot:120,    speed_pot:100,  shield_pot:90,
-  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,  levelup_pot:1,
+  luck_pot:150,   bomb_pot:500,   maxhp_pot:600,  levelup_pot:1000,
   // Bombs
   bomb:200,
   // Ores (buy)
