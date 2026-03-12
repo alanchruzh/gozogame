@@ -1,1708 +1,781 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gozo Building - Village Manager</title>
+<title>Gozo Village</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
-
-:root {
-  --earth: #2d1f0e;
-  --soil: #4a2e12;
-  --bark: #6b3f1a;
-  --wood: #8b5e2a;
-  --straw: #c4933f;
-  --gold: #e8b84b;
-  --sky: #4a7fa5;
-  --grass: #3d7a3d;
-  --grass-light: #5aaa5a;
-  --stone: #8a8a8a;
-  --stone-dark: #555;
-  --ui-bg: rgba(20,12,5,0.92);
-  --ui-border: #6b3f1a;
-  --text-gold: #e8b84b;
-  --text-light: #f0dfc0;
-  --text-dim: #a08060;
-  --danger: #c0392b;
-  --green-res: #27ae60;
-  --blue-res: #2980b9;
-}
-
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-  background: #1a0f05;
-  font-family: 'Crimson Text', serif;
-  color: var(--text-light);
-  overflow: hidden;
-  height: 100vh;
-  width: 100vw;
-  user-select: none;
-}
-
-/* ===== TOP HUD ===== */
-#hud-top {
-  position: fixed; top:0; left:0; right:0; z-index:100;
-  background: linear-gradient(180deg, rgba(10,5,2,0.98) 0%, rgba(20,12,5,0.85) 100%);
-  border-bottom: 2px solid var(--bark);
-  padding: 6px 16px;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-}
-
-#game-title {
-  font-family: 'Cinzel', serif;
-  font-size: 18px;
-  color: var(--gold);
-  text-shadow: 0 0 20px rgba(232,184,75,0.6);
-  letter-spacing: 2px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.hud-divider {
-  width: 1px; height: 36px;
-  background: var(--bark);
-  flex-shrink: 0;
-}
-
-#resources-bar {
-  display: flex; gap:4px; flex-wrap:wrap; flex:1;
-}
-
-.res-item {
-  display: flex; align-items: center; gap:5px;
-  background: rgba(40,25,10,0.8);
-  border: 1px solid rgba(107,63,26,0.6);
-  border-radius: 4px;
-  padding: 4px 8px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.res-item .res-icon { font-size: 16px; }
-.res-item .res-name { color: var(--text-dim); font-size: 11px; }
-.res-item .res-val { color: var(--text-gold); font-weight: 600; min-width: 28px; text-align:right; }
-
-#village-info {
-  display: flex; align-items: center; gap: 14px;
-  flex-shrink: 0;
-}
-
-.info-pill {
-  display: flex; align-items: center; gap: 5px;
-  background: rgba(40,25,10,0.8);
-  border: 1px solid rgba(107,63,26,0.6);
-  border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 13px;
-}
-
-.info-pill span { color: var(--text-gold); font-family: 'Cinzel', serif; }
-
-#season-indicator {
-  font-size:12px; color: var(--straw);
-  background: rgba(30,18,5,0.9);
-  border: 1px solid var(--bark);
-  border-radius: 12px;
-  padding: 3px 10px;
-  font-family: 'Cinzel', serif;
-}
-
-/* ===== GAME WORLD ===== */
-#world-container {
-  position: relative;
-  width: 100vw; height: 100vh;
-  overflow: hidden;
-  cursor: default;
-}
-
-#world {
-  position: absolute;
-  width: 2400px; height: 1800px;
-  transform-origin: 0 0;
-  transition: none;
-}
-
-/* Sky */
-#sky-layer {
-  position: absolute; top:0; left:0; right:0;
-  height: 320px;
-  background: linear-gradient(180deg, #1a3a5c 0%, #2d6490 50%, #4a7fa5 100%);
-  overflow: hidden;
-}
-
-.cloud {
-  position: absolute;
-  background: rgba(255,255,255,0.15);
-  border-radius: 50px;
-  animation: cloudMove linear infinite;
-}
-.cloud::before, .cloud::after {
-  content:''; position:absolute;
-  background: inherit; border-radius: 50%;
-}
-.cloud::before { width:60%; height:150%; top:-40%; left:20%; }
-.cloud::after { width:50%; height:130%; top:-30%; right:15%; }
-
-@keyframes cloudMove { from{transform:translateX(-200px)} to{transform:translateX(2600px)} }
-
-/* Ground base */
-#ground-layer {
-  position: absolute;
-  top: 280px; left:0; right:0; bottom:0;
-  background: linear-gradient(180deg, #2d5a1b 0%, #1e3d0e 30%, #2d1f0e 100%);
-}
-
-/* Isometric grid */
-#grid-layer {
-  position: absolute;
-  top:0; left:0;
-  width: 2400px; height: 1800px;
-  pointer-events: none;
-}
-
-/* ===== TILES ===== */
-.tile {
-  position: absolute;
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-.tile:hover .tile-ground { filter: brightness(1.3); }
-.tile.selected .tile-ground { filter: brightness(1.5) saturate(1.5); }
-
-.tile-ground {
-  position: relative;
-  transition: filter 0.15s;
-}
-
-/* 2.5D isometric tile shapes */
-.iso-face-top {
-  position: absolute;
-  clip-path: polygon(50% 0%, 100% 25%, 50% 50%, 0% 25%);
-}
-.iso-face-left {
-  position: absolute;
-  clip-path: polygon(0% 25%, 50% 50%, 50% 100%, 0% 75%);
-}
-.iso-face-right {
-  position: absolute;
-  clip-path: polygon(50% 50%, 100% 25%, 100% 75%, 50% 100%);
-}
-
-/* ===== BUILDINGS ===== */
-.building {
-  position: absolute;
-  pointer-events: none;
-  transform-origin: bottom center;
-  transition: transform 0.1s;
-  image-rendering: pixelated;
-  /* text-based 2.5D buildings via CSS shapes */
-}
-
-/* House base */
-.house-sprite {
-  position: relative;
-  width: 80px;
-  filter: drop-shadow(0 8px 15px rgba(0,0,0,0.7));
-}
-.house-walls {
-  width: 70px; height: 40px;
-  background: linear-gradient(135deg, #c4933f, #8b5e2a);
-  border: 2px solid #5a3810;
-  border-radius: 2px;
-  position: relative;
-  margin: 0 auto;
-}
-.house-walls::after { /* door */
-  content:'';
-  position: absolute;
-  bottom:0; left:50%; transform: translateX(-50%);
-  width:14px; height:20px;
-  background: #2d1f0e;
-  border-radius: 6px 6px 0 0;
-  border: 1px solid #1a0f05;
-}
-.house-roof {
-  width:0; height:0;
-  border-left: 40px solid transparent;
-  border-right: 40px solid transparent;
-  border-bottom: 28px solid #8b2020;
-  margin: 0 auto;
-  filter: drop-shadow(0 -2px 4px rgba(0,0,0,0.4));
-}
-.house-chimney {
-  position: absolute;
-  top: -8px; right: 20px;
-  width: 10px; height: 16px;
-  background: #6b6b6b;
-  border: 1px solid #444;
-}
-
-.smoke-puff {
-  position: absolute;
-  width: 8px; height: 8px;
-  background: rgba(200,200,200,0.4);
-  border-radius: 50%;
-  animation: smokeAnim 3s infinite;
-}
-@keyframes smokeAnim {
-  0%{transform:translateY(0) scale(0.5); opacity:0.6;}
-  100%{transform:translateY(-40px) scale(2); opacity:0;}
-}
-
-/* ===== TREES ===== */
-.tree-sprite {
-  position: relative;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
-}
-.tree-trunk {
-  width: 10px; height: 20px;
-  background: linear-gradient(90deg, #5a3810, #8b5e2a);
-  margin: 0 auto;
-  border-radius: 2px;
-}
-.tree-canopy {
-  position: absolute;
-  left: 50%; transform: translateX(-50%);
-}
-.tree-canopy-1 { bottom: 16px; }
-.tree-canopy-2 { bottom: 26px; }
-.tree-canopy-3 { bottom: 34px; }
-.tree-circle {
-  border-radius: 50%;
-  margin: 0 auto;
-}
-
-/* ===== MINE ===== */
-.mine-sprite {
-  position: relative;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.7));
-}
-.mine-entrance {
-  width: 50px; height: 35px;
-  background: #1a1a1a;
-  border: 3px solid #6b6b6b;
-  border-radius: 25px 25px 0 0;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-}
-.mine-entrance::after {
-  content:'⛏';
-  position:absolute; top:6px; left:50%; transform:translateX(-50%);
-  font-size:14px;
-}
-.mine-wall {
-  width: 70px; height: 18px;
-  background: linear-gradient(90deg, #4a3a2a, #6a5a4a, #4a3a2a);
-  border: 2px solid #3a2a1a;
-  margin: 0 auto;
-  border-radius: 2px;
-}
-
-/* ===== FARM ===== */
-.farm-sprite {
-  position: relative;
-}
-.farm-soil {
-  width: 70px; height: 40px;
-  background: repeating-linear-gradient(
-    0deg,
-    #3d2010 0px, #3d2010 4px,
-    #5a3010 4px, #5a3010 8px
-  );
-  border: 2px solid #2d1a0a;
-  border-radius: 3px;
-  position: relative;
-}
-.farm-crops {
-  position: absolute; inset:4px;
-  display: flex; flex-wrap:wrap; gap:2px; align-content:flex-end;
-}
-.crop-item { font-size:10px; }
-
-/* ===== RIGHT SIDEBAR ===== */
-#sidebar {
-  position: fixed; right:0; top:52px; bottom:0; width:280px; z-index:90;
-  background: linear-gradient(180deg, rgba(12,7,3,0.97) 0%, rgba(18,10,4,0.95) 100%);
-  border-left: 2px solid var(--bark);
-  display: flex; flex-direction: column;
-  overflow: hidden;
-}
-
-#sidebar-tabs {
-  display: flex;
-  border-bottom: 1px solid var(--bark);
-}
-
-.tab-btn {
-  flex:1;
-  padding: 8px 4px;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s;
-  text-align: center;
-}
-.tab-btn.active {
-  color: var(--gold);
-  border-bottom-color: var(--gold);
-  background: rgba(232,184,75,0.05);
-}
-.tab-btn:hover:not(.active) { color: var(--text-light); background: rgba(255,255,255,0.03); }
-
-#sidebar-content {
-  flex:1; overflow-y:auto; padding:12px;
-}
-#sidebar-content::-webkit-scrollbar { width:4px; }
-#sidebar-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
-#sidebar-content::-webkit-scrollbar-thumb { background: var(--bark); border-radius:2px; }
-
-/* ===== BUILD MENU ===== */
-.build-section-title {
-  font-family: 'Cinzel', serif;
-  font-size: 12px;
-  color: var(--straw);
-  letter-spacing: 1px;
-  padding: 6px 0 4px;
-  border-bottom: 1px solid rgba(107,63,26,0.4);
-  margin-bottom: 8px;
-  margin-top:10px;
-}
-
-.build-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.build-btn {
-  background: rgba(30,18,8,0.9);
-  border: 1px solid rgba(107,63,26,0.7);
-  border-radius: 6px;
-  padding: 8px 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-  color: var(--text-light);
-  position: relative;
-  overflow: hidden;
-}
-.build-btn::before {
-  content:'';
-  position:absolute; inset:0;
-  background: linear-gradient(135deg, rgba(232,184,75,0.05), transparent);
-  opacity:0; transition: opacity 0.2s;
-}
-.build-btn:hover::before { opacity:1; }
-.build-btn:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,184,75,0.15); }
-.build-btn:active { transform: translateY(0); }
-.build-btn.active-build { border-color: var(--gold); background: rgba(232,184,75,0.12); box-shadow: 0 0 12px rgba(232,184,75,0.3); }
-.build-btn.disabled { opacity:0.4; cursor: not-allowed; }
-.build-btn.disabled:hover { transform:none; box-shadow:none; }
-
-.build-btn .btn-icon { font-size:20px; display:block; margin-bottom:3px; }
-.build-btn .btn-name { font-size:11px; font-family:'Cinzel',serif; color:var(--text-gold); display:block; }
-.build-btn .btn-cost { font-size:10px; color:var(--text-dim); margin-top:2px; display:block; }
-
-/* ===== INFO PANEL ===== */
-#info-panel {
-  position: fixed; left:0; top:52px; bottom:0; width:260px; z-index:90;
-  background: linear-gradient(180deg, rgba(12,7,3,0.97) 0%, rgba(18,10,4,0.95) 100%);
-  border-right: 2px solid var(--bark);
-  display: flex; flex-direction: column;
-  overflow:hidden;
-}
-
-#village-name-header {
-  padding: 12px;
-  border-bottom: 1px solid rgba(107,63,26,0.5);
-  text-align: center;
-}
-#village-name-header h2 {
-  font-family: 'Cinzel', serif;
-  font-size: 15px;
-  color: var(--gold);
-  letter-spacing: 1px;
-}
-#village-name-header p {
-  font-size: 12px; color: var(--text-dim);
-  margin-top: 2px;
-}
-
-#info-content { flex:1; overflow-y:auto; padding:12px; }
-#info-content::-webkit-scrollbar { width:4px; }
-#info-content::-webkit-scrollbar-thumb { background: var(--bark); }
-
-.stat-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(107,63,26,0.2);
-  font-size:13px;
-}
-.stat-row .stat-label { color: var(--text-dim); }
-.stat-row .stat-val { color: var(--text-gold); font-weight:600; }
-
-.progress-bar-wrap {
-  margin: 4px 0;
-}
-.progress-label { font-size:11px; color:var(--text-dim); margin-bottom:2px; }
-.progress-bar {
-  height: 6px; background: rgba(255,255,255,0.1);
-  border-radius: 3px; overflow:hidden;
-}
-.progress-fill {
-  height:100%; border-radius:3px;
-  transition: width 0.5s;
-}
-.progress-fill.green { background: linear-gradient(90deg, #27ae60, #2ecc71); }
-.progress-fill.yellow { background: linear-gradient(90deg, #e67e22, #f39c12); }
-.progress-fill.blue { background: linear-gradient(90deg, #2980b9, #3498db); }
-
-/* ===== SELECTED BUILDING INFO ===== */
-#selected-info {
-  padding: 10px 12px;
-  background: rgba(20,12,5,0.95);
-  border-top: 1px solid var(--bark);
-}
-#selected-info h3 {
-  font-family: 'Cinzel', serif;
-  font-size: 13px; color: var(--gold);
-  margin-bottom: 4px;
-}
-#selected-info p { font-size:12px; color:var(--text-dim); margin-bottom:6px; }
-#selected-info .action-row { display:flex; gap:6px; }
-
-.action-btn {
-  flex:1; padding: 6px 4px;
-  background: rgba(107,63,26,0.4);
-  border: 1px solid var(--bark);
-  border-radius: 4px;
-  color: var(--text-light);
-  font-size:11px; font-family:'Cinzel',serif;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align:center;
-}
-.action-btn:hover { background: rgba(232,184,75,0.15); border-color: var(--gold); color: var(--gold); }
-.action-btn.upgrade { background: rgba(39,174,96,0.2); border-color: #27ae60; }
-.action-btn.upgrade:hover { background: rgba(39,174,96,0.35); }
-.action-btn.destroy { background: rgba(192,57,43,0.2); border-color: var(--danger); }
-.action-btn.destroy:hover { background: rgba(192,57,43,0.35); }
-
-/* ===== NOTIFICATIONS ===== */
-#notifications {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  z-index: 200;
-  display: flex; flex-direction: column-reverse; align-items:center;
-  gap: 6px;
-  pointer-events: none;
-}
-
-.notif {
-  background: rgba(12,7,3,0.95);
-  border: 1px solid var(--bark);
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-size: 13px;
-  color: var(--text-light);
-  animation: notifIn 0.3s ease, notifOut 0.5s ease 2.5s forwards;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  font-family: 'Crimson Text', serif;
-}
-.notif.success { border-color: #27ae60; color: #2ecc71; }
-.notif.warning { border-color: var(--straw); color: var(--gold); }
-.notif.error { border-color: var(--danger); color: #e74c3c; }
-
-@keyframes notifIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes notifOut { from{opacity:1} to{opacity:0;transform:translateY(-10px)} }
-
-/* ===== MINI MAP ===== */
-#minimap {
-  position: fixed; right: 8px; bottom: 8px; z-index:95;
-  width: 140px; height: 105px;
-  background: rgba(10,6,2,0.95);
-  border: 2px solid var(--bark);
-  border-radius: 4px;
-  overflow: hidden;
-}
-#minimap-canvas { width:100%; height:100%; }
-
-#minimap-viewport {
-  position: absolute;
-  border: 1px solid rgba(232,184,75,0.7);
-  pointer-events: none;
-  transition: all 0.1s;
-}
-
-/* ===== BOTTOM TOOLBAR ===== */
-#bottom-bar {
-  position: fixed; bottom:0; left: 260px; right:280px; z-index:90;
-  background: rgba(10,6,2,0.9);
-  border-top: 1px solid var(--bark);
-  padding: 6px 12px;
-  display: flex; align-items:center; justify-content: center; gap: 12px;
-}
-
-.tool-btn {
-  padding: 5px 12px;
-  background: rgba(30,18,8,0.9);
-  border: 1px solid rgba(107,63,26,0.6);
-  border-radius: 4px;
-  color: var(--text-dim);
-  font-family: 'Cinzel', serif;
-  font-size: 11px; cursor:pointer;
-  transition: all 0.2s;
-}
-.tool-btn:hover { border-color: var(--gold); color: var(--text-gold); }
-.tool-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(232,184,75,0.1); }
-
-#time-display {
-  font-family: 'Cinzel', serif;
-  font-size: 13px;
-  color: var(--straw);
-  padding: 4px 12px;
-  background: rgba(30,18,8,0.9);
-  border: 1px solid rgba(107,63,26,0.5);
-  border-radius: 4px;
-}
-
-/* ===== TOOLTIP ===== */
-#tooltip {
-  position: fixed;
-  background: rgba(8,4,1,0.97);
-  border: 1px solid var(--bark);
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 12px;
-  color: var(--text-light);
-  z-index: 300;
-  pointer-events: none;
-  max-width: 200px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-  display: none;
-}
-#tooltip h4 { font-family:'Cinzel',serif; color:var(--gold); font-size:13px; margin-bottom:4px; }
-#tooltip .tt-desc { color:var(--text-dim); font-size:11px; margin-bottom:4px; }
-#tooltip .tt-stats { color:var(--text-light); font-size:11px; }
-
-/* ===== UPGRADE MODAL ===== */
-#modal-overlay {
-  display:none;
-  position:fixed; inset:0; z-index:500;
-  background: rgba(0,0,0,0.7);
-  align-items:center; justify-content:center;
-}
-#modal-overlay.show { display:flex; }
-
-#modal {
-  background: linear-gradient(135deg, #1a0f05, #100a02);
-  border: 2px solid var(--bark);
-  border-radius: 10px;
-  padding: 24px;
-  min-width: 320px; max-width: 400px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.9);
-}
-#modal h2 { font-family:'Cinzel',serif; color:var(--gold); font-size:18px; margin-bottom:8px; }
-#modal p { color:var(--text-dim); font-size:13px; margin-bottom:16px; }
-.modal-cost-list { margin-bottom:16px; }
-.modal-cost-item { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-bottom:1px solid rgba(107,63,26,0.3); }
-.modal-cost-item .cost-label { color:var(--text-dim); }
-.modal-cost-item .cost-val { color:var(--gold); }
-.modal-cost-item .cost-val.ok { color:#27ae60; }
-.modal-cost-item .cost-val.bad { color:#e74c3c; }
-.modal-btns { display:flex; gap:10px; }
-.modal-btn { flex:1; padding:10px; border-radius:6px; border:none; cursor:pointer; font-family:'Cinzel',serif; font-size:13px; transition:all 0.2s; }
-.modal-btn.confirm { background:rgba(39,174,96,0.3); border:1px solid #27ae60; color:#2ecc71; }
-.modal-btn.confirm:hover { background:rgba(39,174,96,0.5); }
-.modal-btn.cancel { background:rgba(192,57,43,0.2); border:1px solid var(--danger); color:#e74c3c; }
-.modal-btn.cancel:hover { background:rgba(192,57,43,0.35); }
-
-/* ===== EVENTS PANEL ===== */
-#events-log {
-  padding: 6px 0;
-}
-.event-item {
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(107,63,26,0.2);
-  font-size:12px;
-  color: var(--text-dim);
-}
-.event-item .ev-time { color:var(--text-dim); font-size:10px; }
-.event-item .ev-msg { color:var(--text-light); }
-.event-item.positive .ev-msg { color: #2ecc71; }
-.event-item.negative .ev-msg { color: #e74c3c; }
-
-/* World click feedback */
-@keyframes placeAnim {
-  0%{transform:scale(0.5) rotate(-10deg); opacity:0;}
-  60%{transform:scale(1.05) rotate(2deg); opacity:1;}
-  100%{transform:scale(1) rotate(0deg); opacity:1;}
-}
-.just-placed { animation: placeAnim 0.3s ease forwards; }
-
-/* Tick flash */
-@keyframes resTick { 0%{opacity:1} 50%{opacity:0.5;transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
-.res-tick { animation: resTick 0.4s; }
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;font-family:'VT323',monospace;}
+#c{display:block;image-rendering:pixelated;image-rendering:crisp-edges;}
+#hud{position:fixed;top:0;left:0;right:0;z-index:100;background:linear-gradient(180deg,rgba(0,0,0,.92),rgba(0,0,0,.6));border-bottom:2px solid #5a3a1a;padding:4px 10px;display:flex;align-items:center;gap:6px;height:42px;}
+#logo{font-family:'Press Start 2P';font-size:9px;color:#f0c040;text-shadow:2px 2px #8b4000;white-space:nowrap;flex-shrink:0;}
+.hdv{width:2px;height:28px;background:#5a3a1a;flex-shrink:0;}
+#resbar{display:flex;gap:3px;flex:1;flex-wrap:wrap;}
+.res{display:flex;align-items:center;gap:2px;background:rgba(15,8,2,.85);border:2px solid #3a2a10;padding:2px 6px;font-size:15px;color:#e8d090;}
+.res b{color:#f0c040;min-width:24px;text-align:right;}
+#vpills{display:flex;gap:4px;flex-shrink:0;}
+.vp{background:rgba(15,8,2,.85);border:2px solid #3a2a10;padding:2px 7px;font-size:13px;color:#f0c040;}
+#mm{position:fixed;top:48px;right:8px;z-index:95;border:2px solid #5a3a1a;background:#0a0604;}
+#mmc{display:block;image-rendering:pixelated;}
+#dialog{position:fixed;bottom:46px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(4,2,1,.97);border:3px solid #5a3a1a;padding:12px 18px;width:500px;max-width:94vw;display:none;}
+#dialog.show{display:block;}
+#dname{font-family:'Press Start 2P';font-size:8px;color:#f0c040;margin-bottom:6px;}
+#dmsg{font-size:15px;color:#c8a870;line-height:1.5;margin-bottom:10px;}
+#dbtns{display:flex;gap:6px;flex-wrap:wrap;}
+.dbtn{padding:5px 10px;background:#100a04;border:2px solid #3a2a10;color:#a08050;font-family:'Press Start 2P';font-size:6px;cursor:pointer;}
+.dbtn:hover{border-color:#f0c040;color:#f0c040;}
+.dbtn.ok{border-color:#208020;color:#40c040;}.dbtn.bad{border-color:#802020;color:#c04040;}
+#notifs{position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;}
+.ntf{background:rgba(4,2,1,.96);border:2px solid #5a3a1a;padding:5px 12px;font-size:14px;color:#e8d090;animation:nfin .25s,nfout .4s 2.2s forwards;}
+.ntf.ok{border-color:#208020;color:#40c040;}.ntf.err{border-color:#802020;color:#c04040;}.ntf.warn{border-color:#806020;color:#e0a020;}
+@keyframes nfin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nfout{to{opacity:0}}
+#dpad{position:fixed;bottom:46px;left:12px;z-index:150;width:132px;height:132px;display:none;}
+.dp{width:44px;height:44px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.2);color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;border-radius:4px;position:absolute;-webkit-tap-highlight-color:transparent;}
+#dpU{top:0;left:44px;}#dpD{top:88px;left:44px;}#dpL{top:44px;left:0;}#dpR{top:44px;left:88px;}#dpE{top:44px;left:44px;font-size:11px;font-family:'Press Start 2P';}
 </style>
 </head>
 <body>
-
-<!-- TOP HUD -->
-<div id="hud-top">
-  <div id="game-title">⚔ GOZO BUILDING</div>
-  <div class="hud-divider"></div>
-  <div id="resources-bar">
-    <div class="res-item"><span class="res-icon">🪵</span><span class="res-name">Kayu</span><span class="res-val" id="res-wood">50</span></div>
-    <div class="res-item"><span class="res-icon">🪨</span><span class="res-name">Batu</span><span class="res-val" id="res-stone">30</span></div>
-    <div class="res-item"><span class="res-icon">⚫</span><span class="res-name">Batu Bara</span><span class="res-val" id="res-coal">0</span></div>
-    <div class="res-item"><span class="res-icon">⚙️</span><span class="res-name">Logam</span><span class="res-val" id="res-metal">0</span></div>
-    <div class="res-item"><span class="res-icon">🌾</span><span class="res-name">Pangan</span><span class="res-val" id="res-food">20</span></div>
-    <div class="res-item"><span class="res-icon">💰</span><span class="res-name">Gold</span><span class="res-val" id="res-gold">100</span></div>
+<canvas id="c"></canvas>
+<div id="hud">
+  <div id="logo">⚔ GOZO</div>
+  <div class="hdv"></div>
+  <div id="resbar">
+    <div class="res">🪵<b id="rw">50</b></div>
+    <div class="res">🪨<b id="rs">30</b></div>
+    <div class="res">⚫<b id="rc">0</b></div>
+    <div class="res">⚙<b id="rm">0</b></div>
+    <div class="res">🌾<b id="rf">20</b></div>
+    <div class="res">💰<b id="rg">100</b></div>
   </div>
-  <div class="hud-divider"></div>
-  <div id="village-info">
-    <div class="info-pill">👥 <span id="pop-count">0</span>/<span id="pop-cap">0</span></div>
-    <div id="season-indicator">🌱 Musim Semi • Tahun 1</div>
-  </div>
-</div>
-
-<!-- LEFT PANEL -->
-<div id="info-panel">
-  <div id="village-name-header">
-    <h2>🏡 Desa Gozo</h2>
-    <p>Kepala Desa: <em>Anda</em></p>
-  </div>
-  <div id="info-content">
-    <div class="build-section-title">📊 STATUS DESA</div>
-    <div class="stat-row"><span class="stat-label">Rumah</span><span class="stat-val" id="stat-houses">0</span></div>
-    <div class="stat-row"><span class="stat-label">Ladang</span><span class="stat-val" id="stat-farms">0</span></div>
-    <div class="stat-row"><span class="stat-label">Penebang Kayu</span><span class="stat-val" id="stat-loggers">0</span></div>
-    <div class="stat-row"><span class="stat-label">Penambang</span><span class="stat-val" id="stat-miners">0</span></div>
-    <div class="stat-row"><span class="stat-label">Produksi Makan</span><span class="stat-val" id="stat-food-prod">+0/tick</span></div>
-    <div class="stat-row"><span class="stat-label">Konsumsi Makan</span><span class="stat-val" id="stat-food-cons">-0/tick</span></div>
-
-    <div class="build-section-title" style="margin-top:14px">📈 KEBUTUHAN</div>
-    <div class="progress-bar-wrap">
-      <div class="progress-label">🌾 Pangan</div>
-      <div class="progress-bar"><div class="progress-fill green" id="bar-food" style="width:60%"></div></div>
-    </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-label">😊 Kebahagiaan</div>
-      <div class="progress-bar"><div class="progress-fill yellow" id="bar-happiness" style="width:80%"></div></div>
-    </div>
-    <div class="progress-bar-wrap">
-      <div class="progress-label">🏥 Kesehatan</div>
-      <div class="progress-bar"><div class="progress-fill blue" id="bar-health" style="width:70%"></div></div>
-    </div>
-
-    <div class="build-section-title" style="margin-top:14px">📜 LOG KEJADIAN</div>
-    <div id="events-log">
-      <div class="event-item positive"><div class="ev-time">00:00</div><div class="ev-msg">⚡ Desa Gozo berdiri! Selamat menjadi kepala desa!</div></div>
-    </div>
-  </div>
-  <div id="selected-info" style="display:none">
-    <h3 id="sel-name">Bangunan</h3>
-    <p id="sel-desc">Deskripsi bangunan.</p>
-    <div class="action-row">
-      <button class="action-btn upgrade" id="btn-upgrade" onclick="upgradeSelected()">⬆ Upgrade</button>
-      <button class="action-btn" id="btn-collect" onclick="collectSelected()">📦 Kumpul</button>
-      <button class="action-btn destroy" onclick="destroySelected()">🗑 Hancur</button>
-    </div>
+  <div class="hdv"></div>
+  <div id="vpills">
+    <div class="vp">👥 <span id="pop">0</span>/<span id="cap">0</span></div>
+    <div class="vp" id="season">🌱 Spring Y1</div>
+    <div class="vp" id="timelbl">Day 1 06:00</div>
   </div>
 </div>
-
-<!-- RIGHT PANEL - BUILD MENU -->
-<div id="sidebar">
-  <div id="sidebar-tabs">
-    <button class="tab-btn active" onclick="switchTab('build')">🏗 Bangun</button>
-    <button class="tab-btn" onclick="switchTab('upgrade')">⬆ Upgrade</button>
-    <button class="tab-btn" onclick="switchTab('manage')">👥 Kelola</button>
-  </div>
-  <div id="sidebar-content">
-    <!-- Build Tab -->
-    <div id="tab-build">
-      <div class="build-section-title">🏠 PERUMAHAN</div>
-      <div class="build-grid">
-        <button class="build-btn" onclick="selectBuild('house')" id="bbtn-house">
-          <span class="btn-icon">🏠</span>
-          <span class="btn-name">Rumah</span>
-          <span class="btn-cost">🪵15 🪨5</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('storage')" id="bbtn-storage">
-          <span class="btn-icon">🏚</span>
-          <span class="btn-name">Gudang</span>
-          <span class="btn-cost">🪵20 🪨10</span>
-        </button>
-      </div>
-
-      <div class="build-section-title">🌿 PERTANIAN</div>
-      <div class="build-grid">
-        <button class="build-btn" onclick="selectBuild('farm')" id="bbtn-farm">
-          <span class="btn-icon">🌾</span>
-          <span class="btn-name">Ladang</span>
-          <span class="btn-cost">🪵10</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('orchard')" id="bbtn-orchard">
-          <span class="btn-icon">🍎</span>
-          <span class="btn-name">Kebun</span>
-          <span class="btn-cost">🪵8 🌾5</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('mill')" id="bbtn-mill">
-          <span class="btn-icon">⚙️</span>
-          <span class="btn-name">Penggilingan</span>
-          <span class="btn-cost">🪵25 🪨15</span>
-        </button>
-      </div>
-
-      <div class="build-section-title">🌲 KEHUTANAN</div>
-      <div class="build-grid">
-        <button class="build-btn" onclick="selectBuild('logger')" id="bbtn-logger">
-          <span class="btn-icon">🪓</span>
-          <span class="btn-name">Penebang</span>
-          <span class="btn-cost">🪵12 🪨5</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('sawmill')" id="bbtn-sawmill">
-          <span class="btn-icon">🪚</span>
-          <span class="btn-name">Gergaji</span>
-          <span class="btn-cost">🪵20 🪨12</span>
-        </button>
-      </div>
-
-      <div class="build-section-title">⛏ PERTAMBANGAN</div>
-      <div class="build-grid">
-        <button class="build-btn" onclick="selectBuild('quarry')" id="bbtn-quarry">
-          <span class="btn-icon">🪨</span>
-          <span class="btn-name">Tambang Batu</span>
-          <span class="btn-cost">🪵15</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('coal_mine')" id="bbtn-coal_mine">
-          <span class="btn-icon">⚫</span>
-          <span class="btn-name">Tambang Bara</span>
-          <span class="btn-cost">🪵20 🪨10</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('iron_mine')" id="bbtn-iron_mine">
-          <span class="btn-icon">⚙️</span>
-          <span class="btn-name">Tambang Besi</span>
-          <span class="btn-cost">🪵25 🪨20</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('smelter')" id="bbtn-smelter">
-          <span class="btn-icon">🔥</span>
-          <span class="btn-name">Peleburan</span>
-          <span class="btn-cost">🪵30 🪨25 ⚫5</span>
-        </button>
-      </div>
-
-      <div class="build-section-title">🏛 FASILITAS UMUM</div>
-      <div class="build-grid">
-        <button class="build-btn" onclick="selectBuild('well')" id="bbtn-well">
-          <span class="btn-icon">💧</span>
-          <span class="btn-name">Sumur</span>
-          <span class="btn-cost">🪵8 🪨10</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('church')" id="bbtn-church">
-          <span class="btn-icon">⛪</span>
-          <span class="btn-name">Gereja</span>
-          <span class="btn-cost">🪵40 🪨30</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('market')" id="bbtn-market">
-          <span class="btn-icon">🏪</span>
-          <span class="btn-name">Pasar</span>
-          <span class="btn-cost">🪵30 💰20</span>
-        </button>
-        <button class="build-btn" onclick="selectBuild('blacksmith')" id="bbtn-blacksmith">
-          <span class="btn-icon">🔨</span>
-          <span class="btn-name">Pandai Besi</span>
-          <span class="btn-cost">🪵20 ⚙️5</span>
-        </button>
-      </div>
-
-      <div style="padding: 8px 0; border-top: 1px solid rgba(107,63,26,0.4); margin-top:8px;">
-        <button class="build-btn" style="width:100%; background:rgba(192,57,43,0.15); border-color:rgba(192,57,43,0.5);" onclick="selectBuild(null)">
-          <span style="font-size:12px; font-family:'Cinzel',serif; color:#e74c3c;">✖ Batal Membangun</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Upgrade Tab -->
-    <div id="tab-upgrade" style="display:none">
-      <div class="build-section-title">🔧 TEKNOLOGI</div>
-      <div id="upgrade-list"></div>
-    </div>
-
-    <!-- Manage Tab -->
-    <div id="tab-manage" style="display:none">
-      <div class="build-section-title">👥 PENDUDUK</div>
-      <div id="manage-content">
-        <div class="stat-row"><span class="stat-label">Total Warga</span><span class="stat-val" id="m-pop">0</span></div>
-        <div class="stat-row"><span class="stat-label">Petani</span><span class="stat-val" id="m-farmer">0</span></div>
-        <div class="stat-row"><span class="stat-label">Penebang</span><span class="stat-val" id="m-logger">0</span></div>
-        <div class="stat-row"><span class="stat-label">Penambang</span><span class="stat-val" id="m-miner">0</span></div>
-        <div class="stat-row"><span class="stat-label">Idle</span><span class="stat-val" id="m-idle">0</span></div>
-        <div class="build-section-title" style="margin-top:12px">⏱ PRODUKSI PER TICK</div>
-        <div class="stat-row"><span class="stat-label">+Kayu</span><span class="stat-val" id="pr-wood">0</span></div>
-        <div class="stat-row"><span class="stat-label">+Batu</span><span class="stat-val" id="pr-stone">0</span></div>
-        <div class="stat-row"><span class="stat-label">+Batu Bara</span><span class="stat-val" id="pr-coal">0</span></div>
-        <div class="stat-row"><span class="stat-label">+Logam</span><span class="stat-val" id="pr-metal">0</span></div>
-        <div class="stat-row"><span class="stat-label">+Pangan</span><span class="stat-val" id="pr-food">0</span></div>
-      </div>
-    </div>
-  </div>
+<div id="mm"><canvas id="mmc" width="140" height="110"></canvas></div>
+<div id="dialog">
+  <div id="dname"></div>
+  <div id="dmsg"></div>
+  <div id="dbtns"></div>
 </div>
-
-<!-- GAME WORLD -->
-<div id="world-container">
-  <div id="world">
-    <div id="sky-layer">
-      <div class="cloud" style="width:120px;height:35px;top:40px;left:-200px;animation-duration:80s;opacity:0.12"></div>
-      <div class="cloud" style="width:80px;height:25px;top:80px;left:400px;animation-duration:110s;opacity:0.08"></div>
-      <div class="cloud" style="width:150px;height:40px;top:30px;left:900px;animation-duration:95s;opacity:0.10"></div>
-      <div class="cloud" style="width:100px;height:30px;top:100px;left:1500px;animation-duration:75s;opacity:0.09"></div>
-    </div>
-    <div id="ground-layer"></div>
-    <div id="grid-layer"></div>
-    <div id="buildings-layer"></div>
-  </div>
+<div id="notifs"></div>
+<div id="dpad">
+  <div class="dp" id="dpU">▲</div>
+  <div class="dp" id="dpD">▼</div>
+  <div class="dp" id="dpL">◄</div>
+  <div class="dp" id="dpR">►</div>
+  <div class="dp" id="dpE">E</div>
 </div>
-
-<!-- BOTTOM BAR -->
-<div id="bottom-bar">
-  <button class="tool-btn" onclick="centerView()">🎯 Tengah</button>
-  <button class="tool-btn active" id="btn-normal" onclick="setMode('normal')">👆 Normal</button>
-  <button class="tool-btn" id="btn-demolish" onclick="setMode('demolish')">🗑 Hancur</button>
-  <div id="time-display">⏱ Hari 1, 06:00</div>
-  <button class="tool-btn" id="btn-pause" onclick="togglePause()">⏸ Jeda</button>
-  <button class="tool-btn" onclick="setSpeed(1)" id="sp1">1x</button>
-  <button class="tool-btn" onclick="setSpeed(2)" id="sp2">2x</button>
-  <button class="tool-btn" onclick="setSpeed(3)" id="sp3">3x</button>
-</div>
-
-<!-- MINIMAP -->
-<div id="minimap">
-  <canvas id="minimap-canvas" width="140" height="105"></canvas>
-  <div id="minimap-viewport"></div>
-</div>
-
-<!-- TOOLTIP -->
-<div id="tooltip"></div>
-
-<!-- MODAL -->
-<div id="modal-overlay">
-  <div id="modal">
-    <h2 id="modal-title">Upgrade Bangunan</h2>
-    <p id="modal-desc">Deskripsi upgrade</p>
-    <div class="modal-cost-list" id="modal-costs"></div>
-    <div class="modal-btns">
-      <button class="modal-btn confirm" onclick="confirmModal()">✓ Konfirmasi</button>
-      <button class="modal-btn cancel" onclick="closeModal()">✗ Batal</button>
-    </div>
-  </div>
-</div>
-
-<!-- NOTIFICATIONS -->
-<div id="notifications"></div>
-
 <script>
-// ============================================================
-//  GOZO BUILDING - GAME ENGINE
-// ============================================================
+'use strict';
+const CV=document.getElementById('c');
+const X=CV.getContext('2d');
+X.imageSmoothingEnabled=false;
 
-const TILE_W = 96, TILE_H = 48;
-const GRID_COLS = 22, GRID_ROWS = 18;
+const TW=48, TH_T=48;
+const COLS=40, ROWS=30;
+const WW=COLS*TW, WH=ROWS*TH_T;
+const HUD_H=42, BOT_H=38;
+let camX=0, camY=0;
 
-// ---- BUILDING DEFINITIONS ----
-const BUILDING_DEFS = {
-  house:      { name:'Rumah', icon:'🏠', desc:'Tempat tinggal warga, +2 kapasitas populasi.', cost:{wood:15,stone:5}, produces:{}, provides:{pop:2}, category:'housing', maxLevel:3 },
-  storage:    { name:'Gudang', icon:'🏚', desc:'Menambah kapasitas penyimpanan semua sumber daya.', cost:{wood:20,stone:10}, provides:{storage:100}, category:'housing', maxLevel:2 },
-  farm:       { name:'Ladang', icon:'🌾', desc:'Menghasilkan pangan. +3 pangan/tick.', cost:{wood:10}, produces:{food:3}, category:'farm', maxLevel:3 },
-  orchard:    { name:'Kebun Buah', icon:'🍎', desc:'Menghasilkan pangan & kebahagiaan.', cost:{wood:8,food:5}, produces:{food:2}, provides:{happiness:5}, category:'farm', maxLevel:2 },
-  mill:       { name:'Penggilingan', icon:'⚙️', desc:'Meningkatkan efisiensi pertanian +50%.', cost:{wood:25,stone:15}, provides:{farmBonus:1.5}, category:'farm', maxLevel:2 },
-  logger:     { name:'Penebang Kayu', icon:'🪓', desc:'Menebang pohon, +4 kayu/tick.', cost:{wood:12,stone:5}, produces:{wood:4}, category:'forest', maxLevel:3 },
-  sawmill:    { name:'Gergaji Kayu', icon:'🪚', desc:'Meningkatkan produksi kayu +50%.', cost:{wood:20,stone:12}, provides:{woodBonus:1.5}, category:'forest', maxLevel:2 },
-  quarry:     { name:'Tambang Batu', icon:'🪨', desc:'Menambang batu. +3 batu/tick.', cost:{wood:15}, produces:{stone:3}, category:'mining', maxLevel:3 },
-  coal_mine:  { name:'Tambang Batu Bara', icon:'⚫', desc:'Menambang batu bara. +2 batu bara/tick.', cost:{wood:20,stone:10}, produces:{coal:2}, category:'mining', maxLevel:3 },
-  iron_mine:  { name:'Tambang Besi', icon:'⚙️', desc:'Menambang besi kasar. +2 besi/tick.', cost:{wood:25,stone:20}, produces:{iron:2}, category:'mining', maxLevel:3 },
-  smelter:    { name:'Peleburan Logam', icon:'🔥', desc:'Memproses besi menjadi logam. +1 logam/tick.', cost:{wood:30,stone:25,coal:5}, produces:{metal:1}, consumes:{iron:1,coal:1}, category:'mining', maxLevel:2 },
-  well:       { name:'Sumur', icon:'💧', desc:'Menyediakan air bersih, meningkatkan kesehatan.', cost:{wood:8,stone:10}, provides:{health:10}, category:'public', maxLevel:2 },
-  church:     { name:'Gereja', icon:'⛪', desc:'Meningkatkan kebahagiaan warga +20.', cost:{wood:40,stone:30}, provides:{happiness:20}, category:'public', maxLevel:2 },
-  market:     { name:'Pasar', icon:'🏪', desc:'Menghasilkan gold dan memungkinkan perdagangan.', cost:{wood:30,gold:20}, produces:{gold:2}, category:'public', maxLevel:3 },
-  blacksmith: { name:'Pandai Besi', icon:'🔨', desc:'Membuat peralatan dari logam untuk upgrade.', cost:{wood:20,metal:5}, provides:{tools:true}, category:'public', maxLevel:2 },
-  deep_mine:  { name:'Deep Mining', icon:'⛏', desc:'Tambang dalam, produksi 3x lipat!', cost:{wood:50,stone:40,metal:10}, produces:{coal:6,iron:4}, category:'mining', maxLevel:1 },
+// Player
+const PL={x:WW/2,y:WH/2,vx:0,vy:0,spd:2.6,dir:2,frame:0,ft:0};
+
+// Game state
+const G={res:{wood:80,stone:50,coal:0,iron:0,metal:0,food:40,gold:100},
+  pop:2,cap:4,happy:80,health:70,day:1,hr:6,mn:0,yr:1,season:0,
+  seasons:['🌱 Spring','☀️ Summer','🍂 Autumn','❄️ Winter'],
+  paused:false,spd:1,bld:[],nid:1,ticks:0};
+
+const BD={
+  house:    {n:'House',     e:'🏠',d:'+2 pop cap.',      cost:{wood:15,stone:5},  ml:3,pop:2},
+  farm:     {n:'Farm',      e:'🌾',d:'+3 food/tick.',    cost:{wood:10},          ml:3,pr:{food:3}},
+  logger:   {n:'Logger',   e:'🪓',d:'+4 wood/tick.',    cost:{wood:12,stone:5},  ml:3,pr:{wood:4}},
+  quarry:   {n:'Quarry',   e:'🪨',d:'+3 stone/tick.',   cost:{wood:15},          ml:3,pr:{stone:3}},
+  market:   {n:'Market',   e:'🏪',d:'+2 gold/tick.',    cost:{wood:30,gold:20},  ml:3,pr:{gold:2}},
+  well:     {n:'Well',     e:'💧',d:'+10 health.',      cost:{wood:8,stone:10},  ml:2},
+  church:   {n:'Church',   e:'⛪',d:'+20 happiness.',   cost:{wood:40,stone:30}, ml:2},
+  blacksmith:{n:'Blacksmith',e:'🔨',d:'Craft upgrades.',cost:{wood:20,stone:15}, ml:2},
+  mill:     {n:'Windmill', e:'⚙', d:'Farm +50%.',       cost:{wood:25,stone:15}, ml:2},
+  smelter:  {n:'Smelter',  e:'🔥',d:'Makes metal.',     cost:{wood:30,stone:25,coal:5},ml:2,pr:{metal:1}},
+  coalmine: {n:'Coal Mine',e:'⛏',d:'+2 coal/tick.',    cost:{wood:20,stone:10}, ml:3,pr:{coal:2}},
+  ironmine: {n:'Iron Mine',e:'⚙',d:'+2 iron/tick.',    cost:{wood:25,stone:20}, ml:3,pr:{iron:2}},
 };
 
-// ---- GAME STATE ----
-let state = {
-  resources: { wood:50, stone:30, coal:0, iron:0, metal:0, food:20, gold:100 },
-  storage: { wood:200, stone:200, coal:100, iron:100, metal:50, food:100, gold:999 },
-  population: 0, popCap: 0,
-  happiness: 80, health: 70,
-  day: 1, hour: 6, minute: 0,
-  year: 1, season: 0, // 0=spring,1=summer,2=autumn,3=winter
-  seasons: ['🌱 Musim Semi','☀️ Musim Panas','🍂 Musim Gugur','❄️ Musim Dingin'],
-  paused: false, speed: 1,
-  selectedBuildType: null,
-  selectedBuilding: null,
-  mode: 'normal',
-  buildings: [],
-  tiles: {},
-  nextBuildId: 1,
-  ticks: 0,
-};
+// World map
+let MAP=[], NPCS=[];
 
-// upgrades
-const UPGRADES = {
-  deep_mining: { name:'Deep Mining Tech', desc:'Buka tambang dalam, produksi 3x lipat!', cost:{metal:5,gold:50}, requires:{iron_mine:1}, unlocked:false, bought:false },
-  irrigation:  { name:'Irigasi', desc:'Meningkatkan produksi pertanian +100%.', cost:{wood:20,stone:30,gold:40}, requires:{farm:2}, unlocked:false, bought:false },
-  steel_tools: { name:'Alat Baja', desc:'Semua produksi +25%.', cost:{metal:10,gold:80}, requires:{blacksmith:1}, unlocked:false, bought:false },
-  road_paving: { name:'Jalan Berbatu', desc:'Meningkatkan kebahagiaan +10.', cost:{stone:50,gold:30}, requires:{house:3}, unlocked:false, bought:false },
-};
+function rng(s){let v=s;return()=>{v=Math.sin(v*9301+49297)*233280;return v-(v|0);};}
+const R42=rng(42);
 
-// view
-let viewX = 300, viewY = 80, viewScale = 1.0;
-let isDragging = false, dragStart = {x:0,y:0}, viewStart = {x:0,y:0};
-let modalCallback = null;
-let events = [];
-
-// ---- TILES SETUP ----
-function initTiles() {
-  const gl = document.getElementById('grid-layer');
-  const bl = document.getElementById('buildings-layer');
-  gl.innerHTML = ''; bl.innerHTML = '';
-  for (let r = 0; r < GRID_ROWS; r++) {
-    for (let c = 0; c < GRID_COLS; c++) {
-      const {sx, sy} = isoProject(c, r);
-      // Ground tile
-      const tileDiv = document.createElement('div');
-      tileDiv.className = 'tile';
-      tileDiv.style.cssText = `left:${sx}px;top:${sy}px;width:${TILE_W}px;height:${TILE_H}px;`;
-      tileDiv.dataset.col = c; tileDiv.dataset.row = r;
-      const key = `${c}_${r}`;
-      // Varied terrain
-      const terrainRoll = Math.random();
-      let terrain = 'grass';
-      if (r < 3) terrain = 'path';
-      else if (terrainRoll > 0.88) terrain = 'rocky';
-      else if (terrainRoll > 0.75) terrain = 'forest';
-      state.tiles[key] = { terrain, occupied: false, building: null };
-      tileDiv.innerHTML = getTileHTML(terrain);
-      tileDiv.addEventListener('click', () => onTileClick(c, r));
-      tileDiv.addEventListener('mousemove', (e) => onTileHover(e, c, r));
-      tileDiv.addEventListener('mouseleave', hideTooltip);
-      gl.appendChild(tileDiv);
+function genMap(){
+  MAP=[];
+  for(let r=0;r<ROWS;r++){MAP[r]=[];for(let c=0;c<COLS;c++)MAP[r][c]={t:0,bld:null};}
+  const mc=COLS/2|0, mr=ROWS/2|0;
+  // horizontal road
+  for(let c=1;c<COLS-1;c++){MAP[mr][c].t=1;MAP[mr+1][c].t=1;}
+  // vertical road
+  for(let r=1;r<ROWS-1;r++){MAP[r][mc].t=1;MAP[r][mc+1].t=1;}
+  // village square
+  for(let r=mr-2;r<=mr+3;r++)for(let c=mc-2;c<=mc+3;c++)MAP[r][c].t=1;
+  // river left side
+  for(let r=2;r<ROWS-2;r++){MAP[r][3].t=2;MAP[r][4].t=2;if(r%4===0)MAP[r][2].t=2;}
+  // trees & rocks scattered
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    if(r<2||r>=ROWS-2||c<2||c>=COLS-2){MAP[r][c].t=3;continue;}
+    if(MAP[r][c].t===0){
+      const n=R42();
+      if(c<6&&MAP[r][c].t!==2){MAP[r][c].t=n>.25?3:0;}
+      else if(n>.88)MAP[r][c].t=3;
+      else if(n>.83)MAP[r][c].t=4;
     }
   }
-  // Place some trees on forest tiles
-  for (const [key, tile] of Object.entries(state.tiles)) {
-    if (tile.terrain === 'forest') {
-      const [c,r] = key.split('_').map(Number);
-      placeDecoration(c, r, 'tree');
-    }
-    if (tile.terrain === 'rocky') {
-      const [c,r] = key.split('_').map(Number);
-      placeDecoration(c, r, 'rock');
-    }
-  }
+  // Starter buildings
+  pb('house',   mc-4, mr-4); pb('house',   mc+5, mr-4);
+  pb('well',    mc+1, mr-3); pb('farm',    mc-7, mr+2);
+  pb('farm',    mc-7, mr+4); pb('market',  mc+5, mr+1);
+  pb('logger',  mc+8, mr-4); pb('church',  mc-1, mr-6);
+  // NPCs
+  NPCS=[
+    {name:'Elder Tua',x:(mc+1)*TW+TW/2,y:(mr-2)*TH_T+TH_T/2,dir:2,color:'#e8a040',msg:'Welcome to Gozo Village!\nWASD/Arrows to walk.\nE or Space to interact with buildings & people.'},
+    {name:'Farmer Budi',x:(mc-6)*TW+TW/2,y:(mr+3)*TH_T+TH_T/2,dir:0,color:'#40b8e8',msg:'My crops grow well this season! Build more farms to feed the village.'},
+    {name:'Merchant Sari',x:(mc+6)*TW+TW/2,y:(mr+2)*TH_T+TH_T/2,dir:3,color:'#e840c0',msg:'I trade goods from afar. Upgrade the Market to earn more gold each day!'},
+  ];
 }
 
-function getTileHTML(terrain) {
-  const colors = {
-    grass: ['#3a6e2a','#2a4e1c','#1e3d12'],
-    rocky: ['#6a6a5a','#5a5a4a','#4a4a3a'],
-    forest: ['#2a5a1a','#1e4210','#16300a'],
-    path:   ['#8a7a5a','#7a6a4a','#6a5a3a'],
-  };
-  const [top, left, right] = colors[terrain] || colors.grass;
-  return `<svg width="${TILE_W}" height="${TILE_H}" viewBox="0 0 96 48">
-    <polygon points="48,0 96,24 48,48 0,24" fill="${top}"/>
-    <polygon points="0,24 48,48 48,72 0,48" fill="${left}"/>
-    <polygon points="96,24 48,48 48,72 96,48" fill="${right}"/>
-    <polygon points="48,0 96,24 48,48 0,24" fill="rgba(255,255,255,0.03)"/>
-  </svg>`;
+function pb(type,c,r){
+  if(c<0||c>=COLS||r<0||r>=ROWS)return;
+  if(MAP[r][c].t===2||MAP[r][c].t===3)return;
+  MAP[r][c].t=1; MAP[r][c].bld={type,id:G.nid++,lv:1};
+  G.bld.push({id:MAP[r][c].bld.id,type,lv:1,col:c,row:r});
 }
 
-function placeDecoration(c, r, type) {
-  const {sx, sy} = isoProject(c, r);
-  const bl = document.getElementById('buildings-layer');
-  const d = document.createElement('div');
-  d.style.cssText = `position:absolute;left:${sx+20}px;top:${sy-30}px;pointer-events:none;`;
-  if (type === 'tree') {
-    const h = 32 + Math.floor(Math.random()*16);
-    const g = Math.floor(Math.random()*40+70);
-    d.innerHTML = `<div class="tree-sprite">
-      <div class="tree-trunk" style="height:${Math.floor(h*0.4)}px;margin-top:${h*0.6}px;"></div>
-      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%)">
-        <div style="width:${h*0.6}px;height:${h*0.6}px;background:rgb(30,${g+30},20);border-radius:50%;margin:0 auto;opacity:0.95;"></div>
-        <div style="width:${h*0.5}px;height:${h*0.5}px;background:rgb(40,${g+40},30);border-radius:50%;margin:-${h*0.15}px auto 0;"></div>
-      </div>
-    </div>`;
-  } else if (type === 'rock') {
-    d.innerHTML = `<div style="width:28px;height:16px;background:linear-gradient(135deg,#7a7a7a,#4a4a4a);border-radius:6px 8px 4px 6px;box-shadow:2px 3px 6px rgba(0,0,0,0.5);"></div>`;
-  }
-  bl.appendChild(d);
-}
+// Tile variation seeds
+const TV={};
+function tv(c,r){const k=c*1e4+r;if(!TV[k]){const s=Math.sin(c*127.1+r*311.7)*43758;TV[k]=s-(s|0);}return TV[k];}
 
-function isoProject(col, row) {
-  const sx = (col - row) * (TILE_W / 2) + (GRID_COLS * TILE_W / 2);
-  const sy = (col + row) * (TILE_H / 2) + 280;
-  return { sx, sy };
-}
-
-// ---- TILE CLICK ----
-function onTileClick(c, r) {
-  const key = `${c}_${r}`;
-  const tile = state.tiles[key];
-  if (!tile) return;
-
-  if (state.mode === 'demolish') {
-    if (tile.building) {
-      demolishBuilding(tile.building);
-      return;
-    }
-  }
-
-  if (state.selectedBuildType && !tile.occupied) {
-    tryBuild(state.selectedBuildType, c, r);
-    return;
-  }
-  if (tile.building) {
-    selectBuilding(tile.building);
-  } else {
-    deselectBuilding();
-  }
-}
-
-function onTileHover(e, c, r) {
-  const key = `${c}_${r}`;
-  const tile = state.tiles[key];
-  if (!tile) return;
-  if (tile.building) {
-    const b = state.buildings.find(b=>b.id===tile.building);
-    if (b) {
-      const def = BUILDING_DEFS[b.type];
-      showTooltip(e, `<h4>${def.icon} ${def.name} (Lv.${b.level})</h4><div class="tt-desc">${def.desc}</div>`);
-      return;
-    }
-  }
-  if (state.selectedBuildType) {
-    const def = BUILDING_DEFS[state.selectedBuildType];
-    const canAfford = canAffordCost(def.cost);
-    const status = tile.occupied ? '❌ Terisi' : canAfford ? '✅ Bisa dibangun' : '❌ Resource tidak cukup';
-    showTooltip(e, `<h4>${def.icon} ${def.name}</h4><div class="tt-desc">${status}</div>`);
-  } else {
-    hideTooltip();
-  }
-}
-
-// ---- BUILD ----
-function selectBuild(type) {
-  state.selectedBuildType = type;
-  document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active-build'));
-  if (type) document.getElementById('bbtn-'+type)?.classList.add('active-build');
-}
-
-function canAffordCost(cost) {
-  for (const [res, amt] of Object.entries(cost||{})) {
-    const rKey = res==='wood'?'wood':res==='stone'?'stone':res==='coal'?'coal':res==='metal'?'metal':res==='food'?'food':res==='gold'?'gold':res==='iron'?'iron':null;
-    if (rKey && (state.resources[rKey]||0) < amt) return false;
-  }
-  return true;
-}
-
-function payCost(cost) {
-  for (const [res, amt] of Object.entries(cost||{})) {
-    const rKey = res==='wood'?'wood':res==='stone'?'stone':res==='coal'?'coal':res==='metal'?'metal':res==='food'?'food':res==='gold'?'gold':res==='iron'?'iron':null;
-    if (rKey) state.resources[rKey] = Math.max(0, (state.resources[rKey]||0) - amt);
-  }
-}
-
-function tryBuild(type, c, r) {
-  const def = BUILDING_DEFS[type];
-  if (!def) return;
-  if (!canAffordCost(def.cost)) { notify('Resource tidak cukup!','error'); return; }
-  payCost(def.cost);
-  const id = state.nextBuildId++;
-  const building = { id, type, level:1, col:c, row:r };
-  state.buildings.push(building);
-  state.tiles[`${c}_${r}`].occupied = true;
-  state.tiles[`${c}_${r}`].building = id;
-  renderBuilding(building);
-  updatePopulation();
-  addEvent(`🔨 ${def.name} dibangun di (${c},${r})`, 'positive');
-  notify(`✅ ${def.name} berhasil dibangun!`, 'success');
-  updateUI();
-}
-
-function renderBuilding(b) {
-  const def = BUILDING_DEFS[b.type];
-  const {sx, sy} = isoProject(b.col, b.row);
-  const bl = document.getElementById('buildings-layer');
-  const old = document.getElementById('building-'+b.id);
-  if (old) old.remove();
-  const el = document.createElement('div');
-  el.id = 'building-'+b.id;
-  el.className = 'building just-placed';
-  el.style.cssText = `position:absolute;left:${sx+8}px;top:${sy-50}px;cursor:pointer;z-index:${b.row*10+b.col};`;
-  el.innerHTML = getBuildingSprite(b.type, b.level);
-  el.addEventListener('click', () => selectBuilding(b.id));
-  bl.appendChild(el);
-  setTimeout(()=>el.classList.remove('just-placed'), 400);
-}
-
-function getBuildingSprite(type, level) {
-  const def = BUILDING_DEFS[type];
-  const lCol = ['','#8b2020','#a03030','#c05050'][level]||'#8b2020';
-  const wCol = ['','#c4933f','#d4a34f','#e4b35f'][level]||'#c4933f';
-  
-  const sprites = {
-    house: `<div style="position:relative;width:76px;filter:drop-shadow(0 8px 12px rgba(0,0,0,0.7))">
-      ${level>=2?`<div style="position:absolute;top:-12px;right:14px;width:10px;height:20px;background:#6b6b6b;border:1px solid #444;z-index:2"></div>
-      <div class="smoke-puff" style="top:-30px;right:16px"></div>`:''}
-      <div style="width:0;height:0;border-left:38px solid transparent;border-right:38px solid transparent;border-bottom:${22+level*3}px solid ${lCol};margin:0 auto;"></div>
-      <div style="width:${60+level*4}px;height:${30+level*5}px;background:linear-gradient(135deg,${wCol},${wCol.replace('4','2')});border:2px solid #5a3810;border-radius:2px;margin:0 auto;position:relative;">
-        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:12px;height:18px;background:#2d1f0e;border-radius:5px 5px 0 0;"></div>
-        ${level>=2?`<div style="position:absolute;top:5px;left:6px;width:8px;height:8px;background:#5aa5ff;border:1px solid #2d1f0e;border-radius:1px;"></div>
-        <div style="position:absolute;top:5px;right:6px;width:8px;height:8px;background:#5aa5ff;border:1px solid #2d1f0e;border-radius:1px;"></div>`:''}
-      </div>
-    </div>`,
-    farm: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));width:74px;">
-      <div style="width:70px;height:${35+level*5}px;background:repeating-linear-gradient(0deg,#3d2010 0px,#3d2010 4px,#5a3010 4px,#5a3010 8px);border:2px solid #2d1a0a;border-radius:3px;position:relative;">
-        <div style="position:absolute;inset:4px;display:flex;flex-wrap:wrap;gap:2px;align-content:flex-end;">
-          ${'🌿'.repeat(level*4)}${'🌾'.repeat(level*2)}
-        </div>
-      </div>
-    </div>`,
-    logger: `<div style="filter:drop-shadow(0 5px 10px rgba(0,0,0,0.6));width:60px;text-align:center;">
-      <div style="font-size:28px;text-align:center;">🪓</div>
-      <div style="width:50px;height:20px;background:linear-gradient(90deg,#5a3810,#8b5e2a);border:1px solid #3a2010;border-radius:3px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f0dfc0;">⛺ Camp</div>
-    </div>`,
-    quarry: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
-      <div style="font-size:24px;text-align:center;">⛏</div>
-      <div style="width:70px;height:22px;background:linear-gradient(90deg,#6a5a4a,#8a7a6a,#6a5a4a);border:2px solid #4a3a2a;display:flex;align-items:center;justify-content:center;font-size:11px;color:#ddd;">Tambang Batu</div>
-    </div>`,
-    coal_mine: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
-      <div style="width:50px;height:34px;background:#1a1a1a;border:3px solid #555;border-radius:25px 25px 0 0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:18px;">⚫</div>
-      <div style="width:70px;height:16px;background:linear-gradient(90deg,#4a3a2a,#6a5a4a,#4a3a2a);border:2px solid #3a2a1a;"></div>
-    </div>`,
-    iron_mine: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
-      <div style="width:50px;height:34px;background:#1a1a22;border:3px solid #667;border-radius:25px 25px 0 0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:18px;">⚙️</div>
-      <div style="width:70px;height:16px;background:linear-gradient(90deg,#3a3a4a,#5a5a6a,#3a3a4a);border:2px solid #2a2a3a;"></div>
-    </div>`,
-    smelter: `<div style="filter:drop-shadow(0 6px 12px rgba(200,80,0,0.4));width:72px;text-align:center;">
-      <div style="font-size:26px;">🔥</div>
-      <div style="width:68px;height:28px;background:linear-gradient(135deg,#5a2a0a,#8a4a1a);border:2px solid #3a1a0a;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#ffa040;">Peleburan</div>
-    </div>`,
-    well: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));width:50px;text-align:center;">
-      <div style="font-size:10px;color:#aaa">Sumur</div>
-      <div style="width:32px;height:32px;background:radial-gradient(circle,#1a4a6a,#0a2a3a);border:3px solid #7a7a7a;border-radius:50%;margin:0 auto;font-size:16px;display:flex;align-items:center;justify-content:center;">💧</div>
-    </div>`,
-    church: `<div style="filter:drop-shadow(0 8px 14px rgba(0,0,0,0.7));width:72px;text-align:center;">
-      <div style="font-size:12px;text-align:center;">✝</div>
-      <div style="width:0;height:0;border-left:30px solid transparent;border-right:30px solid transparent;border-bottom:25px solid #c0c0c0;margin:0 auto;"></div>
-      <div style="width:60px;height:42px;background:linear-gradient(135deg,#d0d0c0,#a0a090);border:2px solid #808070;margin:0 auto;display:flex;align-items:center;justify-content:center;">⛪</div>
-    </div>`,
-    market: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:80px;text-align:center;">
-      <div style="width:78px;height:12px;background:#c0402a;border-bottom:2px solid #902010;"></div>
-      <div style="width:74px;height:36px;background:linear-gradient(135deg,#e8b84b,#c4933f);border:2px solid #8b5e2a;display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>
-    </div>`,
-    blacksmith: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
-      <div style="font-size:10px;color:#aaa">Pandai Besi</div>
-      <div style="width:68px;height:38px;background:linear-gradient(135deg,#3a3a3a,#5a5a5a);border:2px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:22px;">🔨</div>
-    </div>`,
-    storage: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:76px;text-align:center;">
-      <div style="width:0;height:0;border-left:40px solid transparent;border-right:40px solid transparent;border-bottom:18px solid #8b5e2a;margin:0 auto;"></div>
-      <div style="width:72px;height:32px;background:linear-gradient(135deg,#c4933f,#8b5e2a);border:2px solid #5a3810;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>
-    </div>`,
-    mill: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
-      <div style="font-size:24px;animation:spin 3s linear infinite;display:inline-block;">⚙️</div>
-      <div style="width:68px;height:28px;background:linear-gradient(135deg,#c4933f,#8b5e2a);border:2px solid #5a3810;font-size:10px;color:#f0dfc0;display:flex;align-items:center;justify-content:center;">Penggilingan</div>
-    </div>`,
-    orchard: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.4));width:72px;text-align:center;">
-      <div>🍎🌳🍎</div>
-      <div style="width:68px;height:12px;background:#5a3810;border-radius:2px;"></div>
-    </div>`,
-    sawmill: `<div style="filter:drop-shadow(0 5px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
-      <div style="font-size:22px;">🪚</div>
-      <div style="width:68px;height:24px;background:linear-gradient(135deg,#8b5e2a,#6b3f1a);border:2px solid #4a2e12;font-size:10px;color:#f0dfc0;display:flex;align-items:center;justify-content:center;">Gergaji</div>
-    </div>`,
-    deep_mine: `<div style="filter:drop-shadow(0 8px 16px rgba(50,20,200,0.4));width:80px;text-align:center;">
-      <div style="font-size:26px;">⛏</div>
-      <div style="width:78px;height:30px;background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:2px solid #4a4a8a;font-size:11px;color:#aaf;display:flex;align-items:center;justify-content:center;">⚡ Deep Mine</div>
-    </div>`,
-  };
-  return sprites[type] || `<div style="font-size:28px;text-align:center;">${BUILDING_DEFS[type]?.icon||'🏗'}</div>`;
-}
-
-// ---- SELECT/DESELECT ----
-function selectBuilding(id) {
-  state.selectedBuilding = id;
-  const b = state.buildings.find(b=>b.id===id);
-  if (!b) return;
-  const def = BUILDING_DEFS[b.type];
-  const panel = document.getElementById('selected-info');
-  panel.style.display='block';
-  document.getElementById('sel-name').textContent = `${def.icon} ${def.name} (Lv.${b.level})`;
-  document.getElementById('sel-desc').textContent = def.desc;
-  document.getElementById('btn-upgrade').style.display = b.level < (def.maxLevel||3) ? 'block' : 'none';
-}
-
-function deselectBuilding() {
-  state.selectedBuilding = null;
-  document.getElementById('selected-info').style.display = 'none';
-}
-
-function upgradeSelected() {
-  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
-  if (!b) return;
-  const def = BUILDING_DEFS[b.type];
-  if (b.level >= (def.maxLevel||3)) { notify('Sudah level maksimal!','warning'); return; }
-  const upgCost = {};
-  for (const [k,v] of Object.entries(def.cost||{})) upgCost[k] = Math.floor(v * (1.5*b.level));
-  showModal(
-    `Upgrade ${def.name} ke Lv.${b.level+1}`,
-    'Yakin ingin mengupgrade bangunan ini?',
-    upgCost,
-    () => {
-      payCost(upgCost);
-      b.level++;
-      renderBuilding(b);
-      addEvent(`⬆ ${def.name} diupgrade ke Lv.${b.level}`, 'positive');
-      notify(`✅ ${def.name} diupgrade ke Level ${b.level}!`, 'success');
-      selectBuilding(b.id);
-      updateUI();
-    }
-  );
-}
-
-function collectSelected() {
-  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
-  if (!b) return;
-  const def = BUILDING_DEFS[b.type];
-  if (!def.produces || Object.keys(def.produces).length === 0) { notify('Bangunan ini tidak menghasilkan resource.','warning'); return; }
-  for (const [res, amt] of Object.entries(def.produces)) {
-    addResource(res, amt * b.level * 2);
-  }
-  notify('📦 Resource berhasil dikumpulkan!', 'success');
-  updateUI();
-}
-
-function destroySelected() {
-  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
-  if (!b) return;
-  demolishBuilding(b.id);
-}
-
-function demolishBuilding(id) {
-  const b = state.buildings.find(b=>b.id===id);
-  if (!b) return;
-  const def = BUILDING_DEFS[b.type];
-  showModal(
-    `Hancurkan ${def.name}`,
-    'Resource akan dikembalikan sebagian.',
-    {},
-    () => {
-      state.buildings = state.buildings.filter(x=>x.id!==id);
-      state.tiles[`${b.col}_${b.row}`].occupied = false;
-      state.tiles[`${b.col}_${b.row}`].building = null;
-      document.getElementById('building-'+id)?.remove();
-      // Refund
-      for (const [k,v] of Object.entries(def.cost||{})) addResource(k, Math.floor(v*0.5));
-      updatePopulation();
-      addEvent(`🗑 ${def.name} dihancurkan`, 'negative');
-      notify(`🗑 ${def.name} telah dihancurkan.`, 'warning');
-      deselectBuilding();
-      updateUI();
-    }
-  );
-}
-
-// ---- RESOURCES ----
-function addResource(key, amt) {
-  const map = {wood:'wood',stone:'stone',coal:'coal',iron:'iron',metal:'metal',food:'food',gold:'gold'};
-  const k = map[key];
-  if (!k) return;
-  state.resources[k] = Math.min(state.storage[k]||999, (state.resources[k]||0) + amt);
-}
-
-// ---- PRODUCTION TICK ----
-function gameTick() {
-  if (state.paused) return;
-  state.ticks++;
-
-  // Time advance
-  state.minute += 10;
-  if (state.minute >= 60) { state.minute = 0; state.hour++; }
-  if (state.hour >= 24) { state.hour = 0; state.day++; }
-  if (state.day > 90) { state.day=1; state.season=(state.season+1)%4; if(state.season===0) state.year++; }
-
-  // Every 6 game hours = production tick
-  if (state.hour % 6 === 0 && state.minute === 0) {
-    doProduction();
-  }
-
-  updateTimeDisplay();
-
-  // Update upgrades availability
-  checkUpgrades();
-}
-
-function doProduction() {
-  const mult = UPGRADES.steel_tools.bought ? 1.25 : 1.0;
-  const woodMult = state.buildings.some(b=>b.type==='sawmill') ? 1.5 : 1.0;
-  const farmMult = (state.buildings.some(b=>b.type==='mill') ? 1.5 : 1.0) * (UPGRADES.irrigation.bought ? 2.0 : 1.0);
-  const seasonFood = [1.0, 1.2, 0.8, 0.5][state.season];
-
-  for (const b of state.buildings) {
-    const def = BUILDING_DEFS[b.type];
-    if (!def.produces) continue;
-    let ok = true;
-    // Check consumes
-    if (def.consumes) {
-      for (const [r,a] of Object.entries(def.consumes)) {
-        if ((state.resources[r]||0) < a) { ok=false; break; }
+// ── DRAW TILE ──
+function drawTile(c,r,sx,sy){
+  const t=MAP[r][c],v=tv(c,r);
+  switch(t.t){
+    case 0:{
+      const g=v*22|0;
+      X.fillStyle=`rgb(${80+g},${158+g},${48+g})`;X.fillRect(sx,sy,TW,TH_T);
+      X.fillStyle=`rgba(255,255,255,0.06)`;X.fillRect(sx,sy,TW,TH_T*0.35);
+      if((c*7+r*13)%4===0&&!t.bld){
+        X.fillStyle=`rgba(18,80,8,${0.09+v*0.06})`;
+        X.beginPath();X.ellipse(sx+TW*(0.3+v*0.4),sy+TH_T*(0.4+v*0.3),TW*0.22+v*6,TH_T*0.16+v*4,v*2,0,Math.PI*2);X.fill();
       }
-      if (ok) for (const [r,a] of Object.entries(def.consumes)) state.resources[r] -= a;
+      if((c*3+r*11)%5===0&&!t.bld){
+        X.strokeStyle='rgba(28,105,12,0.48)';X.lineWidth=1.5;
+        const gx=sx+TW*(0.28+v*0.42),gy=sy+TH_T*(0.55+v*0.28);
+        X.beginPath();X.moveTo(gx,gy);X.lineTo(gx-1,gy-7);X.stroke();
+        X.beginPath();X.moveTo(gx+6,gy);X.lineTo(gx+7,gy-8);X.stroke();
+        X.beginPath();X.moveTo(gx+12,gy);X.lineTo(gx+11,gy-6);X.stroke();
+      }
+      if((c*5+r*9)%7===0){X.fillStyle='rgba(255,215,50,0.48)';X.beginPath();X.arc(sx+TW*(0.62+v*0.2),sy+TH_T*(0.52+v*0.25),2,0,Math.PI*2);X.fill();}
+      break;
     }
-    if (!ok) continue;
-    for (const [res,amt] of Object.entries(def.produces)) {
-      let finalAmt = amt * b.level * mult;
-      if (res==='wood') finalAmt *= woodMult;
-      if (res==='food') finalAmt *= farmMult * seasonFood;
-      addResource(res, Math.round(finalAmt));
+    case 1:{
+      const g=v*14|0;
+      X.fillStyle=`rgb(${186+g},${152+g},${84+g})`;X.fillRect(sx,sy,TW,TH_T);
+      X.fillStyle='rgba(255,255,255,0.05)';X.fillRect(sx,sy,TW,TH_T*0.28);
+      if((c+r)%2===0){X.strokeStyle='rgba(0,0,0,0.07)';X.lineWidth=1;X.strokeRect(sx+4,sy+4,TW-8,TH_T-8);}
+      break;
+    }
+    case 2:{
+      const w=(Date.now()/900+c*0.3+r*0.22)%(Math.PI*2),wb=Math.sin(w)*3|0;
+      X.fillStyle=`rgb(${46+wb},${112+wb},${205+wb})`;X.fillRect(sx,sy,TW,TH_T);
+      X.fillStyle=`rgba(160,210,255,${0.14+Math.sin(w+1)*0.07})`;
+      X.fillRect(sx+TW*.08,sy+TH_T*.18,TW*.84,TH_T*.28);
+      break;
+    }
+    case 3:{
+      const g=v*12|0;
+      X.fillStyle=`rgb(${38+g},${84+g},${22+g})`;X.fillRect(sx,sy,TW,TH_T);
+      break;
+    }
+    case 4:{
+      const g=v*16|0;
+      X.fillStyle=`rgb(${125+g},${118+g},${105+g})`;X.fillRect(sx,sy,TW,TH_T);
+      break;
     }
   }
+  // bottom-edge shadow for slight depth
+  X.fillStyle='rgba(0,0,0,0.08)';X.fillRect(sx,sy+TH_T-2,TW,2);
+}
 
-  // Population food consumption
-  const foodNeeded = state.population * 0.5;
-  if (state.resources.food >= foodNeeded) {
-    state.resources.food -= foodNeeded;
-    state.happiness = Math.min(100, state.happiness + 1);
-    state.health = Math.min(100, state.health + 1);
-  } else {
-    state.resources.food = 0;
-    state.happiness = Math.max(0, state.happiness - 5);
-    state.health = Math.max(0, state.health - 3);
-    if (state.happiness < 20) addEvent('😢 Warga kelaparan! Bangun lebih banyak ladang!', 'negative');
+// ── TREE / ROCK / BUILDING DECOS ──
+function drawTree(sx,sy,v){
+  const cx=sx+TW/2,bot=sy+TH_T;
+  X.fillStyle='rgba(0,0,0,0.2)';X.beginPath();X.ellipse(cx+2,bot-4,TW*.25,6,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#5a3210';X.fillRect(cx-4,bot-20,8,20);
+  X.fillStyle='#3a2010';X.fillRect(cx+1,bot-20,3,20);
+  X.fillStyle='#143a0a';X.beginPath();X.arc(cx,bot-38,18,0,Math.PI*2);X.fill();
+  X.fillStyle='#206018';X.beginPath();X.arc(cx-2,bot-44,14,0,Math.PI*2);X.fill();
+  X.fillStyle='#2e8022';X.beginPath();X.arc(cx-3,bot-50,9,0,Math.PI*2);X.fill();
+  X.fillStyle='rgba(90,190,55,0.2)';X.beginPath();X.arc(cx-5,bot-55,5,0,Math.PI*2);X.fill();
+}
+
+function drawRock(sx,sy,v){
+  const cx=sx+TW/2,bot=sy+TH_T;
+  X.fillStyle='rgba(0,0,0,0.17)';X.beginPath();X.ellipse(cx+2,bot-5,TW*.23,6,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#787060';X.beginPath();X.ellipse(cx,bot-13,12,11,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#929488';X.beginPath();X.ellipse(cx-2,bot-15,9,8,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#b0b0a8';X.beginPath();X.ellipse(cx-4,bot-18,5,4,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#787060';X.beginPath();X.ellipse(cx+11,bot-9,6,5,0,0,Math.PI*2);X.fill();
+}
+
+function F(x,y,w,h,col){X.fillStyle=col;X.fillRect(Math.round(x),Math.round(y),w,h);}
+function L(x1,y1,x2,y2,col,lw=1){X.strokeStyle=col;X.lineWidth=lw;X.beginPath();X.moveTo(x1,y1);X.lineTo(x2,y2);X.stroke();}
+function win(wx,wy,ww,wh){
+  F(wx,wy,ww,wh,'#1a3050');F(wx+1,wy+1,ww-2,wh-2,'#6ab0e0');
+  F(wx+1,wy+1,3,2,'rgba(255,255,255,0.5)');
+  L(wx+ww/2,wy+1,wx+ww/2,wy+wh-1,'rgba(0,0,0,0.25)');
+  L(wx+1,wy+wh/2,wx+ww-1,wy+wh/2,'rgba(0,0,0,0.25)');
+  X.strokeStyle='rgba(0,0,0,0.4)';X.lineWidth=1;X.strokeRect(wx,wy,ww,wh);
+}
+function smoke(sx,sy){
+  const t=Date.now()/800;
+  for(let i=0;i<3;i++){
+    X.fillStyle=`rgba(190,190,190,${0.3-i*0.08})`;
+    X.beginPath();X.arc(sx+Math.sin(t+i*1.1)*2.5,sy-i*5,3+i,0,Math.PI*2);X.fill();
   }
+}
 
-  // Gold from market
-  const markets = state.buildings.filter(b=>b.type==='market');
-  if (markets.length > 0) {
-    const goldIncome = markets.reduce((s,b)=>s+b.level*2,0);
-    addResource('gold', goldIncome);
+function drawBuilding(type,lv,sx,sy){
+  const cx=sx+TW/2,bot=sy+TH_T;
+  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(cx+2,bot-3,TW*.34,7,0,0,Math.PI*2);X.fill();
+  switch(type){
+    case 'house':{
+      const W=32+lv*4,H=22+lv*3;
+      F(cx-W/2,bot-H-14,W,H,'#d8b870');
+      F(cx-W/2+1,bot-H-13,W-2,4,'rgba(255,255,255,0.08)');
+      // plank lines
+      X.strokeStyle='rgba(0,0,0,0.08)';X.lineWidth=1;
+      for(let i=6;i<H;i+=6)L(cx-W/2,bot-H-14+i,cx+W/2,bot-H-14+i,'rgba(0,0,0,0.07)');
+      // door
+      const dw=9,dh=13;F(cx-dw/2,bot-dh-1,dw,dh,'#8a5020');
+      F(cx-dw/2+1,bot-dh+2,dw-2,4,'rgba(0,0,0,0.2)');
+      F(cx+dw/2-3,bot-dh/2-1,2,2,'#c8a040');
+      X.strokeStyle='#1c1008';X.lineWidth=1;X.strokeRect(cx-dw/2,bot-dh-1,dw,dh);
+      // windows
+      win(cx-W/2+4,bot-H-6,8,7);if(lv>=2)win(cx+W/2-12,bot-H-6,8,7);
+      X.strokeStyle='#1c1008';X.lineWidth=1.5;X.strokeRect(cx-W/2,bot-H-14,W,H);
+      // roof
+      X.fillStyle='#a83020';X.beginPath();X.moveTo(cx-W/2-3,bot-H-14);X.lineTo(cx+W/2+3,bot-H-14);X.lineTo(cx,bot-H-14-15-lv*3);X.closePath();X.fill();
+      X.fillStyle='#882010';X.beginPath();X.moveTo(cx,bot-H-14-15-lv*3);X.lineTo(cx+W/2+3,bot-H-14);X.lineTo(cx+W/2-2,bot-H-14);X.closePath();X.fill();
+      // chimney
+      F(cx+W/2-9,bot-H-28,7,16,'#808080');F(cx+W/2-8,bot-H-29,5,4,'#606060');
+      smoke(cx+W/2-5,bot-H-30);
+      break;
+    }
+    case 'farm':{
+      const fw=TW*.88,fh=TH_T*.52;
+      F(cx-fw/2,bot-fh-1,fw,fh,'#7a5820');
+      for(let i=0;i<3+lv;i++){
+        const fy=bot-fh-1+i*(fh/(3+lv));
+        X.strokeStyle='rgba(0,0,0,0.1)';X.lineWidth=1;
+        X.beginPath();X.moveTo(cx-fw/2,fy);X.lineTo(cx+fw/2,fy);X.stroke();
+        if(lv>=2){X.fillStyle='#40b030';for(let j=0;j<4;j++)F(cx-fw/2+j*(fw/4)+6,fy+2,3,5,'#40b030');}
+      }
+      F(cx-7,bot-26,14,12,'#c8a050');
+      X.fillStyle='#802010';X.beginPath();X.moveTo(cx-9,bot-26);X.lineTo(cx+9,bot-26);X.lineTo(cx,bot-38);X.closePath();X.fill();
+      X.strokeStyle='#1c1008';X.lineWidth=1;X.strokeRect(cx-7,bot-26,14,12);
+      break;
+    }
+    case 'well':{
+      X.fillStyle='#707060';X.beginPath();X.ellipse(cx,bot-6,13,7,0,0,Math.PI*2);X.fill();
+      F(cx-11,bot-19,22,13,'#909080');X.strokeStyle='#505040';X.lineWidth=1;X.strokeRect(cx-11,bot-19,22,13);
+      F(cx-12,bot-32,4,20,'#7a5030');F(cx+8,bot-32,4,20,'#7a5030');
+      F(cx-10,bot-34,20,4,'#6a4020');
+      L(cx,bot-30,cx,bot-19,'#503010',1.5);
+      X.fillStyle='#4a6080';X.beginPath();X.ellipse(cx,bot-18,5,3,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#a83020';X.beginPath();X.moveTo(cx-14,bot-32);X.lineTo(cx+14,bot-32);X.lineTo(cx,bot-48);X.closePath();X.fill();
+      break;
+    }
+    case 'church':{
+      const W=34,H=28;
+      F(cx-W/2,bot-H-2,W,H,'#e0e0d8');
+      X.fillStyle='#3a5070';X.beginPath();X.arc(cx,bot-H+4,6,Math.PI,0);X.fillRect(cx-6,bot-H+4,12,8);X.fill();
+      X.fillStyle='rgba(160,210,255,0.55)';X.beginPath();X.arc(cx,bot-H+4,5,Math.PI,0);X.fillRect(cx-5,bot-H+4,10,7);X.fill();
+      win(cx-W/2+4,bot-H+8,8,7);if(lv>=2)win(cx+W/2-12,bot-H+8,8,7);
+      F(cx-5,bot-18,10,18,'#5a3810');
+      X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.arc(cx,bot-18,5,Math.PI,0);X.fill();
+      X.strokeStyle='#1c1008';X.lineWidth=1;X.strokeRect(cx-W/2,bot-H-2,W,H);
+      F(cx-6,bot-H-22,12,22,'#d0d0c8');
+      X.strokeStyle='rgba(0,0,0,0.15)';X.lineWidth=1;X.strokeRect(cx-6,bot-H-22,12,22);
+      X.fillStyle='#a83020';X.beginPath();X.moveTo(cx-7,bot-H-22);X.lineTo(cx+7,bot-H-22);X.lineTo(cx,bot-H-38);X.closePath();X.fill();
+      F(cx-1,bot-H-38,3,9,'#f0d080');F(cx-4,bot-H-32,9,3,'#f0d080');
+      break;
+    }
+    case 'market':{
+      F(cx-17,bot-22,34,22,'#d8a050');
+      for(let i=6;i<22;i+=6){X.strokeStyle='rgba(0,0,0,0.09)';X.lineWidth=1;L(cx-17,bot-22+i,cx+17,bot-22+i,'rgba(0,0,0,0.08)');}
+      X.fillStyle='#c83030';X.beginPath();X.moveTo(cx-19,bot-22);X.lineTo(cx+19,bot-22);X.lineTo(cx+16,bot-16);X.lineTo(cx-16,bot-16);X.closePath();X.fill();
+      for(let i=0;i<4;i++)F(cx-18+i*10,bot-22,4,6,'rgba(255,255,255,0.25)');
+      F(cx-12,bot-36,24,10,'#f0d080');X.strokeStyle='#806020';X.lineWidth=1;X.strokeRect(cx-12,bot-36,24,10);
+      X.fillStyle='#e04030';X.beginPath();X.arc(cx-8,bot-12,3,0,Math.PI*2);X.fill();
+      X.fillStyle='#e0a030';X.beginPath();X.arc(cx,bot-11,4,0,Math.PI*2);X.fill();
+      X.fillStyle='#30a040';X.beginPath();X.arc(cx+8,bot-12,3,0,Math.PI*2);X.fill();
+      break;
+    }
+    case 'logger':{
+      for(let i=0;i<2+lv;i++){
+        F(cx-13,bot-8-i*5,26,5,'#8a5020');
+        X.fillStyle='#6a3010';X.beginPath();X.ellipse(cx-13,bot-6-i*5,3,2,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#6a3010';X.beginPath();X.ellipse(cx+13,bot-6-i*5,3,2,0,0,Math.PI*2);X.fill();
+        L(cx-13,bot-8-i*5+2,cx+13,bot-8-i*5+2,'rgba(0,0,0,0.12)',1);
+      }
+      F(cx+7,bot-30,3,22,'#7a4a10');
+      X.fillStyle='#808080';X.beginPath();X.moveTo(cx+7,bot-30);X.lineTo(cx+17,bot-34);X.lineTo(cx+15,bot-26);X.closePath();X.fill();
+      break;
+    }
+    case 'quarry':{
+      X.fillStyle='#808878';X.beginPath();X.ellipse(cx,bot-11,18,9,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#989e94';X.beginPath();X.ellipse(cx-4,bot-15,12,7,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#b0b4ac';X.beginPath();X.ellipse(cx-7,bot-19,7,5,0,0,Math.PI*2);X.fill();
+      F(cx+9,bot-34,3,22,'#7a4a10');
+      X.fillStyle='#909090';X.beginPath();X.moveTo(cx+6,bot-34);X.lineTo(cx+17,bot-38);X.lineTo(cx+15,bot-30);X.closePath();X.fill();
+      break;
+    }
+    case 'blacksmith':{
+      F(cx-14,bot-26,28,26,'#706050');
+      F(cx-4,bot-42,9,18,'#505050');
+      smoke(cx,bot-44);
+      const fl=Math.sin(Date.now()/200)*12;
+      X.fillStyle=`rgba(255,${130+fl|0},0,0.65)`;X.beginPath();X.ellipse(cx,bot-14,9,5,0,0,Math.PI*2);X.fill();
+      F(cx-7,bot-11,14,4,'#383830');F(cx-4,bot-15,8,5,'#383830');
+      X.strokeStyle='rgba(0,0,0,0.3)';X.lineWidth=1;X.strokeRect(cx-14,bot-26,28,26);
+      break;
+    }
+    case 'mill':{
+      F(cx-9,bot-34,18,34,'#d8c898');
+      for(let i=8;i<34;i+=8){X.strokeStyle='rgba(0,0,0,0.07)';X.lineWidth=1;L(cx-9,bot-34+i,cx+9,bot-34+i,'rgba(0,0,0,0.06)');}
+      X.fillStyle='#a06030';X.beginPath();X.moveTo(cx-11,bot-34);X.lineTo(cx+11,bot-34);X.lineTo(cx,bot-48);X.closePath();X.fill();
+      const a=Date.now()/1200;
+      for(let i=0;i<4;i++){
+        X.save();X.translate(cx,bot-40);X.rotate(a+i*Math.PI/2);
+        F(-2,-20,4,40,'#c8a860');F(-7,-3,18,6,'rgba(200,168,96,0.65)');
+        X.restore();
+      }
+      F(cx-4,bot-10,8,10,'#7a4a10');
+      break;
+    }
+    case 'smelter':{
+      F(cx-13,bot-28,26,28,'#604838');F(cx-9,bot-40,18,14,'#504030');
+      F(cx-7,bot-52,6,16,'#505050');F(cx+3,bot-48,6,13,'#505050');
+      smoke(cx-4,bot-54);smoke(cx+6,bot-50);
+      const fl=Math.sin(Date.now()/200)*14;
+      X.fillStyle=`rgba(255,${138+fl|0},0,0.68)`;X.beginPath();X.ellipse(cx,bot-15,9,6,0,0,Math.PI*2);X.fill();
+      X.fillStyle=`rgba(255,${195+fl|0},50,0.45)`;X.beginPath();X.ellipse(cx,bot-17,5,3,0,0,Math.PI*2);X.fill();
+      break;
+    }
+    case 'coalmine':case 'ironmine':{
+      const col=type==='coalmine'?'#282828':'#6a5858';
+      F(cx-15,bot-26,30,26,'#605040');
+      X.fillStyle=col;X.beginPath();X.arc(cx,bot-16,11,Math.PI,0);X.fillRect(cx-11,bot-16,22,16);X.fill();
+      X.fillStyle='rgba(0,0,0,0.58)';X.beginPath();X.arc(cx,bot-16,9,Math.PI,0);X.fillRect(cx-9,bot-16,18,14);X.fill();
+      F(cx-12,bot-28,3,18,'#7a5030');F(cx+9,bot-28,3,18,'#7a5030');F(cx-12,bot-28,24,3,'#6a4020');
+      break;
+    }
+    default:{
+      F(cx-14,bot-26,28,26,'#d8b870');
+      X.fillStyle='#a03020';X.beginPath();X.moveTo(cx-15,bot-26);X.lineTo(cx+15,bot-26);X.lineTo(cx,bot-42);X.closePath();X.fill();
+      X.font='16px serif';X.textAlign='center';X.fillStyle='#f0c040';X.fillText(BD[type]?.e||'?',cx,bot-10);
+    }
   }
+}
 
-  // Happiness from church
-  const churches = state.buildings.filter(b=>b.type==='church');
-  if (churches.length > 0) state.happiness = Math.min(100, state.happiness + 3);
+// ── PLAYER SPRITE ──
+function drawPlayer(){
+  const px=Math.round(PL.x-camX), py=Math.round(PL.y-camY);
+  const moving=PL.vx!==0||PL.vy!==0, f=PL.frame, dir=PL.dir;
+  X.fillStyle='rgba(0,0,0,0.22)';X.beginPath();X.ellipse(px,py+5,10,4,0,0,Math.PI*2);X.fill();
+  const skin='#f0c090',hair='#3a2010',shirt='#4080e0',pants='#303060',shoe='#201808';
+  const bob=moving&&f%2===0?-1:0;
+  // legs
+  const lg=moving?(f%4<2?3:-3):0;
+  F(px-5+lg,py-5+bob,5,8,pants);F(px-1-lg,py-5+bob,5,8,pants);
+  F(px-5+lg,py+2+bob,5,3,shoe);F(px-1-lg,py+2+bob,5,3,shoe);
+  // body
+  F(px-5,py-16+bob,10,13,shirt);
+  F(px-2,py-16+bob,4,3,'rgba(255,255,255,0.28)');
+  // arms
+  if(dir===1){F(px+4,py-16+bob,4,11,shirt);F(px+4,py-6+bob,4,4,skin);F(px-8,py-14+bob,4,8,shirt);F(px-8,py-7+bob,4,4,skin);}
+  else if(dir===3){F(px-8,py-16+bob,4,11,shirt);F(px-8,py-6+bob,4,4,skin);F(px+4,py-14+bob,4,8,shirt);F(px+4,py-7+bob,4,4,skin);}
+  else{F(px-9,py-16+bob,4,10,shirt);F(px+5,py-16+bob,4,10,shirt);F(px-9,py-7+bob,4,4,skin);F(px+5,py-7+bob,4,4,skin);}
+  // head
+  F(px-5,py-27+bob,10,12,skin);
+  if(dir===2)F(px-5,py-27+bob,10,4,hair);
+  else if(dir===0)F(px-5,py-27+bob,10,5,hair);
+  else{F(px-5,py-27+bob,10,3,hair);F(dir===1?px+3:px-5,py-27+bob,3,7,hair);}
+  if(dir===2){F(px-3,py-22+bob,2,2,'#202020');F(px+1,py-22+bob,2,2,'#202020');}
+  // name tag
+  X.fillStyle='rgba(0,0,0,0.48)';X.fillRect(px-16,py-37+bob,32,9);
+  X.fillStyle='#f0e060';X.font='6px "Press Start 2P"';X.textAlign='center';X.fillText('GOZO',px,py-30+bob);
+}
 
-  // Health from wells
-  const wells = state.buildings.filter(b=>b.type==='well');
-  if (wells.length > 0) state.health = Math.min(100, state.health + 2);
+// ── NPC SPRITE ──
+function drawNPC(npc){
+  const px=Math.round(npc.x-camX),py=Math.round(npc.y-camY);
+  if(px<-60||px>CV.width+60||py<-80||py>CV.height+80)return;
+  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(px,py+5,9,3.5,0,0,Math.PI*2);X.fill();
+  const skin='#f0c090',shirt=npc.color,pants='#404048',shoe='#201808',hair='#1a1010';
+  F(px-4,py-5,5,8,pants);F(px+1,py-5,5,8,pants);
+  F(px-4,py+2,5,3,shoe);F(px+1,py+2,5,3,shoe);
+  F(px-5,py-16,10,13,shirt);
+  F(px-8,py-16,4,10,shirt);F(px+4,py-16,4,10,shirt);
+  F(px-8,py-7,4,4,skin);F(px+4,py-7,4,4,skin);
+  F(px-5,py-27,10,12,skin);F(px-5,py-27,10,4,hair);
+  if(npc.dir===2){F(px-3,py-22,2,2,'#202020');F(px+1,py-22,2,2,'#202020');}
+  X.fillStyle='rgba(0,0,0,0.42)';X.fillRect(px-20,py-40,40,9);
+  X.fillStyle='#e0d0a8';X.font='5px "Press Start 2P"';X.textAlign='center';X.fillText(npc.name.split(' ')[0],px,py-33);
+  // chat bubble when near
+  const dx=PL.x-npc.x,dy=PL.y-npc.y;
+  if(Math.sqrt(dx*dx+dy*dy)<TW*1.8){
+    X.fillStyle='#fffde0';X.beginPath();X.roundRect(px-10,py-48,20,12,3);X.fill();
+    X.font='10px serif';X.textAlign='center';X.fillText('💬',px,py-39);
+  }
+}
 
+// ── INTERACTION ──
+function doInteract(){
+  if(document.getElementById('dialog').classList.contains('show')){closeDialog();return;}
+  if(buildMode){exitBuildMode();notify('Build cancelled.','warn');return;}
+  const pr=TW*1.7;
+  for(const npc of NPCS){
+    const dx=PL.x-npc.x,dy=PL.y-npc.y;
+    if(Math.sqrt(dx*dx+dy*dy)<pr){showNPCDialog(npc);return;}
+  }
+  const pc=Math.floor(PL.x/TW),pr2=Math.floor(PL.y/TH_T);
+  for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+    const r=pr2+dr,c=pc+dc;
+    if(r<0||r>=ROWS||c<0||c>=COLS)continue;
+    if(MAP[r][c].bld){showBldDialog(MAP[r][c].bld,c,r);return;}
+  }
+  notify('Nothing nearby. Walk close to a building or person.','warn');
+}
+
+function showNPCDialog(npc){
+  openDialog(npc.name,npc.msg,[{label:'👋 Goodbye',cls:'ok',fn:closeDialog}]);
+}
+function showBldDialog(bld,c,r){
+  const d=BD[bld.type];
+  const pr=d.pr?'Produces: '+Object.entries(d.pr).map(([k,v])=>`+${v*bld.lv} ${k}`).join(', '):'';
+  const msg=`Level ${bld.lv} / ${d.ml||3}  —  ${d.d}${pr?'\n'+pr:''}`;
+  const btns=[];
+  if(bld.lv<(d.ml||3))btns.push({label:'⬆ Upgrade',cls:'ok',fn:()=>tryUpgrade(bld,c,r)});
+  btns.push({label:'🗑 Demolish',cls:'bad',fn:()=>tryDemolish(bld,c,r)});
+  btns.push({label:'✖ Close',cls:'',fn:closeDialog});
+  openDialog(`${d.e} ${d.n}`,msg,btns);
+}
+function tryUpgrade(bld,c,r){
+  const d=BD[bld.type];
+  if(bld.lv>=(d.ml||3)){notify('Already max level!','warn');closeDialog();return;}
+  const cost={};for(const[k,v]of Object.entries(d.cost))cost[k]=Math.floor(v*1.6*bld.lv);
+  if(!canAff(cost)){notify('Not enough resources!','err');closeDialog();return;}
+  pay(cost);bld.lv++;
+  const gb=G.bld.find(x=>x.id===bld.id);if(gb)gb.lv=bld.lv;
+  notify(`⬆ ${d.n} upgraded to Lv.${bld.lv}!`,'ok');closeDialog();updateUI();
+}
+function tryDemolish(bld,c,r){
+  const d=BD[bld.type];
+  openDialog(`Demolish ${d.n}?`,'50% resources refunded.',[
+    {label:'✓ Yes',cls:'bad',fn:()=>{
+      for(const[k,v]of Object.entries(d.cost))addR(k,Math.floor(v*.5));
+      G.bld=G.bld.filter(x=>x.id!==bld.id);
+      MAP[r][c].bld=null;MAP[r][c].t=1;
+      notify(`🗑 ${d.n} demolished.`,'warn');closeDialog();updateUI();
+    }},
+    {label:'✗ Cancel',cls:'',fn:closeDialog}
+  ]);
+}
+function openDialog(name,msg,btns){
+  document.getElementById('dname').textContent=name;
+  document.getElementById('dmsg').innerHTML=msg.replace(/\n/g,'<br>');
+  const bc=document.getElementById('dbtns');bc.innerHTML='';
+  for(const b of btns){const el=document.createElement('button');el.className='dbtn '+b.cls;el.textContent=b.label;el.onclick=b.fn;bc.appendChild(el);}
+  document.getElementById('dialog').classList.add('show');
+}
+function closeDialog(){document.getElementById('dialog').classList.remove('show');}
+
+// ── BUILD MODE ──
+let buildMode=null,bGhost={c:-1,r:-1};
+function enterBuildMode(t){buildMode=t;closeDialog();notify(`📐 ${BD[t].n} — click tile to place, Esc to cancel`,'ok');}
+function exitBuildMode(){buildMode=null;bGhost={c:-1,r:-1};}
+function tryBuild(c,r){
+  if(!buildMode)return;
+  const d=BD[buildMode];
+  if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
+  if(r<0||r>=ROWS||c<0||c>=COLS)return;
+  const tile=MAP[r][c];
+  if(tile.bld){notify('Already a building here!','err');return;}
+  if(tile.t===2||tile.t===3){notify('Cannot build here!','err');return;}
+  pay(d.cost);pb(buildMode,c,r);upPop();
+  notify(`✅ ${d.n} built!`,'ok');exitBuildMode();updateUI();
+}
+
+// ── RESOURCES ──
+function canAff(cost){return Object.entries(cost||{}).every(([k,v])=>(G.res[k]||0)>=v);}
+function pay(cost){for(const[k,v]of Object.entries(cost||{}))G.res[k]=Math.max(0,(G.res[k]||0)-v);}
+function addR(k,v){G.res[k]=Math.min(999,(G.res[k]||0)+v);}
+function upPop(){G.cap=G.bld.filter(b=>b.type==='house').reduce((s,b)=>s+2*b.lv,0);G.pop=Math.min(G.pop+1,G.cap);}
+
+// ── PRODUCTION ──
+function doProd(){
+  const mul=G.season===3?.65:G.season===1?1.15:1;
+  const wm=G.bld.some(b=>b.type==='mill')?1.5:1;
+  for(const b of G.bld){
+    const d=BD[b.type];if(!d.pr)continue;
+    for(const[r,a]of Object.entries(d.pr)){let fa=a*b.lv*mul;if(r==='food')fa*=wm;addR(r,Math.round(fa));}
+  }
+  const fc=Math.ceil(G.pop*.5);
+  if(G.res.food>=fc)G.res.food-=fc;
+  else G.happy=Math.max(10,G.happy-5);
+  if(G.res.food>15&&G.pop<G.cap&&Math.random()<.2)G.pop++;
   updateUI();
 }
 
-function updatePopulation() {
-  state.popCap = state.buildings.filter(b=>b.type==='house').reduce((s,b)=>s+(2+b.level-1)*b.level,0);
-  state.population = Math.min(state.popCap, state.population + (state.popCap > state.population ? 1 : 0));
-}
-
-// ---- UI UPDATE ----
-function updateUI() {
-  // Resources
-  const resMap = {wood:'res-wood',stone:'res-stone',coal:'res-coal',metal:'res-metal',food:'res-food',gold:'res-gold'};
-  for (const [k,id] of Object.entries(resMap)) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = Math.floor(state.resources[k]||0);
+// ── CLOCK ──
+function tick(){
+  if(G.paused)return;
+  G.mn+=16.67*G.spd/10;
+  if(G.mn>=60){G.mn=0;G.hr++;}
+  if(G.hr>=24){G.hr=0;G.day++;G.ticks++;
+    if(G.ticks%2===0)doProd();
+    if(G.day>90){G.day=1;G.season=(G.season+1)%4;}
+    if(G.day>360){G.day=1;G.yr++;}
   }
-
-  // Population
-  updatePopulation();
-  document.getElementById('pop-count').textContent = state.population;
-  document.getElementById('pop-cap').textContent = state.popCap;
-
-  // Season
-  document.getElementById('season-indicator').textContent = `${state.seasons[state.season]} • Tahun ${state.year}`;
-
-  // Stats
-  document.getElementById('stat-houses').textContent = state.buildings.filter(b=>b.type==='house').length;
-  document.getElementById('stat-farms').textContent = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).length;
-  document.getElementById('stat-loggers').textContent = state.buildings.filter(b=>b.type==='logger').length;
-  document.getElementById('stat-miners').textContent = state.buildings.filter(b=>['quarry','coal_mine','iron_mine'].includes(b.type)).length;
-
-  const foodProd = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).reduce((s,b)=>s+(BUILDING_DEFS[b.type].produces?.food||0)*b.level,0);
-  const foodCons = (state.population * 0.5).toFixed(1);
-  document.getElementById('stat-food-prod').textContent = `+${foodProd}/tick`;
-  document.getElementById('stat-food-cons').textContent = `-${foodCons}/tick`;
-
-  // Progress bars
-  const maxFood = state.storage.food||100;
-  document.getElementById('bar-food').style.width = Math.min(100,(state.resources.food/maxFood)*100)+'%';
-  document.getElementById('bar-happiness').style.width = state.happiness+'%';
-  document.getElementById('bar-health').style.width = state.health+'%';
-
-  // Manage tab
-  document.getElementById('m-pop').textContent = state.population;
-  document.getElementById('m-farmer').textContent = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).length;
-  document.getElementById('m-logger').textContent = state.buildings.filter(b=>['logger','sawmill'].includes(b.type)).length;
-  document.getElementById('m-miner').textContent = state.buildings.filter(b=>['quarry','coal_mine','iron_mine','smelter'].includes(b.type)).length;
-  document.getElementById('m-idle').textContent = Math.max(0, state.population - state.buildings.length);
-  document.getElementById('pr-wood').textContent = '+' + state.buildings.filter(b=>b.type==='logger').reduce((s,b)=>s+4*b.level,0);
-  document.getElementById('pr-stone').textContent = '+' + state.buildings.filter(b=>b.type==='quarry').reduce((s,b)=>s+3*b.level,0);
-  document.getElementById('pr-coal').textContent = '+' + state.buildings.filter(b=>b.type==='coal_mine').reduce((s,b)=>s+2*b.level,0);
-  document.getElementById('pr-metal').textContent = '+' + state.buildings.filter(b=>b.type==='smelter').reduce((s,b)=>s+1*b.level,0);
-  document.getElementById('pr-food').textContent = '+' + foodProd;
-
-  updateMinimap();
-  checkBuildButtonStates();
+  document.getElementById('timelbl').textContent=`Day ${G.day} ${String(G.hr).padStart(2,'0')}:${String(G.mn|0).padStart(2,'0')}`;
+  document.getElementById('season').textContent=G.seasons[G.season]+` Y${G.yr}`;
 }
 
-function checkBuildButtonStates() {
-  for (const [type, def] of Object.entries(BUILDING_DEFS)) {
-    const btn = document.getElementById('bbtn-'+type);
-    if (!btn) continue;
-    btn.classList.toggle('disabled', !canAffordCost(def.cost));
+function updateUI(){
+  document.getElementById('rw').textContent=G.res.wood;
+  document.getElementById('rs').textContent=G.res.stone;
+  document.getElementById('rc').textContent=G.res.coal;
+  document.getElementById('rm').textContent=G.res.metal;
+  document.getElementById('rf').textContent=G.res.food;
+  document.getElementById('rg').textContent=G.res.gold;
+  document.getElementById('pop').textContent=G.pop;
+  document.getElementById('cap').textContent=G.cap;
+}
+
+function notify(msg,t='ok'){
+  const el=document.createElement('div');
+  el.className='ntf '+t;el.textContent=msg;
+  document.getElementById('notifs').appendChild(el);
+  setTimeout(()=>el.remove(),2700);
+}
+
+// ── MINIMAP ──
+const MMC=document.getElementById('mmc'),MX=MMC.getContext('2d');
+function drawMinimap(){
+  const mw=140,mh=110,tw=mw/COLS,th=mh/ROWS;
+  MX.clearRect(0,0,mw,mh);
+  const tc={0:'#3a7020',1:'#b09040',2:'#2858c0',3:'#1a4a10',4:'#585048'};
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const t=MAP[r][c];
+    MX.fillStyle=t.bld?'#e0a030':(tc[t.t]||'#3a7020');
+    MX.fillRect(c*tw,r*th,tw,th);
   }
+  const px=(PL.x/WW)*mw,py=(PL.y/WH)*mh;
+  MX.fillStyle='#fff';MX.beginPath();MX.arc(px,py,2.5,0,Math.PI*2);MX.fill();
+  MX.strokeStyle='rgba(255,240,60,.7)';MX.lineWidth=1;
+  MX.strokeRect((-camX/WW)*mw,(-camY/WH)*mh,(CV.width/WW)*mw,((CV.height-HUD_H-BOT_H)/WH)*mh);
 }
 
-function updateTimeDisplay() {
-  const h = String(state.hour).padStart(2,'0');
-  const m = String(state.minute).padStart(2,'0');
-  document.getElementById('time-display').textContent = `⏱ Hari ${state.day}, ${h}:${m}`;
-}
-
-// ---- UPGRADES ----
-function checkUpgrades() {
-  for (const [id, upg] of Object.entries(UPGRADES)) {
-    if (upg.bought) continue;
-    let met = true;
-    for (const [type, count] of Object.entries(upg.requires||{})) {
-      if (state.buildings.filter(b=>b.type===type).length < count) { met=false; break; }
-    }
-    upg.unlocked = met;
+// ── INPUT ──
+const keys=new Set();
+document.addEventListener('keydown',e=>{
+  keys.add(e.key.toLowerCase());
+  if(e.key==='e'||e.key===' ')doInteract();
+  if(e.key==='b')toggleBuildMenu();
+  if(e.key==='Escape'){
+    if(buildMode){exitBuildMode();notify('Build cancelled.','warn');}
+    else closeDialog();
   }
-  renderUpgradeList();
-}
-
-function renderUpgradeList() {
-  const el = document.getElementById('upgrade-list');
-  if (!el) return;
-  let html = '';
-  for (const [id,upg] of Object.entries(UPGRADES)) {
-    if (upg.bought) {
-      html += `<div class="build-btn" style="opacity:0.5;cursor:default;margin-bottom:6px;"><span class="btn-icon">✅</span><span class="btn-name">${upg.name}</span><span class="btn-cost" style="color:#27ae60">Sudah dibeli</span></div>`;
-      continue;
-    }
-    if (!upg.unlocked) {
-      const req = Object.entries(upg.requires||{}).map(([t,c])=>`${c}x ${BUILDING_DEFS[t]?.name||t}`).join(', ');
-      html += `<div class="build-btn disabled" style="margin-bottom:6px;"><span class="btn-icon">🔒</span><span class="btn-name">${upg.name}</span><span class="btn-cost">Butuh: ${req}</span></div>`;
-      continue;
-    }
-    const costStr = Object.entries(upg.cost).map(([k,v])=>`${v}${k==='gold'?'💰':k==='metal'?'⚙️':k==='wood'?'🪵':k==='stone'?'🪨':'?'}`).join(' ');
-    html += `<div class="build-btn" onclick="buyUpgrade('${id}')" style="margin-bottom:6px;"><span class="btn-icon">🔬</span><span class="btn-name">${upg.name}</span><span class="btn-cost">${costStr}</span><div style="font-size:10px;color:#a08060;margin-top:2px;">${upg.desc}</div></div>`;
-  }
-  el.innerHTML = html;
-}
-
-function buyUpgrade(id) {
-  const upg = UPGRADES[id];
-  if (!upg || upg.bought || !upg.unlocked) return;
-  if (!canAffordCost(upg.cost)) { notify('Resource tidak cukup!','error'); return; }
-  showModal(
-    `Beli: ${upg.name}`,
-    upg.desc,
-    upg.cost,
-    () => {
-      payCost(upg.cost);
-      upg.bought = true;
-      addEvent(`🔬 Teknologi "${upg.name}" ditemukan!`, 'positive');
-      notify(`🎉 ${upg.name} berhasil dibeli!`, 'success');
-      updateUI();
-    }
-  );
-}
-
-// ---- MODAL ----
-function showModal(title, desc, costs, onConfirm) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-desc').textContent = desc;
-  const cl = document.getElementById('modal-costs');
-  cl.innerHTML = '';
-  for (const [k,v] of Object.entries(costs)) {
-    const have = state.resources[k]||0;
-    const ok = have >= v;
-    const icons = {wood:'🪵',stone:'🪨',coal:'⚫',metal:'⚙️',food:'🌾',gold:'💰',iron:'⚙️'};
-    cl.innerHTML += `<div class="modal-cost-item"><span class="cost-label">${icons[k]||''} ${k}</span><span class="cost-val ${ok?'ok':'bad'}">${Math.floor(have)} / ${v} ${ok?'✓':'✗'}</span></div>`;
-  }
-  if (Object.keys(costs).length === 0) cl.innerHTML = '<div class="modal-cost-item"><span class="cost-label">Tidak ada biaya</span></div>';
-  modalCallback = onConfirm;
-  document.getElementById('modal-overlay').classList.add('show');
-}
-function confirmModal() {
-  closeModal();
-  if (modalCallback) modalCallback();
-  modalCallback = null;
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('show');
-}
-
-// ---- NOTIFICATIONS ----
-function notify(msg, type='') {
-  const n = document.getElementById('notifications');
-  const d = document.createElement('div');
-  d.className = 'notif ' + type;
-  d.textContent = msg;
-  n.appendChild(d);
-  setTimeout(() => d.remove(), 3100);
-}
-
-// ---- EVENTS LOG ----
-function addEvent(msg, type='') {
-  const h = String(state.hour).padStart(2,'0');
-  const m = String(state.minute).padStart(2,'0');
-  const log = document.getElementById('events-log');
-  const item = document.createElement('div');
-  item.className = 'event-item ' + type;
-  item.innerHTML = `<div class="ev-time">Hari ${state.day} ${h}:${m}</div><div class="ev-msg">${msg}</div>`;
-  log.insertBefore(item, log.firstChild);
-  if (log.children.length > 20) log.removeChild(log.lastChild);
-  events.push({msg,type,day:state.day});
-}
-
-// ---- MINIMAP ----
-function updateMinimap() {
-  const canvas = document.getElementById('minimap-canvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0,0,140,105);
-  // Draw terrain
-  const tw = 140/GRID_COLS, th = 105/GRID_ROWS;
-  for (let r=0;r<GRID_ROWS;r++) {
-    for (let c=0;c<GRID_COLS;c++) {
-      const tile = state.tiles[`${c}_${r}`];
-      if (!tile) continue;
-      const colors = {grass:'#2a4e1a',rocky:'#5a5a4a',forest:'#1a3a0a',path:'#7a6a4a'};
-      ctx.fillStyle = colors[tile.terrain]||'#2a4e1a';
-      ctx.fillRect(c*tw, r*th, tw, th);
-      if (tile.building) {
-        const b = state.buildings.find(x=>x.id===tile.building);
-        if (b) {
-          const def = BUILDING_DEFS[b.type];
-          const bColors = {house:'#c0402a',farm:'#2a8a2a',logger:'#6a4010',quarry:'#8a8a6a',coal_mine:'#1a1a1a',iron_mine:'#4a4a6a',smelter:'#c06020',well:'#2a6aaa',church:'#aaaaaa',market:'#e8b84b',blacksmith:'#3a3a3a',storage:'#8b5e2a',mill:'#c4933f',orchard:'#4a9a2a',sawmill:'#6b4020',deep_mine:'#4a4aca'};
-          ctx.fillStyle = bColors[b.type]||'#888';
-          ctx.fillRect(c*tw+1, r*th+1, tw-2, th-2);
-        }
-      }
-    }
-  }
-  // Viewport indicator
-  const vp = document.getElementById('minimap-viewport');
-  const worldEl = document.getElementById('world');
-  const container = document.getElementById('world-container');
-  const ww = 2400, wh = 1800;
-  const vw = container.clientWidth / viewScale;
-  const vh = container.clientHeight / viewScale;
-  const vx = -viewX / viewScale;
-  const vy = -viewY / viewScale;
-  vp.style.left = Math.max(0,(vx/ww)*140)+'px';
-  vp.style.top = Math.max(0,(vy/wh)*105)+'px';
-  vp.style.width = Math.min(140,(vw/ww)*140)+'px';
-  vp.style.height = Math.min(105,(vh/wh)*105)+'px';
-}
-
-// ---- VIEW CONTROLS ----
-function applyView() {
-  document.getElementById('world').style.transform = `translate(${viewX}px,${viewY}px) scale(${viewScale})`;
-}
-
-function centerView() {
-  viewX = -(2400/2 - window.innerWidth/2);
-  viewY = -(1800/2 - window.innerHeight/2 + 100);
-  viewScale = 1.0;
-  applyView();
-}
-
-const worldContainer = document.getElementById('world-container');
-worldContainer.addEventListener('mousedown', e => {
-  if (e.target.closest('.tile') || e.target.closest('.building')) return;
-  isDragging = true;
-  dragStart = {x:e.clientX, y:e.clientY};
-  viewStart = {x:viewX, y:viewY};
-  worldContainer.style.cursor = 'grabbing';
+  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault();
 });
-worldContainer.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  viewX = viewStart.x + (e.clientX - dragStart.x);
-  viewY = viewStart.y + (e.clientY - dragStart.y);
-  applyView();
-  updateMinimap();
+document.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+
+CV.addEventListener('click',e=>{
+  if(!buildMode)return;
+  const wx=e.clientX-camX, wy=e.clientY-HUD_H-camY;
+  tryBuild(Math.floor(wx/TW),Math.floor(wy/TH_T));
 });
-worldContainer.addEventListener('mouseup', () => { isDragging=false; worldContainer.style.cursor='default'; });
-worldContainer.addEventListener('wheel', e => {
-  e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  viewScale = Math.max(0.4, Math.min(2.0, viewScale*factor));
-  applyView();
-  updateMinimap();
-}, {passive:false});
+CV.addEventListener('mousemove',e=>{
+  if(!buildMode)return;
+  bGhost={c:Math.floor((e.clientX-camX)/TW),r:Math.floor((e.clientY-HUD_H-camY)/TH_T)};
+});
 
-function setMode(mode) {
-  state.mode = mode;
-  document.getElementById('btn-normal').classList.toggle('active', mode==='normal');
-  document.getElementById('btn-demolish').classList.toggle('active', mode==='demolish');
-  if (mode==='demolish') selectBuild(null);
+// Mobile dpad
+if('ontouchstart' in window)document.getElementById('dpad').style.display='block';
+document.getElementById('dpU').addEventListener('touchstart',e=>{e.preventDefault();keys.add('w');},{passive:false});
+document.getElementById('dpU').addEventListener('touchend',()=>keys.delete('w'));
+document.getElementById('dpD').addEventListener('touchstart',e=>{e.preventDefault();keys.add('s');},{passive:false});
+document.getElementById('dpD').addEventListener('touchend',()=>keys.delete('s'));
+document.getElementById('dpL').addEventListener('touchstart',e=>{e.preventDefault();keys.add('a');},{passive:false});
+document.getElementById('dpL').addEventListener('touchend',()=>keys.delete('a'));
+document.getElementById('dpR').addEventListener('touchstart',e=>{e.preventDefault();keys.add('d');},{passive:false});
+document.getElementById('dpR').addEventListener('touchend',()=>keys.delete('d'));
+document.getElementById('dpE').addEventListener('touchstart',e=>{e.preventDefault();doInteract();},{passive:false});
+
+// ── COLLISION ──
+function solid(wx,wy){
+  const c=Math.floor(wx/TW),r=Math.floor(wy/TH_T);
+  if(c<0||c>=COLS||r<0||r>=ROWS)return true;
+  const t=MAP[r][c];
+  return t.t===2||t.t===3||!!t.bld;
+}
+function movePlayer(){
+  let dx=0,dy=0;
+  if(keys.has('arrowleft')||keys.has('a'))dx=-1;
+  if(keys.has('arrowright')||keys.has('d'))dx=1;
+  if(keys.has('arrowup')||keys.has('w'))dy=-1;
+  if(keys.has('arrowdown')||keys.has('s'))dy=1;
+  if(dx&&dy){dx*=.707;dy*=.707;}
+  const sp=PL.spd,m=11;
+  const nx=PL.x+dx*sp,ny=PL.y+dy*sp;
+  if(!solid(nx-m,PL.y-m)&&!solid(nx+m,PL.y-m)&&!solid(nx-m,PL.y+m)&&!solid(nx+m,PL.y+m))PL.x=nx;
+  if(!solid(PL.x-m,ny-m)&&!solid(PL.x+m,ny-m)&&!solid(PL.x-m,ny+m)&&!solid(PL.x+m,ny+m))PL.y=ny;
+  if(dx<0)PL.dir=3;else if(dx>0)PL.dir=1;
+  if(dy<0)PL.dir=0;else if(dy>0)PL.dir=2;
+  PL.vx=dx;PL.vy=dy;
+  if(dx||dy){PL.ft++;if(PL.ft>8){PL.ft=0;PL.frame++;}}else{PL.frame=0;PL.ft=0;}
 }
 
-function setSpeed(s) {
-  state.speed = s;
-  clearInterval(window._tickInterval);
-  window._tickInterval = setInterval(gameTick, 1000/s);
-  ['sp1','sp2','sp3'].forEach((id,i)=>document.getElementById(id).classList.toggle('active',i+1===s));
+function updateCam(){
+  const vw=CV.width,vh=CV.height-HUD_H-BOT_H;
+  let tx=Math.round(-(PL.x-vw/2)),ty=Math.round(-(PL.y-vh/2));
+  tx=Math.min(0,Math.max(tx,-(WW-vw)));
+  ty=Math.min(0,Math.max(ty,-(WH-vh)));
+  camX+=(tx-camX)*.14;camY+=(ty-camY)*.14;
 }
 
-function togglePause() {
-  state.paused = !state.paused;
-  document.getElementById('btn-pause').textContent = state.paused ? '▶ Lanjut' : '⏸ Jeda';
-  document.getElementById('btn-pause').classList.toggle('active', state.paused);
+// ── RENDER ──
+function render(){
+  const vw=CV.width,vh=CV.height;
+  X.fillStyle='#1a2e10';X.fillRect(0,0,vw,vh);
+  X.save();X.translate(0,HUD_H);
+  const sc=Math.max(0,Math.floor(-camX/TW)-1);
+  const sr=Math.max(0,Math.floor(-camY/TH_T)-1);
+  const ec=Math.min(COLS,sc+Math.ceil(vw/TW)+3);
+  const er=Math.min(ROWS,sr+Math.ceil((vh-HUD_H-BOT_H)/TH_T)+3);
+
+  // Pass 1: tiles
+  for(let r=sr;r<er;r++)for(let c=sc;c<ec;c++)drawTile(c,r,c*TW+camX,r*TH_T+camY);
+
+  // Pass 2: decos + entities per row (depth sort)
+  for(let r=sr;r<er;r++){
+    const ry=r*TH_T+camY;
+    // NPCs in this row
+    for(const npc of NPCS){if(Math.floor(npc.y/TH_T)===r)drawNPC(npc);}
+    // player
+    if(Math.floor(PL.y/TH_T)===r)drawPlayer();
+    // tile decos + buildings
+    for(let c=sc;c<ec;c++){
+      const t=MAP[r][c],sx=c*TW+camX;
+      if(t.t===3&&!t.bld)drawTree(sx,ry,tv(c,r));
+      else if(t.t===4&&!t.bld)drawRock(sx,ry,tv(c,r));
+      if(t.bld)drawBuilding(t.bld.type,t.bld.lv,sx,ry);
+    }
+  }
+
+  // Build ghost
+  if(buildMode&&bGhost.c>=0&&bGhost.r>=0&&bGhost.r<ROWS&&bGhost.c<COLS){
+    const sx=bGhost.c*TW+camX,sy=bGhost.r*TH_T+camY;
+    const ok=MAP[bGhost.r]&&MAP[bGhost.r][bGhost.c]&&MAP[bGhost.r][bGhost.c].t!==2&&MAP[bGhost.r][bGhost.c].t!==3&&!MAP[bGhost.r][bGhost.c].bld;
+    X.fillStyle=ok?'rgba(80,255,80,0.22)':'rgba(255,80,80,0.22)';X.fillRect(sx,sy,TW,TH_T);
+    X.strokeStyle=ok?'rgba(80,255,80,0.8)':'rgba(255,80,80,0.8)';X.lineWidth=2;X.strokeRect(sx,sy,TW,TH_T);
+    if(ok){X.globalAlpha=.45;drawBuilding(buildMode,1,sx,sy);X.globalAlpha=1;}
+  }
+  X.restore();
+  drawMinimap();
 }
 
-function switchTab(tab) {
-  document.getElementById('tab-build').style.display = tab==='build'?'block':'none';
-  document.getElementById('tab-upgrade').style.display = tab==='upgrade'?'block':'none';
-  document.getElementById('tab-manage').style.display = tab==='manage'?'block':'none';
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['build','upgrade','manage'][i]===tab));
-  if (tab==='upgrade') renderUpgradeList();
+// ── BUILD MENU DOM ──
+let bmOpen=false;
+function toggleBuildMenu(){bmOpen=!bmOpen;document.getElementById('bm').style.display=bmOpen?'flex':'none';}
+function createBuildMenu(){
+  const el=document.createElement('div');
+  el.id='bm';
+  el.style.cssText='position:fixed;bottom:38px;left:50%;transform:translateX(-50%);z-index:200;background:rgba(4,2,1,.97);border:3px solid #5a3a1a;width:680px;max-width:96vw;flex-direction:column;display:none;box-shadow:0 -4px 24px rgba(0,0,0,.85);';
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 12px;border-bottom:2px solid #3a2a10;">
+    <span style="font-family:'Press Start 2P';font-size:7px;color:#f0c040;">🏗 BUILD MENU &nbsp;<span style="font-size:6px;color:#806040">(B to toggle)</span></span>
+    <button onclick="toggleBuildMenu()" style="background:#200a04;border:2px solid #802020;color:#c04040;font-family:'Press Start 2P';font-size:6px;cursor:pointer;padding:2px 7px;">✖ CLOSE</button>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:5px;padding:9px 11px;max-height:165px;overflow-y:auto;scrollbar-width:thin;" id="bmbody"></div>`;
+  document.body.appendChild(el);
+  const body=document.getElementById('bmbody');
+  const icons={wood:'🪵',stone:'🪨',coal:'⚫',iron:'⚙',metal:'⚙',food:'🌾',gold:'💰'};
+  for(const[id,d]of Object.entries(BD)){
+    const cost=Object.entries(d.cost).map(([k,v])=>icons[k]+v).join(' ');
+    const btn=document.createElement('div');
+    btn.style.cssText='background:#100a04;border:2px solid #3a2a10;padding:6px 9px;cursor:pointer;text-align:center;min-width:76px;transition:border-color .12s;';
+    btn.innerHTML=`<div style="font-size:18px;margin-bottom:2px">${d.e}</div><div style="font-family:'Press Start 2P';font-size:5px;color:#f0c040;margin-bottom:2px">${d.n}</div><div style="font-size:11px;color:#a08050">${cost}</div>`;
+    btn.onmouseenter=()=>btn.style.borderColor='#f0c040';
+    btn.onmouseleave=()=>btn.style.borderColor='#3a2a10';
+    btn.onclick=()=>{enterBuildMode(id);toggleBuildMenu();};
+    body.appendChild(btn);
+  }
 }
 
-// ---- TOOLTIP ----
-function showTooltip(e, html) {
-  const tt = document.getElementById('tooltip');
-  tt.innerHTML = html;
-  tt.style.display = 'block';
-  tt.style.left = (e.clientX+14)+'px';
-  tt.style.top = (e.clientY-10)+'px';
+// ── BOTTOM BAR DOM ──
+function createBotBar(){
+  const bar=document.createElement('div');
+  bar.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(4,2,1,.93);border-top:2px solid #5a3a1a;height:38px;padding:4px 12px;display:flex;align-items:center;justify-content:center;gap:10px;';
+  const btn=(label,fn,id='')=>{
+    const b=document.createElement('button');
+    b.id=id;b.textContent=label;b.onclick=fn;
+    b.style.cssText='padding:3px 8px;background:#100a04;border:2px solid #3a2a10;color:#a08050;font-family:"Press Start 2P";font-size:6px;cursor:pointer;';
+    b.onmouseenter=()=>b.style.borderColor='#f0c040';
+    b.onmouseleave=()=>b.style.borderColor='#3a2a10';
+    return b;
+  };
+  const tip=document.createElement('span');
+  tip.style.cssText='font-family:"Press Start 2P";font-size:5px;color:#605040;letter-spacing:.5px;';
+  tip.textContent='WASD / ↑↓←→ MOVE  |  E / SPACE INTERACT  |  B BUILD';
+  bar.appendChild(btn('🏗 BUILD (B)',toggleBuildMenu));
+  bar.appendChild(document.createElement('div')).style.cssText='width:2px;height:22px;background:#3a2a10;';
+  bar.appendChild(tip);
+  bar.appendChild(document.createElement('div')).style.cssText='width:2px;height:22px;background:#3a2a10;';
+  const pb=btn('⏸ PAUSE',()=>{G.paused=!G.paused;pb.textContent=G.paused?'▶ PLAY':'⏸ PAUSE';});bar.appendChild(pb);
+  const sp=document.createElement('select');
+  sp.style.cssText='background:#100a04;border:2px solid #3a2a10;color:#a08050;font-family:"Press Start 2P";font-size:6px;padding:2px 4px;cursor:pointer;';
+  sp.innerHTML='<option value="1">1x</option><option value="2">2x</option><option value="3">3x</option>';
+  sp.onchange=()=>G.spd=+sp.value;bar.appendChild(sp);
+  document.body.appendChild(bar);
 }
-function hideTooltip() { document.getElementById('tooltip').style.display='none'; }
 
-// ---- INIT ----
-initTiles();
-centerView();
-updateUI();
-addEvent('🏡 Selamat datang di Desa Gozo!', 'positive');
-notify('👋 Klik tile untuk membangun. Pilih bangunan dari panel kanan!', 'success');
-window._tickInterval = setInterval(gameTick, 1000);
+// ── RESIZE ──
+function resize(){CV.width=window.innerWidth;CV.height=window.innerHeight;}
+resize();window.addEventListener('resize',resize);
 
-// Add spinning animation
-const style = document.createElement('style');
-style.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
-document.head.appendChild(style);
+// ── MAIN LOOP ──
+let lastT=0;
+function loop(now){
+  const dt=Math.min(now-lastT,50);lastT=now;
+  if(!G.paused){movePlayer();updateCam();tick();}
+  render();
+  requestAnimationFrame(loop);
+}
+
+// ── INIT ──
+genMap();upPop();updateUI();
+createBuildMenu();createBotBar();
+// center camera on village center
+const mc2=COLS/2|0,mr2=ROWS/2|0;
+PL.x=(mc2+1)*TW;PL.y=(mr2+1)*TH_T;
+camX=-(PL.x-window.innerWidth/2);
+camY=-(PL.y-(window.innerHeight-HUD_H-BOT_H)/2);
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
