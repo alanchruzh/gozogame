@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gozo Building - Village Manager</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  --earth: #2d1f0e;
+  --soil: #4a2e12;
+  --bark: #6b3f1a;
+  --wood: #8b5e2a;
+  --straw: #c4933f;
+  --gold: #e8b84b;
+  --sky: #4a7fa5;
+  --grass: #3d7a3d;
+  --grass-light: #5aaa5a;
+  --stone: #8a8a8a;
+  --stone-dark: #555;
+  --ui-bg: rgba(20,12,5,0.92);
+  --ui-border: #6b3f1a;
+  --text-gold: #e8b84b;
+  --text-light: #f0dfc0;
+  --text-dim: #a08060;
+  --danger: #c0392b;
+  --green-res: #27ae60;
+  --blue-res: #2980b9;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: #1a0f05;
+  font-family: 'Crimson Text', serif;
+  color: var(--text-light);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  user-select: none;
+}
+
+/* ===== TOP HUD ===== */
+#hud-top {
+  position: fixed; top:0; left:0; right:0; z-index:100;
+  background: linear-gradient(180deg, rgba(10,5,2,0.98) 0%, rgba(20,12,5,0.85) 100%);
+  border-bottom: 2px solid var(--bark);
+  padding: 6px 16px;
+  display: flex; align-items: center; gap: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+}
+
+#game-title {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(232,184,75,0.6);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hud-divider {
+  width: 1px; height: 36px;
+  background: var(--bark);
+  flex-shrink: 0;
+}
+
+#resources-bar {
+  display: flex; gap:4px; flex-wrap:wrap; flex:1;
+}
+
+.res-item {
+  display: flex; align-items: center; gap:5px;
+  background: rgba(40,25,10,0.8);
+  border: 1px solid rgba(107,63,26,0.6);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.res-item .res-icon { font-size: 16px; }
+.res-item .res-name { color: var(--text-dim); font-size: 11px; }
+.res-item .res-val { color: var(--text-gold); font-weight: 600; min-width: 28px; text-align:right; }
+
+#village-info {
+  display: flex; align-items: center; gap: 14px;
+  flex-shrink: 0;
+}
+
+.info-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(40,25,10,0.8);
+  border: 1px solid rgba(107,63,26,0.6);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.info-pill span { color: var(--text-gold); font-family: 'Cinzel', serif; }
+
+#season-indicator {
+  font-size:12px; color: var(--straw);
+  background: rgba(30,18,5,0.9);
+  border: 1px solid var(--bark);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-family: 'Cinzel', serif;
+}
+
+/* ===== GAME WORLD ===== */
+#world-container {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  cursor: default;
+}
+
+#world {
+  position: absolute;
+  width: 2400px; height: 1800px;
+  transform-origin: 0 0;
+  transition: none;
+}
+
+/* Sky */
+#sky-layer {
+  position: absolute; top:0; left:0; right:0;
+  height: 320px;
+  background: linear-gradient(180deg, #1a3a5c 0%, #2d6490 50%, #4a7fa5 100%);
+  overflow: hidden;
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50px;
+  animation: cloudMove linear infinite;
+}
+.cloud::before, .cloud::after {
+  content:''; position:absolute;
+  background: inherit; border-radius: 50%;
+}
+.cloud::before { width:60%; height:150%; top:-40%; left:20%; }
+.cloud::after { width:50%; height:130%; top:-30%; right:15%; }
+
+@keyframes cloudMove { from{transform:translateX(-200px)} to{transform:translateX(2600px)} }
+
+/* Ground base */
+#ground-layer {
+  position: absolute;
+  top: 280px; left:0; right:0; bottom:0;
+  background: linear-gradient(180deg, #2d5a1b 0%, #1e3d0e 30%, #2d1f0e 100%);
+}
+
+/* Isometric grid */
+#grid-layer {
+  position: absolute;
+  top:0; left:0;
+  width: 2400px; height: 1800px;
+  pointer-events: none;
+}
+
+/* ===== TILES ===== */
+.tile {
+  position: absolute;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.tile:hover .tile-ground { filter: brightness(1.3); }
+.tile.selected .tile-ground { filter: brightness(1.5) saturate(1.5); }
+
+.tile-ground {
+  position: relative;
+  transition: filter 0.15s;
+}
+
+/* 2.5D isometric tile shapes */
+.iso-face-top {
+  position: absolute;
+  clip-path: polygon(50% 0%, 100% 25%, 50% 50%, 0% 25%);
+}
+.iso-face-left {
+  position: absolute;
+  clip-path: polygon(0% 25%, 50% 50%, 50% 100%, 0% 75%);
+}
+.iso-face-right {
+  position: absolute;
+  clip-path: polygon(50% 50%, 100% 25%, 100% 75%, 50% 100%);
+}
+
+/* ===== BUILDINGS ===== */
+.building {
+  position: absolute;
+  pointer-events: none;
+  transform-origin: bottom center;
+  transition: transform 0.1s;
+  image-rendering: pixelated;
+  /* text-based 2.5D buildings via CSS shapes */
+}
+
+/* House base */
+.house-sprite {
+  position: relative;
+  width: 80px;
+  filter: drop-shadow(0 8px 15px rgba(0,0,0,0.7));
+}
+.house-walls {
+  width: 70px; height: 40px;
+  background: linear-gradient(135deg, #c4933f, #8b5e2a);
+  border: 2px solid #5a3810;
+  border-radius: 2px;
+  position: relative;
+  margin: 0 auto;
+}
+.house-walls::after { /* door */
+  content:'';
+  position: absolute;
+  bottom:0; left:50%; transform: translateX(-50%);
+  width:14px; height:20px;
+  background: #2d1f0e;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid #1a0f05;
+}
+.house-roof {
+  width:0; height:0;
+  border-left: 40px solid transparent;
+  border-right: 40px solid transparent;
+  border-bottom: 28px solid #8b2020;
+  margin: 0 auto;
+  filter: drop-shadow(0 -2px 4px rgba(0,0,0,0.4));
+}
+.house-chimney {
+  position: absolute;
+  top: -8px; right: 20px;
+  width: 10px; height: 16px;
+  background: #6b6b6b;
+  border: 1px solid #444;
+}
+
+.smoke-puff {
+  position: absolute;
+  width: 8px; height: 8px;
+  background: rgba(200,200,200,0.4);
+  border-radius: 50%;
+  animation: smokeAnim 3s infinite;
+}
+@keyframes smokeAnim {
+  0%{transform:translateY(0) scale(0.5); opacity:0.6;}
+  100%{transform:translateY(-40px) scale(2); opacity:0;}
+}
+
+/* ===== TREES ===== */
+.tree-sprite {
+  position: relative;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
+}
+.tree-trunk {
+  width: 10px; height: 20px;
+  background: linear-gradient(90deg, #5a3810, #8b5e2a);
+  margin: 0 auto;
+  border-radius: 2px;
+}
+.tree-canopy {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+}
+.tree-canopy-1 { bottom: 16px; }
+.tree-canopy-2 { bottom: 26px; }
+.tree-canopy-3 { bottom: 34px; }
+.tree-circle {
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+/* ===== MINE ===== */
+.mine-sprite {
+  position: relative;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.7));
+}
+.mine-entrance {
+  width: 50px; height: 35px;
+  background: #1a1a1a;
+  border: 3px solid #6b6b6b;
+  border-radius: 25px 25px 0 0;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+.mine-entrance::after {
+  content:'⛏';
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  font-size:14px;
+}
+.mine-wall {
+  width: 70px; height: 18px;
+  background: linear-gradient(90deg, #4a3a2a, #6a5a4a, #4a3a2a);
+  border: 2px solid #3a2a1a;
+  margin: 0 auto;
+  border-radius: 2px;
+}
+
+/* ===== FARM ===== */
+.farm-sprite {
+  position: relative;
+}
+.farm-soil {
+  width: 70px; height: 40px;
+  background: repeating-linear-gradient(
+    0deg,
+    #3d2010 0px, #3d2010 4px,
+    #5a3010 4px, #5a3010 8px
+  );
+  border: 2px solid #2d1a0a;
+  border-radius: 3px;
+  position: relative;
+}
+.farm-crops {
+  position: absolute; inset:4px;
+  display: flex; flex-wrap:wrap; gap:2px; align-content:flex-end;
+}
+.crop-item { font-size:10px; }
+
+/* ===== RIGHT SIDEBAR ===== */
+#sidebar {
+  position: fixed; right:0; top:52px; bottom:0; width:280px; z-index:90;
+  background: linear-gradient(180deg, rgba(12,7,3,0.97) 0%, rgba(18,10,4,0.95) 100%);
+  border-left: 2px solid var(--bark);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+#sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--bark);
+}
+
+.tab-btn {
+  flex:1;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  text-align: center;
+}
+.tab-btn.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+  background: rgba(232,184,75,0.05);
+}
+.tab-btn:hover:not(.active) { color: var(--text-light); background: rgba(255,255,255,0.03); }
+
+#sidebar-content {
+  flex:1; overflow-y:auto; padding:12px;
+}
+#sidebar-content::-webkit-scrollbar { width:4px; }
+#sidebar-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+#sidebar-content::-webkit-scrollbar-thumb { background: var(--bark); border-radius:2px; }
+
+/* ===== BUILD MENU ===== */
+.build-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: var(--straw);
+  letter-spacing: 1px;
+  padding: 6px 0 4px;
+  border-bottom: 1px solid rgba(107,63,26,0.4);
+  margin-bottom: 8px;
+  margin-top:10px;
+}
+
+.build-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.build-btn {
+  background: rgba(30,18,8,0.9);
+  border: 1px solid rgba(107,63,26,0.7);
+  border-radius: 6px;
+  padding: 8px 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  color: var(--text-light);
+  position: relative;
+  overflow: hidden;
+}
+.build-btn::before {
+  content:'';
+  position:absolute; inset:0;
+  background: linear-gradient(135deg, rgba(232,184,75,0.05), transparent);
+  opacity:0; transition: opacity 0.2s;
+}
+.build-btn:hover::before { opacity:1; }
+.build-btn:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(232,184,75,0.15); }
+.build-btn:active { transform: translateY(0); }
+.build-btn.active-build { border-color: var(--gold); background: rgba(232,184,75,0.12); box-shadow: 0 0 12px rgba(232,184,75,0.3); }
+.build-btn.disabled { opacity:0.4; cursor: not-allowed; }
+.build-btn.disabled:hover { transform:none; box-shadow:none; }
+
+.build-btn .btn-icon { font-size:20px; display:block; margin-bottom:3px; }
+.build-btn .btn-name { font-size:11px; font-family:'Cinzel',serif; color:var(--text-gold); display:block; }
+.build-btn .btn-cost { font-size:10px; color:var(--text-dim); margin-top:2px; display:block; }
+
+/* ===== INFO PANEL ===== */
+#info-panel {
+  position: fixed; left:0; top:52px; bottom:0; width:260px; z-index:90;
+  background: linear-gradient(180deg, rgba(12,7,3,0.97) 0%, rgba(18,10,4,0.95) 100%);
+  border-right: 2px solid var(--bark);
+  display: flex; flex-direction: column;
+  overflow:hidden;
+}
+
+#village-name-header {
+  padding: 12px;
+  border-bottom: 1px solid rgba(107,63,26,0.5);
+  text-align: center;
+}
+#village-name-header h2 {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+#village-name-header p {
+  font-size: 12px; color: var(--text-dim);
+  margin-top: 2px;
+}
+
+#info-content { flex:1; overflow-y:auto; padding:12px; }
+#info-content::-webkit-scrollbar { width:4px; }
+#info-content::-webkit-scrollbar-thumb { background: var(--bark); }
+
+.stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(107,63,26,0.2);
+  font-size:13px;
+}
+.stat-row .stat-label { color: var(--text-dim); }
+.stat-row .stat-val { color: var(--text-gold); font-weight:600; }
+
+.progress-bar-wrap {
+  margin: 4px 0;
+}
+.progress-label { font-size:11px; color:var(--text-dim); margin-bottom:2px; }
+.progress-bar {
+  height: 6px; background: rgba(255,255,255,0.1);
+  border-radius: 3px; overflow:hidden;
+}
+.progress-fill {
+  height:100%; border-radius:3px;
+  transition: width 0.5s;
+}
+.progress-fill.green { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+.progress-fill.yellow { background: linear-gradient(90deg, #e67e22, #f39c12); }
+.progress-fill.blue { background: linear-gradient(90deg, #2980b9, #3498db); }
+
+/* ===== SELECTED BUILDING INFO ===== */
+#selected-info {
+  padding: 10px 12px;
+  background: rgba(20,12,5,0.95);
+  border-top: 1px solid var(--bark);
+}
+#selected-info h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 13px; color: var(--gold);
+  margin-bottom: 4px;
+}
+#selected-info p { font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+#selected-info .action-row { display:flex; gap:6px; }
+
+.action-btn {
+  flex:1; padding: 6px 4px;
+  background: rgba(107,63,26,0.4);
+  border: 1px solid var(--bark);
+  border-radius: 4px;
+  color: var(--text-light);
+  font-size:11px; font-family:'Cinzel',serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align:center;
+}
+.action-btn:hover { background: rgba(232,184,75,0.15); border-color: var(--gold); color: var(--gold); }
+.action-btn.upgrade { background: rgba(39,174,96,0.2); border-color: #27ae60; }
+.action-btn.upgrade:hover { background: rgba(39,174,96,0.35); }
+.action-btn.destroy { background: rgba(192,57,43,0.2); border-color: var(--danger); }
+.action-btn.destroy:hover { background: rgba(192,57,43,0.35); }
+
+/* ===== NOTIFICATIONS ===== */
+#notifications {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 200;
+  display: flex; flex-direction: column-reverse; align-items:center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.notif {
+  background: rgba(12,7,3,0.95);
+  border: 1px solid var(--bark);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: var(--text-light);
+  animation: notifIn 0.3s ease, notifOut 0.5s ease 2.5s forwards;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  font-family: 'Crimson Text', serif;
+}
+.notif.success { border-color: #27ae60; color: #2ecc71; }
+.notif.warning { border-color: var(--straw); color: var(--gold); }
+.notif.error { border-color: var(--danger); color: #e74c3c; }
+
+@keyframes notifIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes notifOut { from{opacity:1} to{opacity:0;transform:translateY(-10px)} }
+
+/* ===== MINI MAP ===== */
+#minimap {
+  position: fixed; right: 8px; bottom: 8px; z-index:95;
+  width: 140px; height: 105px;
+  background: rgba(10,6,2,0.95);
+  border: 2px solid var(--bark);
+  border-radius: 4px;
+  overflow: hidden;
+}
+#minimap-canvas { width:100%; height:100%; }
+
+#minimap-viewport {
+  position: absolute;
+  border: 1px solid rgba(232,184,75,0.7);
+  pointer-events: none;
+  transition: all 0.1s;
+}
+
+/* ===== BOTTOM TOOLBAR ===== */
+#bottom-bar {
+  position: fixed; bottom:0; left: 260px; right:280px; z-index:90;
+  background: rgba(10,6,2,0.9);
+  border-top: 1px solid var(--bark);
+  padding: 6px 12px;
+  display: flex; align-items:center; justify-content: center; gap: 12px;
+}
+
+.tool-btn {
+  padding: 5px 12px;
+  background: rgba(30,18,8,0.9);
+  border: 1px solid rgba(107,63,26,0.6);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: 'Cinzel', serif;
+  font-size: 11px; cursor:pointer;
+  transition: all 0.2s;
+}
+.tool-btn:hover { border-color: var(--gold); color: var(--text-gold); }
+.tool-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(232,184,75,0.1); }
+
+#time-display {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: var(--straw);
+  padding: 4px 12px;
+  background: rgba(30,18,8,0.9);
+  border: 1px solid rgba(107,63,26,0.5);
+  border-radius: 4px;
+}
+
+/* ===== TOOLTIP ===== */
+#tooltip {
+  position: fixed;
+  background: rgba(8,4,1,0.97);
+  border: 1px solid var(--bark);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-light);
+  z-index: 300;
+  pointer-events: none;
+  max-width: 200px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  display: none;
+}
+#tooltip h4 { font-family:'Cinzel',serif; color:var(--gold); font-size:13px; margin-bottom:4px; }
+#tooltip .tt-desc { color:var(--text-dim); font-size:11px; margin-bottom:4px; }
+#tooltip .tt-stats { color:var(--text-light); font-size:11px; }
+
+/* ===== UPGRADE MODAL ===== */
+#modal-overlay {
+  display:none;
+  position:fixed; inset:0; z-index:500;
+  background: rgba(0,0,0,0.7);
+  align-items:center; justify-content:center;
+}
+#modal-overlay.show { display:flex; }
+
+#modal {
+  background: linear-gradient(135deg, #1a0f05, #100a02);
+  border: 2px solid var(--bark);
+  border-radius: 10px;
+  padding: 24px;
+  min-width: 320px; max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+}
+#modal h2 { font-family:'Cinzel',serif; color:var(--gold); font-size:18px; margin-bottom:8px; }
+#modal p { color:var(--text-dim); font-size:13px; margin-bottom:16px; }
+.modal-cost-list { margin-bottom:16px; }
+.modal-cost-item { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-bottom:1px solid rgba(107,63,26,0.3); }
+.modal-cost-item .cost-label { color:var(--text-dim); }
+.modal-cost-item .cost-val { color:var(--gold); }
+.modal-cost-item .cost-val.ok { color:#27ae60; }
+.modal-cost-item .cost-val.bad { color:#e74c3c; }
+.modal-btns { display:flex; gap:10px; }
+.modal-btn { flex:1; padding:10px; border-radius:6px; border:none; cursor:pointer; font-family:'Cinzel',serif; font-size:13px; transition:all 0.2s; }
+.modal-btn.confirm { background:rgba(39,174,96,0.3); border:1px solid #27ae60; color:#2ecc71; }
+.modal-btn.confirm:hover { background:rgba(39,174,96,0.5); }
+.modal-btn.cancel { background:rgba(192,57,43,0.2); border:1px solid var(--danger); color:#e74c3c; }
+.modal-btn.cancel:hover { background:rgba(192,57,43,0.35); }
+
+/* ===== EVENTS PANEL ===== */
+#events-log {
+  padding: 6px 0;
+}
+.event-item {
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(107,63,26,0.2);
+  font-size:12px;
+  color: var(--text-dim);
+}
+.event-item .ev-time { color:var(--text-dim); font-size:10px; }
+.event-item .ev-msg { color:var(--text-light); }
+.event-item.positive .ev-msg { color: #2ecc71; }
+.event-item.negative .ev-msg { color: #e74c3c; }
+
+/* World click feedback */
+@keyframes placeAnim {
+  0%{transform:scale(0.5) rotate(-10deg); opacity:0;}
+  60%{transform:scale(1.05) rotate(2deg); opacity:1;}
+  100%{transform:scale(1) rotate(0deg); opacity:1;}
+}
+.just-placed { animation: placeAnim 0.3s ease forwards; }
+
+/* Tick flash */
+@keyframes resTick { 0%{opacity:1} 50%{opacity:0.5;transform:scale(1.1)} 100%{opacity:1;transform:scale(1)} }
+.res-tick { animation: resTick 0.4s; }
+</style>
+</head>
+<body>
+
+<!-- TOP HUD -->
+<div id="hud-top">
+  <div id="game-title">⚔ GOZO BUILDING</div>
+  <div class="hud-divider"></div>
+  <div id="resources-bar">
+    <div class="res-item"><span class="res-icon">🪵</span><span class="res-name">Kayu</span><span class="res-val" id="res-wood">50</span></div>
+    <div class="res-item"><span class="res-icon">🪨</span><span class="res-name">Batu</span><span class="res-val" id="res-stone">30</span></div>
+    <div class="res-item"><span class="res-icon">⚫</span><span class="res-name">Batu Bara</span><span class="res-val" id="res-coal">0</span></div>
+    <div class="res-item"><span class="res-icon">⚙️</span><span class="res-name">Logam</span><span class="res-val" id="res-metal">0</span></div>
+    <div class="res-item"><span class="res-icon">🌾</span><span class="res-name">Pangan</span><span class="res-val" id="res-food">20</span></div>
+    <div class="res-item"><span class="res-icon">💰</span><span class="res-name">Gold</span><span class="res-val" id="res-gold">100</span></div>
+  </div>
+  <div class="hud-divider"></div>
+  <div id="village-info">
+    <div class="info-pill">👥 <span id="pop-count">0</span>/<span id="pop-cap">0</span></div>
+    <div id="season-indicator">🌱 Musim Semi • Tahun 1</div>
+  </div>
+</div>
+
+<!-- LEFT PANEL -->
+<div id="info-panel">
+  <div id="village-name-header">
+    <h2>🏡 Desa Gozo</h2>
+    <p>Kepala Desa: <em>Anda</em></p>
+  </div>
+  <div id="info-content">
+    <div class="build-section-title">📊 STATUS DESA</div>
+    <div class="stat-row"><span class="stat-label">Rumah</span><span class="stat-val" id="stat-houses">0</span></div>
+    <div class="stat-row"><span class="stat-label">Ladang</span><span class="stat-val" id="stat-farms">0</span></div>
+    <div class="stat-row"><span class="stat-label">Penebang Kayu</span><span class="stat-val" id="stat-loggers">0</span></div>
+    <div class="stat-row"><span class="stat-label">Penambang</span><span class="stat-val" id="stat-miners">0</span></div>
+    <div class="stat-row"><span class="stat-label">Produksi Makan</span><span class="stat-val" id="stat-food-prod">+0/tick</span></div>
+    <div class="stat-row"><span class="stat-label">Konsumsi Makan</span><span class="stat-val" id="stat-food-cons">-0/tick</span></div>
+
+    <div class="build-section-title" style="margin-top:14px">📈 KEBUTUHAN</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">🌾 Pangan</div>
+      <div class="progress-bar"><div class="progress-fill green" id="bar-food" style="width:60%"></div></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">😊 Kebahagiaan</div>
+      <div class="progress-bar"><div class="progress-fill yellow" id="bar-happiness" style="width:80%"></div></div>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-label">🏥 Kesehatan</div>
+      <div class="progress-bar"><div class="progress-fill blue" id="bar-health" style="width:70%"></div></div>
+    </div>
+
+    <div class="build-section-title" style="margin-top:14px">📜 LOG KEJADIAN</div>
+    <div id="events-log">
+      <div class="event-item positive"><div class="ev-time">00:00</div><div class="ev-msg">⚡ Desa Gozo berdiri! Selamat menjadi kepala desa!</div></div>
+    </div>
+  </div>
+  <div id="selected-info" style="display:none">
+    <h3 id="sel-name">Bangunan</h3>
+    <p id="sel-desc">Deskripsi bangunan.</p>
+    <div class="action-row">
+      <button class="action-btn upgrade" id="btn-upgrade" onclick="upgradeSelected()">⬆ Upgrade</button>
+      <button class="action-btn" id="btn-collect" onclick="collectSelected()">📦 Kumpul</button>
+      <button class="action-btn destroy" onclick="destroySelected()">🗑 Hancur</button>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL - BUILD MENU -->
+<div id="sidebar">
+  <div id="sidebar-tabs">
+    <button class="tab-btn active" onclick="switchTab('build')">🏗 Bangun</button>
+    <button class="tab-btn" onclick="switchTab('upgrade')">⬆ Upgrade</button>
+    <button class="tab-btn" onclick="switchTab('manage')">👥 Kelola</button>
+  </div>
+  <div id="sidebar-content">
+    <!-- Build Tab -->
+    <div id="tab-build">
+      <div class="build-section-title">🏠 PERUMAHAN</div>
+      <div class="build-grid">
+        <button class="build-btn" onclick="selectBuild('house')" id="bbtn-house">
+          <span class="btn-icon">🏠</span>
+          <span class="btn-name">Rumah</span>
+          <span class="btn-cost">🪵15 🪨5</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('storage')" id="bbtn-storage">
+          <span class="btn-icon">🏚</span>
+          <span class="btn-name">Gudang</span>
+          <span class="btn-cost">🪵20 🪨10</span>
+        </button>
+      </div>
+
+      <div class="build-section-title">🌿 PERTANIAN</div>
+      <div class="build-grid">
+        <button class="build-btn" onclick="selectBuild('farm')" id="bbtn-farm">
+          <span class="btn-icon">🌾</span>
+          <span class="btn-name">Ladang</span>
+          <span class="btn-cost">🪵10</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('orchard')" id="bbtn-orchard">
+          <span class="btn-icon">🍎</span>
+          <span class="btn-name">Kebun</span>
+          <span class="btn-cost">🪵8 🌾5</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('mill')" id="bbtn-mill">
+          <span class="btn-icon">⚙️</span>
+          <span class="btn-name">Penggilingan</span>
+          <span class="btn-cost">🪵25 🪨15</span>
+        </button>
+      </div>
+
+      <div class="build-section-title">🌲 KEHUTANAN</div>
+      <div class="build-grid">
+        <button class="build-btn" onclick="selectBuild('logger')" id="bbtn-logger">
+          <span class="btn-icon">🪓</span>
+          <span class="btn-name">Penebang</span>
+          <span class="btn-cost">🪵12 🪨5</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('sawmill')" id="bbtn-sawmill">
+          <span class="btn-icon">🪚</span>
+          <span class="btn-name">Gergaji</span>
+          <span class="btn-cost">🪵20 🪨12</span>
+        </button>
+      </div>
+
+      <div class="build-section-title">⛏ PERTAMBANGAN</div>
+      <div class="build-grid">
+        <button class="build-btn" onclick="selectBuild('quarry')" id="bbtn-quarry">
+          <span class="btn-icon">🪨</span>
+          <span class="btn-name">Tambang Batu</span>
+          <span class="btn-cost">🪵15</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('coal_mine')" id="bbtn-coal_mine">
+          <span class="btn-icon">⚫</span>
+          <span class="btn-name">Tambang Bara</span>
+          <span class="btn-cost">🪵20 🪨10</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('iron_mine')" id="bbtn-iron_mine">
+          <span class="btn-icon">⚙️</span>
+          <span class="btn-name">Tambang Besi</span>
+          <span class="btn-cost">🪵25 🪨20</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('smelter')" id="bbtn-smelter">
+          <span class="btn-icon">🔥</span>
+          <span class="btn-name">Peleburan</span>
+          <span class="btn-cost">🪵30 🪨25 ⚫5</span>
+        </button>
+      </div>
+
+      <div class="build-section-title">🏛 FASILITAS UMUM</div>
+      <div class="build-grid">
+        <button class="build-btn" onclick="selectBuild('well')" id="bbtn-well">
+          <span class="btn-icon">💧</span>
+          <span class="btn-name">Sumur</span>
+          <span class="btn-cost">🪵8 🪨10</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('church')" id="bbtn-church">
+          <span class="btn-icon">⛪</span>
+          <span class="btn-name">Gereja</span>
+          <span class="btn-cost">🪵40 🪨30</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('market')" id="bbtn-market">
+          <span class="btn-icon">🏪</span>
+          <span class="btn-name">Pasar</span>
+          <span class="btn-cost">🪵30 💰20</span>
+        </button>
+        <button class="build-btn" onclick="selectBuild('blacksmith')" id="bbtn-blacksmith">
+          <span class="btn-icon">🔨</span>
+          <span class="btn-name">Pandai Besi</span>
+          <span class="btn-cost">🪵20 ⚙️5</span>
+        </button>
+      </div>
+
+      <div style="padding: 8px 0; border-top: 1px solid rgba(107,63,26,0.4); margin-top:8px;">
+        <button class="build-btn" style="width:100%; background:rgba(192,57,43,0.15); border-color:rgba(192,57,43,0.5);" onclick="selectBuild(null)">
+          <span style="font-size:12px; font-family:'Cinzel',serif; color:#e74c3c;">✖ Batal Membangun</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Upgrade Tab -->
+    <div id="tab-upgrade" style="display:none">
+      <div class="build-section-title">🔧 TEKNOLOGI</div>
+      <div id="upgrade-list"></div>
+    </div>
+
+    <!-- Manage Tab -->
+    <div id="tab-manage" style="display:none">
+      <div class="build-section-title">👥 PENDUDUK</div>
+      <div id="manage-content">
+        <div class="stat-row"><span class="stat-label">Total Warga</span><span class="stat-val" id="m-pop">0</span></div>
+        <div class="stat-row"><span class="stat-label">Petani</span><span class="stat-val" id="m-farmer">0</span></div>
+        <div class="stat-row"><span class="stat-label">Penebang</span><span class="stat-val" id="m-logger">0</span></div>
+        <div class="stat-row"><span class="stat-label">Penambang</span><span class="stat-val" id="m-miner">0</span></div>
+        <div class="stat-row"><span class="stat-label">Idle</span><span class="stat-val" id="m-idle">0</span></div>
+        <div class="build-section-title" style="margin-top:12px">⏱ PRODUKSI PER TICK</div>
+        <div class="stat-row"><span class="stat-label">+Kayu</span><span class="stat-val" id="pr-wood">0</span></div>
+        <div class="stat-row"><span class="stat-label">+Batu</span><span class="stat-val" id="pr-stone">0</span></div>
+        <div class="stat-row"><span class="stat-label">+Batu Bara</span><span class="stat-val" id="pr-coal">0</span></div>
+        <div class="stat-row"><span class="stat-label">+Logam</span><span class="stat-val" id="pr-metal">0</span></div>
+        <div class="stat-row"><span class="stat-label">+Pangan</span><span class="stat-val" id="pr-food">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME WORLD -->
+<div id="world-container">
+  <div id="world">
+    <div id="sky-layer">
+      <div class="cloud" style="width:120px;height:35px;top:40px;left:-200px;animation-duration:80s;opacity:0.12"></div>
+      <div class="cloud" style="width:80px;height:25px;top:80px;left:400px;animation-duration:110s;opacity:0.08"></div>
+      <div class="cloud" style="width:150px;height:40px;top:30px;left:900px;animation-duration:95s;opacity:0.10"></div>
+      <div class="cloud" style="width:100px;height:30px;top:100px;left:1500px;animation-duration:75s;opacity:0.09"></div>
+    </div>
+    <div id="ground-layer"></div>
+    <div id="grid-layer"></div>
+    <div id="buildings-layer"></div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <button class="tool-btn" onclick="centerView()">🎯 Tengah</button>
+  <button class="tool-btn active" id="btn-normal" onclick="setMode('normal')">👆 Normal</button>
+  <button class="tool-btn" id="btn-demolish" onclick="setMode('demolish')">🗑 Hancur</button>
+  <div id="time-display">⏱ Hari 1, 06:00</div>
+  <button class="tool-btn" id="btn-pause" onclick="togglePause()">⏸ Jeda</button>
+  <button class="tool-btn" onclick="setSpeed(1)" id="sp1">1x</button>
+  <button class="tool-btn" onclick="setSpeed(2)" id="sp2">2x</button>
+  <button class="tool-btn" onclick="setSpeed(3)" id="sp3">3x</button>
+</div>
+
+<!-- MINIMAP -->
+<div id="minimap">
+  <canvas id="minimap-canvas" width="140" height="105"></canvas>
+  <div id="minimap-viewport"></div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip"></div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2 id="modal-title">Upgrade Bangunan</h2>
+    <p id="modal-desc">Deskripsi upgrade</p>
+    <div class="modal-cost-list" id="modal-costs"></div>
+    <div class="modal-btns">
+      <button class="modal-btn confirm" onclick="confirmModal()">✓ Konfirmasi</button>
+      <button class="modal-btn cancel" onclick="closeModal()">✗ Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="notifications"></div>
+
+<script>
+// ============================================================
+//  GOZO BUILDING - GAME ENGINE
+// ============================================================
+
+const TILE_W = 96, TILE_H = 48;
+const GRID_COLS = 22, GRID_ROWS = 18;
+
+// ---- BUILDING DEFINITIONS ----
+const BUILDING_DEFS = {
+  house:      { name:'Rumah', icon:'🏠', desc:'Tempat tinggal warga, +2 kapasitas populasi.', cost:{wood:15,stone:5}, produces:{}, provides:{pop:2}, category:'housing', maxLevel:3 },
+  storage:    { name:'Gudang', icon:'🏚', desc:'Menambah kapasitas penyimpanan semua sumber daya.', cost:{wood:20,stone:10}, provides:{storage:100}, category:'housing', maxLevel:2 },
+  farm:       { name:'Ladang', icon:'🌾', desc:'Menghasilkan pangan. +3 pangan/tick.', cost:{wood:10}, produces:{food:3}, category:'farm', maxLevel:3 },
+  orchard:    { name:'Kebun Buah', icon:'🍎', desc:'Menghasilkan pangan & kebahagiaan.', cost:{wood:8,food:5}, produces:{food:2}, provides:{happiness:5}, category:'farm', maxLevel:2 },
+  mill:       { name:'Penggilingan', icon:'⚙️', desc:'Meningkatkan efisiensi pertanian +50%.', cost:{wood:25,stone:15}, provides:{farmBonus:1.5}, category:'farm', maxLevel:2 },
+  logger:     { name:'Penebang Kayu', icon:'🪓', desc:'Menebang pohon, +4 kayu/tick.', cost:{wood:12,stone:5}, produces:{wood:4}, category:'forest', maxLevel:3 },
+  sawmill:    { name:'Gergaji Kayu', icon:'🪚', desc:'Meningkatkan produksi kayu +50%.', cost:{wood:20,stone:12}, provides:{woodBonus:1.5}, category:'forest', maxLevel:2 },
+  quarry:     { name:'Tambang Batu', icon:'🪨', desc:'Menambang batu. +3 batu/tick.', cost:{wood:15}, produces:{stone:3}, category:'mining', maxLevel:3 },
+  coal_mine:  { name:'Tambang Batu Bara', icon:'⚫', desc:'Menambang batu bara. +2 batu bara/tick.', cost:{wood:20,stone:10}, produces:{coal:2}, category:'mining', maxLevel:3 },
+  iron_mine:  { name:'Tambang Besi', icon:'⚙️', desc:'Menambang besi kasar. +2 besi/tick.', cost:{wood:25,stone:20}, produces:{iron:2}, category:'mining', maxLevel:3 },
+  smelter:    { name:'Peleburan Logam', icon:'🔥', desc:'Memproses besi menjadi logam. +1 logam/tick.', cost:{wood:30,stone:25,coal:5}, produces:{metal:1}, consumes:{iron:1,coal:1}, category:'mining', maxLevel:2 },
+  well:       { name:'Sumur', icon:'💧', desc:'Menyediakan air bersih, meningkatkan kesehatan.', cost:{wood:8,stone:10}, provides:{health:10}, category:'public', maxLevel:2 },
+  church:     { name:'Gereja', icon:'⛪', desc:'Meningkatkan kebahagiaan warga +20.', cost:{wood:40,stone:30}, provides:{happiness:20}, category:'public', maxLevel:2 },
+  market:     { name:'Pasar', icon:'🏪', desc:'Menghasilkan gold dan memungkinkan perdagangan.', cost:{wood:30,gold:20}, produces:{gold:2}, category:'public', maxLevel:3 },
+  blacksmith: { name:'Pandai Besi', icon:'🔨', desc:'Membuat peralatan dari logam untuk upgrade.', cost:{wood:20,metal:5}, provides:{tools:true}, category:'public', maxLevel:2 },
+  deep_mine:  { name:'Deep Mining', icon:'⛏', desc:'Tambang dalam, produksi 3x lipat!', cost:{wood:50,stone:40,metal:10}, produces:{coal:6,iron:4}, category:'mining', maxLevel:1 },
+};
+
+// ---- GAME STATE ----
+let state = {
+  resources: { wood:50, stone:30, coal:0, iron:0, metal:0, food:20, gold:100 },
+  storage: { wood:200, stone:200, coal:100, iron:100, metal:50, food:100, gold:999 },
+  population: 0, popCap: 0,
+  happiness: 80, health: 70,
+  day: 1, hour: 6, minute: 0,
+  year: 1, season: 0, // 0=spring,1=summer,2=autumn,3=winter
+  seasons: ['🌱 Musim Semi','☀️ Musim Panas','🍂 Musim Gugur','❄️ Musim Dingin'],
+  paused: false, speed: 1,
+  selectedBuildType: null,
+  selectedBuilding: null,
+  mode: 'normal',
+  buildings: [],
+  tiles: {},
+  nextBuildId: 1,
+  ticks: 0,
+};
+
+// upgrades
+const UPGRADES = {
+  deep_mining: { name:'Deep Mining Tech', desc:'Buka tambang dalam, produksi 3x lipat!', cost:{metal:5,gold:50}, requires:{iron_mine:1}, unlocked:false, bought:false },
+  irrigation:  { name:'Irigasi', desc:'Meningkatkan produksi pertanian +100%.', cost:{wood:20,stone:30,gold:40}, requires:{farm:2}, unlocked:false, bought:false },
+  steel_tools: { name:'Alat Baja', desc:'Semua produksi +25%.', cost:{metal:10,gold:80}, requires:{blacksmith:1}, unlocked:false, bought:false },
+  road_paving: { name:'Jalan Berbatu', desc:'Meningkatkan kebahagiaan +10.', cost:{stone:50,gold:30}, requires:{house:3}, unlocked:false, bought:false },
+};
+
+// view
+let viewX = 300, viewY = 80, viewScale = 1.0;
+let isDragging = false, dragStart = {x:0,y:0}, viewStart = {x:0,y:0};
+let modalCallback = null;
+let events = [];
+
+// ---- TILES SETUP ----
+function initTiles() {
+  const gl = document.getElementById('grid-layer');
+  const bl = document.getElementById('buildings-layer');
+  gl.innerHTML = ''; bl.innerHTML = '';
+  for (let r = 0; r < GRID_ROWS; r++) {
+    for (let c = 0; c < GRID_COLS; c++) {
+      const {sx, sy} = isoProject(c, r);
+      // Ground tile
+      const tileDiv = document.createElement('div');
+      tileDiv.className = 'tile';
+      tileDiv.style.cssText = `left:${sx}px;top:${sy}px;width:${TILE_W}px;height:${TILE_H}px;`;
+      tileDiv.dataset.col = c; tileDiv.dataset.row = r;
+      const key = `${c}_${r}`;
+      // Varied terrain
+      const terrainRoll = Math.random();
+      let terrain = 'grass';
+      if (r < 3) terrain = 'path';
+      else if (terrainRoll > 0.88) terrain = 'rocky';
+      else if (terrainRoll > 0.75) terrain = 'forest';
+      state.tiles[key] = { terrain, occupied: false, building: null };
+      tileDiv.innerHTML = getTileHTML(terrain);
+      tileDiv.addEventListener('click', () => onTileClick(c, r));
+      tileDiv.addEventListener('mousemove', (e) => onTileHover(e, c, r));
+      tileDiv.addEventListener('mouseleave', hideTooltip);
+      gl.appendChild(tileDiv);
+    }
+  }
+  // Place some trees on forest tiles
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (tile.terrain === 'forest') {
+      const [c,r] = key.split('_').map(Number);
+      placeDecoration(c, r, 'tree');
+    }
+    if (tile.terrain === 'rocky') {
+      const [c,r] = key.split('_').map(Number);
+      placeDecoration(c, r, 'rock');
+    }
+  }
+}
+
+function getTileHTML(terrain) {
+  const colors = {
+    grass: ['#3a6e2a','#2a4e1c','#1e3d12'],
+    rocky: ['#6a6a5a','#5a5a4a','#4a4a3a'],
+    forest: ['#2a5a1a','#1e4210','#16300a'],
+    path:   ['#8a7a5a','#7a6a4a','#6a5a3a'],
+  };
+  const [top, left, right] = colors[terrain] || colors.grass;
+  return `<svg width="${TILE_W}" height="${TILE_H}" viewBox="0 0 96 48">
+    <polygon points="48,0 96,24 48,48 0,24" fill="${top}"/>
+    <polygon points="0,24 48,48 48,72 0,48" fill="${left}"/>
+    <polygon points="96,24 48,48 48,72 96,48" fill="${right}"/>
+    <polygon points="48,0 96,24 48,48 0,24" fill="rgba(255,255,255,0.03)"/>
+  </svg>`;
+}
+
+function placeDecoration(c, r, type) {
+  const {sx, sy} = isoProject(c, r);
+  const bl = document.getElementById('buildings-layer');
+  const d = document.createElement('div');
+  d.style.cssText = `position:absolute;left:${sx+20}px;top:${sy-30}px;pointer-events:none;`;
+  if (type === 'tree') {
+    const h = 32 + Math.floor(Math.random()*16);
+    const g = Math.floor(Math.random()*40+70);
+    d.innerHTML = `<div class="tree-sprite">
+      <div class="tree-trunk" style="height:${Math.floor(h*0.4)}px;margin-top:${h*0.6}px;"></div>
+      <div style="position:absolute;top:0;left:50%;transform:translateX(-50%)">
+        <div style="width:${h*0.6}px;height:${h*0.6}px;background:rgb(30,${g+30},20);border-radius:50%;margin:0 auto;opacity:0.95;"></div>
+        <div style="width:${h*0.5}px;height:${h*0.5}px;background:rgb(40,${g+40},30);border-radius:50%;margin:-${h*0.15}px auto 0;"></div>
+      </div>
+    </div>`;
+  } else if (type === 'rock') {
+    d.innerHTML = `<div style="width:28px;height:16px;background:linear-gradient(135deg,#7a7a7a,#4a4a4a);border-radius:6px 8px 4px 6px;box-shadow:2px 3px 6px rgba(0,0,0,0.5);"></div>`;
+  }
+  bl.appendChild(d);
+}
+
+function isoProject(col, row) {
+  const sx = (col - row) * (TILE_W / 2) + (GRID_COLS * TILE_W / 2);
+  const sy = (col + row) * (TILE_H / 2) + 280;
+  return { sx, sy };
+}
+
+// ---- TILE CLICK ----
+function onTileClick(c, r) {
+  const key = `${c}_${r}`;
+  const tile = state.tiles[key];
+  if (!tile) return;
+
+  if (state.mode === 'demolish') {
+    if (tile.building) {
+      demolishBuilding(tile.building);
+      return;
+    }
+  }
+
+  if (state.selectedBuildType && !tile.occupied) {
+    tryBuild(state.selectedBuildType, c, r);
+    return;
+  }
+  if (tile.building) {
+    selectBuilding(tile.building);
+  } else {
+    deselectBuilding();
+  }
+}
+
+function onTileHover(e, c, r) {
+  const key = `${c}_${r}`;
+  const tile = state.tiles[key];
+  if (!tile) return;
+  if (tile.building) {
+    const b = state.buildings.find(b=>b.id===tile.building);
+    if (b) {
+      const def = BUILDING_DEFS[b.type];
+      showTooltip(e, `<h4>${def.icon} ${def.name} (Lv.${b.level})</h4><div class="tt-desc">${def.desc}</div>`);
+      return;
+    }
+  }
+  if (state.selectedBuildType) {
+    const def = BUILDING_DEFS[state.selectedBuildType];
+    const canAfford = canAffordCost(def.cost);
+    const status = tile.occupied ? '❌ Terisi' : canAfford ? '✅ Bisa dibangun' : '❌ Resource tidak cukup';
+    showTooltip(e, `<h4>${def.icon} ${def.name}</h4><div class="tt-desc">${status}</div>`);
+  } else {
+    hideTooltip();
+  }
+}
+
+// ---- BUILD ----
+function selectBuild(type) {
+  state.selectedBuildType = type;
+  document.querySelectorAll('.build-btn').forEach(b => b.classList.remove('active-build'));
+  if (type) document.getElementById('bbtn-'+type)?.classList.add('active-build');
+}
+
+function canAffordCost(cost) {
+  for (const [res, amt] of Object.entries(cost||{})) {
+    const rKey = res==='wood'?'wood':res==='stone'?'stone':res==='coal'?'coal':res==='metal'?'metal':res==='food'?'food':res==='gold'?'gold':res==='iron'?'iron':null;
+    if (rKey && (state.resources[rKey]||0) < amt) return false;
+  }
+  return true;
+}
+
+function payCost(cost) {
+  for (const [res, amt] of Object.entries(cost||{})) {
+    const rKey = res==='wood'?'wood':res==='stone'?'stone':res==='coal'?'coal':res==='metal'?'metal':res==='food'?'food':res==='gold'?'gold':res==='iron'?'iron':null;
+    if (rKey) state.resources[rKey] = Math.max(0, (state.resources[rKey]||0) - amt);
+  }
+}
+
+function tryBuild(type, c, r) {
+  const def = BUILDING_DEFS[type];
+  if (!def) return;
+  if (!canAffordCost(def.cost)) { notify('Resource tidak cukup!','error'); return; }
+  payCost(def.cost);
+  const id = state.nextBuildId++;
+  const building = { id, type, level:1, col:c, row:r };
+  state.buildings.push(building);
+  state.tiles[`${c}_${r}`].occupied = true;
+  state.tiles[`${c}_${r}`].building = id;
+  renderBuilding(building);
+  updatePopulation();
+  addEvent(`🔨 ${def.name} dibangun di (${c},${r})`, 'positive');
+  notify(`✅ ${def.name} berhasil dibangun!`, 'success');
+  updateUI();
+}
+
+function renderBuilding(b) {
+  const def = BUILDING_DEFS[b.type];
+  const {sx, sy} = isoProject(b.col, b.row);
+  const bl = document.getElementById('buildings-layer');
+  const old = document.getElementById('building-'+b.id);
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.id = 'building-'+b.id;
+  el.className = 'building just-placed';
+  el.style.cssText = `position:absolute;left:${sx+8}px;top:${sy-50}px;cursor:pointer;z-index:${b.row*10+b.col};`;
+  el.innerHTML = getBuildingSprite(b.type, b.level);
+  el.addEventListener('click', () => selectBuilding(b.id));
+  bl.appendChild(el);
+  setTimeout(()=>el.classList.remove('just-placed'), 400);
+}
+
+function getBuildingSprite(type, level) {
+  const def = BUILDING_DEFS[type];
+  const lCol = ['','#8b2020','#a03030','#c05050'][level]||'#8b2020';
+  const wCol = ['','#c4933f','#d4a34f','#e4b35f'][level]||'#c4933f';
+  
+  const sprites = {
+    house: `<div style="position:relative;width:76px;filter:drop-shadow(0 8px 12px rgba(0,0,0,0.7))">
+      ${level>=2?`<div style="position:absolute;top:-12px;right:14px;width:10px;height:20px;background:#6b6b6b;border:1px solid #444;z-index:2"></div>
+      <div class="smoke-puff" style="top:-30px;right:16px"></div>`:''}
+      <div style="width:0;height:0;border-left:38px solid transparent;border-right:38px solid transparent;border-bottom:${22+level*3}px solid ${lCol};margin:0 auto;"></div>
+      <div style="width:${60+level*4}px;height:${30+level*5}px;background:linear-gradient(135deg,${wCol},${wCol.replace('4','2')});border:2px solid #5a3810;border-radius:2px;margin:0 auto;position:relative;">
+        <div style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:12px;height:18px;background:#2d1f0e;border-radius:5px 5px 0 0;"></div>
+        ${level>=2?`<div style="position:absolute;top:5px;left:6px;width:8px;height:8px;background:#5aa5ff;border:1px solid #2d1f0e;border-radius:1px;"></div>
+        <div style="position:absolute;top:5px;right:6px;width:8px;height:8px;background:#5aa5ff;border:1px solid #2d1f0e;border-radius:1px;"></div>`:''}
+      </div>
+    </div>`,
+    farm: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));width:74px;">
+      <div style="width:70px;height:${35+level*5}px;background:repeating-linear-gradient(0deg,#3d2010 0px,#3d2010 4px,#5a3010 4px,#5a3010 8px);border:2px solid #2d1a0a;border-radius:3px;position:relative;">
+        <div style="position:absolute;inset:4px;display:flex;flex-wrap:wrap;gap:2px;align-content:flex-end;">
+          ${'🌿'.repeat(level*4)}${'🌾'.repeat(level*2)}
+        </div>
+      </div>
+    </div>`,
+    logger: `<div style="filter:drop-shadow(0 5px 10px rgba(0,0,0,0.6));width:60px;text-align:center;">
+      <div style="font-size:28px;text-align:center;">🪓</div>
+      <div style="width:50px;height:20px;background:linear-gradient(90deg,#5a3810,#8b5e2a);border:1px solid #3a2010;border-radius:3px;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f0dfc0;">⛺ Camp</div>
+    </div>`,
+    quarry: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
+      <div style="font-size:24px;text-align:center;">⛏</div>
+      <div style="width:70px;height:22px;background:linear-gradient(90deg,#6a5a4a,#8a7a6a,#6a5a4a);border:2px solid #4a3a2a;display:flex;align-items:center;justify-content:center;font-size:11px;color:#ddd;">Tambang Batu</div>
+    </div>`,
+    coal_mine: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
+      <div style="width:50px;height:34px;background:#1a1a1a;border:3px solid #555;border-radius:25px 25px 0 0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:18px;">⚫</div>
+      <div style="width:70px;height:16px;background:linear-gradient(90deg,#4a3a2a,#6a5a4a,#4a3a2a);border:2px solid #3a2a1a;"></div>
+    </div>`,
+    iron_mine: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:72px;">
+      <div style="width:50px;height:34px;background:#1a1a22;border:3px solid #667;border-radius:25px 25px 0 0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:18px;">⚙️</div>
+      <div style="width:70px;height:16px;background:linear-gradient(90deg,#3a3a4a,#5a5a6a,#3a3a4a);border:2px solid #2a2a3a;"></div>
+    </div>`,
+    smelter: `<div style="filter:drop-shadow(0 6px 12px rgba(200,80,0,0.4));width:72px;text-align:center;">
+      <div style="font-size:26px;">🔥</div>
+      <div style="width:68px;height:28px;background:linear-gradient(135deg,#5a2a0a,#8a4a1a);border:2px solid #3a1a0a;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#ffa040;">Peleburan</div>
+    </div>`,
+    well: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.5));width:50px;text-align:center;">
+      <div style="font-size:10px;color:#aaa">Sumur</div>
+      <div style="width:32px;height:32px;background:radial-gradient(circle,#1a4a6a,#0a2a3a);border:3px solid #7a7a7a;border-radius:50%;margin:0 auto;font-size:16px;display:flex;align-items:center;justify-content:center;">💧</div>
+    </div>`,
+    church: `<div style="filter:drop-shadow(0 8px 14px rgba(0,0,0,0.7));width:72px;text-align:center;">
+      <div style="font-size:12px;text-align:center;">✝</div>
+      <div style="width:0;height:0;border-left:30px solid transparent;border-right:30px solid transparent;border-bottom:25px solid #c0c0c0;margin:0 auto;"></div>
+      <div style="width:60px;height:42px;background:linear-gradient(135deg,#d0d0c0,#a0a090);border:2px solid #808070;margin:0 auto;display:flex;align-items:center;justify-content:center;">⛪</div>
+    </div>`,
+    market: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));width:80px;text-align:center;">
+      <div style="width:78px;height:12px;background:#c0402a;border-bottom:2px solid #902010;"></div>
+      <div style="width:74px;height:36px;background:linear-gradient(135deg,#e8b84b,#c4933f);border:2px solid #8b5e2a;display:flex;align-items:center;justify-content:center;font-size:20px;">🏪</div>
+    </div>`,
+    blacksmith: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
+      <div style="font-size:10px;color:#aaa">Pandai Besi</div>
+      <div style="width:68px;height:38px;background:linear-gradient(135deg,#3a3a3a,#5a5a5a);border:2px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:22px;">🔨</div>
+    </div>`,
+    storage: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:76px;text-align:center;">
+      <div style="width:0;height:0;border-left:40px solid transparent;border-right:40px solid transparent;border-bottom:18px solid #8b5e2a;margin:0 auto;"></div>
+      <div style="width:72px;height:32px;background:linear-gradient(135deg,#c4933f,#8b5e2a);border:2px solid #5a3810;display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>
+    </div>`,
+    mill: `<div style="filter:drop-shadow(0 6px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
+      <div style="font-size:24px;animation:spin 3s linear infinite;display:inline-block;">⚙️</div>
+      <div style="width:68px;height:28px;background:linear-gradient(135deg,#c4933f,#8b5e2a);border:2px solid #5a3810;font-size:10px;color:#f0dfc0;display:flex;align-items:center;justify-content:center;">Penggilingan</div>
+    </div>`,
+    orchard: `<div style="filter:drop-shadow(0 4px 8px rgba(0,0,0,0.4));width:72px;text-align:center;">
+      <div>🍎🌳🍎</div>
+      <div style="width:68px;height:12px;background:#5a3810;border-radius:2px;"></div>
+    </div>`,
+    sawmill: `<div style="filter:drop-shadow(0 5px 10px rgba(0,0,0,0.5));width:72px;text-align:center;">
+      <div style="font-size:22px;">🪚</div>
+      <div style="width:68px;height:24px;background:linear-gradient(135deg,#8b5e2a,#6b3f1a);border:2px solid #4a2e12;font-size:10px;color:#f0dfc0;display:flex;align-items:center;justify-content:center;">Gergaji</div>
+    </div>`,
+    deep_mine: `<div style="filter:drop-shadow(0 8px 16px rgba(50,20,200,0.4));width:80px;text-align:center;">
+      <div style="font-size:26px;">⛏</div>
+      <div style="width:78px;height:30px;background:linear-gradient(135deg,#1a1a3a,#2a2a5a);border:2px solid #4a4a8a;font-size:11px;color:#aaf;display:flex;align-items:center;justify-content:center;">⚡ Deep Mine</div>
+    </div>`,
+  };
+  return sprites[type] || `<div style="font-size:28px;text-align:center;">${BUILDING_DEFS[type]?.icon||'🏗'}</div>`;
+}
+
+// ---- SELECT/DESELECT ----
+function selectBuilding(id) {
+  state.selectedBuilding = id;
+  const b = state.buildings.find(b=>b.id===id);
+  if (!b) return;
+  const def = BUILDING_DEFS[b.type];
+  const panel = document.getElementById('selected-info');
+  panel.style.display='block';
+  document.getElementById('sel-name').textContent = `${def.icon} ${def.name} (Lv.${b.level})`;
+  document.getElementById('sel-desc').textContent = def.desc;
+  document.getElementById('btn-upgrade').style.display = b.level < (def.maxLevel||3) ? 'block' : 'none';
+}
+
+function deselectBuilding() {
+  state.selectedBuilding = null;
+  document.getElementById('selected-info').style.display = 'none';
+}
+
+function upgradeSelected() {
+  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
+  if (!b) return;
+  const def = BUILDING_DEFS[b.type];
+  if (b.level >= (def.maxLevel||3)) { notify('Sudah level maksimal!','warning'); return; }
+  const upgCost = {};
+  for (const [k,v] of Object.entries(def.cost||{})) upgCost[k] = Math.floor(v * (1.5*b.level));
+  showModal(
+    `Upgrade ${def.name} ke Lv.${b.level+1}`,
+    'Yakin ingin mengupgrade bangunan ini?',
+    upgCost,
+    () => {
+      payCost(upgCost);
+      b.level++;
+      renderBuilding(b);
+      addEvent(`⬆ ${def.name} diupgrade ke Lv.${b.level}`, 'positive');
+      notify(`✅ ${def.name} diupgrade ke Level ${b.level}!`, 'success');
+      selectBuilding(b.id);
+      updateUI();
+    }
+  );
+}
+
+function collectSelected() {
+  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
+  if (!b) return;
+  const def = BUILDING_DEFS[b.type];
+  if (!def.produces || Object.keys(def.produces).length === 0) { notify('Bangunan ini tidak menghasilkan resource.','warning'); return; }
+  for (const [res, amt] of Object.entries(def.produces)) {
+    addResource(res, amt * b.level * 2);
+  }
+  notify('📦 Resource berhasil dikumpulkan!', 'success');
+  updateUI();
+}
+
+function destroySelected() {
+  const b = state.buildings.find(b=>b.id===state.selectedBuilding);
+  if (!b) return;
+  demolishBuilding(b.id);
+}
+
+function demolishBuilding(id) {
+  const b = state.buildings.find(b=>b.id===id);
+  if (!b) return;
+  const def = BUILDING_DEFS[b.type];
+  showModal(
+    `Hancurkan ${def.name}`,
+    'Resource akan dikembalikan sebagian.',
+    {},
+    () => {
+      state.buildings = state.buildings.filter(x=>x.id!==id);
+      state.tiles[`${b.col}_${b.row}`].occupied = false;
+      state.tiles[`${b.col}_${b.row}`].building = null;
+      document.getElementById('building-'+id)?.remove();
+      // Refund
+      for (const [k,v] of Object.entries(def.cost||{})) addResource(k, Math.floor(v*0.5));
+      updatePopulation();
+      addEvent(`🗑 ${def.name} dihancurkan`, 'negative');
+      notify(`🗑 ${def.name} telah dihancurkan.`, 'warning');
+      deselectBuilding();
+      updateUI();
+    }
+  );
+}
+
+// ---- RESOURCES ----
+function addResource(key, amt) {
+  const map = {wood:'wood',stone:'stone',coal:'coal',iron:'iron',metal:'metal',food:'food',gold:'gold'};
+  const k = map[key];
+  if (!k) return;
+  state.resources[k] = Math.min(state.storage[k]||999, (state.resources[k]||0) + amt);
+}
+
+// ---- PRODUCTION TICK ----
+function gameTick() {
+  if (state.paused) return;
+  state.ticks++;
+
+  // Time advance
+  state.minute += 10;
+  if (state.minute >= 60) { state.minute = 0; state.hour++; }
+  if (state.hour >= 24) { state.hour = 0; state.day++; }
+  if (state.day > 90) { state.day=1; state.season=(state.season+1)%4; if(state.season===0) state.year++; }
+
+  // Every 6 game hours = production tick
+  if (state.hour % 6 === 0 && state.minute === 0) {
+    doProduction();
+  }
+
+  updateTimeDisplay();
+
+  // Update upgrades availability
+  checkUpgrades();
+}
+
+function doProduction() {
+  const mult = UPGRADES.steel_tools.bought ? 1.25 : 1.0;
+  const woodMult = state.buildings.some(b=>b.type==='sawmill') ? 1.5 : 1.0;
+  const farmMult = (state.buildings.some(b=>b.type==='mill') ? 1.5 : 1.0) * (UPGRADES.irrigation.bought ? 2.0 : 1.0);
+  const seasonFood = [1.0, 1.2, 0.8, 0.5][state.season];
+
+  for (const b of state.buildings) {
+    const def = BUILDING_DEFS[b.type];
+    if (!def.produces) continue;
+    let ok = true;
+    // Check consumes
+    if (def.consumes) {
+      for (const [r,a] of Object.entries(def.consumes)) {
+        if ((state.resources[r]||0) < a) { ok=false; break; }
+      }
+      if (ok) for (const [r,a] of Object.entries(def.consumes)) state.resources[r] -= a;
+    }
+    if (!ok) continue;
+    for (const [res,amt] of Object.entries(def.produces)) {
+      let finalAmt = amt * b.level * mult;
+      if (res==='wood') finalAmt *= woodMult;
+      if (res==='food') finalAmt *= farmMult * seasonFood;
+      addResource(res, Math.round(finalAmt));
+    }
+  }
+
+  // Population food consumption
+  const foodNeeded = state.population * 0.5;
+  if (state.resources.food >= foodNeeded) {
+    state.resources.food -= foodNeeded;
+    state.happiness = Math.min(100, state.happiness + 1);
+    state.health = Math.min(100, state.health + 1);
+  } else {
+    state.resources.food = 0;
+    state.happiness = Math.max(0, state.happiness - 5);
+    state.health = Math.max(0, state.health - 3);
+    if (state.happiness < 20) addEvent('😢 Warga kelaparan! Bangun lebih banyak ladang!', 'negative');
+  }
+
+  // Gold from market
+  const markets = state.buildings.filter(b=>b.type==='market');
+  if (markets.length > 0) {
+    const goldIncome = markets.reduce((s,b)=>s+b.level*2,0);
+    addResource('gold', goldIncome);
+  }
+
+  // Happiness from church
+  const churches = state.buildings.filter(b=>b.type==='church');
+  if (churches.length > 0) state.happiness = Math.min(100, state.happiness + 3);
+
+  // Health from wells
+  const wells = state.buildings.filter(b=>b.type==='well');
+  if (wells.length > 0) state.health = Math.min(100, state.health + 2);
+
+  updateUI();
+}
+
+function updatePopulation() {
+  state.popCap = state.buildings.filter(b=>b.type==='house').reduce((s,b)=>s+(2+b.level-1)*b.level,0);
+  state.population = Math.min(state.popCap, state.population + (state.popCap > state.population ? 1 : 0));
+}
+
+// ---- UI UPDATE ----
+function updateUI() {
+  // Resources
+  const resMap = {wood:'res-wood',stone:'res-stone',coal:'res-coal',metal:'res-metal',food:'res-food',gold:'res-gold'};
+  for (const [k,id] of Object.entries(resMap)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = Math.floor(state.resources[k]||0);
+  }
+
+  // Population
+  updatePopulation();
+  document.getElementById('pop-count').textContent = state.population;
+  document.getElementById('pop-cap').textContent = state.popCap;
+
+  // Season
+  document.getElementById('season-indicator').textContent = `${state.seasons[state.season]} • Tahun ${state.year}`;
+
+  // Stats
+  document.getElementById('stat-houses').textContent = state.buildings.filter(b=>b.type==='house').length;
+  document.getElementById('stat-farms').textContent = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).length;
+  document.getElementById('stat-loggers').textContent = state.buildings.filter(b=>b.type==='logger').length;
+  document.getElementById('stat-miners').textContent = state.buildings.filter(b=>['quarry','coal_mine','iron_mine'].includes(b.type)).length;
+
+  const foodProd = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).reduce((s,b)=>s+(BUILDING_DEFS[b.type].produces?.food||0)*b.level,0);
+  const foodCons = (state.population * 0.5).toFixed(1);
+  document.getElementById('stat-food-prod').textContent = `+${foodProd}/tick`;
+  document.getElementById('stat-food-cons').textContent = `-${foodCons}/tick`;
+
+  // Progress bars
+  const maxFood = state.storage.food||100;
+  document.getElementById('bar-food').style.width = Math.min(100,(state.resources.food/maxFood)*100)+'%';
+  document.getElementById('bar-happiness').style.width = state.happiness+'%';
+  document.getElementById('bar-health').style.width = state.health+'%';
+
+  // Manage tab
+  document.getElementById('m-pop').textContent = state.population;
+  document.getElementById('m-farmer').textContent = state.buildings.filter(b=>['farm','orchard'].includes(b.type)).length;
+  document.getElementById('m-logger').textContent = state.buildings.filter(b=>['logger','sawmill'].includes(b.type)).length;
+  document.getElementById('m-miner').textContent = state.buildings.filter(b=>['quarry','coal_mine','iron_mine','smelter'].includes(b.type)).length;
+  document.getElementById('m-idle').textContent = Math.max(0, state.population - state.buildings.length);
+  document.getElementById('pr-wood').textContent = '+' + state.buildings.filter(b=>b.type==='logger').reduce((s,b)=>s+4*b.level,0);
+  document.getElementById('pr-stone').textContent = '+' + state.buildings.filter(b=>b.type==='quarry').reduce((s,b)=>s+3*b.level,0);
+  document.getElementById('pr-coal').textContent = '+' + state.buildings.filter(b=>b.type==='coal_mine').reduce((s,b)=>s+2*b.level,0);
+  document.getElementById('pr-metal').textContent = '+' + state.buildings.filter(b=>b.type==='smelter').reduce((s,b)=>s+1*b.level,0);
+  document.getElementById('pr-food').textContent = '+' + foodProd;
+
+  updateMinimap();
+  checkBuildButtonStates();
+}
+
+function checkBuildButtonStates() {
+  for (const [type, def] of Object.entries(BUILDING_DEFS)) {
+    const btn = document.getElementById('bbtn-'+type);
+    if (!btn) continue;
+    btn.classList.toggle('disabled', !canAffordCost(def.cost));
+  }
+}
+
+function updateTimeDisplay() {
+  const h = String(state.hour).padStart(2,'0');
+  const m = String(state.minute).padStart(2,'0');
+  document.getElementById('time-display').textContent = `⏱ Hari ${state.day}, ${h}:${m}`;
+}
+
+// ---- UPGRADES ----
+function checkUpgrades() {
+  for (const [id, upg] of Object.entries(UPGRADES)) {
+    if (upg.bought) continue;
+    let met = true;
+    for (const [type, count] of Object.entries(upg.requires||{})) {
+      if (state.buildings.filter(b=>b.type===type).length < count) { met=false; break; }
+    }
+    upg.unlocked = met;
+  }
+  renderUpgradeList();
+}
+
+function renderUpgradeList() {
+  const el = document.getElementById('upgrade-list');
+  if (!el) return;
+  let html = '';
+  for (const [id,upg] of Object.entries(UPGRADES)) {
+    if (upg.bought) {
+      html += `<div class="build-btn" style="opacity:0.5;cursor:default;margin-bottom:6px;"><span class="btn-icon">✅</span><span class="btn-name">${upg.name}</span><span class="btn-cost" style="color:#27ae60">Sudah dibeli</span></div>`;
+      continue;
+    }
+    if (!upg.unlocked) {
+      const req = Object.entries(upg.requires||{}).map(([t,c])=>`${c}x ${BUILDING_DEFS[t]?.name||t}`).join(', ');
+      html += `<div class="build-btn disabled" style="margin-bottom:6px;"><span class="btn-icon">🔒</span><span class="btn-name">${upg.name}</span><span class="btn-cost">Butuh: ${req}</span></div>`;
+      continue;
+    }
+    const costStr = Object.entries(upg.cost).map(([k,v])=>`${v}${k==='gold'?'💰':k==='metal'?'⚙️':k==='wood'?'🪵':k==='stone'?'🪨':'?'}`).join(' ');
+    html += `<div class="build-btn" onclick="buyUpgrade('${id}')" style="margin-bottom:6px;"><span class="btn-icon">🔬</span><span class="btn-name">${upg.name}</span><span class="btn-cost">${costStr}</span><div style="font-size:10px;color:#a08060;margin-top:2px;">${upg.desc}</div></div>`;
+  }
+  el.innerHTML = html;
+}
+
+function buyUpgrade(id) {
+  const upg = UPGRADES[id];
+  if (!upg || upg.bought || !upg.unlocked) return;
+  if (!canAffordCost(upg.cost)) { notify('Resource tidak cukup!','error'); return; }
+  showModal(
+    `Beli: ${upg.name}`,
+    upg.desc,
+    upg.cost,
+    () => {
+      payCost(upg.cost);
+      upg.bought = true;
+      addEvent(`🔬 Teknologi "${upg.name}" ditemukan!`, 'positive');
+      notify(`🎉 ${upg.name} berhasil dibeli!`, 'success');
+      updateUI();
+    }
+  );
+}
+
+// ---- MODAL ----
+function showModal(title, desc, costs, onConfirm) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-desc').textContent = desc;
+  const cl = document.getElementById('modal-costs');
+  cl.innerHTML = '';
+  for (const [k,v] of Object.entries(costs)) {
+    const have = state.resources[k]||0;
+    const ok = have >= v;
+    const icons = {wood:'🪵',stone:'🪨',coal:'⚫',metal:'⚙️',food:'🌾',gold:'💰',iron:'⚙️'};
+    cl.innerHTML += `<div class="modal-cost-item"><span class="cost-label">${icons[k]||''} ${k}</span><span class="cost-val ${ok?'ok':'bad'}">${Math.floor(have)} / ${v} ${ok?'✓':'✗'}</span></div>`;
+  }
+  if (Object.keys(costs).length === 0) cl.innerHTML = '<div class="modal-cost-item"><span class="cost-label">Tidak ada biaya</span></div>';
+  modalCallback = onConfirm;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function confirmModal() {
+  closeModal();
+  if (modalCallback) modalCallback();
+  modalCallback = null;
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ---- NOTIFICATIONS ----
+function notify(msg, type='') {
+  const n = document.getElementById('notifications');
+  const d = document.createElement('div');
+  d.className = 'notif ' + type;
+  d.textContent = msg;
+  n.appendChild(d);
+  setTimeout(() => d.remove(), 3100);
+}
+
+// ---- EVENTS LOG ----
+function addEvent(msg, type='') {
+  const h = String(state.hour).padStart(2,'0');
+  const m = String(state.minute).padStart(2,'0');
+  const log = document.getElementById('events-log');
+  const item = document.createElement('div');
+  item.className = 'event-item ' + type;
+  item.innerHTML = `<div class="ev-time">Hari ${state.day} ${h}:${m}</div><div class="ev-msg">${msg}</div>`;
+  log.insertBefore(item, log.firstChild);
+  if (log.children.length > 20) log.removeChild(log.lastChild);
+  events.push({msg,type,day:state.day});
+}
+
+// ---- MINIMAP ----
+function updateMinimap() {
+  const canvas = document.getElementById('minimap-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,140,105);
+  // Draw terrain
+  const tw = 140/GRID_COLS, th = 105/GRID_ROWS;
+  for (let r=0;r<GRID_ROWS;r++) {
+    for (let c=0;c<GRID_COLS;c++) {
+      const tile = state.tiles[`${c}_${r}`];
+      if (!tile) continue;
+      const colors = {grass:'#2a4e1a',rocky:'#5a5a4a',forest:'#1a3a0a',path:'#7a6a4a'};
+      ctx.fillStyle = colors[tile.terrain]||'#2a4e1a';
+      ctx.fillRect(c*tw, r*th, tw, th);
+      if (tile.building) {
+        const b = state.buildings.find(x=>x.id===tile.building);
+        if (b) {
+          const def = BUILDING_DEFS[b.type];
+          const bColors = {house:'#c0402a',farm:'#2a8a2a',logger:'#6a4010',quarry:'#8a8a6a',coal_mine:'#1a1a1a',iron_mine:'#4a4a6a',smelter:'#c06020',well:'#2a6aaa',church:'#aaaaaa',market:'#e8b84b',blacksmith:'#3a3a3a',storage:'#8b5e2a',mill:'#c4933f',orchard:'#4a9a2a',sawmill:'#6b4020',deep_mine:'#4a4aca'};
+          ctx.fillStyle = bColors[b.type]||'#888';
+          ctx.fillRect(c*tw+1, r*th+1, tw-2, th-2);
+        }
+      }
+    }
+  }
+  // Viewport indicator
+  const vp = document.getElementById('minimap-viewport');
+  const worldEl = document.getElementById('world');
+  const container = document.getElementById('world-container');
+  const ww = 2400, wh = 1800;
+  const vw = container.clientWidth / viewScale;
+  const vh = container.clientHeight / viewScale;
+  const vx = -viewX / viewScale;
+  const vy = -viewY / viewScale;
+  vp.style.left = Math.max(0,(vx/ww)*140)+'px';
+  vp.style.top = Math.max(0,(vy/wh)*105)+'px';
+  vp.style.width = Math.min(140,(vw/ww)*140)+'px';
+  vp.style.height = Math.min(105,(vh/wh)*105)+'px';
+}
+
+// ---- VIEW CONTROLS ----
+function applyView() {
+  document.getElementById('world').style.transform = `translate(${viewX}px,${viewY}px) scale(${viewScale})`;
+}
+
+function centerView() {
+  viewX = -(2400/2 - window.innerWidth/2);
+  viewY = -(1800/2 - window.innerHeight/2 + 100);
+  viewScale = 1.0;
+  applyView();
+}
+
+const worldContainer = document.getElementById('world-container');
+worldContainer.addEventListener('mousedown', e => {
+  if (e.target.closest('.tile') || e.target.closest('.building')) return;
+  isDragging = true;
+  dragStart = {x:e.clientX, y:e.clientY};
+  viewStart = {x:viewX, y:viewY};
+  worldContainer.style.cursor = 'grabbing';
+});
+worldContainer.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  viewX = viewStart.x + (e.clientX - dragStart.x);
+  viewY = viewStart.y + (e.clientY - dragStart.y);
+  applyView();
+  updateMinimap();
+});
+worldContainer.addEventListener('mouseup', () => { isDragging=false; worldContainer.style.cursor='default'; });
+worldContainer.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  viewScale = Math.max(0.4, Math.min(2.0, viewScale*factor));
+  applyView();
+  updateMinimap();
+}, {passive:false});
+
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('btn-normal').classList.toggle('active', mode==='normal');
+  document.getElementById('btn-demolish').classList.toggle('active', mode==='demolish');
+  if (mode==='demolish') selectBuild(null);
+}
+
+function setSpeed(s) {
+  state.speed = s;
+  clearInterval(window._tickInterval);
+  window._tickInterval = setInterval(gameTick, 1000/s);
+  ['sp1','sp2','sp3'].forEach((id,i)=>document.getElementById(id).classList.toggle('active',i+1===s));
+}
+
+function togglePause() {
+  state.paused = !state.paused;
+  document.getElementById('btn-pause').textContent = state.paused ? '▶ Lanjut' : '⏸ Jeda';
+  document.getElementById('btn-pause').classList.toggle('active', state.paused);
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-build').style.display = tab==='build'?'block':'none';
+  document.getElementById('tab-upgrade').style.display = tab==='upgrade'?'block':'none';
+  document.getElementById('tab-manage').style.display = tab==='manage'?'block':'none';
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',['build','upgrade','manage'][i]===tab));
+  if (tab==='upgrade') renderUpgradeList();
+}
+
+// ---- TOOLTIP ----
+function showTooltip(e, html) {
+  const tt = document.getElementById('tooltip');
+  tt.innerHTML = html;
+  tt.style.display = 'block';
+  tt.style.left = (e.clientX+14)+'px';
+  tt.style.top = (e.clientY-10)+'px';
+}
+function hideTooltip() { document.getElementById('tooltip').style.display='none'; }
+
+// ---- INIT ----
+initTiles();
+centerView();
+updateUI();
+addEvent('🏡 Selamat datang di Desa Gozo!', 'positive');
+notify('👋 Klik tile untuk membangun. Pilih bangunan dari panel kanan!', 'success');
+window._tickInterval = setInterval(gameTick, 1000);
+
+// Add spinning animation
+const style = document.createElement('style');
+style.textContent = '@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
+document.head.appendChild(style);
+</script>
+</body>
+</html>
