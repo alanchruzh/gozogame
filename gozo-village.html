@@ -3443,7 +3443,31 @@ function tick(){
   // 60fps × 300s = 18000 frames per hari
   // 24×60=1440 menit / 18000 frames = 0.08 menit per frame
   G.mn+=G.spd*0.08;
-  if(G.mn>=60){G.mn=0;G.hr++;}
+  if(G.mn>=60){G.mn=0;G.hr++;
+    // ── CONSTRUCTION PROGRESS — every game hour ──
+    if(_gameStarted){
+      const totalBuilders=NPCS.filter(n=>isAdult(n)&&n.job==='builder').length;
+      for(const bld of G.bld){
+        if(!bld.under_construction) continue;
+        // Count builders near site (generous radius) + all builders contribute some
+        const nearBuilders=NPCS.filter(n=>
+          isAdult(n)&&n.job==='builder'&&
+          Math.hypot(n.x-bld.col*TS,n.y-bld.row*TS)<TS*5
+        ).length;
+        // Base 1hr/hr, +0.5 per nearby builder (capped at 4x)
+        const speedup=Math.min(4, 1 + nearBuilders*0.75);
+        bld.build_ticks_left=Math.max(0,(bld.build_ticks_left||0)-speedup);
+        if(bld.build_ticks_left<=0){
+          bld.under_construction=false;
+          delete bld.build_ticks_left; delete bld.build_ticks_total;
+          notify('✅ '+BD[bld.type].n+' construction complete!','ok');
+          spawnParticles(bld.col*TS+TS/2,bld.row*TS,'build',14);
+          rebuildTile(bld.col,bld.row);
+          updateUI();
+        }
+      }
+    }
+  }
   if(G.hr>=24){G.hr=0;G.day++;G.ticks++;if(G.ticks%2===0)doProd();
     if(G.day>90){G.day=1;G.season=(G.season+1)%4;}if(G.day>360){G.day=1;G.yr++;}
   }
@@ -3793,27 +3817,7 @@ function doProd(){
   if(G.ticks%10===0){ spawnBuffalo(); spawnHorse(); }
   updateSaplings(); // grow saplings every tick
 
-  // ── CONSTRUCTION PROGRESS ──
-  // Only builders speed up construction
-  const builders=NPCS.filter(n=>isAdult(n)&&n.job==='builder');
-  for(const bld of G.bld){
-    if(!bld.under_construction) continue;
-    // Count builders near this construction site
-    const nearBuilders=builders.filter(n=>
-      Math.hypot(n.x-bld.col*TS,n.y-bld.row*TS)<TS*2
-    ).length;
-    // Base 1 tick/doProd, +0.5 per nearby builder, max speedup x3
-    const speedup=Math.min(3, 1 + nearBuilders*0.5);
-    bld.build_ticks_left=Math.max(0,(bld.build_ticks_left||0)-speedup);
-    if(bld.build_ticks_left<=0){
-      bld.under_construction=false;
-      delete bld.build_ticks_left;
-      delete bld.build_ticks_total;
-      notify('✅ '+BD[bld.type].n+' construction complete!','ok');
-      spawnParticles(bld.col*TS+TS/2, bld.row*TS, 'build', 14);
-      rebuildTile(bld.col, bld.row);
-    }
-  }
+  // Construction progress is now handled in tick() every game hour
 
   upPop();updateUI();
 }
@@ -3954,9 +3958,9 @@ function tryPlaceBuilding(c,r){
   if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
   pay(d.cost);
   tile.t=T.GRASS;tile.decor=null;
-  // Build time in doProd ticks (each tick ≈ 2 game hours at 1x speed)
-  // ml=1: 4 ticks=~8hrs, ml=2: 8 ticks=~16hrs, ml=3: 15 ticks=~30hrs
-  const baseTicks=d.ml>=3?15:d.ml>=2?8:4;
+  // Build time in game hours (1 tick = 1 hr, progress checked every hr)
+  // ml=1: 8hrs, ml=2: 16hrs, ml=3: 30hrs
+  const baseTicks=d.ml>=3?30:d.ml>=2?16:8;
   tile.bld={type:buildType,id:G.nid,lv:1,rotation:buildRotation};
   G.bld.push({
     id:G.nid, type:buildType, lv:1, col:c, row:r,
@@ -3978,9 +3982,11 @@ function showBldDlg(bld,c,r){
     const total=bld.build_ticks_total||1;
     const left=bld.build_ticks_left||0;
     const pct=Math.round((1-left/total)*100);
-    const hrsLeft=left*2; // ~2 hrs per tick
+    const nearB=NPCS.filter(n=>isAdult(n)&&n.job==='builder'&&Math.hypot(n.x-bld.col*TS,n.y-bld.row*TS)<TS*5).length;
+    const spd=Math.min(4,1+nearB*0.75);
+    const hrsLeft=Math.ceil(left/spd);
     openDlg('🔨 '+d.n+' (Under Construction)',
-      `Progress: ${pct}% complete\nEst. ${hrsLeft} hours remaining\nAssign Builder job to speed it up!`,
+      `Progress: ${pct}% complete\nEst. ${hrsLeft} hours remaining\nBuilders nearby: ${nearB} (${spd.toFixed(1)}× speed)\nAssign Builder job to speed it up!`,
       [{l:'✖ Close',cls:'',fn:closeDialog}]);
     return;
   }
