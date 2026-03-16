@@ -805,12 +805,14 @@ function buildWorld(){
   // Overlap means no gaps/seams between tiles
   const OV=2; // overlap pixels each side
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(!MAP[r]||!MAP[r][c])continue;
     drawTileTexture(W,MAP[r][c].t,c,r,c*TS-OV,r*TS-OV,TS+OV*2,TS+OV*2);
   }
 
-  // Step 2: autotile transitions — draw soft organic border between different tile types
+  // Step 2: autotile transitions
   for(let r=0;r<WR;r++){
     for(let c=0;c<WC;c++){
+      if(!MAP[r]||!MAP[r][c])continue;
       const t=MAP[r][c].t;
       autoTileBlend(W,c,r,t);
     }
@@ -821,7 +823,7 @@ function buildWorld(){
   for(let r=0;r<WR;r++){
     for(let c=0;c<WC;c++){
       const tile=MAP[r][c];
-      if(!tile.decor)continue;
+      if(!tile||!tile.decor)continue;
       if(tile.bld)continue; // ← DON'T draw trees over buildings
       const v=hh(c,r);
       const sx=c*TS, sy=r*TS;
@@ -3850,6 +3852,7 @@ function render(){
   // Fertility overlay
   if(_showFertility){
     for(let r2=sr;r2<er;r2++)for(let c2=sc;c2<ec;c2++){
+      if(!MAP[r2]||!MAP[r2][c2])continue;
       const tile=MAP[r2][c2];
       if(tile.t===T.GRASS||tile.t===T.FIELD){
         const fert=getTileFertility(c2,r2);const green=Math.round(fert*2);
@@ -3862,6 +3865,7 @@ function render(){
   for(let r2=sr;r2<er;r2++){
     const ry=r2*TS+camY;
     for(let c2=sc;c2<ec;c2++){
+      if(!MAP[r2]||!MAP[r2][c2])continue;
       const tile=MAP[r2][c2],wx=c2*TS+camX;
       // Draw berry bushes live (so depleted state shows correctly)
       if(tile.decor==='berry_bush'){
@@ -4032,6 +4036,7 @@ function render(){
     const mw=MMCV.width,mh=MMCV.height,tw=mw/WC,th=mh/WR;
     mctx.fillStyle='#1a2e10';mctx.fillRect(0,0,mw,mh);
     for(let r2=0;r2<WR;r2++)for(let c2=0;c2<WC;c2++){
+      if(!MAP[r2]||!MAP[r2][c2])continue;
       const t=MAP[r2][c2].t;
       mctx.fillStyle=t===T.WATER?'#4488cc':t===T.FOREST?'#1a5010':t===T.PATH?'#c0a050':t===T.FIELD?'#8a6020':t===T.FARM_ZONE?'#60a020':t===T.MARKET_ZONE?'#d0c080':t===T.STONE_G?'#888070':'#3a7020';
       mctx.fillRect(c2*tw,r2*th,tw+1,th+1);
@@ -5998,6 +6003,8 @@ function startNewGame(){
 
 function launchGame(doGenMap){
   _gameStarted=true;
+  G.paused=false; // UNPAUSE — was set to true at init to block ticks before map loaded
+
   // Fade out title screen
   const ts=document.getElementById('title-screen');
   ts.style.transition='opacity .6s';
@@ -6007,11 +6014,11 @@ function launchGame(doGenMap){
   if(doGenMap){
     genMap();
     buildWorld();
-    upPop();updateUI();
-    // Spawn player
-    const mc=WC/2|0,mr=WR/2|0;
+    upPop(); updateUI();
+    // Clear spawn area and place player south of campfire
+    const mc=WC/2|0, mr=WR/2|0;
     for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
-      const r=mr+dr,c=mc+dc;
+      const r=mr+dr, c=mc+dc;
       if(MAP[r]&&MAP[r][c]&&!MAP[r][c].bld){
         MAP[r][c].decor=null;
         if(MAP[r][c].t!==T.WATER&&MAP[r][c].t!==T.PATH) MAP[r][c].t=T.GRASS;
@@ -6022,10 +6029,13 @@ function launchGame(doGenMap){
     _worldDirty=true;
   }
 
-  resize();centerCam();
-  startAutosave();
+  // Update HUD with village name
+  const logo=document.getElementById('logo');
+  if(logo) logo.textContent='⚔ '+(G.villageName||'Gozo Village');
 
-  setTimeout(()=>notify(`🏘 Welcome to ${G.villageName}, Chief ${G.chiefName}!`,'ok'),700);
+  resize(); centerCam(); startAutosave();
+
+  setTimeout(()=>notify(`🏘 Welcome to ${G.villageName||'your village'}, Chief ${G.chiefName||''}!`,'ok'),700);
   setTimeout(()=>notify(`🌍 World seed: ${WORLD_SEED}`,'ok'),1800);
   setTimeout(()=>notify('🔥 Your settlers are gathered around the campfire.','ok'),2800);
   setTimeout(()=>notify('💡 Build houses to grow your settlement!','warn'),4000);
@@ -6117,10 +6127,9 @@ function toggleMusic(){
   }
 }
 
-resize();window.addEventListener('resize',resize);
-// ── START: show title screen, don't run game yet ──
 resize();
 window.addEventListener('resize',resize);
+// ── START: show title screen, don't run game yet ──
 // Start title animations
 animateTitleFire();
 animateTitleBg();
@@ -6132,7 +6141,7 @@ document.addEventListener('keydown',function(e){
     startNewGame();
   }
 });
-// Start game loop (render only — G.paused prevents game ticks)
+// Start game loop paused — render shows title screen, ticks blocked until launchGame()
 G.paused=true;
 requestAnimationFrame(loop);
 </script>
