@@ -2647,15 +2647,15 @@ const CABE_TREE_BARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 
 const FIELD_DEFS = [
   {id:0, name:'Field 1',  cols:2, rows:2, price:0},
-  {id:1, name:'Field 2',  cols:2, rows:2, price:1000},
-  {id:2, name:'Field 3',  cols:2, rows:2, price:2000},
-  {id:3, name:'Field 4',  cols:2, rows:2, price:4000},
-  {id:4, name:'Field 5',  cols:2, rows:2, price:8000},
-  {id:5, name:'Field 6',  cols:2, rows:2, price:16000},
-  {id:6, name:'Field 7',  cols:2, rows:2, price:32000},
-  {id:7, name:'Field 8',  cols:2, rows:2, price:64000},
-  {id:8, name:'Field 9',  cols:2, rows:2, price:128000},
-  {id:9, name:'Field 10', cols:2, rows:2, price:256000},
+  {id:1, name:'Field 2',  cols:2, rows:2, price:10},
+  {id:2, name:'Field 3',  cols:2, rows:2, price:10},
+  {id:3, name:'Field 4',  cols:2, rows:2, price:10},
+  {id:4, name:'Field 5',  cols:2, rows:2, price:10},
+  {id:5, name:'Field 6',  cols:2, rows:2, price:10},
+  {id:6, name:'Field 7',  cols:2, rows:2, price:10},
+  {id:7, name:'Field 8',  cols:2, rows:2, price:10},
+  {id:8, name:'Field 9',  cols:2, rows:2, price:10},
+  {id:9, name:'Field 10', cols:2, rows:2, price:10},
 ];
 
 // ═══════════════════════════════════════════════════
@@ -2921,7 +2921,7 @@ function renderAllFields(){
         lockDiv.innerHTML = `
           <div class="lock-icon">🔒</div>
           <div class="lock-price" style="font-size:15px;color:#f7c948;text-shadow:1px 1px 0 #000;font-weight:bold">💸 Pay ${cfg.price.toLocaleString()} USDC</div>
-          <button class="buy-field-btn can-afford" onclick="buyField(${cfg.id})">🔥 BUY WITH GOZO</button>`;
+          <button class="buy-field-btn can-afford" onclick="buyField(${cfg.id})">💸 BUY FIELD</button>`;
       } else {
         lockDiv.innerHTML = `
           <div class="lock-icon" style="font-size:1rem;opacity:0.4">🔒</div>
