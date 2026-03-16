@@ -7,8 +7,9 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
-#c{display:block;image-rendering:pixelated}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{background:#1a1a1a;font-family:'VT323',monospace}
+#c{display:block;image-rendering:pixelated;width:100%;height:100%;}
 /* HUD */
 #hud{position:fixed;top:0;left:0;right:0;height:40px;z-index:100;
   background:rgba(15,10,5,0.92);border-bottom:2px solid #6a4a1a;
@@ -147,6 +148,9 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
   <div class="vp" id="season">🌱 Spring Y1</div>
   <div class="vp" id="timelbl">Day 1</div>
   <div class="hdv"></div>
+  <div class="vp" style="color:#40d0a0;cursor:pointer" onclick="toggleEconomyPanel()" title="Regional Wealth — city funds">🏛 <b id="rw-display">200</b></div>
+  <div class="vp" style="color:#e0c040;cursor:pointer" onclick="toggleEconomyPanel()" title="Treasury — lord's personal funds">👑 <b id="trs-display">100</b></div>
+  <div class="hdv"></div>
   <div class="vp" id="wb-toggle" onclick="toggleWorkerPanel()" style="cursor:pointer;user-select:none">
     👥 <span id="pop">0</span>/<span id="cap">0</span> ▾
   </div>
@@ -169,6 +173,8 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
   <button class="tbtn" id="tb-road" onclick="setMode('road')">🛤 ROAD</button>
   <button class="tbtn" id="tb-erase" onclick="setMode('erase')">🌿 ERASE</button>
   <button class="tbtn" id="tb-demo" onclick="setMode('demo')">🗑 DEMO</button>
+  <button class="tbtn" id="tb-farmzone" onclick="setMode('farmzone')" title="Draw farm zone — drag to set size">🌾 FARM</button>
+  <button class="tbtn" id="tb-marketzone" onclick="setMode('marketzone')" title="Draw market square — drag to set size">🏪 MARKET</button>
   <div class="hdv"></div>
   <div id="timelbl2" style="font-family:'Press Start 2P';font-size:6px;color:#c09040;padding:2px 6px;background:#100a04;border:1px solid #3a2a10">06:00</div>
   <div class="hdv"></div>
@@ -180,6 +186,10 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
   <button class="tbtn" onclick="centerCam()">🎯</button>
   <div class="hdv"></div>
   <button class="tbtn" id="tb-music" onclick="toggleMusic()" title="Toggle Music">🎵</button>
+  <div class="hdv"></div>
+  <button class="tbtn" id="tb-shop" onclick="toggleShop()" title="Shop">🛒 SHOP</button>
+  <div class="hdv"></div>
+  <button class="tbtn" onclick="toggleEconomyPanel()" title="Economy">🏛 ECONOMY</button>
 </div>
 
 <!-- BUILD PANEL -->
@@ -201,7 +211,7 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
   <div id="bldworker-info" style="padding:6px 10px;font-size:11px;color:#a09060;border-bottom:1px solid #3a2a10"></div>
   <div id="bldworker-list"></div>
   <div style="padding:6px 10px;font-size:10px;color:#606040;border-top:1px solid #3a2a10">
-    Klik nama untuk assign/unassign. Slot kosong = tidak ada pekerja.
+    Click name to assign/unassign. Empty slot = no worker.
   </div>
 </div>
 
@@ -221,6 +231,74 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
 </div>
 <div id="notifs"></div>
 
+<!-- ECONOMY PANEL -->
+<div id="economypanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:600;background:rgba(4,3,1,.98);border:2px solid #4a8a4a;
+  width:600px;max-width:96vw;max-height:85vh;overflow-y:auto;font-family:'VT323',monospace;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:2px solid #2a5a2a;background:rgba(0,20,0,.4)">
+    <span style="font-family:'Press Start 2P';font-size:8px;color:#40d0a0">🏛 REGIONAL ECONOMY</span>
+    <span onclick="toggleEconomyPanel()" style="cursor:pointer;color:#c04040;font-family:'Press Start 2P';font-size:8px">✖</span>
+  </div>
+  <!-- Two columns: RW and Treasury -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #2a5a2a">
+    <!-- Regional Wealth -->
+    <div style="padding:10px 14px;border-right:1px solid #2a5a2a">
+      <div style="font-family:'Press Start 2P';font-size:7px;color:#40d0a0;margin-bottom:6px">🏛 REGIONAL WEALTH</div>
+      <div style="font-size:22px;color:#40d0a0;font-weight:bold" id="ep-rw">0</div>
+      <div style="font-size:11px;color:#508050;margin-top:2px">City funds — shared by all</div>
+      <div style="margin-top:8px;font-size:11px;color:#607060">
+        <div>📈 Sources:</div>
+        <div id="ep-rw-sources" style="margin-top:3px;color:#709070"></div>
+      </div>
+    </div>
+    <!-- Treasury -->
+    <div style="padding:10px 14px">
+      <div style="font-family:'Press Start 2P';font-size:7px;color:#e0c040;margin-bottom:6px">👑 TREASURY</div>
+      <div style="font-size:22px;color:#e0c040;font-weight:bold" id="ep-trs">0</div>
+      <div style="font-size:11px;color:#806030;margin-top:2px">Lord's personal funds</div>
+      <div style="margin-top:8px;font-size:11px;color:#706050">
+        <div>📈 Sources:</div>
+        <div id="ep-trs-sources" style="margin-top:3px;color:#907050"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Trade export panel -->
+  <div style="padding:8px 12px;border-bottom:1px solid #2a5a2a">
+    <div style="font-family:'Press Start 2P';font-size:6px;color:#c0a040;margin-bottom:6px">🚢 EXPORT — Sell surplus to earn Regional Wealth</div>
+    <div id="ep-export" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+  </div>
+  <!-- Import panel -->
+  <div style="padding:8px 12px;border-bottom:1px solid #2a5a2a">
+    <div style="font-family:'Press Start 2P';font-size:6px;color:#40a0c0;margin-bottom:6px">📦 IMPORT — Buy resources using Regional Wealth</div>
+    <div id="ep-import" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+  </div>
+  <!-- History log -->
+  <div style="padding:8px 12px">
+    <div style="font-family:'Press Start 2P';font-size:6px;color:#607060;margin-bottom:5px">📋 RECENT TRANSACTIONS</div>
+    <div id="ep-log" style="font-size:11px;color:#507050;max-height:100px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- SHOP PANEL -->
+<div id="shoppanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:600;background:rgba(6,3,1,.98);border:2px solid #5a3a1a;
+  width:560px;max-width:96vw;max-height:80vh;overflow-y:auto;font-family:'VT323',monospace;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:2px solid #3a2a10;background:rgba(0,0,0,.3)">
+    <span style="font-family:'Press Start 2P';font-size:8px;color:#f0c040">🛒 RESOURCE SHOP</span>
+    <span style="font-family:'Press Start 2P';font-size:7px;color:#a08050" id="shop-wallet-status">Not connected</span>
+    <span onclick="toggleShop()" style="cursor:pointer;color:#c04040;font-family:'Press Start 2P';font-size:8px">✖</span>
+  </div>
+  <div style="padding:8px 12px;border-bottom:1px solid #3a2a10;font-size:12px;color:#806040">
+    💰 Each bundle = <b style="color:#f0d060">1 USDC</b> &nbsp;|&nbsp; Network: <b style="color:#40c0e0">HyperEVM (Chain 999)</b> &nbsp;|&nbsp;
+    <button onclick="shopConnectWallet()" id="shop-connect-btn"
+      style="background:#100a04;border:1px solid #3a2a10;color:#f0c040;font-family:'Press Start 2P';font-size:6px;padding:3px 8px;cursor:pointer">
+      Connect Wallet
+    </button>
+  </div>
+  <div id="shop-items" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;"></div>
+  <div id="shop-status" style="padding:6px 12px;font-size:12px;color:#c0a060;min-height:20px;border-top:1px solid #3a2a10"></div>
+</div>
+
 <div id="dpad">
   <div class="dp" id="dpU">▲</div>
   <div class="dp" id="dpD">▼</div>
@@ -238,6 +316,7 @@ body{background:#1a1a1a;overflow:hidden;font-family:'VT323',monospace}
 // ══════════════════════════════════════════════════════
 
 const CV=document.getElementById('c'),X=CV.getContext('2d');
+const MMCV=document.getElementById('mmc'); // minimap canvas
 X.imageSmoothingEnabled=false;
 
 // World constants
@@ -254,29 +333,40 @@ const PL={x:WPX/2,y:WPY/2,vx:0,vy:0,spd:2.8,dir:2,fr:0,ft:0};
 // Game state
 const G={
   res:{
-    // Raw
-    wood:80, stone:50, coal:10, iron:0,
-    // Food raw
-    food:60, meat:0, egg:0, honey:0, berry:0, wheat:0,
-    // Processed food
+    // Raw materials — just a small survival kit
+    wood:30, stone:15, coal:5, iron:0,
+    // Food — enough for a few days
+    food:20, meat:5, egg:0, honey:0, berry:0, wheat:0,
+    // Processed food — none yet
     flour:0, bread:0, ale:0,
-    // Material processed
+    // Material processed — none yet
     plank:0, metal:0, leather:0,
-    // Goods
+    // Goods — none yet
     cloth:0, shoe:0, cloak:0, weapon:0, armor:0, beer:0,
-    // Economy
-    gold:100, wealth:0,
+    // Economy — small starting purse
+    gold:20, wealth:0,
+    // Regional Wealth & Treasury (new economy system)
+    regional_wealth:0, treasury:0,
   },
   pop:6,cap:6,happy:80,health:70,
   day:1,hr:6,mn:0,yr:1,season:0,
   seasons:['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'],
   paused:false,spd:1,bld:[],nid:1,ticks:0,bldWorkers:{},pending:{},market:{food:{stock:0,variety:0},fuel:{stock:0},clothing:{stock:0,variety:0}},fields:[],farmStats:{totalHarvests:0,failedHarvests:0},
-  mode:'walk' // walk | build | road | erase | demo
+  mode:'walk', // walk | build | road | erase | demo | farmzone | marketzone
+  marketZones:[], // [{id, col, row, w, h, stalls:[{res,qty,price,traderName}]}]
+  farmZones:[],   // [{id, farmId, col, row, w, h}] - custom-sized farm zones
 };
 let buildType=null;
+let buildRotation=0; // 0=N, 1=E, 2=S, 3=W (90° steps)
+let camX=0,camY=0;
+let _showFertility=false;
+let _worldDirty=true;
+let isDragging=false,dragMode='';
+let _byHouseId=null;
+let zoneDragStart=null; // {c,r} for farm/market zone drawing
 
 // ── TILE TYPES ──
-const T={GRASS:0,PATH:1,WATER:2,DIRT:3,STONE_G:4,SAND:5,FOREST:6};
+const T={GRASS:0,PATH:1,WATER:2,DIRT:3,STONE_G:4,SAND:5,FOREST:6,FIELD:7,MARKET_ZONE:8,FARM_ZONE:9};
 
 // ── BUILDING DEFS ──
 // Buildings that support assigned workers (type -> max workers)
@@ -320,10 +410,10 @@ if(!G.market) G.market={
 // ── FARMING SYSTEM ──
 // Crop types: what they produce, which season to plant/harvest, chain output
 const CROPS={
-  wheat:  {e:'🌾',n:'Gandum', plant:0/*spring*/, harvest:2/*autumn*/, output:{wheat:4}, chainTo:'malthouse,bakery', flaxAlt:false},
+  wheat:  {e:'🌾',n:'Wheat', plant:0/*spring*/, harvest:2/*autumn*/, output:{wheat:4}, chainTo:'malthouse,bakery', flaxAlt:false},
   barley: {e:'🌿',n:'Barley', plant:0,           harvest:2,           output:{wheat:2}, chainTo:'malthouse',        flaxAlt:false},
   flax:   {e:'🌺',n:'Flax',   plant:0,           harvest:2,           output:{cloth:2}, chainTo:'weaver',           flaxAlt:true},
-  fallow: {e:'🟫',n:'Bera',   plant:-1,          harvest:-1,          output:{},        chainTo:'',                 flaxAlt:false},
+  fallow: {e:'🟫',n:'Fallow',   plant:-1,          harvest:-1,          output:{},        chainTo:'',                 flaxAlt:false},
 };
 const CROP_ROTATION=['wheat','barley','fallow']; // default rotation
 
@@ -414,7 +504,8 @@ function getAdults(){ return NPCS.filter(isAdult); }
 function upPop(){
   G.pop=getAdults().length;
   const houses=G.bld.filter(b=>b.type==='house');
-  G.cap=Math.max(6, houses.length*4);
+  const campfires=G.bld.filter(b=>b.type==='campfire');
+  G.cap=Math.max(6, houses.length*4 + campfires.length*6);
 }
 
 // Population growth: new family moves in if happy + empty house available
@@ -440,19 +531,26 @@ function checkPopGrowth(){
   NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:'#e080c0',job:null,female:true,
     age:ADULT_DAYS+Math.floor(Math.random()*2700),familyId:newFamilyId,pregnant:0,houseId:house.id});
   FAMILIES.push({id:newFamilyId,houseId:house.id,husbandName:mName,wifeName:fName});
-  notify(`🏠 Keluarga baru pindah! ${mName} & ${fName} tinggal di rumah #${house.id}`,'ok');
+  notify(`🏠 New family moved in! ${mName} & ${fName} moved into house #${house.id}`,'ok');
   upPop();
 }
 const STOREHOUSE_RES=['wood','stone','coal','iron','metal','plank','leather','weapon','armor','shoe','cloak'];
 
 const BD={
+  campfire:{n:'Campfire', e:'🔥', cat:'civic', ml:1, pop:6, cost:{wood:5},
+    d:'Starting shelter. Holds up to 6 settlers. No upgrade.',
+    needs:{1:{food:0.3}}, tax:{1:0},
+    byardSlots:{1:[]},
+    upReq:{}, upCost:{},
+    lvDesc:{1:'A warm fire for your settlers. Build houses to grow.'},
+  },
   house: {n:'House', e:'🏠', cat:'house', ml:3, pop:2, cost:{wood:15,stone:5},
-    d:'Tempat tinggal keluarga.',
+    d:'Family home.',
     // Per-level description
     lvDesc:{
-      1:'Kebutuhan: makanan, air, bahan bakar. Backyard terbatas.',
-      2:'Buka kerajinan & lebih banyak backyard. Butuh pakaian.',
-      3:'Pajak max, produksi penuh. Butuh banyak sumber daya.',
+      1:'Needs: food, water, fuel. Limited backyard.',
+      2:'Unlocks crafts & more backyard. Needs clothing.',
+      3:'Max tax, full production. Needs many resources.',
     },
     // Upgrade requirements (buildings that must exist in village)
     upReq:{
@@ -461,8 +559,8 @@ const BD={
     },
     // Upgrade cost multiplier per level
     upCost:{
-      2:{wood:30, stone:20, food:10},
-      3:{wood:60, stone:40, food:20, cloth:5},
+      2:{wood:30, stone:20, food:10, regional_wealth:50},
+      3:{wood:60, stone:40, food:20, cloth:5, regional_wealth:150},
     },
     // Daily consumption per resident per level
     needs:{
@@ -476,23 +574,23 @@ const BD={
     byardSlots:{1:['garden','chicken','goat','apiary'], 2:'all', 3:'all'},
   },
   storage:   {n:'Storage',   e:'📦',d:'More storage.',  cost:{wood:20,stone:10}, ml:2,         cat:'house'},
-  granary:   {n:'Granary',   e:'🌾',d:'Simpan makanan.',cost:{wood:30,stone:15}, ml:3,         cat:'food',
+  granary:   {n:'Granary',   e:'🌾',d:'Store food.',cost:{wood:30,stone:15}, ml:3,         cat:'food',
               storeCap:{food:200,meat:100,egg:100,honey:100,beer:50}},
-  storehouse:{n:'Storehouse',e:'🏪',d:'Simpan material.',cost:{wood:40,stone:20}, ml:3,         cat:'work',
+  storehouse:{n:'Storehouse',e:'🏪',d:'Store materials.',cost:{wood:40,stone:20}, ml:3,         cat:'work',
               storeCap:{wood:500,stone:500,coal:200,metal:100,leather:100,weapon:50,armor:50,shoe:50,cloak:50}},
-  farm:      {n:'Farm',      e:'🌾',d:'+3 makanan/hari.',cost:{wood:10},         ml:3,pr:{food:3,wheat:1},cat:'food'},
+  farm:      {n:'Farm',      e:'🌾',d:'+3 food/day.',cost:{wood:10},         ml:3,pr:{food:3,wheat:1},cat:'food'},
   orchard:   {n:'Orchard',  e:'🍎',d:'+2 food.',       cost:{wood:8},           ml:2,pr:{food:2},cat:'food'},
   mill:      {n:'Windmill',  e:'⚙',d:'Farm +50%.',     cost:{wood:25,stone:15}, ml:2,         cat:'food'},
-  logger:    {n:'Logger',    e:'🪓',d:'+4 kayu/hari.',   cost:{wood:12,stone:5},  ml:3, pr:{wood:4}, cat:'work'},
-  ironmine:  {n:'Iron Mine', e:'⛏',d:'+2 besi/hari.',   cost:{wood:20,stone:20}, ml:3, pr:{iron:2},  cat:'work'},
-  bakery:    {n:'Bakery',    e:'🍞',d:'Tepung→Roti.',    cost:{wood:20,stone:15}, ml:2, cat:'work',
+  logger:    {n:'Logger',    e:'🪓',d:'+4 wood/day.',   cost:{wood:12,stone:5},  ml:3, pr:{wood:4}, cat:'work'},
+  ironmine:  {n:'Iron Mine', e:'⛏',d:'+2 iron/day.',   cost:{wood:20,stone:20}, ml:3, pr:{iron:2},  cat:'work'},
+  bakery:    {n:'Bakery',    e:'🍞',d:'Flour→Bread.',    cost:{wood:20,stone:15}, ml:2, cat:'work',
               chain:{input:{flour:2},output:{bread:3},workers:2}},
-  malthouse: {n:'Malthouse', e:'🌾',d:'Gandum→Ale.',     cost:{wood:18,stone:10}, ml:2, cat:'work',
+  malthouse: {n:'Malthouse', e:'🌾',d:'Wheat→Ale.',     cost:{wood:18,stone:10}, ml:2, cat:'work',
               chain:{input:{wheat:2},output:{ale:2},workers:2}},
-  ironworks: {n:'Ironworks', e:'🔩',d:'Besi+Coal→Metal.',cost:{wood:25,stone:25,coal:5},ml:2,cat:'work',
+  ironworks: {n:'Ironworks', e:'🔩',d:'Iron+Coal→Metal.',cost:{wood:25,stone:25,coal:5},ml:2,cat:'work',
               chain:{input:{iron:2,coal:1},output:{metal:2},workers:2}},
-  tradingpost:{n:'Trading Post',e:'🚢',d:'Jual/Beli resource.',cost:{wood:40,stone:30,gold:50},ml:2,cat:'civic'},
-  sawmill:   {n:'Sawmill',   e:'🪚',d:'Kayu→Papan.',    cost:{wood:20,stone:12}, ml:2, cat:'work',
+  tradingpost:{n:'Trading Post',e:'🚢',d:'Buy/Sell resources.',cost:{wood:40,stone:30,gold:50},ml:2,cat:'civic'},
+  sawmill:   {n:'Sawmill',   e:'🪚',d:'Wood→Planks.',    cost:{wood:20,stone:12}, ml:2, cat:'work',
               chain:{input:{wood:2},output:{plank:3},workers:1}},
   quarry:    {n:'Quarry',    e:'⛏',d:'+3 stone/day.', cost:{wood:15},          ml:3,pr:{stone:3},cat:'work'},
   coalmine:  {n:'Coal Mine', e:'⛏',d:'+2 coal/day.',  cost:{wood:20,stone:10}, ml:3,pr:{coal:2},cat:'work'},
@@ -511,34 +609,34 @@ const BD={
 // ── BACKYARD EXTENSION DEFS ──
 // Each house can have ONE backyard type
 const BYARD={
-  smithy:   {n:'Smithy',      e:'⚒', desc:'Buat senjata & armor.',
+  smithy:   {n:'Smithy',      e:'⚒', desc:'Craft weapons & armor.',
              cost:{wood:20,stone:15,metal:5}, req:{metal:1},
              prod:{weapon:1},        prodTime:4,  cat:'craft'},
-  tannery:  {n:'Tannery',     e:'🧴', desc:'Olah kulit jadi leather.',
+  tannery:  {n:'Tannery',     e:'🧴', desc:'Process hides into leather.',
              cost:{wood:15,stone:10},req:{},
              prod:{leather:2},       prodTime:3,  cat:'craft'},
-  chicken:  {n:'Chicken Coop',e:'🐔', desc:'+2 telur & daging/hari.',
+  chicken:  {n:'Chicken Coop',e:'🐔', desc:'+2 eggs & meat/day.',
              cost:{wood:12},         req:{},
              prod:{egg:2,food:1},    prodTime:1,  cat:'animal'},
-  goat:     {n:'Goat Pen',    e:'🐐', desc:'+1 kulit & susu/hari.',
+  goat:     {n:'Goat Pen',    e:'🐐', desc:'+1 hide & milk/day.',
              cost:{wood:15,stone:5}, req:{},
              prod:{leather:1,food:1},prodTime:1,  cat:'animal'},
-  garden:   {n:'Garden',      e:'🥦', desc:'+3 sayuran/hari.',
+  garden:   {n:'Garden',      e:'🥦', desc:'+3 vegetables/day.',
              cost:{wood:8},          req:{},
              prod:{food:3},          prodTime:1,  cat:'grow'},
-  apiary:   {n:'Apiary',      e:'🐝', desc:'+2 madu/hari.',
+  apiary:   {n:'Apiary',      e:'🐝', desc:'+2 honey/day.',
              cost:{wood:14,stone:4}, req:{},
              prod:{honey:2},         prodTime:1,  cat:'grow'},
-  shoemaker:{n:'Shoemaker',   e:'👟', desc:'Buat sepatu dari leather.',
+  shoemaker:{n:'Shoemaker',   e:'👟', desc:'Craft shoes from leather.',
              cost:{wood:12,stone:8}, req:{leather:2},
              prod:{shoe:1},          prodTime:3,  cat:'craft'},
-  tailor:   {n:'Tailor',      e:'🧵', desc:'Buat cloak dari cloth.',
+  tailor:   {n:'Tailor',      e:'🧵', desc:'Craft cloaks from cloth.',
              cost:{wood:12,stone:5}, req:{cloth:1},
              prod:{cloak:1},         prodTime:3,  cat:'craft'},
-  brewery:  {n:'Brewery',     e:'🍺', desc:'Buat bir dari bahan mentah.',
+  brewery:  {n:'Brewery',     e:'🍺', desc:'Brew beer from raw materials.',
              cost:{wood:20,stone:12},req:{food:3},
              prod:{beer:2},          prodTime:2,  cat:'craft'},
-  armor:    {n:'Armorer',     e:'🛡', desc:'Buat armor dari metal.',
+  armor:    {n:'Armorer',     e:'🛡', desc:'Craft armor from metal.',
              cost:{wood:15,stone:15,metal:8},req:{metal:2},
              prod:{armor:1},         prodTime:4,  cat:'craft'},
 };
@@ -583,6 +681,7 @@ function buildWorld(){
     for(let c=0;c<WC;c++){
       const tile=MAP[r][c];
       if(!tile.decor)continue;
+      if(tile.bld)continue; // ← DON'T draw trees over buildings
       const v=hh(c,r);
       const sx=c*TS, sy=r*TS;
       if(tile.decor==='tree'){
@@ -639,11 +738,11 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
     // Farm field - brown soil
     const fert=getTileFertility(c,r);
     const brown=Math.round(60+fert*.2);
-    ctx.fillStyle=`rgb(${brown+20},${brown-10},${brown-30})`;
-    ctx.fillRect(sx-OV,sy-OV,TS+OV*2,TS+OV*2);
+    W.fillStyle=`rgb(${brown+20},${brown-10},${brown-30})`;
+    W.fillRect(sx-OV,sy-OV,TS+OV*2,TS+OV*2);
     // Tilled furrows
-    ctx.strokeStyle=`rgba(0,0,0,0.08)`;ctx.lineWidth=1;
-    for(let i=8;i<TS;i+=8){ctx.beginPath();ctx.moveTo(sx,sy+i);ctx.lineTo(sx+TS,sy+i);ctx.stroke();}
+    W.strokeStyle=`rgba(0,0,0,0.08)`;W.lineWidth=1;
+    for(let i=8;i<TS;i+=8){W.beginPath();W.moveTo(sx,sy+i);W.lineTo(sx+TS,sy+i);W.stroke();}
   } else if(type===T.PATH){
     // Uniform dirt path base
     W.fillStyle='rgb(196,160,92)';
@@ -693,6 +792,29 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
     W.fillStyle=`rgb(${210+sg},${185+sg},${130+sg})`;
     W.fillRect(sx,sy,tw_,th_);
     W.fillStyle=`rgba(255,255,255,0.06)`;W.fillRect(sx,sy,tw_,th_*0.3);
+  } else if(type===T.MARKET_ZONE){
+    // Cobblestone market square
+    W.fillStyle='#c0b090';W.fillRect(sx,sy,tw_,th_);
+    W.strokeStyle='rgba(0,0,0,0.15)';W.lineWidth=1;
+    for(let bi=0;bi<4;bi++) for(let bj=0;bj<4;bj++){
+      const bx=sx+(bi*(tw_/4))|0, by=sy+(bj*(th_/4))|0;
+      const bw=(tw_/4)|0, bh=(th_/4)|0;
+      const off=(bi+bj)%2?1:0;
+      W.fillStyle=`rgba(0,0,0,${0.03+off*0.04})`;W.fillRect(bx,by,bw,bh);
+      W.strokeRect(bx,by,bw,bh);
+    }
+    // Subtle yellow border
+    W.strokeStyle='rgba(220,180,60,0.3)';W.lineWidth=2;W.strokeRect(sx+1,sy+1,tw_-2,th_-2);
+  } else if(type===T.FARM_ZONE){
+    // Tilled soil with fertility tint baked in
+    const fert=getTileFertility((sx/TS)|0,(sy/TS)|0);
+    const g=Math.round(40+fert*0.5);
+    W.fillStyle=`rgb(${100+Math.round(fert*0.2)},${g},20)`;W.fillRect(sx,sy,tw_,th_);
+    // Furrow lines
+    W.strokeStyle=`rgba(0,0,0,0.12)`;W.lineWidth=1;
+    for(let fi=6;fi<th_;fi+=8){W.beginPath();W.moveTo(sx,sy+fi);W.lineTo(sx+tw_,sy+fi);W.stroke();}
+    // Fertility color overlay
+    W.fillStyle=`rgba(0,${Math.round(fert*1.8)},0,0.25)`;W.fillRect(sx,sy,tw_,th_);
   }
 }
 
@@ -735,6 +857,8 @@ function getBaseColor(type,g){
   if(type===T.DIRT)return`rgb(${148+g},${108+g},${58+g})`;
   if(type===T.STONE_G)return`rgb(${118+g},${112+g},${98+g})`;
   if(type===T.FOREST)return`rgb(${34+g},${72+g},${20+g})`;
+  if(type===T.FARM_ZONE)return`rgb(${100+g},${60+g},${20+g})`;
+  if(type===T.MARKET_ZONE)return`rgb(${192+g},${176+g},${144+g})`;
   return`rgb(${210+g},${185+g},${130+g})`;
 }
 
@@ -828,32 +952,38 @@ function genMap(){
     DEER.push({x:ds.c*TS+TS/2,y:ds.r*TS+TS/2,dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,alive:true,respawnT:0});
   }
 
-  // starter buildings
+  // ── STARTING AREA — just a campfire, no pre-built structures ──
+  // Clear a comfortable open area around center
+  for(let dr=-5;dr<=5;dr++) for(let dc=-5;dc<=5;dc++){
+    const r=mr+dr,c=mc+dc;
+    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t!==T.WATER){
+      MAP[r][c].decor=null;
+      if(MAP[r][c].t===T.FOREST) MAP[r][c].t=T.GRASS;
+    }
+  }
+  // Place just the campfire at center
   function pb(type,c2,r2){
     if(!MAP[r2]||!MAP[r2][c2])return;
-    MAP[r2][c2].t=T.GRASS; MAP[r2][c2].decor=null; MAP[r2][c2].bld={type,id:G.nid++,lv:1};
+    MAP[r2][c2].t=T.GRASS; MAP[r2][c2].decor=null;
+    MAP[r2][c2].bld={type,id:G.nid++,lv:1};
     G.bld.push({id:MAP[r2][c2].bld.id,type,lv:1,col:c2,row:r2});
   }
-  pb('house',mc-4,mr-4); pb('house',mc+5,mr-4); pb('house',mc-4,mr-6);
-  pb('well',mc+1,mr-3); pb('farm',mc-8,mr+2); pb('farm',mc-8,mr+4);
-  pb('market',mc+5,mr+1); pb('logger',mc+9,mr-4); pb('church',mc-1,mr-6);
-  pb('blacksmith',mc+5,mr-5);
+  pb('campfire', mc, mr);  // Only the campfire at world center
 
-  // NPCs — 3 keluarga = 6 warga, job=null = idle
-  // NPC structure: {name, x, y, dir, col, job, female, age(days), familyId, pregnant(days), houseId}
-  // age in game-days: 1 year = 90 days, adult = 15*90 = 1350 days
+  // NPCs — 3 families = 6 settlers, all sleeping near campfire
+  const cfId=G.bld.find(b=>b.type==='campfire')?.id??0;
   NPCS=[
-    {name:'Budi',   x:(mc-7)*TS+TS/2,y:(mr+3)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:5400,familyId:0,pregnant:0,houseId:0},
-    {name:'Sari',   x:(mc-5)*TS+TS/2,y:(mr+3)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:4860,familyId:0,pregnant:0,houseId:0},
-    {name:'Wira',   x:(mc-5)*TS+TS/2,y:(mr-5)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:6300,familyId:1,pregnant:0,houseId:1},
-    {name:'Dewi',   x:(mc-3)*TS+TS/2,y:(mr-5)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:5850,familyId:1,pregnant:0,houseId:1},
-    {name:'Hendra', x:(mc+4)*TS+TS/2,y:(mr-6)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:7200,familyId:2,pregnant:0,houseId:2},
-    {name:'Ratna',  x:(mc+6)*TS+TS/2,y:(mr-6)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:6750,familyId:2,pregnant:0,houseId:2},
+    {name:'Budi',   x:(mc-2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:5400,familyId:0,pregnant:0,houseId:cfId},
+    {name:'Sari',   x:(mc+2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:4860,familyId:0,pregnant:0,houseId:cfId},
+    {name:'Wira',   x:(mc-2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:6300,familyId:1,pregnant:0,houseId:cfId},
+    {name:'Dewi',   x:(mc+2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:5850,familyId:1,pregnant:0,houseId:cfId},
+    {name:'Hendra', x:(mc-1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:7200,familyId:2,pregnant:0,houseId:cfId},
+    {name:'Ratna',  x:(mc+1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:6750,familyId:2,pregnant:0,houseId:cfId},
   ];
   FAMILIES=[
-    {id:0,houseId:0,husbandName:'Budi',wifeName:'Sari'},
-    {id:1,houseId:1,husbandName:'Wira',wifeName:'Dewi'},
-    {id:2,houseId:2,husbandName:'Hendra',wifeName:'Ratna'},
+    {id:0,houseId:cfId,husbandName:'Budi',wifeName:'Sari'},
+    {id:1,houseId:cfId,husbandName:'Wira',wifeName:'Dewi'},
+    {id:2,houseId:cfId,husbandName:'Hendra',wifeName:'Ratna'},
   ];
 }
 
@@ -906,58 +1036,23 @@ function drawRockOnCtx(ctx,wx,wy,v){
 }
 function drawRock(wx,wy,v){ drawRockOnCtx(X,wx,wy,v); }
 
-function drawTree(wx,wy,v){
-  const cx=Math.round(wx),bot=Math.round(wy+TS);
-  const v2=((Math.sin(cx*0.317+bot*0.513)*43758)%1+1)%1;
-  const sz=0.82+v*0.36;
-  const lean=(v2-.5)*7;
 
-  // shadow
-  X.fillStyle='rgba(0,0,0,0.18)';
-  X.beginPath();X.ellipse(cx+3,bot-4,20*sz,6*sz,0,0,Math.PI*2);X.fill();
-
-  // trunk
-  const tw=Math.round(5+v*3),th=Math.round(16+v*9);
-  X.fillStyle='#7a4a1a';X.fillRect(cx-tw/2,bot-th,tw,th);
-  X.fillStyle='#5a3210';X.fillRect(cx,bot-th,tw/3,th);
-
-  // roots
-  X.fillStyle='#6a3e14';
-  X.beginPath();X.ellipse(cx-tw/2-2,bot-5,4,3,0.5,0,Math.PI*2);X.fill();
-  X.beginPath();X.ellipse(cx+tw/2+2,bot-5,4,3,-0.5,0,Math.PI*2);X.fill();
-
-  // canopy — irregular multi-blob
-  const base=bot-th-5;
-  X.fillStyle='#163c0c';X.beginPath();X.ellipse(cx+lean*.3,base-9*sz,20*sz,13*sz,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#1e5c14';X.beginPath();X.ellipse(cx+lean*.6-3,base-18*sz,17*sz,12*sz,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#267818';X.beginPath();X.ellipse(cx+lean-9*sz,base-26*sz,13*sz,10*sz,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#1e6812';X.beginPath();X.ellipse(cx+lean+7*sz,base-23*sz,11*sz,9*sz,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#2c8020';X.beginPath();X.ellipse(cx+lean*.8,base-32*sz,9*sz,8*sz,0,0,Math.PI*2);X.fill();
-  // top highlight
-  X.fillStyle='rgba(88,196,52,0.2)';X.beginPath();X.ellipse(cx+lean-6*sz,base-36*sz,5*sz,4*sz,0,0,Math.PI*2);X.fill();
-}
-
-// ─── DRAW ROCKS ───
-function drawRock(wx,wy,v){
-  const cx=Math.round(wx+TS/2),bot=Math.round(wy+TS);
-  const v2=((Math.sin(cx*0.413+bot*0.617)*33521)%1+1)%1;
-  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(cx+2,bot-5,18,5,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#6e6858';X.beginPath();X.ellipse(cx,bot-22,22,18,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#8a8472';X.beginPath();X.ellipse(cx-3,bot-26,17,14,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#a8a298';X.beginPath();X.ellipse(cx-5,bot-30,11,9,0,0,Math.PI*2);X.fill();
-  X.fillStyle='rgba(210,206,196,0.45)';X.beginPath();X.ellipse(cx-8,bot-33,5,4,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#787060';X.beginPath();X.ellipse(cx+16,bot-13,10,8,-0.3,0,Math.PI*2);X.fill();
-  X.fillStyle='#989088';X.beginPath();X.ellipse(cx+14,bot-15,8,7,0,0,Math.PI*2);X.fill();
-  X.strokeStyle='rgba(0,0,0,0.15)';X.lineWidth=1;
-  X.beginPath();X.ellipse(cx,bot-22,22,18,0,0,Math.PI*2);X.stroke();
-}
 
 // ─── BUILDINGS ───
-function drawBuilding(type,lv,wx,wy){
+function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
   const cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
+  const rot=rotation||0;
+  // Apply rotation around tile center
+  if(rot!==0){
+    X.save();
+    X.translate(cx,bot-TS/2);
+    X.rotate(rot*Math.PI/2);
+    X.translate(-cx,-(bot-TS/2));
+  }
   X.fillStyle='rgba(0,0,0,0.15)';
   X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
   switch(type){
+    case 'campfire':   bCampfire(cx,bot,lv);break;
     case 'house':      bHouse(cx,bot,lv);break;
     case 'storage':    bStorage(cx,bot,lv);break;
     case 'farm':       bFarm(cx,bot,lv);break;
@@ -974,6 +1069,27 @@ function drawBuilding(type,lv,wx,wy){
     case 'smelter':    bSmelter(cx,bot,lv);break;
     case 'hunting':    bHunting(cx,bot,lv);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
+  }
+  if(rot!==0) X.restore();
+  // Construction overlay
+  if(under_construction){
+    const prog=build_progress||0; // 0..1
+    // Scaffold lines
+    X.fillStyle='rgba(180,140,60,0.18)';X.fillRect(wx,wy,TS,TS);
+    X.strokeStyle='rgba(200,160,80,0.5)';X.lineWidth=1;
+    for(let i=0;i<TS;i+=10){X.beginPath();X.moveTo(wx,wy+i);X.lineTo(wx+TS,wy+i);X.stroke();}
+    // Hammer icon
+    X.font='18px serif';X.textAlign='center';
+    X.fillText('🔨',cx,bot-TS/2+6);
+    // Progress bar background
+    X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(wx+4,wy+4,TS-8,8);
+    // Progress bar fill
+    const barW=Math.round((TS-8)*prog);
+    const barCol=prog<0.5?'#e0a020':prog<0.8?'#a0d020':'#40d040';
+    X.fillStyle=barCol;X.fillRect(wx+4,wy+4,barW,8);
+    // Percent text
+    X.fillStyle='#fff';X.font='bold 7px monospace';X.textAlign='center';
+    X.fillText(Math.round(prog*100)+'%',cx,wy+11);
   }
 }
 
@@ -1056,7 +1172,60 @@ function CHIMNEY(cx,y,h=26){
   SMOKE(cx,y-h-5);
 }
 
-// ── RUMAH DESA (village house) — referensi: rumah putih atap genteng ──
+// ── VILLAGE HOUSE — reference: village putih atap genteng ──
+// ── CAMPFIRE ──
+function bCampfire(cx,bot,lv){
+  const t=Date.now()/300;
+  // Ground circle / ash ring
+  X.fillStyle='rgba(0,0,0,0.25)';X.beginPath();X.ellipse(cx,bot-4,22,8,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#555040';X.beginPath();X.ellipse(cx,bot-4,18,6,0,0,Math.PI*2);X.fill();
+  // Rocks around fire
+  const rocks=[{a:0},{a:1.1},{a:2.2},{a:3.3},{a:4.4},{a:5.5}];
+  for(const rk of rocks){
+    const rx=cx+Math.cos(rk.a)*14,ry=bot-4+Math.sin(rk.a)*5;
+    X.fillStyle='#706858';X.beginPath();X.ellipse(rx,ry,5,3,rk.a,0,Math.PI*2);X.fill();
+    X.fillStyle='#8a8070';X.beginPath();X.ellipse(rx-1,ry-1,3,2,rk.a,0,Math.PI*2);X.fill();
+  }
+  // Logs
+  X.fillStyle='#6a3a10';X.save();X.translate(cx,bot-6);X.rotate(0.5);X.fillRect(-14,-3,28,6);X.restore();
+  X.fillStyle='#5a2e0c';X.save();X.translate(cx,bot-6);X.rotate(-0.5);X.fillRect(-14,-3,28,6);X.restore();
+  // Embers
+  X.fillStyle='#e04000';X.beginPath();X.ellipse(cx,bot-7,8,4,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#ff8000';X.beginPath();X.ellipse(cx,bot-8,5,3,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#ffcc00';X.beginPath();X.ellipse(cx,bot-9,2,2,0,0,Math.PI*2);X.fill();
+  // Animated flames
+  for(let fi=0;fi<5;fi++){
+    const fx=cx+(-10+fi*5)+Math.sin(t+fi*1.3)*3;
+    const fh=16+Math.sin(t*1.2+fi)*6;
+    const alpha=0.7+Math.sin(t+fi)*0.2;
+    // Outer flame (orange)
+    X.fillStyle=`rgba(240,100,10,${alpha*0.8})`;
+    X.beginPath();X.moveTo(fx-4,bot-10);X.quadraticCurveTo(fx+5,bot-10-fh*0.4,fx,bot-10-fh);X.quadraticCurveTo(fx-5,bot-10-fh*0.4,fx-4,bot-10);X.fill();
+    // Inner flame (yellow)
+    X.fillStyle=`rgba(255,200,20,${alpha*0.9})`;
+    X.beginPath();X.moveTo(fx-2,bot-11);X.quadraticCurveTo(fx+3,bot-11-fh*0.3,fx,bot-11-fh*0.7);X.quadraticCurveTo(fx-3,bot-11-fh*0.3,fx-2,bot-11);X.fill();
+  }
+  // Smoke puffs
+  for(let si=0;si<3;si++){
+    const sy2=bot-28-si*10+Math.sin(t*0.5+si)*3;
+    const sx2=cx+Math.sin(t*0.3+si*2)*6;
+    const sa=Math.max(0,0.2-si*0.06);
+    X.fillStyle=`rgba(180,180,180,${sa})`;X.beginPath();X.arc(sx2,sy2,4+si*2,0,Math.PI*2);X.fill();
+  }
+  // Glow overlay
+  const grd=X.createRadialGradient(cx,bot-12,2,cx,bot-12,28);
+  grd.addColorStop(0,'rgba(255,160,20,0.18)');
+  grd.addColorStop(1,'rgba(255,100,0,0)');
+  X.fillStyle=grd;X.fillRect(cx-28,bot-40,56,40);
+  // "Campfire" label
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-24,bot-52,48,11);
+  X.fillStyle='#f0a030';X.font='bold 7px monospace';X.textAlign='center';X.fillText('CAMPFIRE',cx,bot-43);
+  // Capacity indicator
+  const campers=NPCS.filter(n=>n.houseId==='campfire').length;
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-16,bot-42,32,10);
+  X.fillStyle='#f0d060';X.font='7px monospace';X.textAlign='center';X.fillText(`${campers}/6`,cx,bot-34);
+}
+
 function bHouse(cx,bot,lv){
   const W=76+lv*8, H=52+lv*5, wy=bot-H-20;
 
@@ -1082,7 +1251,7 @@ function bHouse(cx,bot,lv){
   FR(cx-W/2, wy, W, 4, 'rgba(255,255,255,0.18)'); // top highlight
   FR(cx+W/2-3, wy, 3, H+pH, 'rgba(0,0,0,0.08)');
   FR(cx-W/2, wy+H+pH-3, W, 3, 'rgba(0,0,0,0.1)');
-  // Plester texture — halus, bukan kayu
+  // Plaster texture — smooth, not wood
   X.fillStyle='rgba(0,0,0,0.025)';
   for(let i=16;i<H+pH;i+=16) X.fillRect(Math.round(cx-W/2+1),Math.round(wy+i),Math.round(W-2),1);
 
@@ -1111,7 +1280,7 @@ function bHouse(cx,bot,lv){
 
   }
 
-  // ── PINTU KAYU COKLAT — center, proporsional ──
+  // ── BROWN WOODEN DOOR — centered, proportional ──
   const dw=20, dh=30, dx2=cx-dw/2, dy2=bot-pH-dh;
   // Frame kusen
   FR(dx2-2, dy2-2, dw+4, dh+2, '#c8a870');
@@ -1871,7 +2040,7 @@ function drawPlayer(){
   const jas='#2a1a4a';        // jas beludru ungu gelap
   const jasLight='#3a2a5a';   // highlight jas
   const sarung='#8b4513';     // sarung batik coklat
-  const sabuk='#c8940a';      // sabuk/selendang emas
+  const sabuk='#c8940a';      // gold belt/sash
   const sepatu='#1a1010';     // sepatu hitam
 
   // Shadow
@@ -1889,7 +2058,7 @@ function drawPlayer(){
 
   // ── BADAN (jas beludru) ──
   FR(px-5, py-16+bob, 10,13, jas);
-  FR(px-5, py-16+bob, 10,5, jasLight);  // bahu lebih terang
+  FR(px-5, py-16+bob, 10,5, jasLight);  // shoulder highlight
   // kancing emas di tengah
   FR(px-1, py-15+bob, 2,2, sabuk);
   FR(px-1, py-12+bob, 2,2, sabuk);
@@ -1916,7 +2085,7 @@ function drawPlayer(){
   // ── KEPALA ──
   FR(px-5, py-27+bob, 10,12, skin);
   if(dir===2){FR(px-3,py-22+bob,2,2,'#1a0808');FR(px+1,py-22+bob,2,2,'#1a0808');}
-  // kumis tipis kepala desa
+  // village chief's thin mustache
   if(dir===2){FR(px-3,py-19+bob,6,1,'#2a1808');}
 
   // ── BLANGKON (topi batik Jawa) ──
@@ -1937,7 +2106,7 @@ function drawPlayer(){
   // brim bawah blangkon
   FR(px-7,hy-3,14,3,'#1a1228');
 
-  // ── TONGKAT KEPALA DESA (saat tidak bergerak) ──
+  // ── CHIEF'S STAFF (when not moving) ──
   if(!moving){
     FR(px+10,py-36+bob,3,36,'#7a5820');
     // kepala tongkat bulat emas
@@ -2292,14 +2461,14 @@ function doInteract(){
 // bonus = building that multiplies output
 const JOBS={
   idle:   {n:'Idle',     e:'😴',prod:{},         req:null,       mult:null},
-  farmer: {n:'Petani',   e:'🌾',prod:{food:3},   req:'farm',     mult:'mill'},
-  logger: {n:'Penebang', e:'🪓',prod:{wood:4},   req:'logger',   mult:'sawmill'},
-  miner:  {n:'Penambang',e:'⛏',prod:{stone:3},  req:'quarry',   mult:null},
+  farmer: {n:'Farmer',   e:'🌾',prod:{food:3},   req:'farm',     mult:'mill'},
+  logger: {n:'Lumberjack', e:'🪓',prod:{wood:4},   req:'logger',   mult:'sawmill'},
+  miner:  {n:'Miner',e:'⛏',prod:{stone:3},  req:'quarry',   mult:null},
   smelter:{n:'Smelter',  e:'🔥',prod:{metal:1},  req:'smelter',  mult:null},
-  trader: {n:'Pedagang', e:'💰',prod:{gold:2},   req:'market',   mult:null},
+  trader: {n:'Trader', e:'💰',prod:{gold:2},   req:'market',   mult:null},
   builder:{n:'Builder',  e:'🔨',prod:{wood:1,stone:1},req:'blacksmith',mult:null},
-  fisher: {n:'Nelayan',  e:'🎣',prod:{food:2},   req:null,       mult:null},
-  hunter: {n:'Pemburu',  e:'🏹',prod:{meat:2,food:1},req:'hunting', mult:null},
+  fisher: {n:'Fisher',  e:'🎣',prod:{food:2},   req:null,       mult:null},
+  hunter: {n:'Hunter',  e:'🏹',prod:{meat:2,food:1},req:'hunting', mult:null},
 };
 
 // Get actual output for a worker given current buildings
@@ -2349,7 +2518,7 @@ function toggleWorkerPanel(){
     }).length;
     if(shortBuildings>0){
       laborWarn.style.display='block';
-      laborWarn.textContent='⚠ '+shortBuildings+' bangunan tanpa pekerja';
+      laborWarn.textContent='⚠ '+shortBuildings+' buildings without workers';
     } else { laborWarn.style.display='none'; }
   }
   if(wpOpen)renderWorkerPanel();
@@ -2357,7 +2526,7 @@ function toggleWorkerPanel(){
 
 function ageStr(days){
   const yr=Math.floor(days/90);
-  return yr+'th';
+  return yr+'y';
 }
 
 function renderWorkerPanel(){
@@ -2372,7 +2541,7 @@ function renderWorkerPanel(){
   const assignedSet=new Set(Object.values(G.bldWorkers).flat().filter(n=>n));
   const homebiz=NPCS.filter(n=>isAdult(n)&&isHomeBusiness(n.houseId)).length;
   const idle=totalAdults-assignedSet.size-homebiz;
-  sumHdr.innerHTML=`👨 ${totalAdults} dewasa | 🔨 ${assignedSet.size} ditugaskan | 🏠 ${homebiz} bisnis rumah | 💤 ${idle} idle`;
+  sumHdr.innerHTML=`👨 ${totalAdults} adults | 🔨 ${assignedSet.size} assigned | 🏠 ${homebiz} home business | 💤 ${idle} idle`;
   list.appendChild(sumHdr);
 
   // Group by family/house
@@ -2389,7 +2558,7 @@ function renderWorkerPanel(){
     const famHead=members.find(n=>!n.female)?.name||'?';
     const byardInfo=house?.backyard?(' — 🏡 '+BYARD[house.backyard.type]?.n):'';
     const houseLv=house?` Lv.${house.lv}`:'';
-    hdr.innerHTML=`🏠 Keluarga ${famHead}${houseLv}${byardInfo}${homeBiz?' 🔒 Bisnis Rumah':''}`;
+    hdr.innerHTML=`🏠 Family ${famHead}${houseLv}${byardInfo}${homeBiz?' 🔒 Home Business':''}`;
     list.appendChild(hdr);
 
     for(const npc of members){
@@ -2420,7 +2589,7 @@ function renderWorkerPanel(){
           // Locked to home business
           const bizLbl=document.createElement('div');
           bizLbl.style.cssText='font-size:10px;color:#c08030;flex:1;text-align:right';
-          bizLbl.textContent='🔒 Bisnis Rumah';
+          bizLbl.textContent='🔒 Home Business';
           row.appendChild(bizLbl);
         } else {
           // Job dropdown
@@ -2453,7 +2622,7 @@ function renderWorkerPanel(){
         const kidLbl=document.createElement('div');
         kidLbl.style.cssText='font-size:10px;color:#a08040;flex:1;text-align:right;';
         const yrsLeft=Math.ceil((ADULT_DAYS-npc.age)/90);
-        kidLbl.textContent=`dewasa ${yrsLeft} th lagi`;
+        kidLbl.textContent=`adult in ${yrsLeft} yrs`;
         row.appendChild(kidLbl);
       }
       list.appendChild(row);
@@ -2470,7 +2639,7 @@ function renderWorkerPanel(){
   if(bldNeedWorkers.length>0){
     const warn=document.createElement('div');
     warn.style.cssText='padding:6px 8px;font-size:10px;color:#c06020;border-top:2px solid #3a2a10;';
-    warn.innerHTML=`⚠ ${bldNeedWorkers.length} bangunan kekurangan pekerja`;
+    warn.innerHTML=`⚠ ${bldNeedWorkers.length} buildings need workers`;
     list.appendChild(warn);
   }
 }
@@ -2478,11 +2647,27 @@ function renderWorkerPanel(){
 
 function canAff(cost){ for(const[k,v]of Object.entries(cost)) if((G.res[k]||0)<v) return false; return true; }
 function pay(cost){ for(const[k,v]of Object.entries(cost)) G.res[k]=(G.res[k]||0)-v; updateUI(); }
+function addR(res,amt){
+  if(!amt||amt<=0)return;
+  if(!(res in G.res))G.res[res]=0;
+  G.res[res]=(G.res[res]||0)+Math.round(amt);
+}
+function hasStorageWorker(resType){
+  // Check if granary or storehouse has a worker assigned for given resource type
+  const isFood=GRANARY_RES.includes(resType);
+  const storageType=isFood?'granary':'storehouse';
+  const stores=G.bld.filter(b=>b.type===storageType);
+  for(const s of stores){
+    const workers=(G.bldWorkers[s.id]||[]).filter(n=>n);
+    if(workers.length>0)return true;
+  }
+  return true; // fallback: allow production if no storage building present
+}
 
 // ─── NOTIFY ───
 function notify(msg,type='ok'){
   const n=document.createElement('div');
-  n.className='notif '+(type==='err'?'nerr':type==='warn'?'nwarn':'nok');
+  n.className='ntf '+(type==='err'?'err':type==='warn'?'warn':'ok');
   n.textContent=msg;
   const c=document.getElementById('notifs');
   if(c){c.appendChild(n);setTimeout(()=>n.remove(),3200);}
@@ -2502,6 +2687,9 @@ function updateUI(){
   const _rplk=document.getElementById('rplk');if(_rplk)_rplk.textContent=G.res.plank||0;
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
+  // Regional Wealth & Treasury HUD
+  const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
+  const _trd=document.getElementById('trs-display');if(_trd)_trd.textContent=Math.floor(G.res.treasury||0);
   upPop();
   const adults=getAdults().length;
   const kids=NPCS.length-adults;
@@ -2509,7 +2697,7 @@ function updateUI(){
   document.getElementById('cap').textContent=G.cap;
   const totalPending=Object.values(G.pending||{}).reduce((a,b)=>a+b,0);
   const _pend=document.getElementById('res-pending');
-  if(_pend){if(totalPending>0){_pend.textContent='⚠ '+totalPending+' menunggu pekerja gudang';_pend.style.display='block';}else{_pend.textContent='';_pend.style.display='none';}}
+  if(_pend){if(totalPending>0){_pend.textContent='⚠ '+totalPending+' waiting for storage workers';_pend.style.display='block';}else{_pend.textContent='';_pend.style.display='none';}}
   // Market status
   if(G.market){
     const mkt=document.getElementById('mkt-status');
@@ -2521,7 +2709,7 @@ function updateUI(){
     }
   }
   const laborWarn=document.getElementById('labor-warn');
-  if(laborWarn){const shortBuildings=G.bld.filter(b=>{const mw=BLD_WORKERS[b.type]||0;return mw>0&&(G.bldWorkers[b.id]||[]).filter(n=>n).length===0;}).length;if(shortBuildings>0){laborWarn.style.display='block';laborWarn.textContent='⚠ '+shortBuildings+' bangunan tanpa pekerja';}else laborWarn.style.display='none';}
+  if(laborWarn){const shortBuildings=G.bld.filter(b=>{const mw=BLD_WORKERS[b.type]||0;return mw>0&&(G.bldWorkers[b.id]||[]).filter(n=>n).length===0;}).length;if(shortBuildings>0){laborWarn.style.display='block';laborWarn.textContent='⚠ '+shortBuildings+' buildings without workers';}else laborWarn.style.display='none';}
   // Season label
   const sl=document.getElementById('season');if(sl)sl.textContent=(['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'][G.season||0])+' Y'+G.yr;
   const tl=document.getElementById('timelbl');if(tl)tl.textContent='Day '+G.day;
@@ -2559,7 +2747,7 @@ function solid(wx,wy){
 }
 
 function updateCam(){
-  const vw=CV.width,vh=CV.height-HH-BH;
+  const vw=CV.width,vh=Math.max(CV.height-HH-BH,200);
   let tx=Math.round(-(PL.x-vw/2)),ty=Math.round(-(PL.y-vh/2));
   tx=Math.min(0,Math.max(tx,-(WPX-vw)));
   ty=Math.min(0,Math.max(ty,-(WPY-vh)));
@@ -2569,9 +2757,10 @@ function updateCam(){
   camY=Math.round(camY+(ty-camY)*lp);
 }
 function centerCam(){
-  const vw=CV.width,vh=CV.height-HH-BH;
+  const vw=CV.width,vh=Math.max(CV.height-HH-BH,200);
   camX=Math.round(-(PL.x-vw/2));camY=Math.round(-(PL.y-vh/2));
-  camX=Math.min(0,Math.max(camX,-(WPX-vw)));camY=Math.min(0,Math.max(camY,-(WPY-vh)));
+  camX=Math.min(0,Math.max(camX,-(WPX-vw)));
+  camY=Math.min(0,Math.max(camY,-(WPY-vh)));
 }
 
 // ─── TICK ───
@@ -2583,6 +2772,118 @@ function tick(){
   }
   const _tl=document.getElementById('timelbl');if(_tl)_tl.textContent='Day '+G.day;
   const _tl2=document.getElementById('timelbl2');if(_tl2)_tl2.textContent=String(G.hr).padStart(2,'0')+':'+String(G.mn).padStart(2,'0');
+}
+
+// ─── MISSING: GHOST TILE (hover highlight) ───
+let ghostTile={c:-1,r:-1};
+
+// ─── MISSING: FARM FIELD FUNCTIONS ───
+function tryPlaceField(c,r){
+  if(c<0||c>=WC||r<0||r>=WR)return;
+  const tile=MAP[r][c];
+  if(tile.t===T.WATER||tile.bld||tile.decor==='tree')return;
+  if(tile.t===T.FIELD)return; // already a field
+  // Find nearest farm building to assign to
+  let nearFarm=null, nearDist=999;
+  for(const b of G.bld){
+    if(b.type!=='farm')continue;
+    const dx=b.col-c, dy=b.row-r;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<nearDist){nearDist=d;nearFarm=b;}
+  }
+  if(!nearFarm||nearDist>6){notify('Must be near a Farm!','err');return;}
+  tile.t=T.FIELD;tile.decor=null;
+  G.fields.push({col:c,row:r,crop:'wheat',fertility:getTileFertility(c,r),growStage:0,rotation:0,farmId:nearFarm.id});
+  rebuildTile(c,r);
+}
+
+function removeField(c,r){
+  G.fields=G.fields.filter(f=>!(f.col===c&&f.row===r));
+  if(MAP[r]&&MAP[r][c])MAP[r][c].t=T.GRASS;
+}
+
+function doFarmProd(){
+  const season=getSeason();
+  const mul=season===3?0.5:season===1?1.3:1.0;
+  for(const field of G.fields){
+    // Find owning farm
+    const farm=G.bld.find(b=>b.id===field.farmId&&b.type==='farm');
+    if(!farm)continue;
+    const workers=(G.bldWorkers[farm.id]||[]).filter(n=>n).length;
+    if(!workers)continue;
+    const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
+    // Grow stage progression
+    if(field.growStage===0&&season===crop.plant){
+      field.growStage=1; // planted
+    } else if(field.growStage===1){
+      field.growStage=2; // growing
+    } else if(field.growStage===2&&season===crop.harvest){
+      field.growStage=3; // ready to harvest
+    } else if(field.growStage===3){
+      // Harvest
+      const fertBonus=1+(field.fertility-50)/200;
+      for(const[res,amt]of Object.entries(crop.output)){
+        addR(res,Math.round(amt*fertBonus*mul*farm.lv));
+      }
+      field.growStage=4; // harvested
+      field.fertility=Math.max(20,field.fertility-5+(Math.random()*10|0));
+      G.farmStats.totalHarvests++;
+      // Rotate crop
+      const ri=(CROP_ROTATION.indexOf(field.crop)+1)%CROP_ROTATION.length;
+      field.crop=CROP_ROTATION[ri];
+    } else if(field.growStage===4){
+      field.growStage=0; // reset for next season
+    }
+  }
+}
+
+function collectPending(){
+  if(!G.pending)return;
+  for(const[res,amt]of Object.entries(G.pending)){
+    if(amt>0)addR(res,amt);
+  }
+  G.pending={};
+}
+
+// ─── MISSING: FARM PANEL (open field management) ───
+function openFarmPanel(farmId){
+  const farm=G.bld.find(b=>b.id===farmId);
+  if(!farm)return;
+  const fields=G.fields.filter(f=>f.farmId===farmId);
+  const stageNames=['Empty','Planted','Growing','Ready to Harvest','Harvested'];
+  const cropInfo=fields.map((f,i)=>{
+    const c=CROPS[f.crop]||CROPS.wheat;
+    return `Field ${i+1}: ${c.e} ${c.n} — ${stageNames[f.growStage]||'?'} (fertility ${f.fertility})`;
+  }).join('\n')||'No fields yet. Use FIELD mode to add fields.';
+  openDlg('🌾 Farm Lv.'+farm.lv+' — '+fields.length+' Fields',cropInfo,[
+    {l:'✖ Close',cls:'',fn:closeDialog}
+  ]);
+}
+
+// ─── MISSING: TRADING POST PANEL ───
+function openTradePanel(bldId){
+  const recipes=[
+    {sell:'food',buy:'gold',rate:5,label:'Sell 5 Food → 1 Gold'},
+    {sell:'wood',buy:'gold',rate:8,label:'Sell 8 Wood → 1 Gold'},
+    {sell:'stone',buy:'gold',rate:6,label:'Sell 6 Stone → 1 Gold'},
+    {sell:'gold',buy:'iron',rate:3,label:'Buy Iron: 3 Gold → 2 Iron'},
+    {sell:'gold',buy:'cloth',rate:4,label:'Buy Cloth: 4 Gold → 1 Cloth'},
+  ];
+  const btns=recipes.map(r=>({
+    l:r.label,cls:'ok',
+    fn:()=>{
+      if(r.buy==='gold'){
+        if((G.res[r.sell]||0)<r.rate){notify('Not enough '+r.sell+'!','err');return;}
+        G.res[r.sell]-=r.rate;addR('gold',1);notify('💰 Sold successfully!','ok');
+      } else {
+        if((G.res.gold||0)<r.rate){notify('Not enough gold!','err');return;}
+        G.res.gold-=r.rate;addR(r.buy,r.buy==='iron'?2:1);notify('✅ Purchased successfully!','ok');
+      }
+      updateUI();
+    }
+  }));
+  btns.push({l:'✖ Close',cls:'',fn:closeDialog});
+  openDlg('🚢 Trading Post','Exchange resources for gold.',btns);
 }
 
 // ─── PRODUCTION ───
@@ -2603,19 +2904,50 @@ function doProd(){
     beerNeed+=Math.ceil((needs.beer||0)*residents);
   }
   if(G.res.food>=foodNeed)G.res.food-=foodNeed;
-  else{G.happy=Math.max(10,G.happy-5);notify('😟 Warga kelaparan!','warn');}
+  else{G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
   if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal-=coalNeed;else G.happy=Math.max(10,G.happy-3);}
-  if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth-=clothNeed;else{G.happy=Math.max(10,G.happy-3);notify('👘 Butuh pakaian!','warn');}}
+  if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth-=clothNeed;else{G.happy=Math.max(10,G.happy-3);notify('👘 Need clothing!','warn');}}
   if(beerNeed>0&&(G.res.beer||0)>=beerNeed){G.res.beer-=beerNeed;G.happy=Math.min(100,G.happy+1);}
 
-  // Tax
+  // Tax — split between Regional Wealth (city) and Treasury (lord)
   let taxTotal=0;
   for(const b of G.bld){
     if(b.type!=='house')continue;
     const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
     taxTotal+=(BD.house.tax[b.lv]||1)*(workers>0?1:0.5);
   }
-  if(taxTotal>0){const tg=Math.round(taxTotal);G.res.gold=(G.res.gold||0)+tg;G.res.wealth=(G.res.wealth||0)+tg;}
+  if(taxTotal>0){
+    const tg=Math.round(taxTotal);
+    // 60% goes to Regional Wealth (city), 40% to Treasury (lord)
+    const toRW=Math.round(tg*0.6);
+    const toTRS=tg-toRW;
+    G.res.gold=(G.res.gold||0)+tg; // legacy
+    G.res.wealth=(G.res.wealth||0)+tg; // legacy
+    G.res.regional_wealth=(G.res.regional_wealth||0)+toRW;
+    G.res.treasury=(G.res.treasury||0)+toTRS;
+    rwLog(`🏠 House tax: +${toRW} RW, +${toTRS} Treasury`);
+  }
+
+  // Trading Post income → Regional Wealth
+  const tradePosts=G.bld.filter(b=>b.type==='tradingpost');
+  for(const tp of tradePosts){
+    const workers=(G.bldWorkers[tp.id]||[]).filter(n=>n).length;
+    if(!workers) continue;
+    const tradeIncome=Math.round(4*tp.lv*workers);
+    G.res.regional_wealth=(G.res.regional_wealth||0)+tradeIncome;
+    rwLog(`🚢 Trade income: +${tradeIncome} RW`);
+  }
+
+  // Goods production bonus → Regional Wealth (shoes, ale, leather, cloak, weapon)
+  const rwGoods={shoe:3,cloak:3,ale:2,leather:2,weapon:4,armor:5,beer:1};
+  for(const[res,rwPer]of Object.entries(rwGoods)){
+    const have=G.res[res]||0;
+    if(have>=5){
+      // Surplus goods generate RW passively
+      const bonus=Math.floor(have/5)*rwPer;
+      G.res.regional_wealth=(G.res.regional_wealth||0)+bonus;
+    }
+  }
 
   // Age NPCs
   for(const npc of NPCS)npc.age+=2;
@@ -2629,7 +2961,7 @@ function doProd(){
       npc.pregnant=0;
       const housemates=NPCS.filter(n=>n.houseId===npc.houseId);
       if(housemates.length<4)babies.push({npc,houseId:npc.houseId,familyId:npc.familyId});
-      else notify(npc.name+' melahirkan tapi rumah penuh!','warn');
+      else notify(npc.name+' gave birth to but the house is full!','warn');
     }
   }
   for(const b of babies){
@@ -2641,7 +2973,7 @@ function doProd(){
       dir:2,col:isFemale?'#f0a0c0':'#a0d0f0',job:null,female:isFemale,age:0,
       familyId:b.familyId,pregnant:0,houseId:b.houseId};
     NPCS.push(baby);
-    notify('👶 '+npcMom.name+' melahirkan '+bname+'!','ok');
+    notify('👶 '+npcMom.name+' gave birth to '+bname+'!','ok');
   }
   // Pregnancy chance
   if(G.res.food>10){
@@ -2650,15 +2982,16 @@ function doProd(){
       const housemates=NPCS.filter(n=>n.houseId===npc.houseId);
       const hasHusband=housemates.some(n=>!n.female&&isAdult(n));
       const kidsInHouse=housemates.filter(n=>!isAdult(n)).length;
-      if(hasHusband&&kidsInHouse<2&&housemates.length<4&&Math.random()<0.008){npc.pregnant=1;notify('🤰 '+npc.name+' hamil!','ok');}
+      if(hasHusband&&kidsInHouse<2&&housemates.length<4&&Math.random()<0.008){npc.pregnant=1;notify('🤰 '+npc.name+' is pregnant!','ok');}
     }
   }
   // Adulthood
-  for(const npc of NPCS){if(npc.age>=ADULT_DAYS&&npc.age-2<ADULT_DAYS)notify('🎉 '+npc.name+' sudah dewasa!','ok');}
+  for(const npc of NPCS){if(npc.age>=ADULT_DAYS&&npc.age-2<ADULT_DAYS)notify('🎉 '+npc.name+' is now an adult!','ok');}
 
   // Chain production (bakery, malthouse, ironworks)
   for(const b of G.bld){
     const d=BD[b.type];if(!d.chain)continue;
+    if(b.under_construction) continue; // not ready yet
     const maxW=BLD_WORKERS[b.type]||d.chain.workers||2;
     const workerNames=(G.bldWorkers[b.id]||[]).filter(n=>n);
     const workers=workerNames.length;
@@ -2675,6 +3008,7 @@ function doProd(){
   // Simple production
   for(const b of G.bld){
     const d=BD[b.type];if(!d.pr)continue;
+    if(b.under_construction) continue; // not ready yet
     const maxW=BLD_WORKERS[b.type]||0;
     const workerNames=maxW>0?(G.bldWorkers[b.id]||[]).filter(n=>n):[];
     const workers=workerNames.length||(maxW>0?0:1);
@@ -2693,7 +3027,7 @@ function doProd(){
     const wMul=maxW>0?workers*effMul:1;
     if(b.type==='market'){
       const hasFoodWorker=hasStorageWorker('food'),hasMatWorker=hasStorageWorker('wood');
-      if(!hasFoodWorker&&!hasMatWorker){if(!b._noStockWarn){b._noStockWarn=true;notify('🏪 Pasar kehabisan stok!','warn');}continue;}
+      if(!hasFoodWorker&&!hasMatWorker){if(!b._noStockWarn){b._noStockWarn=true;notify('🏪 Market out of stock!','warn');}continue;}
       b._noStockWarn=false;
     }
     for(const[res,amt]of Object.entries(d.pr)){
@@ -2703,18 +3037,29 @@ function doProd(){
     }
   }
 
-  doFarmProd();doByardProd();collectPending();updateMarket();checkPopGrowth();
-  upPop();updateUI();
-}
+  doFarmProd();doByardProd();collectPending();updateMarket();checkPopGrowth();doTraderSpawn();
 
-// ─── JOB OUTPUT ───
-function jobOutput(job){
-  const j=JOBS[job];if(!j)return{prod:{},active:false};
-  if(job==='idle')return{prod:{},active:false};
-  if(j.req&&!G.bld.some(b=>b.type===j.req))return{prod:{},active:false,missing:j.req};
-  const prod={};
-  if(j.prod){for(const[k,v]of Object.entries(j.prod))prod[k]=v;}
-  return{prod,active:true};
+  // ── CONSTRUCTION PROGRESS ──
+  // Each idle adult worker in village helps build. More workers = faster.
+  const idleWorkers=NPCS.filter(n=>isAdult(n)&&(!n.job||n.job==='idle')&&
+    !Object.values(G.bldWorkers).flat().includes(n.name)).length;
+  const builderBonus=Math.max(1, idleWorkers); // at least 1 tick progress
+  for(const bld of G.bld){
+    if(!bld.under_construction) continue;
+    // Each assigned worker or idle villager reduces ticks
+    const assigned=(G.bldWorkers[bld.id]||[]).filter(n=>n).length;
+    const speedup=Math.max(1, assigned + Math.floor(builderBonus*0.5));
+    bld.build_ticks_left=Math.max(0, (bld.build_ticks_left||0) - speedup);
+    if(bld.build_ticks_left<=0){
+      bld.under_construction=false;
+      delete bld.build_ticks_left;
+      delete bld.build_ticks_total;
+      notify('✅ '+BD[bld.type].n+' construction complete!','ok');
+      rebuildTile(bld.col, bld.row);
+    }
+  }
+
+  upPop();updateUI();
 }
 
 // ─── BUILD MODE ───
@@ -2722,19 +3067,74 @@ function jobOutput(job){
 function setMode(m){
   G.mode=m;
   if(m!=='build'){buildType=null;}
+  if(m!=='farmzone'&&m!=='marketzone'){zoneDragStart=null;}
   updateModeUI();
 }
 function updateModeUI(){
-  document.querySelectorAll('.tbbtn').forEach(b=>b.classList.remove('active'));
-  const modeMap={walk:'tbwalk',build:'tbbuild',road:'tbroad',field:'tbfield',erase:'tberase',demo:'tbdemo'};
+  ['tb-walk','tb-build','tb-road','tb-erase','tb-demo','tb-farmzone','tb-marketzone'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.remove('on');
+  });
+  const modeMap={walk:'tb-walk',build:'tb-build',road:'tb-road',erase:'tb-erase',demo:'tb-demo',farmzone:'tb-farmzone',marketzone:'tb-marketzone'};
   const active=document.getElementById(modeMap[G.mode]);
-  if(active)active.classList.add('active');
+  if(active)active.classList.add('on');
 }
-function toggleWorkerPanel(){
-  wpOpen=!wpOpen;
-  const wp=document.getElementById('wpanel');
-  if(wp)wp.classList.toggle('show',wpOpen);
-  if(wpOpen)renderWorkerPanel();
+
+function toggleBuildPanel(){
+  const bp=document.getElementById('buildpanel');
+  if(!bp)return;
+  const isShow=bp.classList.toggle('show');
+  if(isShow){
+    G.mode='build'; updateModeUI();
+    swBPTab('house', document.querySelector('.bptab'));
+  } else {
+    G.mode='walk'; buildType=null; updateModeUI();
+  }
+}
+
+function swBPTab(cat, el){
+  document.querySelectorAll('.bptab').forEach(b=>b.classList.remove('on'));
+  if(el)el.classList.add('on');
+  const scroll=document.getElementById('bpscroll');
+  if(!scroll)return;
+  scroll.innerHTML='';
+  // Map tab names to BD categories
+  const catMap={house:['house','storage','granary','storehouse'],food:['farm','orchard','mill','granary','malthouse','bakery'],work:['logger','quarry','coalmine','ironmine','smelter','sawmill','ironworks','blacksmith','hunting'],civic:['campfire','well','church','market','tradingpost','food_stall','fuel_stall','clothing_stall']};
+  const items=catMap[cat]||[];
+  for(const key of items){
+    const d=BD[key];if(!d)continue;
+    const costStr=Object.entries(d.cost).map(([k,v])=>v+' '+k).join(', ');
+    const div=document.createElement('div');
+    div.className='bitem'+(buildType===key?' on':'');
+    div.innerHTML=`<span class="bi">${d.e||'🏢'}</span><span class="bn">${d.n}</span><span class="bc">${costStr}</span>`;
+    div.onclick=()=>{
+      buildType=key; G.mode='build'; updateModeUI();
+      document.querySelectorAll('.bitem').forEach(b=>b.classList.remove('on'));
+      div.classList.add('on');
+      const bp=document.getElementById('buildpanel');
+      if(bp)bp.classList.remove('show');
+    };
+    scroll.appendChild(div);
+  }
+}
+
+function togglePause(){
+  G.paused=!G.paused;
+  const btn=document.getElementById('tb-pause');
+  if(btn)btn.textContent=G.paused?'▶':'⏸';
+  notify(G.paused?'⏸ Paused':'▶ Resumed', 'ok');
+}
+
+function showNPCDlg(npc){
+  const ageYears=Math.floor(npc.age/90);
+  const job=npc.job||'Idle';
+  const house=G.bld.find(b=>b.id===npc.houseId);
+  const houseInfo=house?`House #${house.id} (Lv.${house.lv})`:'Homeless';
+  const pregInfo=npc.pregnant?` | 🤰 Pregnant (${Math.floor(npc.pregnant/PREG_DAYS*100)}%)`:'';
+  const msg=`Age: ${ageYears} yrs${pregInfo}\nWorkersan: ${job}\n${houseInfo}`;
+  openDlg(npc.col?`${npc.female?'👩':'👨'} ${npc.name}`:npc.name, msg,[
+    {l:'✖ Close',cls:'',fn:closeDialog}
+  ]);
 }
 
 // Road placement
@@ -2763,73 +3163,92 @@ function tryPlaceBuilding(c,r){
   if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
   pay(d.cost);
   tile.t=T.GRASS;tile.decor=null;
-  tile.bld={type:buildType,id:G.nid,lv:1};
-  G.bld.push({id:G.nid,type:buildType,lv:1,col:c,row:r});
+  // Base build time: 60s per level of complexity, reduced by workers
+  // Stored as ticks (each doProd = ~2 game days). Base = 3 ticks = 6 days
+  const baseTicks=d.ml>=3?4:d.ml>=2?3:2; // harder buildings take longer
+  tile.bld={type:buildType,id:G.nid,lv:1,rotation:buildRotation};
+  G.bld.push({
+    id:G.nid, type:buildType, lv:1, col:c, row:r,
+    rotation:buildRotation,
+    under_construction:true,
+    build_ticks_left:baseTicks,
+    build_ticks_total:baseTicks,
+  });
   G.nid++;
   rebuildTile(c,r);
-  const d2=BD[buildType];
-  notify('✅ '+d2.n+' built!','ok');
-  G.mode='walk';buildType=null;updateModeUI();updateUI();
+  notify('🔨 '+d.n+' construction started! ('+baseTicks*2+' days w/1 worker)','ok');
+  G.mode='walk';buildType=null;buildRotation=0;updateModeUI();updateUI();
 }
 
 function showBldDlg(bld,c,r){
   const d=BD[bld.type];
-  const pr=d.pr?'Produksi: '+Object.entries(d.pr).map(([k,v])=>'+'+v*bld.lv+' '+k).join(', '):'';
+  // Show construction status if still building
+  if(bld.under_construction){
+    const total=bld.build_ticks_total||1;
+    const left=bld.build_ticks_left||0;
+    const pct=Math.round((1-left/total)*100);
+    const daysLeft=left*2;
+    openDlg('🔨 '+d.n+' (Under Construction)',
+      `Progress: ${pct}% complete\nEst. ${daysLeft} days remaining\nMore idle workers = faster build!`,
+      [{l:'✖ Close',cls:'',fn:closeDialog}]);
+    return;
+  }
+  const pr=d.pr?'Production: '+Object.entries(d.pr).map(([k,v])=>'+'+v*bld.lv+' '+k).join(', '):'';
   const btns=[];
   let extraInfo='';
   if(BD[bld.type]?.chain){
     const ch=BD[bld.type].chain;
     const inputs=Object.entries(ch.input||{}).map(([k,v])=>k+':'+(G.res[k]||0)+'/'+v).join(', ');
     const outputs=Object.keys(ch.output||{}).join(', ');
-    extraInfo+=bld._chainBlocked?'\n⛔ BLOCKED — input kurang: '+inputs:'\n✅ Berjalan: '+inputs+' → '+outputs;
+    extraInfo+=bld._chainBlocked?'\n⛔ BLOCKED — insufficient input: '+inputs:'\n✅ Running: '+inputs+' → '+outputs;
   }
   if(bld.type==='granary'||bld.type==='storehouse'){
     const storeCap=BD[bld.type]?.storeCap||{};
     const items=Object.entries(storeCap).map(([k,v])=>k+':'+v*bld.lv).join(', ');
-    extraInfo+='\nKapasitas: '+items;
+    extraInfo+='\nCapacity: '+items;
   }
   if(bld.type==='market'){
     const m=G.market||{};
     const fd=m.food?.stock||0,fu=m.fuel?.stock||0,cl=m.clothing?.stock||0;
-    extraInfo+='\n🥘 Food: '+fd+' | 🪵 Fuel: '+fu+' | 👘 Cloth: '+cl+'\nRadius: 8 tile';
+    extraInfo+='\n🥘 Food: '+fd+' | 🪵 Fuel: '+fu+' | 👘 Cloth: '+cl+'\nRadius: 8 tiles';
   }
   if(bld.type==='house'){
-    const byInfo=bld.backyard?(' — '+BYARD[bld.backyard.type]?.n):' Belum ada';
+    const byInfo=bld.backyard?(' — '+BYARD[bld.backyard.type]?.n):' None yet';
     btns.push({l:'🏡 Backyard'+byInfo,cls:'ok',fn:()=>openByPanel(bld.id)});
     const inRange=nearMarket(bld.id);
-    extraInfo+='\n'+(inRange?'✅ Dalam jangkauan pasar':'❌ Terlalu jauh dari pasar');
+    extraInfo+='\n'+(inRange?'✅ Within market range':'❌ Too far from market');
   }
   if(bld.type==='farm'){
     const fieldCount=G.fields.filter(f=>f.farmId===bld.id).length;
-    btns.push({l:'🌾 Kelola Lahan ('+fieldCount+' petak)',cls:'ok',fn:()=>openFarmPanel(bld.id)});
+    btns.push({l:'🌾 Manage Fields ('+fieldCount+' fields)',cls:'ok',fn:()=>openFarmPanel(bld.id)});
   }
-  if(bld.type==='tradingpost'){btns.push({l:'🚢 Buka Perdagangan',cls:'ok',fn:()=>openTradePanel(bld.id)});}
+  if(bld.type==='tradingpost'){btns.push({l:'🚢 Open Trading',cls:'ok',fn:()=>openTradePanel(bld.id)});}
   if(BLD_WORKERS[bld.type]){
     const assigned=(G.bldWorkers[bld.id]||[]).filter(n=>n).length;
     const maxW=BLD_WORKERS[bld.type];
-    btns.push({l:'👷 Pekerja ('+assigned+'/'+maxW+')',cls:'ok',fn:()=>openBldWorker(bld.id)});
+    btns.push({l:'👷 Workers ('+assigned+'/'+maxW+')',cls:'ok',fn:()=>openBldWorker(bld.id)});
   }
   if(bld.type!=='house'&&bld.lv<(d.ml||3))btns.push({l:'⬆ Upgrade',cls:'ok',fn:()=>doUpgrade(bld,c,r)});
-  btns.push({l:'🗑 Bongkar',cls:'bad',fn:()=>doDemolish(bld,c,r)});
-  btns.push({l:'✖ Tutup',cls:'',fn:closeDialog});
+  btns.push({l:'🗑 Demolish',cls:'bad',fn:()=>doDemolish(bld,c,r)});
+  btns.push({l:'✖ Close',cls:'',fn:closeDialog});
   openDlg(d.e+' '+d.n+' Lv.'+bld.lv,d.d+(pr?'\n'+pr:'')+extraInfo,btns);
 }
 function doUpgrade(bld,c,r){
   const d=BD[bld.type];
   if(bld.lv>=(d.ml||3)){notify('Max level!','warn');closeDialog();return;}
   const cost={};for(const[k,v]of Object.entries(d.cost))cost[k]=Math.floor(v*1.6*bld.lv);
-  if(!canAff(cost)){notify('Kurang bahan!','err');closeDialog();return;}
+  if(!canAff(cost)){notify('Not enough materials!','err');closeDialog();return;}
   pay(cost);bld.lv++;const gb=G.bld.find(x=>x.id===bld.id);if(gb)gb.lv=bld.lv;
   notify('⬆ '+d.n+' → Lv.'+bld.lv+'!','ok');closeDialog();updateUI();
 }
 function doDemolish(bld,c,r){
   const d=BD[bld.type];
-  openDlg('Bongkar '+d.n+'?','50% bahan kembali.',[
-    {l:'✓ Ya',cls:'bad',fn:()=>{
+  openDlg('Demolish '+d.n+'?','50% materials returned.',[
+    {l:'✓ Yes',cls:'bad',fn:()=>{
       for(const[k,v]of Object.entries(d.cost))addR(k,Math.floor(v*.5));
       G.bld=G.bld.filter(x=>x.id!==bld.id);MAP[r][c].bld=null;MAP[r][c].t=T.GRASS;
-      rebuildTile(c,r);notify('🗑 '+d.n+' dibongkar','warn');closeDialog();updateUI();
-    }},{l:'✗ Batal',cls:'',fn:closeDialog}]);
+      rebuildTile(c,r);notify('🗑 '+d.n+' demolished','warn');closeDialog();updateUI();
+    }},{l:'✗ Cancel',cls:'',fn:closeDialog}]);
 }
 function openDlg(dlgName,msg,btns){
   document.getElementById('dname').textContent=dlgName;
@@ -2927,7 +3346,7 @@ function wanderNPCs(){
                     nearestDeer.respawnT=Date.now()+60000*(2+Math.random()*2);
                     const meat=2+Math.floor(Math.random()*3);
                     addR('meat',meat);addR('food',meat);
-                    notify('🏹 '+npc.name+' berburu! +'+meat+' daging','ok');updateUI();
+                    notify('🏹 '+npc.name+' hunted! +'+meat+' meat','ok');updateUI();
                   }
                 }
               }
@@ -2973,28 +3392,106 @@ function wanderNPCs(){
 }
 
 // ─── RENDER ───
-let camX=0,camY=0;
-let _showFertility=false;
 function toggleFertilityMap(){
   _showFertility=!_showFertility;
-  notify(_showFertility?'🗺 Peta kesuburan ON':'Peta kesuburan OFF','ok');
+  notify(_showFertility?'🗺 Fertility map ON':'Fertility map OFF','ok');
 }
 
-let _worldDirty=true;
 function doRebuildWorld(){
   if(!_worldDirty)return;
   _worldDirty=false;
-  if(!WC_){WC_=document.createElement('canvas');WC_.width=WPX;WC_.height=WPY;}
-  const ctx=WC_.getContext('2d');
-  buildWorld(ctx);
+  buildWorld();
+}
+
+// ─── DRAW CROP (on field tile) ───
+function drawCrop(field, wx, wy){
+  const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
+  const stage=field.growStage; // 1=planted,2=growing,3=ready
+  const cx=wx+TS/2, by=wy+TS;
+  if(stage===1){
+    // Sprouting — tiny green dots
+    X.fillStyle='#5a8030';
+    for(let i=0;i<4;i++){
+      const px=wx+8+i*(TS/4), py=wy+TS-10;
+      X.beginPath();X.arc(px,py,3,0,Math.PI*2);X.fill();
+    }
+  } else if(stage===2){
+    // Growing — short stalks
+    X.strokeStyle='#4a9020';X.lineWidth=2;
+    for(let i=0;i<5;i++){
+      const px=wx+6+i*(TS/5);
+      X.beginPath();X.moveTo(px,by-4);X.lineTo(px,by-18);X.stroke();
+      X.fillStyle='#60b030';X.beginPath();X.ellipse(px,by-20,4,3,0,0,Math.PI*2);X.fill();
+    }
+  } else if(stage===3){
+    // Ready — tall golden stalks
+    const col=crop.e==='🌾'?'#d4a020':(crop.e==='🌿'?'#80b030':'#e070a0');
+    X.strokeStyle=col;X.lineWidth=2;
+    for(let i=0;i<6;i++){
+      const px=wx+5+i*(TS/6);
+      X.beginPath();X.moveTo(px,by-4);X.lineTo(px+((i%2)*4-2),by-28);X.stroke();
+      X.fillStyle=col;X.beginPath();X.ellipse(px+((i%2)*4-2),by-30,3,5,0.2,0,Math.PI*2);X.fill();
+    }
+    // Harvest glow
+    X.fillStyle='rgba(255,220,50,0.15)';X.fillRect(wx,wy,TS,TS);
+  }
+}
+
+// ─── DRAW BACKYARD (behind/beside house) ───
+function drawBackyard(type, wx, wy, timer, prodTime){
+  const cx=wx+TS/2, by=wy+TS;
+  const prog=prodTime>0?Math.min(1,(timer||0)/prodTime):0;
+  switch(type){
+    case 'chicken':
+      // Chicken coop - small wooden box
+      X.fillStyle='#c4843c';X.fillRect(wx+10,wy+TS-22,TS-20,18);
+      X.fillStyle='#a06020';X.fillRect(wx+10,wy+TS-26,TS-20,6);
+      X.fillStyle='#ffffff';X.beginPath();X.arc(wx+18,wy+TS-30,4,0,Math.PI*2);X.fill();
+      X.fillStyle='#ff4040';X.beginPath();X.arc(wx+18,wy+TS-34,2,0,Math.PI*2);X.fill();
+      break;
+    case 'goat':
+      X.fillStyle='#d4c4a0';X.beginPath();X.ellipse(cx,by-14,14,8,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#c4b490';X.beginPath();X.arc(cx+12,by-16,6,0,Math.PI*2);X.fill();
+      X.strokeStyle='#a09070';X.lineWidth=2;
+      X.beginPath();X.moveTo(cx,by-6);X.lineTo(cx-4,by);X.stroke();
+      X.beginPath();X.moveTo(cx+4,by-6);X.lineTo(cx+8,by);X.stroke();
+      break;
+    case 'garden':
+      X.fillStyle='#4a7820';X.fillRect(wx+6,wy+TS-16,TS-12,12);
+      for(let i=0;i<4;i++){
+        X.fillStyle=i%2?'#60c040':'#40a820';
+        X.beginPath();X.ellipse(wx+10+i*(TS/4-2),wy+TS-18,5,4,0,0,Math.PI*2);X.fill();
+      }
+      break;
+    case 'apiary':
+      X.fillStyle='#d4a020';X.beginPath();X.ellipse(cx,by-16,10,14,0,0,Math.PI*2);X.fill();
+      X.strokeStyle='#8a6010';X.lineWidth=1.5;
+      for(let i=0;i<4;i++){X.beginPath();X.moveTo(cx-8,by-10-i*5);X.lineTo(cx+8,by-10-i*5);X.stroke();}
+      break;
+    case 'smithy': case 'tannery': case 'shoemaker': case 'tailor':
+    case 'brewery': case 'armor':
+      // Generic workshop icon
+      X.fillStyle='rgba(60,40,20,0.7)';X.fillRect(wx+12,wy+TS-24,TS-24,20);
+      X.fillStyle='#c08040';X.fillRect(wx+14,wy+TS-26,TS-28,4);
+      // Progress bar
+      if(prog>0){
+        X.fillStyle='rgba(0,0,0,0.4)';X.fillRect(wx+8,wy+TS-6,TS-16,4);
+        X.fillStyle='#40c040';X.fillRect(wx+8,wy+TS-6,(TS-16)*prog,4);
+      }
+      break;
+    default: break;
+  }
 }
 
 function render(){
   if(!CV.width||!CV.height)return;
+  // Reset transform sepenuhnya setiap frame agar tidak terakumulasi
+  X.setTransform(1,0,0,1,0,0);
   doRebuildWorld();
   const vw=CV.width,vh=CV.height;
   X.fillStyle='#1a2e10';X.fillRect(0,0,vw,vh);
   X.save();X.translate(0,HH);
+  try{
   if(WC_)animateWater();
   const sc=Math.max(0,Math.floor(-camX/TS)-1);
   const sr=Math.max(0,Math.floor(-camY/TS)-1);
@@ -3031,9 +3528,13 @@ function render(){
         }
       }
       if(tile.bld){
-        drawBuilding(tile.bld.type,tile.bld.lv,wx,ry);
         const gbld2=G.bld.find(b=>b.id===tile.bld.id);
-        if(gbld2){
+        const rot2=gbld2?.rotation||0;
+        const uc=gbld2?.under_construction||false;
+        const prog=uc&&gbld2.build_ticks_total>0
+          ?1-(gbld2.build_ticks_left/gbld2.build_ticks_total):1;
+        drawBuilding(tile.bld.type,tile.bld.lv,wx,ry,rot2,uc,prog);
+        if(gbld2&&!uc){
           const maxW=BLD_WORKERS[tile.bld.type]||0;
           const wCount=maxW>0?(G.bldWorkers[gbld2.id]||[]).filter(n=>n).length:1;
           if(maxW>0&&wCount===0){X.fillStyle='rgba(100,100,100,0.25)';X.fillRect(wx,ry,TS,TS);X.font='10px serif';X.textAlign='center';X.fillText('⚠',wx+TS/2,ry+TS/2);}
@@ -3044,7 +3545,36 @@ function render(){
     for(const deer of DEER)if(deer.alive&&Math.floor(deer.y/TS)===r2)drawDeer(deer);
     for(const npc of NPCS)if(Math.floor(npc.y/TS)===r2)drawNPC(npc);
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
-  }
+    // Draw market zone stall icons on cobblestone tiles
+    if(G.marketZones){
+      for(const zone of G.marketZones){
+        if(r2<zone.row||r2>=zone.row+zone.h)continue;
+        for(let c2=Math.max(sc,zone.col);c2<Math.min(ec,zone.col+zone.w);c2++){
+          if(MAP[r2][c2].t!==T.MARKET_ZONE)continue;
+          const wx2=c2*TS+camX,ry2=r2*TS+camY;
+          // Draw stall indicator for occupied stalls
+          const stallIdx=Math.floor((r2-zone.row)*zone.w+(c2-zone.col));
+          const stall=zone.stalls[Math.floor(stallIdx/4)];
+          if(stall&&stallIdx%4===0){
+            // Stall canopy
+            X.fillStyle='rgba(180,140,40,0.7)';X.fillRect(wx2+4,ry2+4,TS-8,TS-8);
+            X.fillStyle='rgba(220,180,60,0.9)';X.fillRect(wx2+4,ry2+4,TS-8,10);
+            X.font='14px serif';X.textAlign='center';
+            X.fillText(stall.icon||'🛒',wx2+TS/2,ry2+TS/2+5);
+            // Price tag
+            X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(wx2+2,ry2+TS-14,TS-4,12);
+            X.fillStyle='#f0d060';X.font='8px monospace';X.textAlign='center';
+            X.fillText(stall.price+'g',wx2+TS/2,ry2+TS-5);
+          } else if(!stall&&zone.stalls.length===0){
+            // Empty stall spot
+            X.fillStyle='rgba(100,80,20,0.3)';X.fillRect(wx2+8,ry2+8,TS-16,TS-16);
+            X.strokeStyle='rgba(150,120,40,0.4)';X.lineWidth=1;X.setLineDash([3,3]);
+            X.strokeRect(wx2+8,ry2+8,TS-16,TS-16);X.setLineDash([]);
+          }
+        }
+      }
+    }
+  } // end r2 loop
 
   // Ghost cursor
   if(ghostTile.c>=0&&ghostTile.r>=0&&ghostTile.r<WR&&ghostTile.c<WC){
@@ -3054,7 +3584,27 @@ function render(){
       const canPlace=tile.t!==T.WATER&&!tile.bld;
       X.fillStyle=canPlace?'rgba(80,255,80,0.2)':'rgba(255,80,80,0.2)';X.fillRect(gx,gy,TS,TS);
       X.strokeStyle=canPlace?'rgba(80,255,80,0.8)':'rgba(255,80,80,0.8)';X.lineWidth=2;X.strokeRect(gx,gy,TS,TS);
-      if(canPlace&&buildType){X.globalAlpha=.42;drawBuilding(buildType,1,gx,gy);X.globalAlpha=1;}
+      if(canPlace&&buildType){
+        X.save();
+        X.globalAlpha=.42;
+        // Apply rotation around tile center
+        const cx2=gx+TS/2, cy2=gy+TS/2;
+        X.translate(cx2,cy2);
+        X.rotate(buildRotation*Math.PI/2);
+        X.translate(-cx2,-cy2);
+        drawBuilding(buildType,1,gx,gy);
+        X.restore();
+        X.globalAlpha=1;
+      }
+      // Rotation hint label
+      const rotLabels=['↑','→','↓','←'];
+      X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(gx+2,gy+2,20,14);
+      X.fillStyle='#f0f060';X.font='bold 11px monospace';X.textAlign='left';
+      X.fillText(rotLabels[buildRotation],gx+5,gy+13);
+      // [R] hint below ghost
+      X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(gx,gy+TS+2,TS,13);
+      X.fillStyle='#c0c060';X.font='9px monospace';X.textAlign='center';
+      X.fillText('[R] Rotate',gx+TS/2,gy+TS+12);
     } else if(G.mode==='field'){
       const canField=tile.t===T.GRASS&&!tile.bld;
       X.fillStyle=canField?'rgba(180,150,30,0.3)':'rgba(255,80,80,0.2)';X.fillRect(gx,gy,TS,TS);
@@ -3067,18 +3617,54 @@ function render(){
       X.fillStyle='rgba(255,100,100,0.2)';X.fillRect(gx,gy,TS,TS);
     } else if(G.mode==='demo'){
       if(tile.bld){X.fillStyle='rgba(255,50,50,0.3)';X.fillRect(gx,gy,TS,TS);}
+    } else if((G.mode==='farmzone'||G.mode==='marketzone')&&zoneDragStart){
+      // Draw zone preview rectangle
+      const c0=Math.min(zoneDragStart.c,ghostTile.c), r0=Math.min(zoneDragStart.r,ghostTile.r);
+      const c1=Math.max(zoneDragStart.c,ghostTile.c), r1=Math.max(zoneDragStart.r,ghostTile.r);
+      const px0=c0*TS+camX, py0=r0*TS+camY;
+      const pw=(c1-c0+1)*TS, ph=(r1-r0+1)*TS;
+      const isFarm=G.mode==='farmzone';
+      X.fillStyle=isFarm?'rgba(60,160,20,0.25)':'rgba(200,160,40,0.25)';X.fillRect(px0,py0,pw,ph);
+      X.strokeStyle=isFarm?'rgba(80,220,30,0.9)':'rgba(220,180,40,0.9)';X.lineWidth=2;X.strokeRect(px0,py0,pw,ph);
+      const wTiles=c1-c0+1, hTiles=r1-r0+1;
+      // Fertility overlay for farm zone
+      if(isFarm){
+        for(let rr=r0;rr<=r1;rr++) for(let cc=c0;cc<=c1;cc++){
+          const fert=getTileFertility(cc,rr);
+          const green=Math.round(fert*2);
+          X.fillStyle=`rgba(0,${green},0,0.4)`;X.fillRect(cc*TS+camX,rr*TS+camY,TS,TS);
+          X.fillStyle='rgba(255,255,255,0.8)';X.font='9px monospace';X.textAlign='center';
+          X.fillText(fert,cc*TS+camX+TS/2,rr*TS+camY+TS/2+3);
+        }
+      }
+      X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px0,py0,pw,18);
+      X.fillStyle=isFarm?'#80f040':'#f0d040';X.font='bold 10px monospace';X.textAlign='center';
+      X.fillText(`${isFarm?'🌾':'🏪'} ${wTiles}×${hTiles} — release to place`,px0+pw/2,py0+12);
+    } else if(G.mode==='farmzone'||G.mode==='marketzone'){
+      // No drag yet — show hover hint
+      const isFarm=G.mode==='farmzone';
+      X.fillStyle=isFarm?'rgba(60,160,20,0.2)':'rgba(200,160,40,0.2)';X.fillRect(gx,gy,TS,TS);
+      X.strokeStyle=isFarm?'#80f040':'#f0d040';X.lineWidth=2;X.strokeRect(gx,gy,TS,TS);
+      if(isFarm){
+        const fert=getTileFertility(ghostTile.c,ghostTile.r);
+        X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(gx,gy+TS+2,TS,13);
+        X.fillStyle='#80f040';X.font='9px monospace';X.textAlign='center';
+        X.fillText('Fertility: '+fert,gx+TS/2,gy+TS+12);
+      }
+      X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(gx,gy+TS+16,TS,12);
+      X.fillStyle='#c0c060';X.font='8px monospace';X.textAlign='center';
+      X.fillText('Drag to set size',gx+TS/2,gy+TS+26);
     }
   }
 
   // Minimap
-  const MM=document.getElementById('mm');
-  if(MM){
-    const mctx=MM.getContext('2d');
-    const mw=MM.width,mh=MM.height,tw=mw/WC,th=mh/WR;
+  if(MMCV){
+    const mctx=MMCV.getContext('2d');
+    const mw=MMCV.width,mh=MMCV.height,tw=mw/WC,th=mh/WR;
     mctx.fillStyle='#1a2e10';mctx.fillRect(0,0,mw,mh);
     for(let r2=0;r2<WR;r2++)for(let c2=0;c2<WC;c2++){
       const t=MAP[r2][c2].t;
-      mctx.fillStyle=t===T.WATER?'#4488cc':t===T.FOREST?'#1a5010':t===T.PATH?'#c0a050':t===T.FIELD?'#8a6020':'#3a7020';
+      mctx.fillStyle=t===T.WATER?'#4488cc':t===T.FOREST?'#1a5010':t===T.PATH?'#c0a050':t===T.FIELD?'#8a6020':t===T.FARM_ZONE?'#60a020':t===T.MARKET_ZONE?'#d0c080':'#3a7020';
       mctx.fillRect(c2*tw,r2*th,tw+1,th+1);
     }
     for(const b of G.bld){mctx.fillStyle='#e08020';mctx.fillRect(b.col*tw,b.row*th,tw+1,th+1);}
@@ -3089,11 +3675,11 @@ function render(){
     mctx.strokeRect((-camX/WPX)*mw,(-camY/WPY)*mh,(vw2/WPX)*mw,(vh2/WPY)*mh);
   }
 
-  X.restore();
+  } catch(e){ console.error('render error:',e); }
+  finally{ X.restore(); }
 }
 
 // ─── CANVAS EVENTS ───
-let isDragging=false,dragMode='';
 CV.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
   const rect=CV.getBoundingClientRect();
@@ -3103,13 +3689,19 @@ CV.addEventListener('mousedown',e=>{
   if(G.mode==='road'){isDragging=true;dragMode='road';tryPlaceRoad(c,r);}
   else if(G.mode==='erase'){isDragging=true;dragMode='erase';tryEraseRoad(c,r);}
   else if(G.mode==='field'){isDragging=true;dragMode='field';tryPlaceField(c,r);}
+  else if(G.mode==='farmzone'||G.mode==='marketzone'){
+    zoneDragStart={c,r}; isDragging=true; dragMode=G.mode;
+  }
   else if(G.mode==='build'){tryPlaceBuilding(c,r);}
   else if(G.mode==='demo'){
     const tile=MAP[r][c];
     if(tile.bld){const gb=G.bld.find(b=>b.id===tile.bld.id);if(gb)showBldDlg(gb,c,r);}
+    else if(tile.t===T.FARM_ZONE||tile.t===T.MARKET_ZONE) removeZoneTile(c,r);
   } else {
     const tile=MAP[r][c];
     if(tile.bld){const gb=G.bld.find(b=>b.id===tile.bld.id);if(gb)showBldDlg(gb,c,r);}
+    else if(tile.t===T.MARKET_ZONE) openMarketZoneDlg(c,r);
+    else if(tile.t===T.FARM_ZONE) openFarmZoneDlg(c,r);
   }
 });
 CV.addEventListener('mousemove',e=>{
@@ -3121,10 +3713,20 @@ CV.addEventListener('mousemove',e=>{
     if(dragMode==='road')tryPlaceRoad(c,r);
     else if(dragMode==='erase')tryEraseRoad(c,r);
     else if(dragMode==='field')tryPlaceField(c,r);
+    // farmzone/marketzone: just track mouse, preview drawn in render
   }
 });
-CV.addEventListener('mouseup',()=>{isDragging=false;dragMode='';});
-CV.addEventListener('mouseleave',()=>{isDragging=false;dragMode='';ghostTile={c:-1,r:-1};});
+CV.addEventListener('mouseup',e=>{
+  if((dragMode==='farmzone'||dragMode==='marketzone')&&zoneDragStart){
+    const rect=CV.getBoundingClientRect();
+    const mx=e.clientX-rect.left,my=e.clientY-rect.top-HH;
+    const c=Math.floor((mx-camX)/TS),r=Math.floor((my-camY)/TS);
+    finalizeZone(zoneDragStart.c,zoneDragStart.r,c,r,dragMode);
+    zoneDragStart=null;
+  }
+  isDragging=false;dragMode='';
+});
+CV.addEventListener('mouseleave',()=>{isDragging=false;dragMode='';zoneDragStart=null;ghostTile={c:-1,r:-1};});
 
 // Touch support
 CV.addEventListener('touchstart',e=>{
@@ -3145,9 +3747,9 @@ function openBldWorker(bldId){
   const maxW=BLD_WORKERS[bld.type]||0;
   if(!maxW) return;
   const d=BD[bld.type];
-  document.getElementById('bldworker-name').textContent=(d.e||'🏢')+' '+d.n+' — Pekerja';
+  document.getElementById('bldworker-name').textContent=(d.e||'🏢')+' '+d.n+' — Workers';
   document.getElementById('bldworker-info').textContent=
-    `Kapasitas: ${maxW} pekerja | Lokasi: (${bld.col},${bld.row}) | Lv.${bld.lv}`;
+    `Capacity: ${maxW} workers | Location: (${bld.col},${bld.row}) | Lv.${bld.lv}`;
   if(!G.bldWorkers[bldId]) G.bldWorkers[bldId]=[];
   renderBldWorker(bldId, maxW);
   document.getElementById('bldworker').classList.add('show');
@@ -3187,11 +3789,11 @@ function renderBldWorker(bldId, maxW){
       };
       row.appendChild(slot);row.appendChild(removeBtn);
     } else {
-      slot.innerHTML=`Slot ${i+1}: <span>— kosong —</span>`;
+      slot.innerHTML=`Slot ${i+1}: <span>— empty —</span>`;
       // Dropdown to pick adult NPC not yet assigned here
       const sel=document.createElement('select');
       sel.style.cssText='background:#100a04;border:1px solid #3a2a10;color:#a08050;font-size:11px;padding:2px 4px;cursor:pointer';
-      const blank=document.createElement('option');blank.value='';blank.textContent='Pilih warga...';sel.appendChild(blank);
+      const blank=document.createElement('option');blank.value='';blank.textContent='Select worker...';sel.appendChild(blank);
       for(const n of NPCS){
         if(!isAdult(n)) continue;
         if(Object.values(G.bldWorkers).flat().includes(n.name)) continue; // already assigned elsewhere
@@ -3228,7 +3830,7 @@ function renderBldWorker(bldId, maxW){
   preview.style.cssText='padding:7px 10px;font-size:11px;color:#80b060;background:rgba(0,80,0,0.1)';
   const d=BD[bld?.type];
   const prod=d?.pr?Object.entries(d.pr).map(([k,v])=>`+${v*bld.lv*activeWorkers} ${k}`).join(' '):'—';
-  preview.textContent=`👷 ${activeWorkers}/${maxW} pekerja aktif | Produksi: ${prod}/hari`;
+  preview.textContent=`👷 ${activeWorkers}/${maxW} active workers | Production: ${prod}/day`;
   list.appendChild(preview);
 }
 
@@ -3236,7 +3838,7 @@ function openByPanel(bldId){
   const bld=G.bld.find(b=>b.id===bldId);
   if(!bld||bld.type!=='house') return;
   _byHouseId=bldId;
-  document.getElementById('bypanel-housename').textContent='Rumah #'+bldId;
+  document.getElementById('bypanel-housename').textContent='House #'+bldId;
   renderByPanel();
   document.getElementById('bypanel').classList.add('show');
   closeDialog();
@@ -3256,7 +3858,7 @@ function renderByPanel(){
   // House upgrade section
   const upDiv=document.createElement('div');
   upDiv.className='bycat';
-  upDiv.textContent='🏠 STATUS RUMAH (Lv.'+bld.lv+'/'+(BD.house.ml||3)+')';
+  upDiv.textContent='🏠 HOUSE STATUS (Lv.'+bld.lv+'/'+(BD.house.ml||3)+')';
   list.appendChild(upDiv);
 
   const upRow=document.createElement('div');
@@ -3277,14 +3879,14 @@ function renderByPanel(){
       +'<div style="font-size:11px;color:#8090a0;margin-top:3px">Biaya: '+costStr+'</div>'
       +'<button onclick="tryUpgradeHouse('+bld.id+')" style="margin-top:6px;padding:3px 8px;background:#100a04;border:1px solid #3a2a10;color:#a08050;font-size:10px;cursor:pointer">⬆ Upgrade</button>';
   } else if(bld.lv>=(BD.house.ml||3)){
-    upRow.innerHTML='<div style="font-size:11px;color:#60c060">✅ Rumah sudah maksimal!</div>';
+    upRow.innerHTML='<div style="font-size:11px;color:#60c060">✅ House is at max level!</div>';
   }
   list.appendChild(upRow);
 
-  // ── BACKYARD AKTIF sekarang ──
+  // ── ACTIVE BACKYARD ──
   const activeDiv=document.createElement('div');
   activeDiv.className='bycat';
-  activeDiv.textContent='🏡 BACKYARD SEKARANG';
+  activeDiv.textContent='🏡 ACTIVE BACKYARD';
   list.appendChild(activeDiv);
   const activeRow=document.createElement('div');
   activeRow.style.cssText='padding:8px 10px;';
@@ -3297,34 +3899,34 @@ function renderByPanel(){
     const cyclePct=Math.min(100,Math.round((rawTimer/Math.max(by.prodTime,1))*100));
     const pct=cyclePct;
     const totalProd=bld.backyard.totalProd||0;
-    const nextIn=Math.ceil((by.prodTime-(bld.backyard.timer||0))/2)+' hari lagi';
+    const nextIn=Math.ceil((by.prodTime-(bld.backyard.timer||0))/2)+' days';
     activeRow.innerHTML='<div style="display:flex;align-items:center;gap:8px">'
       +'<span style="font-size:22px">'+by.e+'</span>'
       +'<div><div style="font-size:12px;color:#f0d060;font-weight:bold">'+by.n+'</div>'
-      +'<div style="font-size:11px;color:#80b060">Produksi: '+prod+'/hari</div>'
+      +'<div style="font-size:11px;color:#80b060">Production: '+prod+'/day</div>'
       +'<div style="font-size:10px;color:#808060">Siklus: '+pct+'% ('+nextIn+')</div>'
-      +'<div style="font-size:10px;color:#606050">Total diproduksi: '+totalProd+' kali</div>'
+      +'<div style="font-size:10px;color:#606050">Total diproduction: '+totalProd+' kali</div>'
       +'<div class="byprog" style="margin-top:3px;width:140px"><div class="byprog-bar" style="width:'+pct+'%"></div></div>'
-      +'</div><button onclick="removeByard()" style="margin-left:8px;padding:3px 7px;background:#200808;border:1px solid #802020;color:#c04040;font-size:10px;cursor:pointer">🗑 Bongkar</button></div>';
+      +'</div><button onclick="removeByard()" style="margin-left:8px;padding:3px 7px;background:#200808;border:1px solid #802020;color:#c04040;font-size:10px;cursor:pointer">🗑 Demolish</button></div>';
   } else {
-    activeRow.innerHTML='<div style="font-size:11px;color:#806040">Belum ada — pilih dari daftar di bawah</div>';
+    activeRow.innerHTML='<div style="font-size:11px;color:#806040">None yet — select from the list below</div>';
   }
   list.appendChild(activeRow);
 
-  // ── PILIH / GANTI BACKYARD ──
+  // ── CHOOSE / CHANGE BACKYARD ──
   const chooseDiv=document.createElement('div');
   chooseDiv.className='bycat';
   const slots=BD.house.byardSlots[bld.lv];
-  const slotsLabel=slots==='all'?'Semua tersedia':'Terbatas Lv.'+bld.lv;
-  chooseDiv.textContent='🔧 PILIH / GANTI BACKYARD ('+slotsLabel+')';
+  const slotsLabel=slots==='all'?'All available':'Limited Lv.'+bld.lv;
+  chooseDiv.textContent='🔧 CHOOSE / CHANGE BACKYARD ('+slotsLabel+')';
   list.appendChild(chooseDiv);
   if(bld.backyard){
     const noteDiv=document.createElement('div');
     noteDiv.style.cssText='padding:5px 10px;font-size:10px;color:#c08030;';
-    noteDiv.textContent='⚠ Mengganti akan membongkar yang lama (bahan tidak kembali)';
+    noteDiv.textContent='⚠ Replacing will remove the old one (no materials returned)';
     list.appendChild(noteDiv);
   }
-  const cats={grow:'🌿 Berkebun',animal:'🐄 Peternakan',craft:'⚒ Kerajinan'};
+  const cats={grow:'🌿 Gardening',animal:'🐄 Livestock',craft:'⚒ Crafts'};
   for(const[catId,catName]of Object.entries(cats)){
     const hdr=document.createElement('div');
     hdr.style.cssText='padding:3px 10px 2px;font-size:10px;color:#a08040;background:rgba(0,0,0,.15);';
@@ -3342,19 +3944,19 @@ function renderByPanel(){
       const isLocked=bySlots!=='all'&&!bySlots.includes(id);
       let btn='';
       if(active){
-        btn='<span style="color:#40c040;font-size:11px">✓ Aktif</span>';
+        btn='<span style="color:#40c040;font-size:11px">✓ Active</span>';
       } else if(isLocked){
-        btn='<span style="color:#606060;font-size:9px">🔒 Butuh Lv.'+(bld.lv<2?2:3)+'</span>';
+        btn='<span style="color:#606060;font-size:9px">🔒 Requires Lv.'+(bld.lv<2?2:3)+'</span>';
       } else if(canAffBy){
-        btn='<button onclick="setByard(\''+id+'\')" style="padding:4px 8px;background:#102008;border:1px solid #308020;color:#60d040;font-size:10px;cursor:pointer">✓ Pilih</button>';
+        btn='<button onclick="setByard(\''+id+'\')" style="padding:4px 8px;background:#102008;border:1px solid #308020;color:#60d040;font-size:10px;cursor:pointer">✓ Select</button>';
       } else {
-        const need=Object.entries(by.cost).filter(([k,v])=>(G.res[k]||0)<v).map(([k,v])=>resIcons[k]+(v-(G.res[k]||0))+' kurang').join(', ');
+        const need=Object.entries(by.cost).filter(([k,v])=>(G.res[k]||0)<v).map(([k,v])=>resIcons[k]+(v-(G.res[k]||0))+' needed').join(', ');
         btn='<span style="color:#806040;font-size:9px">'+need+'</span>';
       }
       row.innerHTML='<div class="byicon">'+by.e+'</div>'
         +'<div class="byinfo"><div class="byname">'+by.n+'</div>'
         +'<div class="bydesc" style="font-size:10px">'+by.desc+'</div>'
-        +'<div class="bycost" style="font-size:9px">Biaya: '+cost+' | Hasil: '+prod2+'/hari</div></div>'
+        +'<div class="bycost" style="font-size:9px">Biaya: '+cost+' | Hasil: '+prod2+'/day</div></div>'
         +'<div style="flex-shrink:0;min-width:80px;text-align:right">'+btn+'</div>';
       list.appendChild(row);
     }
@@ -3370,21 +3972,21 @@ function setByard(type){
   // Check backyard unlock by house level
   const slots=BD.house.byardSlots[bld.lv];
   if(slots!=='all'&&!slots.includes(type)){
-    notify('🏠 Upgrade rumah ke Lv.2 untuk membuka '+by.n+'!','err'); return;
+    notify('🏠 Upgrade house to Lv.2 to unlock '+by.n+'!','err'); return;
   }
-  if(!canAff(by.cost)){ notify('Kurang bahan!','err'); return; }
+  if(!canAff(by.cost)){ notify('Not enough materials!','err'); return; }
   // Confirm if replacing existing backyard
   if(bld.backyard&&bld.backyard.type!==type){
     const old=BYARD[bld.backyard.type];
-    openDlg('Ganti Backyard?',
-      'Backyard '+old.e+' '+old.n+' akan dibongkar (bahan tidak kembali).',
-      [{l:'✓ Ya, ganti',cls:'ok',fn:()=>{
+    openDlg('Replace Backyard?',
+      'Backyard '+old.e+' '+old.n+' will be removed (no materials returned).',
+      [{l:'✓ Yes, replace',cls:'ok',fn:()=>{
         pay(by.cost);
         bld.backyard={type,lv:1,progress:0,timer:0,totalProd:0,_reqWarn:false};
         if(bld.row>0){MAP[bld.row-1][bld.col].decor=null;_worldDirty=true;}
-        notify('🏡 Backyard diganti ke '+by.n+'!','ok');
+        notify('🏡 Backyard changed to '+by.n+'!','ok');
         renderByPanel();updateUI();closeDialog();
-      }},{l:'✗ Batal',cls:'',fn:closeDialog}]
+      }},{l:'✗ Cancel',cls:'',fn:closeDialog}]
     );
     return;
   }
@@ -3395,7 +3997,7 @@ function setByard(type){
     MAP[bld.row-1][bld.col].decor=null;
     _worldDirty=true;
   }
-  notify('🏡 '+by.n+' dibangun!','ok');
+  notify('🏡 '+by.n+' built!','ok');
   renderByPanel(); updateUI();
 }
 
@@ -3404,12 +4006,12 @@ function removeByard(){
   const bld=G.bld.find(b=>b.id===_byHouseId);
   if(!bld||!bld.backyard) return;
   const by=BYARD[bld.backyard.type];
-  openDlg('Bongkar '+by.n+'?','Bahan tidak kembali.',
-    [{l:'✓ Ya',cls:'bad',fn:()=>{
+  openDlg('Demolish '+by.n+'?','No materials returned.',
+    [{l:'✓ Yes',cls:'bad',fn:()=>{
       bld.backyard=null;
-      notify('🗑 Backyard dibongkar','warn');
+      notify('🗑 Backyard demolished','warn');
       renderByPanel();updateUI();closeDialog();
-    }},{l:'✗ Batal',cls:'',fn:closeDialog}]
+    }},{l:'✗ Cancel',cls:'',fn:closeDialog}]
   );
 }
 
@@ -3417,24 +4019,32 @@ function tryUpgradeHouse(bldId){
   const bld=G.bld.find(b=>b.id===bldId);
   if(!bld) return;
   const nextLv=bld.lv+1;
-  if(nextLv>3){ notify('Rumah sudah level maksimal!','warn'); return; }
+  if(nextLv>3){ notify('House is already at max level!','warn'); return; }
   const upReq=BD.house.upReq?.[nextLv]||{};
   // Check building requirements
   for(const[k]of Object.entries(upReq)){
     if(!G.bld.some(b=>b.type===k)){
-      notify('Perlu '+(BD[k]?.n||k)+' di desa dulu!','err'); return;
+      notify('Need '+(BD[k]?.n||k)+' in village first!','err'); return;
     }
   }
   // Check market supply
   if(bld._canUpgrade===false){
-    notify('🏪 Rumah harus mendapat pasokan Food & Fuel dari pasar dulu!','err'); return;
+    notify('🏪 House needs Food & Fuel supply from the market first!','err'); return;
   }
-  // Check resource cost
-  const upgCost=BD.house.upCost?.[nextLv]||{wood:20*bld.lv,stone:15*bld.lv};
-  if(!canAff(upgCost)){ notify('Kurang bahan: '+Object.entries(upgCost).map(([k,v])=>k+':'+v).join(', '),'err'); return; }
-  pay(upgCost);
+  // Check resource cost (including regional_wealth)
+  const upgCost=BD.house.upCost?.[nextLv]||{wood:20*bld.lv,stone:15*bld.lv,regional_wealth:50*bld.lv};
+  const rwNeeded=upgCost.regional_wealth||0;
+  if(rwNeeded>0&&(G.res.regional_wealth||0)<rwNeeded){
+    notify(`🏛 Need ${rwNeeded} Regional Wealth to upgrade (have ${Math.floor(G.res.regional_wealth||0)})!`,'err');
+    return;
+  }
+  const materialCost={...upgCost};delete materialCost.regional_wealth;
+  if(!canAff(materialCost)){ notify('Not enough materials: '+Object.entries(materialCost).map(([k,v])=>k+':'+v).join(', '),'err'); return; }
+  pay(materialCost);
+  G.res.regional_wealth=(G.res.regional_wealth||0)-rwNeeded;
+  rwLog(`🏠 House Lv.${nextLv} upgrade: -${rwNeeded} RW`);
   bld.lv=nextLv;
-  notify('🏠 Rumah Lv.'+nextLv+'! '+BD.house.lvDesc[nextLv],'ok');
+  notify('🏠 House Lv.'+nextLv+'! '+BD.house.lvDesc[nextLv],'ok');
   renderByPanel(); updateUI();
 }
 
@@ -3525,9 +4135,9 @@ function updateMarket(){
   }
 
   // Notify if stocks critically low
-  if(G.market.food.stock<5)    notify('🥘 Stok makanan di pasar hampir habis!','warn');
-  if(G.market.fuel.stock<5)    notify('🪵 Stok bahan bakar di pasar habis!','warn');
-  if(G.market.clothing.stock<5&&G.bld.some(b=>b.type==='clothing_stall')) notify('👘 Stok pakaian habis!','warn');
+  if(G.market.food.stock<5)    notify('🥘 Food stock at market is almost empty!','warn');
+  if(G.market.fuel.stock<5)    notify('🪵 Fuel stock at market is empty!','warn');
+  if(G.market.clothing.stock<5&&G.bld.some(b=>b.type==='clothing_stall')) notify('👘 Clothing stock is empty!','warn');
 }
 
 // Backyard production — called from doProd every 2 days
@@ -3559,11 +4169,11 @@ function doByardProd(){
         const effBonus=isCraft?1.3:1.0;
         for(const[k,v]of Object.entries(by.prod)) addR(k,Math.round(v*mul*effBonus));
         bld.backyard.totalProd=(bld.backyard.totalProd||0)+1;
-        if(bld.backyard.totalProd===1) notify(by.e+' '+by.n+' mulai produksi!','ok');
+        if(bld.backyard.totalProd===1) notify(by.e+' '+by.n+' started producing!','ok');
       } else if(Object.keys(by.req||{}).length>0){
         if(!bld.backyard._reqWarn){ bld.backyard._reqWarn=true;
           const need=Object.entries(by.req).filter(([k,v])=>(G.res[k]||0)<v).map(([k,v])=>k).join(', ');
-          notify('⚠ '+by.n+' butuh: '+need,'warn');
+          notify('⚠ '+by.n+' needs: '+need,'warn');
         }
       }
     }
@@ -3572,8 +4182,13 @@ function doByardProd(){
 
 // ─── RESIZE ───
 function resize(){
-  CV.width=window.innerWidth||800;
-  CV.height=window.innerHeight||600;
+  // Reset canvas CSS size so offsetWidth reflects container
+  CV.style.width='100%';
+  CV.style.height='100%';
+  const pw=CV.offsetWidth||window.innerWidth||800;
+  const ph=CV.offsetHeight||window.innerHeight||600;
+  CV.width=Math.max(pw,400);
+  CV.height=Math.max(ph,300);
 }
 
 // ─── MAIN LOOP ───
@@ -3585,7 +4200,12 @@ const keys=new Set();
 window.addEventListener('keydown',e=>{
   keys.add(e.key.toLowerCase());
   if(e.key.toLowerCase()==='b'){G.mode=G.mode==='build'?'walk':'build';buildType=null;updateModeUI();}
-  if(e.key==='Escape'){G.mode='walk';buildType=null;closeDialog();closeBldWorker();closeByPanel();updateModeUI();}
+  if(e.key.toLowerCase()==='r'&&G.mode==='build'&&buildType){
+    buildRotation=(buildRotation+1)%4;
+    const dirs=['↑ N','→ E','↓ S','← W'];
+    notify('🔄 Rotation: '+dirs[buildRotation],'ok');
+  }
+  if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();updateModeUI();}
   if(e.key.toLowerCase()==='e') doInteract();
   if(e.key.toLowerCase()==='f') toggleFertilityMap();
   if(e.key===' ')e.preventDefault();
@@ -3596,12 +4216,8 @@ function loop(now){
   const dt=Math.min(now-lastT,50);lastT=now;
   try{
     if(!G.paused){movePlayer();updateCam();wanderNPCs();updateDeer();tick();}
-    render();
-  } catch(e){
-    if(e instanceof TypeError||e.name==='SecurityError') {
-      // Suppress cross-origin iframe errors, continue loop
-    } else { console.error(e); }
-  }
+  } catch(e){ console.error('loop error:',e); }
+  render();
   requestAnimationFrame(loop);
 }
 
@@ -3624,7 +4240,7 @@ function initAudio(){
   }catch(e){console.warn('Audio init failed:',e.message);}
 }
 
-// Reverb convolver sederhana
+// Simple reverb convolver
 function makeReverb(ctx, seconds=1.8, decay=2.5){
   const rate=ctx.sampleRate, len=rate*seconds;
   const buf=ctx.createBuffer(2,len,rate);
@@ -3653,7 +4269,7 @@ function playNote(freq, startTime, duration, vol=0.18, type='sine', pan=0){
   musicNodes.push(osc);
 }
 
-// Marimba / gamelan hit — attack fast, decay slow
+// Marimba / gamelan hit — fast attack, slow decay
 function playMarimba(freq, t, vol=0.22, pan=0){
   const osc=audioCtx.createOscillator();
   const osc2=audioCtx.createOscillator();
@@ -3704,21 +4320,21 @@ function playShaker(t, vol=0.04){
   musicNodes.push(src);
 }
 
-// Pentatonic scale — suasana Asia/gamelan (dalam Hz)
+// Pentatonic scale — Asian/gamelan atmosphere (in Hz)
 // C pentatonic: C D E G A
 const PENTA=[
-  130.81,146.83,164.81,196.00,220.00, // oktaf 3
-  261.63,293.66,329.63,392.00,440.00, // oktaf 4
-  523.25,587.33,659.25,783.99,880.00, // oktaf 5
+  130.81,146.83,164.81,196.00,220.00, // octave 3
+  261.63,293.66,329.63,392.00,440.00, // octave 4
+  523.25,587.33,659.25,783.99,880.00, // octave 5
 ];
 
-// Melody patterns — motif pedesaan yang looping
+// Melody patterns — looping village motifs
 const MELODY_PATTERNS=[
-  // Motif 1: naik turun riang
+  // Motif 1: joyful up-down
   [4,6,7,9,7,6,4,6, 4,3,1,3,4,6,4,3],
-  // Motif 2: mengalir seperti angin
+  // Motif 2: flowing like wind
   [6,7,9,7,6,4,3,4, 6,9,7,6,4,6,7,6],
-  // Motif 3: melankolis sore
+  // Motif 3: melancholic afternoon
   [9,7,6,4,6,7,6,4, 3,4,6,4,3,1,3,4],
 ];
 
@@ -3727,11 +4343,11 @@ let melodyPattern=0, beatCount=0;
 function scheduleMusic(){
   if(!audioCtx||!musicOn) return;
   const now=audioCtx.currentTime;
-  const bpm=80; // lambat, santai
+  const bpm=80; // slow, relaxed
   const beat=60/bpm;
   const bar=beat*4;
 
-  // Pilih pattern setiap 2 bar
+  // Change pattern every 2 bars
   if(beatCount%8===0) melodyPattern=(melodyPattern+1)%MELODY_PATTERNS.length;
 
   const pat=MELODY_PATTERNS[melodyPattern];
@@ -3782,6 +4398,531 @@ function scheduleMusic(){
   musicScheduler=setTimeout(()=>{if(musicOn)scheduleMusic();}, (beat-0.05)*1000);
 }
 
+// ═══════════════════════════════════════════════════════
+//  SHOP — Buy resources with USDC on HyperEVM
+//  USDC contract: 0xb88339cb7199b77e23db6e890353e22632ba630f
+//  Recipient:     0x44C0551dEb02F75189C7c4075B58212cFb108F2D
+//  Price: 1 USDC per bundle of 100 resources
+// ═══════════════════════════════════════════════════════
+
+const SHOP_CHAIN_ID    = 999;         // HyperEVM
+const SHOP_USDC        = '0xb88339cb7199b77e23db6e890353e22632ba630f';
+const SHOP_RECIPIENT   = '0x44C0551dEb02F75189C7c4075B58212cFb108F2D';
+const SHOP_PRICE_USDC  = 1;           // 1 USDC per bundle
+const SHOP_BUNDLE_QTY  = 100;         // 100 units per bundle
+const USDC_DECIMALS    = 6;           // USDC uses 6 decimals
+
+// ERC-20 transfer function selector + ABI minimal
+const ERC20_TRANSFER_ABI = [{
+  name:'transfer',type:'function',stateMutability:'nonpayable',
+  inputs:[{name:'to',type:'address'},{name:'amount',type:'uint256'}],
+  outputs:[{name:'',type:'bool'}]
+}];
+
+// Items available in the shop
+const SHOP_ITEMS = [
+  { id:'wood',   label:'Wood',   icon:'🪵', res:'wood'  },
+  { id:'stone',  label:'Stone',  icon:'🪨', res:'stone' },
+  { id:'coal',   label:'Coal',   icon:'⚫', res:'coal'  },
+  { id:'iron',   label:'Iron',   icon:'⚙', res:'iron'  },
+  { id:'food',   label:'Food',   icon:'🌾', res:'food'  },
+  { id:'meat',   label:'Meat',   icon:'🥩', res:'meat'  },
+  { id:'gold',   label:'Gold',   icon:'💰', res:'gold'  },
+  { id:'cloth',  label:'Cloth',  icon:'🧵', res:'cloth' },
+  { id:'leather',label:'Leather',icon:'🧴', res:'leather'},
+  { id:'metal',  label:'Metal',  icon:'🔩', res:'metal' },
+  { id:'plank',  label:'Planks', icon:'🪚', res:'plank' },
+  { id:'wheat',  label:'Wheat',  icon:'🌿', res:'wheat' },
+];
+
+let shopOpen = false;
+let shopWalletAddr = null;
+let shopProvider = null;
+
+function toggleShop(){
+  shopOpen = !shopOpen;
+  const panel = document.getElementById('shoppanel');
+  panel.style.display = shopOpen ? 'block' : 'none';
+  if(shopOpen){
+    renderShopItems();
+    if(shopWalletAddr) updateShopWalletUI();
+  }
+}
+
+function renderShopItems(){
+  const container = document.getElementById('shop-items');
+  container.innerHTML = '';
+  for(const item of SHOP_ITEMS){
+    const div = document.createElement('div');
+    div.style.cssText = 'background:#100a04;border:1px solid #3a2a10;padding:8px 10px;cursor:pointer;min-width:120px;text-align:center;transition:border-color .15s;flex:1;min-width:130px;max-width:160px';
+    div.innerHTML = `
+      <div style="font-size:22px;margin-bottom:3px">${item.icon}</div>
+      <div style="font-family:'Press Start 2P';font-size:6px;color:#f0d060">${item.label}</div>
+      <div style="font-size:11px;color:#807050;margin:3px 0">×${SHOP_BUNDLE_QTY} units</div>
+      <div style="font-size:12px;color:#40d0a0;margin-bottom:5px"><b>1 USDC</b></div>
+      <button onclick="shopBuy('${item.id}')"
+        style="background:#0a200a;border:1px solid #208020;color:#40c040;
+               font-family:'Press Start 2P';font-size:5px;padding:4px 8px;
+               cursor:pointer;width:100%;transition:all .1s"
+        onmouseover="this.style.background='#102810'"
+        onmouseout="this.style.background='#0a200a'">
+        BUY
+      </button>`;
+    div.onmouseenter = ()=>div.style.borderColor='#f0c040';
+    div.onmouseleave = ()=>div.style.borderColor='#3a2a10';
+    container.appendChild(div);
+  }
+}
+
+function shopSetStatus(msg, color='#c0a060'){
+  const el = document.getElementById('shop-status');
+  if(el){ el.textContent = msg; el.style.color = color; }
+}
+
+async function shopConnectWallet(){
+  if(!window.ethereum){
+    shopSetStatus('No wallet detected. Please install MetaMask.','#c04040');
+    return;
+  }
+  try{
+    shopSetStatus('Connecting wallet...','#c0a060');
+    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+    if(!accounts.length){ shopSetStatus('No accounts found.','#c04040'); return; }
+    shopWalletAddr = accounts[0];
+    shopProvider = window.ethereum;
+
+    // Check / switch to HyperEVM
+    await shopEnsureChain();
+    updateShopWalletUI();
+    shopSetStatus('Wallet connected! Ready to purchase.','#40c040');
+  } catch(e){
+    shopSetStatus('Connection failed: '+e.message,'#c04040');
+  }
+}
+
+function updateShopWalletUI(){
+  const el = document.getElementById('shop-wallet-status');
+  const btn = document.getElementById('shop-connect-btn');
+  if(el && shopWalletAddr){
+    el.textContent = shopWalletAddr.slice(0,6)+'...'+shopWalletAddr.slice(-4);
+    el.style.color = '#40c040';
+  }
+  if(btn && shopWalletAddr) btn.textContent = 'Connected ✓';
+}
+
+async function shopEnsureChain(){
+  const chainHex = '0x'+SHOP_CHAIN_ID.toString(16);
+  const currentChain = await shopProvider.request({method:'eth_chainId'});
+  if(currentChain.toLowerCase() !== chainHex.toLowerCase()){
+    try{
+      await shopProvider.request({method:'wallet_switchEthereumChain',params:[{chainId:chainHex}]});
+    } catch(switchErr){
+      // Chain not added yet — add it
+      if(switchErr.code === 4902){
+        await shopProvider.request({
+          method:'wallet_addEthereumChain',
+          params:[{
+            chainId: chainHex,
+            chainName: 'HyperEVM',
+            nativeCurrency:{name:'HYPE',symbol:'HYPE',decimals:18},
+            rpcUrls:['https://rpc.hyperliquid.xyz/evm'],
+            blockExplorerUrls:['https://explorer.hyperliquid.xyz']
+          }]
+        });
+      } else { throw switchErr; }
+    }
+  }
+}
+
+// Encode ERC-20 transfer(address to, uint256 amount)
+function encodeTransfer(to, amountWei){
+  // Function selector: keccak256("transfer(address,uint256)") = 0xa9059cbb
+  const sel = 'a9059cbb';
+  // Pad address to 32 bytes
+  const addr = to.toLowerCase().replace('0x','').padStart(64,'0');
+  // Pad amount to 32 bytes (hex)
+  const amt = BigInt(amountWei).toString(16).padStart(64,'0');
+  return '0x'+sel+addr+amt;
+}
+
+async function shopBuy(itemId){
+  if(!shopWalletAddr){
+    shopSetStatus('Please connect your wallet first!','#c04040');
+    return;
+  }
+  const item = SHOP_ITEMS.find(i=>i.id===itemId);
+  if(!item) return;
+
+  try{
+    shopSetStatus(`Processing purchase of ${SHOP_BUNDLE_QTY}× ${item.label}...`,'#c0a060');
+
+    // Ensure correct chain
+    await shopEnsureChain();
+
+    // 1 USDC = 1 * 10^6 (6 decimals)
+    const amountWei = (SHOP_PRICE_USDC * Math.pow(10, USDC_DECIMALS)).toString();
+    const data = encodeTransfer(SHOP_RECIPIENT, amountWei);
+
+    const txParams = {
+      from: shopWalletAddr,
+      to: SHOP_USDC,
+      data: data,
+      value: '0x0',
+    };
+
+    shopSetStatus(`Waiting for wallet confirmation...`,'#e0c040');
+    const txHash = await shopProvider.request({
+      method: 'eth_sendTransaction',
+      params: [txParams]
+    });
+
+    shopSetStatus(`Transaction sent! Waiting for confirmation...`,'#40a0e0');
+
+    // Poll for receipt
+    let confirmed = false;
+    for(let i=0;i<30;i++){
+      await new Promise(r=>setTimeout(r,2000));
+      const receipt = await shopProvider.request({
+        method:'eth_getTransactionReceipt',
+        params:[txHash]
+      });
+      if(receipt){
+        if(receipt.status === '0x1'){
+          confirmed = true;
+        }
+        break;
+      }
+    }
+
+    if(confirmed){
+      // Credit resources
+      addR(item.res, SHOP_BUNDLE_QTY);
+      updateUI();
+      notify(`🛒 Purchased ${SHOP_BUNDLE_QTY}× ${item.icon} ${item.label}!`, 'ok');
+      shopSetStatus(`✅ Success! +${SHOP_BUNDLE_QTY} ${item.label} added to your village. TX: ${txHash.slice(0,10)}...`,'#40c040');
+    } else {
+      shopSetStatus(`❌ Transaction may have failed. Check TX: ${txHash.slice(0,14)}...`,'#c04040');
+    }
+
+  } catch(e){
+    if(e.code === 4001){
+      shopSetStatus('Transaction cancelled by user.','#c08040');
+    } else {
+      shopSetStatus('Error: '+(e.message||String(e)),'#c04040');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  REGIONAL WEALTH SYSTEM
+//  Regional Wealth = city funds (shared)
+//  Treasury        = lord's personal funds
+// ═══════════════════════════════════════════════════════
+
+// Transaction log (last 20 entries)
+const RW_LOG=[];
+function rwLog(msg){
+  RW_LOG.unshift('[Day '+G.day+'] '+msg);
+  if(RW_LOG.length>20) RW_LOG.pop();
+}
+
+// Export prices (sell surplus → Regional Wealth)
+const EXPORT_PRICES={
+  shoe:    {icon:'👟', label:'Shoes',    rwPer:5,  min:5},
+  cloak:   {icon:'🧥', label:'Cloak',    rwPer:5,  min:5},
+  ale:     {icon:'🍺', label:'Ale',      rwPer:3,  min:5},
+  leather: {icon:'🧴', label:'Leather',  rwPer:2,  min:10},
+  weapon:  {icon:'⚔',  label:'Weapon',   rwPer:8,  min:3},
+  armor:   {icon:'🛡',  label:'Armor',    rwPer:10, min:3},
+  plank:   {icon:'🪵',  label:'Planks',   rwPer:1,  min:20},
+  metal:   {icon:'🔩',  label:'Metal',    rwPer:3,  min:10},
+  iron:    {icon:'⚙',   label:'Iron',     rwPer:2,  min:10},
+  beer:    {icon:'🍻',  label:'Beer',     rwPer:2,  min:5},
+  bread:   {icon:'🍞',  label:'Bread',    rwPer:2,  min:10},
+  cloth:   {icon:'🧵',  label:'Cloth',    rwPer:3,  min:10},
+};
+
+// Import prices (buy with Regional Wealth)
+const IMPORT_PRICES={
+  iron:    {icon:'⚙',   label:'Iron Ore',  rwCost:8,  qty:10},
+  coal:    {icon:'⚫',   label:'Coal',      rwCost:5,  qty:15},
+  stone:   {icon:'🪨',  label:'Stone',     rwCost:4,  qty:20},
+  wheat:   {icon:'🌿',  label:'Barley',    rwCost:6,  qty:15},
+  cloth:   {icon:'🧵',  label:'Cloth',     rwCost:10, qty:5},
+  food:    {icon:'🌾',  label:'Provisions',rwCost:6,  qty:20},
+  wood:    {icon:'🪵',  label:'Timber',    rwCost:3,  qty:20},
+};
+
+let economyPanelOpen=false;
+
+function toggleEconomyPanel(){
+  economyPanelOpen=!economyPanelOpen;
+  const panel=document.getElementById('economypanel');
+  panel.style.display=economyPanelOpen?'block':'none';
+  if(economyPanelOpen) renderEconomyPanel();
+}
+
+function renderEconomyPanel(){
+  // Update wealth displays
+  const rw=Math.floor(G.res.regional_wealth||0);
+  const trs=Math.floor(G.res.treasury||0);
+  const epRW=document.getElementById('ep-rw');
+  const epTRS=document.getElementById('ep-trs');
+  if(epRW) epRW.textContent=rw;
+  if(epTRS) epTRS.textContent=trs;
+
+  // Sources breakdown
+  const houses=G.bld.filter(b=>b.type==='house');
+  const hTax=houses.reduce((s,b)=>s+(BD.house.tax[b.lv]||1),0);
+  const tradeTP=G.bld.filter(b=>b.type==='tradingpost').length;
+  const rwSrc=document.getElementById('ep-rw-sources');
+  if(rwSrc) rwSrc.innerHTML=
+    `🏠 House tax: ~${Math.round(hTax*0.6)}/cycle<br>`+
+    `🚢 Trade posts: ${tradeTP} active<br>`+
+    `📦 Goods surplus bonus<br>`+
+    `<span style="color:#304830">Use: House upgrades, Imports</span>`;
+
+  const trsSrc=document.getElementById('ep-trs-sources');
+  if(trsSrc) trsSrc.innerHTML=
+    `🏠 House tax: ~${Math.round(hTax*0.4)}/cycle<br>`+
+    `<span style="color:#483020">Use: Military, Politics (future)</span>`;
+
+  // Export panel
+  const exportDiv=document.getElementById('ep-export');
+  if(exportDiv){
+    exportDiv.innerHTML='';
+    const hasTP=G.bld.some(b=>b.type==='tradingpost');
+    if(!hasTP){
+      exportDiv.innerHTML='<div style="font-size:11px;color:#605040;padding:4px">⚠ Build a Trading Post to enable exports.</div>';
+    } else {
+      for(const[res,info]of Object.entries(EXPORT_PRICES)){
+        const have=G.res[res]||0;
+        const canExport=have>=info.min;
+        const btn=document.createElement('div');
+        btn.style.cssText=`background:${canExport?'#081808':'#0a0806'};border:1px solid ${canExport?'#206020':'#2a2010'};padding:5px 8px;min-width:100px;text-align:center;cursor:${canExport?'pointer':'default'};opacity:${canExport?1:0.5}`;
+        btn.innerHTML=`<div style="font-size:16px">${info.icon}</div>`+
+          `<div style="font-family:'Press Start 2P';font-size:5px;color:#c0d060">${info.label}</div>`+
+          `<div style="font-size:10px;color:#607050">Have: ${have}</div>`+
+          `<div style="font-size:10px;color:#40a060">+${info.rwPer} RW/unit</div>`+
+          `<button onclick="rwExport('${res}')" ${canExport?'':'disabled'} `+
+          `style="margin-top:4px;background:${canExport?'#0a2008':'#080806'};border:1px solid ${canExport?'#208020':'#201808'};`+
+          `color:${canExport?'#40c040':'#404030'};font-family:'Press Start 2P';font-size:5px;padding:2px 6px;cursor:${canExport?'pointer':'default'};width:100%">`+
+          `SELL ${info.min}</button>`;
+        exportDiv.appendChild(btn);
+      }
+    }
+  }
+
+  // Import panel
+  const importDiv=document.getElementById('ep-import');
+  if(importDiv){
+    importDiv.innerHTML='';
+    for(const[res,info]of Object.entries(IMPORT_PRICES)){
+      const canAfford=(G.res.regional_wealth||0)>=info.rwCost;
+      const btn=document.createElement('div');
+      btn.style.cssText=`background:${canAfford?'#080c18':'#0a0806'};border:1px solid ${canAfford?'#204060':'#2a2010'};padding:5px 8px;min-width:100px;text-align:center;cursor:${canAfford?'pointer':'default'};opacity:${canAfford?1:0.5}`;
+      btn.innerHTML=`<div style="font-size:16px">${info.icon}</div>`+
+        `<div style="font-family:'Press Start 2P';font-size:5px;color:#60a0d0">${info.label}</div>`+
+        `<div style="font-size:10px;color:#506070">×${info.qty} units</div>`+
+        `<div style="font-size:10px;color:#e0c040">Cost: ${info.rwCost} RW</div>`+
+        `<button onclick="rwImport('${res}')" ${canAfford?'':'disabled'} `+
+        `style="margin-top:4px;background:${canAfford?'#080820':'#080806'};border:1px solid ${canAfford?'#203080':'#201808'};`+
+        `color:${canAfford?'#4080d0':'#303040'};font-family:'Press Start 2P';font-size:5px;padding:2px 6px;cursor:${canAfford?'pointer':'default'};width:100%">`+
+        `BUY</button>`;
+      importDiv.appendChild(btn);
+    }
+  }
+
+  // Log
+  const logDiv=document.getElementById('ep-log');
+  if(logDiv){
+    if(RW_LOG.length===0){
+      logDiv.innerHTML='<span style="color:#304030">No transactions yet.</span>';
+    } else {
+      logDiv.innerHTML=RW_LOG.map(l=>`<div style="border-bottom:1px solid #1a2a1a;padding:1px 0">${l}</div>`).join('');
+    }
+  }
+}
+
+function rwExport(res){
+  const info=EXPORT_PRICES[res];
+  if(!info) return;
+  if(!G.bld.some(b=>b.type==='tradingpost')){
+    notify('Need a Trading Post to export!','err'); return;
+  }
+  const have=G.res[res]||0;
+  if(have<info.min){
+    notify(`Need at least ${info.min} ${info.label} to export!`,'err'); return;
+  }
+  G.res[res]=have-info.min;
+  const earned=info.min*info.rwPer;
+  G.res.regional_wealth=(G.res.regional_wealth||0)+earned;
+  rwLog(`📤 Exported ${info.min}× ${info.label}: +${earned} RW`);
+  notify(`📤 Exported ${info.min}× ${info.icon}${info.label} → +${earned} 🏛 RW`,'ok');
+  updateUI(); renderEconomyPanel();
+}
+
+function rwImport(res){
+  const info=IMPORT_PRICES[res];
+  if(!info) return;
+  const rw=G.res.regional_wealth||0;
+  if(rw<info.rwCost){
+    notify(`Need ${info.rwCost} Regional Wealth (have ${Math.floor(rw)})!`,'err'); return;
+  }
+  G.res.regional_wealth=rw-info.rwCost;
+  addR(res,info.qty);
+  rwLog(`📥 Imported ${info.qty}× ${info.label}: -${info.rwCost} RW`);
+  notify(`📥 Imported ${info.qty}× ${info.icon}${info.label} (-${info.rwCost} 🏛 RW)`,'ok');
+  updateUI(); renderEconomyPanel();
+}
+
+// ═══════════════════════════════════════════════════════
+//  FARM ZONE & MARKET ZONE SYSTEMS
+// ═══════════════════════════════════════════════════════
+
+function finalizeZone(c0,r0,c1,r1,mode){
+  const minC=Math.max(0,Math.min(c0,c1)), maxC=Math.min(WC-1,Math.max(c0,c1));
+  const minR=Math.max(0,Math.min(r0,r1)), maxR=Math.min(WR-1,Math.max(r0,r1));
+  const w=maxC-minC+1, h=maxR-minR+1;
+  if(w<1||h<1){notify('Zone too small!','err');return;}
+
+  if(mode==='farmzone'){
+    // Check: need a farm building within 8 tiles
+    let nearFarm=null,nearDist=999;
+    for(const b of G.bld){
+      if(b.type!=='farm')continue;
+      const dx=b.col-(minC+w/2), dy=b.row-(minR+h/2);
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<nearDist){nearDist=d;nearFarm=b;}
+    }
+    if(!nearFarm||nearDist>12){notify('Farm building required within 12 tiles!','err');return;}
+    // Place farm zone tiles
+    for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++){
+      if(MAP[r][c].t===T.WATER||MAP[r][c].bld)continue;
+      MAP[r][c].t=T.FARM_ZONE; MAP[r][c].decor=null;
+      G.fields.push({col:c,row:r,crop:'wheat',fertility:getTileFertility(c,r),growStage:0,rotation:0,farmId:nearFarm.id});
+    }
+    G.farmZones.push({id:G.nid++,farmId:nearFarm.id,col:minC,row:minR,w,h});
+    _worldDirty=true;
+    notify(`🌾 Farm zone ${w}×${h} created! (${w*h} plots, avg fertility ${Math.round(avgFertility(minC,minR,w,h))})`, 'ok');
+    setMode('walk');
+
+  } else if(mode==='marketzone'){
+    if(w<2||h<2){notify('Market square needs at least 2×2!','err');return;}
+    // Place cobblestone tiles
+    for(let r=minR;r<=maxR;r++) for(let c=minC;c<=maxC;c++){
+      if(MAP[r][c].bld)continue;
+      MAP[r][c].t=T.MARKET_ZONE; MAP[r][c].decor=null;
+    }
+    // Create market zone with empty stall slots
+    const stallCount=Math.floor(w*h/4); // 1 stall per 4 tiles
+    const zone={id:G.nid++,col:minC,row:minR,w,h,stalls:[],day_created:G.day};
+    G.marketZones.push(zone);
+    // Spawn trader NPCs for this zone after a few days
+    zone._spawnCountdown=3;
+    _worldDirty=true;
+    notify(`🏪 Market square ${w}×${h} built! Up to ${stallCount} traders will arrive.`,'ok');
+    setMode('walk');
+  }
+}
+
+function avgFertility(c,r,w,h){
+  let sum=0,n=0;
+  for(let rr=r;rr<r+h;rr++) for(let cc=c;cc<c+w;cc++){sum+=getTileFertility(cc,rr);n++;}
+  return n>0?sum/n:50;
+}
+
+function removeZoneTile(c,r){
+  const tile=MAP[r][c];
+  if(tile.t===T.FARM_ZONE){
+    removeField(c,r);
+    tile.t=T.GRASS;
+    _worldDirty=true;
+  } else if(tile.t===T.MARKET_ZONE){
+    tile.t=T.GRASS;
+    _worldDirty=true;
+  }
+  rebuildTile(c,r);
+}
+
+// ── MARKET ZONE DIALOG — click on cobblestone to see stalls ──
+function openMarketZoneDlg(c,r){
+  // Find which zone this tile belongs to
+  const zone=G.marketZones.find(z=>c>=z.col&&c<z.col+z.w&&r>=z.row&&r<z.row+z.h);
+  if(!zone){openDlg('🏪 Market Square','Empty market square. Traders will arrive soon!',
+    [{l:'✖ Close',cls:'',fn:closeDialog}]); return;}
+
+  const stallCount=Math.floor(zone.w*zone.h/4);
+  let stallInfo=zone.stalls.length===0
+    ? 'No traders yet. They will arrive in a few days.'
+    : zone.stalls.map((s,i)=>`${s.icon||'🛒'} ${s.traderName}: ${s.label} ×${s.qty} @ ${s.price}g`).join('\n');
+
+  const btns=[{l:'✖ Close',cls:'',fn:closeDialog}];
+  // Allow buying from active stalls
+  for(const s of zone.stalls){
+    btns.push({l:`Buy ${s.icon||'🛒'} ${s.label} (${s.price}g)`,cls:'ok',fn:()=>{
+      if((G.res.gold||0)<s.price){notify('Not enough gold!','err');return;}
+      G.res.gold-=s.price;
+      addR(s.res,s.qty);
+      s.qty=Math.max(0,s.qty-1);
+      if(s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==s);notify(`${s.traderName} sold out!`,'warn');}
+      else notify(`Bought ${s.icon||'🛒'} ${s.label} from ${s.traderName}!`,'ok');
+      updateUI();
+    }});
+  }
+  openDlg(`🏪 Market Square (${zone.w}×${zone.h})`,
+    `${zone.stalls.length}/${stallCount} stalls occupied\n\n${stallInfo}`, btns);
+}
+
+function openFarmZoneDlg(c,r){
+  const field=G.fields.find(f=>f.col===c&&f.row===r);
+  const fert=getTileFertility(c,r);
+  const stageNames=['Empty','Planted','Growing','Ready to Harvest','Harvested'];
+  const stage=field?stageNames[field.growStage||0]:'Not registered';
+  const crop=field&&CROPS[field.crop]?CROPS[field.crop].e+' '+CROPS[field.crop].n:'—';
+  openDlg('🌾 Farm Plot',
+    `Fertility: ${fert}/100\nCrop: ${crop}\nStage: ${stage}\nPlot: (${c},${r})`,
+    [{l:'✖ Close',cls:'',fn:closeDialog}]);
+}
+
+// ── TRADER SPAWNING — called from doProd ──
+const TRADER_NAMES=['Ahmad','Bagas','Candra','Dimas','Eko','Fajar','Gilang','Hadi','Ivan','Jono'];
+const TRADER_GOODS=[
+  {res:'food',  label:'Fresh Produce',icon:'🥬',qty:10,price:3},
+  {res:'meat',  label:'Smoked Meat',  icon:'🥩',qty:5, price:5},
+  {res:'cloth', label:'Fine Cloth',   icon:'🧵',qty:8, price:6},
+  {res:'shoe',  label:'Leather Shoes',icon:'👟',qty:6, price:8},
+  {res:'ale',   label:'Barrel of Ale',icon:'🍺',qty:8, price:4},
+  {res:'bread', label:'Fresh Bread',  icon:'🍞',qty:12,price:2},
+  {res:'iron',  label:'Iron Ingots',  icon:'⚙', qty:5, price:7},
+  {res:'wood',  label:'Timber Logs',  icon:'🪵',qty:15,price:2},
+  {res:'stone', label:'Cut Stone',    icon:'🪨',qty:12,price:3},
+  {res:'leather',label:'Tanned Hide', icon:'🧴',qty:8, price:5},
+  {res:'coal',  label:'Coal Sacks',   icon:'⚫',qty:10,price:3},
+  {res:'honey', label:'Jar of Honey', icon:'🍯',qty:6, price:4},
+];
+
+function doTraderSpawn(){
+  if(!G.marketZones) return;
+  for(const zone of G.marketZones){
+    // Countdown before first traders arrive
+    if(zone._spawnCountdown>0){zone._spawnCountdown--;continue;}
+    const maxStalls=Math.max(1,Math.floor(zone.w*zone.h/4));
+    if(zone.stalls.length>=maxStalls) continue;
+    // Random chance each production cycle
+    if(Math.random()>0.4) continue;
+    // Pick a random good not already sold in this market
+    const existing=new Set(zone.stalls.map(s=>s.res));
+    const available=TRADER_GOODS.filter(g=>!existing.has(g.res));
+    if(!available.length) continue;
+    const good=available[Math.floor(Math.random()*available.length)];
+    const name=TRADER_NAMES[Math.floor(Math.random()*TRADER_NAMES.length)];
+    const stall={...good,traderName:name,qty:good.qty+Math.floor(Math.random()*5)};
+    zone.stalls.push(stall);
+    notify(`🛒 ${name} set up a stall in the market! Selling ${good.icon} ${good.label}`,'ok');
+  }
+}
+
 function toggleMusic(){
   initAudio();
   if(audioCtx.state==='suspended') audioCtx.resume();
@@ -3794,13 +4935,13 @@ function toggleMusic(){
     masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+1.5);
     beatCount=0;
     scheduleMusic();
-    notify('🎵 Musik desa dimulai','ok');
+    notify('🎵 Village music started','ok');
   } else {
     btn.textContent='🎵';
     btn.classList.remove('on');
     masterGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.5);
     clearTimeout(musicScheduler);
-    notify('🔇 Musik dimatikan','warn');
+    notify('🔇 Music stopped','warn');
   }
 }
 
@@ -3813,17 +4954,34 @@ genMap();
 buildWorld();
 upPop();updateUI();
 
-// spawn player on path near center
+// spawn player near starter buildings
 (function(){
   const mc=WC/2|0,mr=WR/2|0;
-  let sc2=mc,sr2=mr;
-  outer:for(let d=0;d<12;d++) for(let dc=-1;dc<=1;dc++){
-    const r=mr+d,c=mc+dc;
-    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.PATH&&!MAP[r][c].bld){sc2=c;sr2=r;break outer;}
+  // Clear a small open area around center so player can walk
+  for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
+    const r=mr+dr,c=mc+dc;
+    if(MAP[r]&&MAP[r][c]&&!MAP[r][c].bld){
+      MAP[r][c].decor=null;
+      if(MAP[r][c].t!==T.WATER&&MAP[r][c].t!==T.PATH) MAP[r][c].t=T.GRASS;
+    }
   }
-  PL.x=sc2*TS+TS/2; PL.y=sr2*TS+TS/2;
+  // Spawn at center (between all the starter buildings)
+  PL.x=(mc)*TS+TS/2;
+  PL.y=(mr)*TS+TS/2;
+  // Force rebuild world canvas with cleared tiles
+  _worldDirty=true;
 })();
 resize();centerCam();
+// Startup welcome notifications (delayed so render loop is running)
+setTimeout(()=>{
+  notify('🔥 Your settlers have arrived! A campfire keeps them warm.','ok');
+},800);
+setTimeout(()=>{
+  notify('🌲 Gather wood & stone. Build houses, then a farm to feed your people.','warn');
+},2400);
+setTimeout(()=>{
+  notify('💡 Tip: Press [R] to rotate buildings before placing!','ok');
+},4200);
 requestAnimationFrame(loop);
 </script>
 </body>
