@@ -558,7 +558,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     </div>
     <div id="shopContent"></div>
     <div class="shop-status" id="shopStatus"></div>
-    <div style="margin-top:6px;font-size:5px;color:#2a4a2a;text-align:center">Price in $GOZO token · Higher tier = better rewards</div>
+    <div style="margin-top:6px;font-size:5px;color:#2a4a2a;text-align:center">Price in USDC token · Higher tier = better rewards</div>
     <button class="mclose" onclick="closeShop()">✕ CLOSE</button>
   </div>
 </div>
@@ -715,35 +715,35 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 // DATA
 // ═══════════════════════════════════════════
 const BAITS=[
-  // gozo = harga dalam $GOZO token (integer, 10^18 per token)
-  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:10,  gp:20,  pw:1,
+  // gozo = harga dalam USDC token (integer, 10^18 per token)
+  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:0.1,  gp:20,  pw:1,
    rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
-  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:20,  gp:50,  pw:2,
+  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:0.2,  gp:50,  pw:2,
    rodColor:'#5a3a10',lineColor:'rgba(180,200,150,.8)',tipColor:'#adb'},
-  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:50, gp:120, pw:3,
+  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:0.5, gp:120, pw:3,
    rodColor:'#2a4a7a',lineColor:'rgba(150,200,255,.85)',tipColor:'#7be'},
-  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:100, gp:280, pw:4,
+  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:1, gp:280, pw:4,
    rodColor:'#1a1a1a',lineColor:'rgba(220,220,100,.9)',tipColor:'#ff0'},
-  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:250, gp:700, pw:5,
+  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:2.5, gp:700, pw:5,
    rodColor:'#7a5a00',lineColor:'rgba(255,215,0,.95)',tipColor:'#ffd700'},
 ];
 const RODS = [
   // rarity: 0=Common, 1=Uncommon, 2=Rare, 3=Epic, 4=Legendary
   // bonus: multiplier on fish gold reward
   // reach: cast distance bonus
-  {id:0, name:'Bamboo Rod',    icon:'🎋', rarity:0, gozo:250,  bonus:1.0, reach:1.0,
+  {id:0, name:'Bamboo Rod',    icon:'🎋', rarity:0, gozo:2.5,  bonus:1.0, reach:1.0,
    rodColor:'#8B6914', lineColor:'rgba(200,180,160,.8)', tipColor:'#ccc',
    desc:'Basic bamboo. Gets the job done.'},
-  {id:1, name:'Fiber Rod',     icon:'🪵', rarity:1, gozo:500,  bonus:1.2, reach:1.2,
+  {id:1, name:'Fiber Rod',     icon:'🪵', rarity:1, gozo:5,  bonus:1.2, reach:1.2,
    rodColor:'#5a3a10', lineColor:'rgba(180,200,150,.8)', tipColor:'#adb',
    desc:'Lightweight fiber. Better reach.'},
-  {id:2, name:'Carbon Rod',    icon:'⚡', rarity:2, gozo:1000, bonus:1.5, reach:1.4,
+  {id:2, name:'Carbon Rod',    icon:'⚡', rarity:2, gozo:10, bonus:1.5, reach:1.4,
    rodColor:'#1a1a2a', lineColor:'rgba(150,200,255,.85)', tipColor:'#7be',
    desc:'Carbon fiber. Attracts rarer fish.'},
-  {id:3, name:'Crystal Rod',   icon:'💎', rarity:3, gozo:2500, bonus:2.0, reach:1.7,
+  {id:3, name:'Crystal Rod',   icon:'💎', rarity:3, gozo:25, bonus:2.0, reach:1.7,
    rodColor:'#4a0a7a', lineColor:'rgba(200,150,255,.9)', tipColor:'#daf',
    desc:'Enchanted crystal. Epic catch rate.'},
-  {id:4, name:'Dragon Rod',    icon:'🐉', rarity:4, gozo:5000, bonus:3.0, reach:2.0,
+  {id:4, name:'Dragon Rod',    icon:'🐉', rarity:4, gozo:50, bonus:3.0, reach:2.0,
    rodColor:'#7a0000', lineColor:'rgba(255,215,0,.95)', tipColor:'#ffd700',
    desc:'Legendary dragon bone. Hooks any fish!'},
 ];
@@ -8954,8 +8954,8 @@ async function openShop(){
     txt.textContent = 'Loading...';
     try {
       const bal = await gFetchBalance();
-      shopBalGozo = Number(bal / BigInt('1000000000000000000'));
-      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' $GOZO';
+      shopBalGozo = Number(bal / BigInt('1000000'));
+      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
     } catch(e){ txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4); }
   } else {
     bar.className = 'shop-wallet';
@@ -8995,13 +8995,13 @@ function renderShopTab(tab){
       d.innerHTML=`<div class="sicon">${b.icon}</div>
         <div class="sname">${b.name}</div>
         <div class="sdesc">${b.desc}</div>
-        <div class="sprice">💎 ${b.gozo} $GOZO / 10 pcs</div>
+        <div class="sprice">💎 ${b.gozo} USDC / 10 pcs</div>
         <button class="sbuy-gozo ${gWallet?'':'connect'}" id="sbtn${i}" onclick="buyBait(${i})">
           ${gWallet?'BUY 10':'🔌 CONNECT WALLET'}
         </button>`;
       g.appendChild(d);
     });
-    if(!gWallet) shopSetStatus('⚠ Connect wallet to buy bait with $GOZO','err');
+    if(!gWallet) shopSetStatus('⚠ Connect wallet to buy bait with USDC','err');
   } else {
     renderRodShop();
   }
@@ -9026,7 +9026,7 @@ function renderRodShop(){
     } else if(!gWallet){
       btnHtml = `<button class="rod-btn buy connect" onclick="buyRod(${rod.id})">🔌 CONNECT</button>`;
     } else {
-      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${rod.gozo.toLocaleString()} $GOZO</button>`;
+      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${rod.gozo.toLocaleString()} USDC</button>`;
     }
     d.innerHTML=`
       <canvas id="rodCanvas_${rod.id}" width="64" height="96"
@@ -9043,7 +9043,7 @@ function renderRodShop(){
     // Draw pixel art after DOM insert
     requestAnimationFrame(()=>{ const c=document.getElementById('rodCanvas_'+rod.id); if(c) drawRodPixelArt(c, rod.id); });
   });
-  if(!gWallet) shopSetStatus('⚠ Connect wallet to buy rods with $GOZO','err');
+  if(!gWallet) shopSetStatus('⚠ Connect wallet to buy rods with USDC','err');
 }
 
 function equipRod(id){
@@ -9064,26 +9064,26 @@ async function buyRod(id){
     const w = await gConnectWallet();
     if(!w){ shopSetStatus('❌ Wallet not connected.','err'); return; }
     const bal = await gFetchBalance();
-    shopBalGozo = Number(bal / BigInt('1000000000000000000'));
+    shopBalGozo = Number(bal / BigInt('1000000'));
     renderRodShop(); return;
   }
   const rod = RODS.find(r=>r.id===id);
   if(!rod) return;
   if(G.ownedRods.includes(id)){ equipRod(id); return; }
   rodBuying = true;
-  shopSetStatus(`Checking $GOZO balance...`,'');
-  const weiAmt = BigInt(rod.gozo) * BigInt('1000000000000000000');
+  shopSetStatus(`Checking USDC balance...`,'');
+  const weiAmt = BigInt(Math.round(rod.gozo * 1000000));
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000000000000000'));
-    shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} $GOZO, have ${have.toLocaleString()}`, 'err');
+    const have = Number(bal/BigInt('1000000'));
+    shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} USDC, have ${have.toLocaleString()}`, 'err');
     rodBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChain = await gEnsureChain();
   if(!onChain){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); rodBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} $GOZO...`,'');
+  shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -9097,7 +9097,7 @@ async function buyRod(id){
     showRodUnlock(id);
     shopBalGozo -= rod.gozo;
     document.getElementById('shopWalletTxt').textContent =
-      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' $GOZO';
+      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
     shopSetStatus(`✅ ${rod.icon} ${rod.name} purchased & equipped!`,'ok');
     showSaveToast(`${rod.icon} ${rod.name} unlocked!`, false);
     renderRodShop();
@@ -9130,21 +9130,21 @@ async function buyBait(i){
   shopBuying = true;
   document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=true);
   const bait = BAITS[i];
-  const weiAmt = BigInt(bait.gozo) * BigInt('1000000000000000000');
-  shopSetStatus(`Checking $GOZO balance...`,'');
+  const weiAmt = BigInt(Math.round(bait.gozo * 1000000));
+  shopSetStatus(`Checking USDC balance...`,'');
   // Check balance
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000000000000000'));
-    shopSetStatus(`❌ Insufficient balance! Have ${have} $GOZO, need ${bait.gozo} $GOZO.`,'err');
+    const have = Number(bal/BigInt('1000000'));
+    shopSetStatus(`❌ Insufficient balance! Have ${have} USDC, need ${bait.gozo} USDC.`,'err');
     document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
     shopBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChainB = await gEnsureChain();
   if(!onChainB){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false); shopBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${bait.gozo} $GOZO...`,'');
+  shopSetStatus(`Confirm in wallet — send ${bait.gozo} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -9161,9 +9161,9 @@ async function buyBait(i){
     // Refresh balance display
     try {
       const newBal = await gFetchBalance();
-      const gozo = Number(newBal/BigInt('1000000000000000000'));
+      const gozo = Number(newBal/BigInt('1000000'));
       document.getElementById('shopWalletTxt').textContent =
-        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' $GOZO';
+        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' USDC';
     } catch(e){}
   } catch(e){
     if(e.code===4001)        shopSetStatus('❌ Transaction cancelled.','err');
@@ -9432,8 +9432,8 @@ window.addEventListener('load',()=>{
 //  WEB3 CONFIG  — for Gold Market
 // ═══════════════════════════════════════════════════════
 const W3 = {
-  GOZO_ADDR    : '0xB2525F5997e38c23475a124CD5bdbb650b001B35',
-  BURN_ADDR    : '0x000000000000000000000000000000000000dEaD',
+  GOZO_ADDR    : '0xb88339cb7199b77e23db6e890353e22632ba630f',
+  BURN_ADDR    : '0x44C0551dEb02F75189C7c4075B58212cFb108F2D',
   CHAIN_ID     : '0x3e7',
   CHAIN_ID_DEC : 999,
   EXPLORER     : 'https://explorer.hyperlend.finance/tx/',
