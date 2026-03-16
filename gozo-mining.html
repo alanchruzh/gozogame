@@ -382,8 +382,8 @@ canvas{position:absolute;top:0;left:0;image-rendering:pixelated;image-rendering:
     <div style="text-align:center;margin-bottom:16px;">
       <div style="font-size:24px;margin-bottom:4px;">🌟</div>
       <div style="color:#ffdd00;font-size:10px;letter-spacing:2px;">ZAEL THE LEGEND</div>
-      <div style="color:#aaa;font-size:6px;margin-top:4px;">Legendary Weapons — GOZO Token Only</div>
-      <div style="color:#555;font-size:5px;margin-top:2px;">HyperEVM · Purchased GOZO is burned forever</div>
+      <div style="color:#aaa;font-size:6px;margin-top:4px;">Legendary Weapons — USDC Only</div>
+      <div style="color:#555;font-size:5px;margin-top:2px;">HyperEVM · Payment sent to treasury</div>
     </div>
 
     <!-- Wallet status -->
@@ -1857,11 +1857,11 @@ const WEAPONS = {
   necrotic_scythe:     {name:'Necrotic Scythe',       dmg:1100,spd:0.9, range:3.8, tier:9, icon:'☠️', color:'#55ff22', floorMin:240, bossDrop:true, goldSell:450000, legendary:true},
   genesis_annihilator: {name:'Genesis Annihilator',   dmg:1300,spd:1.0, range:3.0, tier:9, icon:'✨', color:'#ffff00', floorMin:250, bossDrop:true, goldSell:600000, legendary:true},
   // ── TIER 6 — LEGENDARY (Web3 purchase only, sell as gold) ──
-  gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, gozoPrice:5000,  goldSell:8000},
-  monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, gozoPrice:8000,  goldSell:12000},
-  void_sovereign:{name:'Void Sovereign',     dmg:180,spd:0.9, range:1.8, tier:6, icon:'🔨', color:'#00ffcc', floorMin:0, legendary:true, gozoPrice:12000, goldSell:18000},
-  abyss_throne:  {name:'Abyss Throne Blade', dmg:200,spd:1.1, range:2.5, tier:6, icon:'⚔️', color:'#ff8800', floorMin:0, legendary:true, gozoPrice:20000, goldSell:30000},
-  genesis_reaper:{name:'Genesis Reaper',     dmg:250,spd:1.4, range:2.8, tier:6, icon:'⚔️', color:'#ffff00', floorMin:0, legendary:true, gozoPrice:50000, goldSell:75000},
+  gozo_fang:     {name:'Gozo\'s Fang',      dmg:150,spd:1.6, range:2.2, tier:6, icon:'🗡️', color:'#ff4444', floorMin:0, legendary:true, usdcPrice:5,  goldSell:8000},
+  monad_lance:   {name:'Hyperliquid Blade', dmg:140,spd:1.9, range:3.0, tier:6, icon:'💧', color:'#00c8ff', floorMin:0, legendary:true, usdcPrice:8,  goldSell:12000},
+  void_sovereign:{name:'Void Sovereign',     dmg:180,spd:0.9, range:1.8, tier:6, icon:'🔨', color:'#00ffcc', floorMin:0, legendary:true, usdcPrice:12, goldSell:18000},
+  abyss_throne:  {name:'Abyss Throne Blade', dmg:200,spd:1.1, range:2.5, tier:6, icon:'⚔️', color:'#ff8800', floorMin:0, legendary:true, usdcPrice:20, goldSell:30000},
+  genesis_reaper:{name:'Genesis Reaper',     dmg:250,spd:1.4, range:2.8, tier:6, icon:'⚔️', color:'#ffff00', floorMin:0, legendary:true, usdcPrice:50, goldSell:75000},
 };
 
 // Draw weapon pixel art sprite (16x16 -> 32x32 canvas)
@@ -9203,7 +9203,7 @@ const VILLAGE_NPCS = [
   { id:'oretrader',  name:'Mira the Ore Merchant',  icon:'💎', shop:'ore',
     x:34, y:26, color:'#40e090', desc:'Buy & Sell Ores' },
   { id:'legend',     name:'Zael the Legend',        icon:'🌟', shop:'legendary',
-    x:22, y:26, color:'#ffdd00', desc:'Legendary Weapons (GOZO token)' },
+    x:22, y:26, color:'#ffdd00', desc:'Legendary Weapons (USDC)' },
   { id:'forge',      name:'Drak the Forge Master',  icon:'🔥', shop:'forge',
     x:43, y:24, color:'#ff8020', desc:'Craft Equipment from Ores' },
 ];
@@ -11124,10 +11124,10 @@ function openShop(npcIdx){
 }
 
 // ══════════════════════════════════════════════════════════════
-//  WEB3 — LEGENDARY SHOP  (Monad Mainnet · GOZO token burn)
+//  WEB3 — LEGENDARY SHOP  (HyperEVM · USDC payment)
 // ══════════════════════════════════════════════════════════════
-const GOZO_TOKEN    = '0xB2525F5997e38c23475a124CD5bdbb650b001B35';
-const DEAD_ADDRESS  = '0x000000000000000000000000000000000000dEaD';
+const GOZO_TOKEN    = '0xb88339cb7199b77e23db6e890353e22632ba630f';
+const DEAD_ADDRESS  = '0x44c0551deb02f75189c7c4075b58212cfb108f2d';
 const MONAD_CHAIN_ID = 999n; // HyperEVM mainnet
 const GOZO_ABI = [
   'function balanceOf(address owner) view returns (uint256)',
@@ -11136,41 +11136,41 @@ const GOZO_ABI = [
 ];
 
 const LEGENDARY_ITEMS = [
-  {id:'gozo_fang',      priceGozo:5000,  itemType:'weapon'},
-  {id:'monad_lance',    priceGozo:8000,  itemType:'weapon'},
-  {id:'void_sovereign', priceGozo:12000, itemType:'weapon'},
-  {id:'void_sovereign_omega', priceGozo:80000, itemType:'weapon'},
-  {id:'abyss_throne',   priceGozo:20000, itemType:'weapon'},
-  {id:'genesis_reaper', priceGozo:50000, itemType:'weapon'},
+  {id:'gozo_fang',      priceUsdc:5,  itemType:'weapon'},
+  {id:'monad_lance',    priceUsdc:8,  itemType:'weapon'},
+  {id:'void_sovereign', priceUsdc:12, itemType:'weapon'},
+  {id:'void_sovereign_omega', priceUsdc:80, itemType:'weapon'},
+  {id:'abyss_throne',   priceUsdc:20, itemType:'weapon'},
+  {id:'genesis_reaper', priceUsdc:50, itemType:'weapon'},
   // Tier 8 boss-drop weapons (floors 151-200)
-  {id:'death_scythe',   priceGozo:80000,  itemType:'weapon'},
-  {id:'chaos_blade',    priceGozo:100000, itemType:'weapon'},
-  {id:'soul_lance',     priceGozo:120000, itemType:'weapon'},
-  {id:'omega_destroyer',priceGozo:150000, itemType:'weapon'},
+  {id:'death_scythe',   priceUsdc:80,  itemType:'weapon'},
+  {id:'chaos_blade',    priceUsdc:100, itemType:'weapon'},
+  {id:'soul_lance',     priceUsdc:120, itemType:'weapon'},
+  {id:'omega_destroyer',priceUsdc:150, itemType:'weapon'},
   // Tier 9 apocalypse weapons (floors 201-250)
-  {id:'rift_slicer',         priceGozo:250000,  itemType:'weapon'},
-  {id:'godkiller_blade',     priceGozo:350000,  itemType:'weapon'},
-  {id:'storm_herald',        priceGozo:450000,  itemType:'weapon'},
-  {id:'necrotic_scythe',     priceGozo:600000,  itemType:'weapon'},
-  {id:'genesis_annihilator', priceGozo:800000,  itemType:'weapon'},
+  {id:'rift_slicer',         priceUsdc:250,  itemType:'weapon'},
+  {id:'godkiller_blade',     priceUsdc:350,  itemType:'weapon'},
+  {id:'storm_herald',        priceUsdc:450,  itemType:'weapon'},
+  {id:'necrotic_scythe',     priceUsdc:600,  itemType:'weapon'},
+  {id:'genesis_annihilator', priceUsdc:800,  itemType:'weapon'},
   // ── LEGENDARY ARMORS ──
-  {id:'crimson_mantle', priceGozo:3000,  itemType:'armor'},
-  {id:'void_carapace',  priceGozo:7000,  itemType:'armor'},
-  {id:'titan_shell',    priceGozo:15000, itemType:'armor'},
-  {id:'soul_aegis',     priceGozo:25000, itemType:'armor'},
-  {id:'abyssal_crown',  priceGozo:60000, itemType:'armor'},
+  {id:'crimson_mantle', priceUsdc:3,  itemType:'armor'},
+  {id:'void_carapace',  priceUsdc:7,  itemType:'armor'},
+  {id:'titan_shell',    priceUsdc:15, itemType:'armor'},
+  {id:'soul_aegis',     priceUsdc:25, itemType:'armor'},
+  {id:'abyssal_crown',  priceUsdc:60, itemType:'armor'},
   // Tier 3 — boss drops only (not in shop)
-  {id:'void_mantle',    priceGozo:80000,  itemType:'armor'},
-  {id:'death_shroud',   priceGozo:100000, itemType:'armor'},
-  {id:'chaos_plate',    priceGozo:120000, itemType:'armor'},
-  {id:'soul_barrier',   priceGozo:150000, itemType:'armor'},
-  {id:'omega_aegis',    priceGozo:200000, itemType:'armor'},
+  {id:'void_mantle',    priceUsdc:80,  itemType:'armor'},
+  {id:'death_shroud',   priceUsdc:100, itemType:'armor'},
+  {id:'chaos_plate',    priceUsdc:120, itemType:'armor'},
+  {id:'soul_barrier',   priceUsdc:150, itemType:'armor'},
+  {id:'omega_aegis',    priceUsdc:200, itemType:'armor'},
   // Tier 4 — boss drops only
-  {id:'rift_mantle',     priceGozo:300000, itemType:'armor'},
-  {id:'godkiller_plate', priceGozo:400000, itemType:'armor'},
-  {id:'storm_aegis',     priceGozo:500000, itemType:'armor'},
-  {id:'necrotic_shroud', priceGozo:650000, itemType:'armor'},
-  {id:'genesis_crown',   priceGozo:1000000,itemType:'armor'},
+  {id:'rift_mantle',     priceUsdc:300, itemType:'armor'},
+  {id:'godkiller_plate', priceUsdc:400, itemType:'armor'},
+  {id:'storm_aegis',     priceUsdc:500, itemType:'armor'},
+  {id:'necrotic_shroud', priceUsdc:650, itemType:'armor'},
+  {id:'genesis_crown',   priceUsdc:1000,itemType:'armor'},
 ];
 
 // Register legendary armors into CRAFTED_ITEMS
@@ -11240,7 +11240,7 @@ const LEGENDARY_ARMORS = {
 };
 Object.assign(CRAFTED_ITEMS, LEGENDARY_ARMORS);
 
-let legendProvider=null, legendSigner=null, legendGozoBal=0n, legendDecimals=18;
+let legendProvider=null, legendSigner=null, legendGozoBal=0n, legendDecimals=6;
 
 // ── Wallet purchase history (persists across new game) ──
 // Key: "gozoPurchases_<walletAddr>" → JSON array of weaponIds
@@ -11311,7 +11311,7 @@ async function legendConnectWallet(){
     document.getElementById('legend-wallet-status').textContent = '⬤ Connected';
     document.getElementById('legend-wallet-status').style.color = '#40e090';
     document.getElementById('legend-wallet-addr').textContent   = addr.slice(0,6)+'...'+addr.slice(-4);
-    document.getElementById('legend-gozo-bal').textContent      = `💰 ${balDisplay} GOZO`;
+    document.getElementById('legend-gozo-bal').textContent      = `💰 ${balDisplay} USDC`;
     btn.textContent='✓ CONNECTED'; btn.style.borderColor='#40e090'; btn.style.color='#40e090';
     renderLegendItems();
   } catch(e){
@@ -11332,7 +11332,7 @@ function renderLegendItems(){
     // Get item definition — weapon or armor
     const w = isArmor ? LEGENDARY_ARMORS[li.id] : WEAPONS[li.id];
     if(!w) continue;
-    const priceWei=BigInt(li.priceGozo) * BigInt(10**legendDecimals);
+    const priceWei=BigInt(li.priceUsdc) * BigInt(10**legendDecimals);
     const ownedInInventory = isArmor
       ? G.inventory.some(s=>s&&s.type==='accessory'&&s.id===li.id)
       : G.inventory.some(s=>s&&s.type==='weapon'&&s.id===li.id);
@@ -11445,7 +11445,7 @@ function renderLegendItems(){
     const priceEl=document.createElement('div');
     priceEl.style.cssText=`color:${canReclaim?'#40e090':'#ffdd00'};font-family:'Press Start 2P',monospace;font-size:6px;
       margin-bottom:6px;text-shadow:0 0 6px ${canReclaim?'#40e09099':'#ffdd0099'};`;
-    priceEl.textContent=canReclaim ? '✦ PREVIOUSLY PURCHASED' : `${li.priceGozo.toLocaleString()} GOZO`;
+    priceEl.textContent=canReclaim ? '✦ PREVIOUSLY PURCHASED' : `${li.priceUsdc.toLocaleString()} USDC`;
     actionDiv.appendChild(priceEl);
 
     if(owned){
@@ -11479,7 +11479,7 @@ function renderLegendItems(){
       actionDiv.appendChild(note);
     } else {
       const btn=document.createElement('button');
-      btn.onclick=()=>legendBuy(li.id, li.priceGozo);
+      btn.onclick=()=>legendBuy(li.id, li.priceUsdc);
       const btnActive=legendSigner&&canAfford;
       btn.style.cssText=`
         background:${btnActive?`${w.color}22`:'#111'};
@@ -11503,17 +11503,17 @@ function renderLegendItems(){
   }
 }
 
-async function legendBuy(itemId, priceGozo){
+async function legendBuy(itemId, priceUsdc){
   if(!legendSigner){ toast('Connect wallet first!'); return; }
   const li=LEGENDARY_ITEMS.find(x=>x.id===itemId);
   const isArmor=li?.itemType==='armor';
   const w=isArmor ? LEGENDARY_ARMORS[itemId] : WEAPONS[itemId];
-  const priceWei=BigInt(priceGozo) * BigInt(10**legendDecimals);
+  const priceWei=BigInt(priceUsdc) * BigInt(10**legendDecimals);
   const btn=event.target; btn.textContent='BURNING...'; btn.disabled=true;
   try {
     const contract=new ethers.Contract(GOZO_TOKEN, GOZO_ABI, legendSigner);
     const tx=await contract.transfer(DEAD_ADDRESS, priceWei);
-    toast(`🔥 Burning ${priceGozo.toLocaleString()} GOZO... tx pending`);
+    toast(`💸 Sending ${priceUsdc.toLocaleString()} USDC... tx pending`);
     btn.textContent='WAITING TX...';
     await tx.wait();
     if(legendWalletAddr) recordWalletPurchase(legendWalletAddr, itemId);
@@ -11527,9 +11527,9 @@ async function legendBuy(itemId, priceGozo){
     if(!added){ toast('❌ Inventory full!'); btn.textContent='BUY & BURN'; btn.disabled=false; return; }
     legendGozoBal -= priceWei;
     const balDisplay=Number(legendGozoBal/BigInt(10**legendDecimals)).toLocaleString();
-    document.getElementById('legend-gozo-bal').textContent=`💰 ${balDisplay} GOZO`;
+    document.getElementById('legend-gozo-bal').textContent=`💰 ${balDisplay} USDC`;
     updateHud();
-    toast(`🌟 ${w.name} acquired! GOZO burned forever.`);
+    toast(`🌟 ${w.name} acquired! Payment sent.`);
     renderLegendItems();
     // Open inventory so player sees new item
     const invPanel=document.getElementById('inv-panel');
