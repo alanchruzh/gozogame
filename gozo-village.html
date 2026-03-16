@@ -124,10 +124,31 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   cursor:pointer;user-select:none;border-radius:3px;position:absolute;-webkit-tap-highlight-color:transparent}
 #dpU{top:0;left:43px}#dpD{top:86px;left:43px}#dpL{top:43px;left:0}#dpR{top:43px;left:86px}
 #dpA{top:43px;left:43px;font-family:'Press Start 2P';font-size:9px}
+@keyframes fadeInOut{
+  0%{opacity:0;transform:translateX(-50%) translateY(-10px)}
+  15%{opacity:1;transform:translateX(-50%) translateY(0)}
+  75%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes disasterFlash{
+  0%,100%{background:rgba(200,0,0,0)}
+  50%{background:rgba(200,0,0,0.3)}
+}
+/* Quest active indicator pulse */
+#tb-quest.has-quests{animation:questPulse 2s infinite}
+@keyframes questPulse{
+  0%,100%{border-color:#604020;color:#907040}
+  50%{border-color:#f0c040;color:#f0e060}
+}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<!-- Debug error overlay -->
+<div id="_err_overlay" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:rgba(180,0,0,0.95);color:#fff;font-family:monospace;font-size:11px;
+  padding:10px;white-space:pre-wrap;max-height:40vh;overflow:auto;pointer-events:auto"
+  onclick="this.style.display='none'">CLICK TO DISMISS</div>
 
 <!-- TITLE SCREEN -->
 <div id="title-screen" style="position:fixed;inset:0;z-index:9999;background:#0a0603;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'VT323',monospace;overflow:hidden">
@@ -301,6 +322,10 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   <div class="hdv"></div>
   <button class="tbtn" onclick="toggleTradePanel()" title="Trade System">🚢 TRADE</button>
   <div class="hdv"></div>
+  <button class="tbtn" onclick="toggleQuestPanel()" title="Quests" id="tb-quest">📜 QUESTS</button>
+  <div class="hdv"></div>
+  <button class="tbtn" onclick="toggleFog()" title="Toggle Fog of War" id="tb-fog">🌫️ FOG</button>
+  <div class="hdv"></div>
   <button class="tbtn" onclick="saveGameToFile()" title="Save game to file">💾 SAVE</button>
   <button class="tbtn" onclick="document.getElementById('load-file-input').click()" title="Load game from file">📂 LOAD</button>
   <input type="file" id="load-file-input" accept=".gozo,.json" style="display:none" onchange="loadGameFromFile(event)">
@@ -393,6 +418,12 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   </div>
 </div>
 
+<!-- QUEST PANEL -->
+<div id="questpanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:610;background:rgba(3,4,6,.98);border:2px solid #4a3010;
+  width:380px;max-width:95vw;max-height:80vh;overflow-y:auto;font-family:'VT323',monospace;">
+</div>
+
 <!-- TRADE PANEL -->
 <div id="tradepanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
   z-index:610;background:rgba(3,4,6,.98);border:2px solid #2a4a6a;
@@ -443,6 +474,19 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
 </div>
 
 <script>
+// Global error handler — shows stack trace overlay for debugging
+window.onerror=function(msg,src,line,col,err){
+  const el=document.getElementById('_err_overlay');
+  if(el){
+    el.style.display='block';
+    el.textContent=(err&&err.stack?err.stack:msg)+'\nLine:'+line+' Col:'+col;
+  }
+  return false; // don't suppress
+};
+window.addEventListener('unhandledrejection',e=>{
+  const el=document.getElementById('_err_overlay');
+  if(el){el.style.display='block';el.textContent='Promise: '+(e.reason?.stack||e.reason);}
+});
 'use strict';
 // ══════════════════════════════════════════════════════
 //  GOZO VILLAGE  —  Sandbox RPG
@@ -740,6 +784,13 @@ const BD={
   market:    {n:'Market',    e:'🏪',d:'+2 gold/day.',  cost:{wood:30,gold:20},  ml:3,pr:{gold:2},cat:'civic'},
   blacksmith:{n:'Smith',     e:'🔨',d:'Crafting.',      cost:{wood:20,stone:15}, ml:2,         cat:'civic'},
   hunting:   {n:'Hunt Lodge',e:'🏹',d:'Unlock Hunter.',  cost:{wood:30,stone:10}, ml:2,         cat:'civic'},
+  // ── SOCIAL BUILDINGS ──
+  tavern:    {n:'Tavern',    e:'🍺',d:'+Happiness. Needs ale.',  cost:{wood:35,stone:20,gold:20}, ml:2, cat:'civic',
+              pr:{happiness:5}, needs:{ale:1}, lvDesc:{1:'Simple inn.',2:'Popular pub.'}},
+  school:    {n:'School',   e:'📚',d:'Children grow faster.',   cost:{wood:30,stone:25,gold:15}, ml:2, cat:'civic',
+              pr:{}, lvDesc:{1:'Basic school.',2:'Academy.'}},
+  hospital:  {n:'Hospital', e:'⚕️',d:'+Health. Cures sickness.',cost:{wood:40,stone:35,gold:30}, ml:3, cat:'civic',
+              pr:{health:3}, lvDesc:{1:'Healer hut.',2:'Full hospital.'}},
   // ── STALLS (prerequisite for house upgrade) ──
   food_stall:    {n:'Food Stall',    e:'🥘',d:'Sell food goods.',  cost:{wood:20,stone:5},  ml:1, cat:'civic'},
   fuel_stall:    {n:'Fuel Stall',    e:'🪵',d:'Sell fuel/coal.',   cost:{wood:15,stone:5},  ml:1, cat:'civic'},
@@ -788,6 +839,9 @@ let FAMILIES=[];
 let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted:bool, regrowTick:int, yield:int}
+let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
+let FOG_ENABLED=true;
+let LANDMARKS=[];    // [{col,row,type,label,discovered}]
 
 // ─── HASH NOISE ───
 function hh(x,y){let n=Math.sin(x*127.1+y*311.7)*43758.5;return n-(n|0);}
@@ -984,6 +1038,7 @@ function autoTileBlend(W,c,r,t){
   const dirs=[[c+1,r,1,0],[c-1,r,-1,0],[c,r+1,0,1],[c,r-1,0,-1]];
   for(const[nc,nr,dx,dy]of dirs){
     if(nc<0||nc>=WC||nr<0||nr>=WR)continue;
+    if(!MAP[nr]||!MAP[nr][nc])continue;
     const nt=MAP[nr][nc].t;
     if(nt===t||nt===T.PATH) continue; // don't blend toward PATH
     if(MAP[nr][nc].bld) continue;
@@ -1019,6 +1074,7 @@ function animateWater(){
   const W=WC_.getContext('2d');
   const t=Date.now()/1000;
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].t!==T.WATER)continue;
     const v=sh(c,r),g=v*10|0,sx=c*TS,sy=r*TS;
     const w=Math.sin(t*0.9+c*0.5+r*0.4);
@@ -1039,7 +1095,28 @@ let WORLD_SEED=Math.floor(Math.random()*99999)+1;
 let R=rng(WORLD_SEED);
 
 function genMap(){
+  // ── FULL RESET for new game ──
   MAP=[];
+  G.bld=[];G.nid=1;G.ticks=0;
+  G.res={wood:30,stone:15,food:20,meat:0,coal:0,iron:0,gold:20,cloth:0,
+    leather:0,shoe:0,ale:0,beer:0,plank:0,metal:0,weapon:0,armor:0,
+    cloak:0,egg:0,honey:0,berry:0,wheat:0,flour:0,bread:0,
+    regional_wealth:200,wealth:0};
+  G.pop=0;G.cap=6;G.happy=80;G.health=70;
+  G.day=1;G.hr=6;G.mn=0;G.yr=1;G.season=0;
+  G.bldWorkers={};G.pending={};
+  G.fields=[];G.farmStats={totalHarvests:0,failedHarvests:0};
+  G.marketZones=[];G.farmZones=[];
+  G.tradeRoutes={};G.tradeQueue=[];G.tradeLog=[];
+  G.mode='walk';
+  NPCS=[];FAMILIES=[];DEER=[];
+  BERRY_STATE={};
+  G_activeDisaster=null;G_disasterTimer=0;
+  G_activeQuests=[];G_completedQuests=new Set();
+  G_questLog=[];
+  LANDMARKS=[];
+  FOG=[];
+
   for(let r=0;r<WR;r++){MAP[r]=[];for(let c=0;c<WC;c++)MAP[r][c]={t:T.GRASS,bld:null,decor:null};}
 
   const mc=WC/2|0, mr=WR/2|0;
@@ -1052,7 +1129,10 @@ function genMap(){
   for(let r=3;r<WR-3;r++){
     MAP[r][riverCol].t=T.WATER;
     MAP[r][riverCol+1].t=T.WATER;
-    if(r%5===0){MAP[r][riverCol-1].t=T.WATER; MAP[r][riverCol+2].t=T.WATER;}
+    if(r%5===0){
+      if(riverCol-1>=0) MAP[r][riverCol-1].t=T.WATER;
+      if(riverCol+2<WC) MAP[r][riverCol+2].t=T.WATER;
+    }
     if(r%7===0&&riverWiggle>1) MAP[r][riverCol+2].t=T.WATER;
   }
 
@@ -1107,6 +1187,7 @@ function genMap(){
       const dr=4+Math.floor(R()*(WR-8));
       // Keep away from center campfire area
       if(Math.abs(dc-mc)<minDist&&Math.abs(dr-mr)<minDist)continue;
+      if(!MAP[dr]||!MAP[dr][dc])continue;
       if(MAP[dr][dc].t!==T.GRASS||MAP[dr][dc].bld||MAP[dr][dc].decor)continue;
       // Place 2x2 cluster
       const w=2+Math.floor(R()*2), h=2+Math.floor(R()*2);
@@ -1132,6 +1213,7 @@ function genMap(){
 
   // borders: trees (stored as decors, tile stays grass/forest-floor)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].t!==T.GRASS)continue;
     const n=R();
     if(r<2||r>=WR-2||c<1||c>=WC-1){MAP[r][c].decor='tree';continue;}
@@ -1140,7 +1222,70 @@ function genMap(){
   }
 
   // clear decors from road tiles
-  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) if(MAP[r][c].t===T.PATH) MAP[r][c].decor=null;
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(!MAP[r]||!MAP[r][c])continue;
+    if(MAP[r][c].t===T.PATH) MAP[r][c].decor=null;
+  }
+
+  // ── BIOME ZONES — sandy beach along river, stone mountain patches ──
+  // Sandy beach strip along river banks
+  for(let r=2;r<WR-2;r++){
+    for(let dc=0;dc<=2;dc++){
+      const c=riverCol+2+dc;
+      if(c>=WC)continue;
+      if(MAP[r][c]&&MAP[r][c].t===T.GRASS&&!MAP[r][c].bld&&R()>0.4){
+        MAP[r][c].t=T.SAND;
+      }
+    }
+  }
+  // Mountain/highland zone — random elevated area with stone
+  const mtCol=Math.floor(R()*(WC-18))+10, mtRow=Math.floor(R()*(WR-14))+4;
+  for(let dr=0;dr<8;dr++) for(let dc=0;dc<10;dc++){
+    const r=mtRow+dr, c=mtCol+dc;
+    if(!MAP[r]||!MAP[r][c])continue;
+    if(MAP[r][c].t===T.GRASS&&!MAP[r][c].bld&&R()>0.35){
+      MAP[r][c].t=T.STONE_G;
+      if(R()>0.7) MAP[r][c].decor='rock';
+    }
+  }
+
+  // ── LANDMARKS — unique discoverable points of interest ──
+  LANDMARKS=[];
+  const landmarkCandidates=[
+    {type:'ruins',    label:'Ancient Ruins',    icon:'🏛', bonus:{regional_wealth:30}},
+    {type:'oasis',    label:'Hidden Oasis',     icon:'🌊', bonus:{food:25,berry:10}},
+    {type:'shrine',   label:'Old Shrine',       icon:'⛩️',  bonus:{happy:10}},
+    {type:'cave',     label:'Dark Cave',        icon:'🕳️',  bonus:{iron:20,coal:15}},
+    {type:'camp',     label:'Abandoned Camp',   icon:'🏕️',  bonus:{wood:30,gold:10}},
+    {type:'meadow',   label:'Wildflower Meadow',icon:'🌸', bonus:{food:20,happy:5}},
+  ];
+  // Place 3-5 random landmarks far from center
+  const numLandmarks=3+Math.floor(R()*3);
+  for(let i=0;i<numLandmarks;i++){
+    let lc,lr,attempts=0;
+    do{
+      lc=4+Math.floor(R()*(WC-8));
+      lr=4+Math.floor(R()*(WR-8));
+      attempts++;
+    } while(attempts<50&&(
+      (Math.abs(lc-mc)<8&&Math.abs(lr-mr)<8)||
+      (MAP[lr]&&MAP[lr][lc]&&MAP[lr][lc].t===T.WATER)||
+      LANDMARKS.some(l=>Math.abs(l.col-lc)<6&&Math.abs(l.row-lr)<6)
+    ));
+    if(attempts>=50) continue;
+    const def=landmarkCandidates[i%landmarkCandidates.length];
+    LANDMARKS.push({col:lc,row:lr,...def,discovered:false});
+    // Mark tile
+    if(MAP[lr]&&MAP[lr][lc]){
+      MAP[lr][lc].decor=null;
+      MAP[lr][lc].landmark=def.type;
+    }
+  }
+
+  // ── INIT FOG OF WAR ──
+  FOG=[];
+  for(let r=0;r<WR;r++){FOG[r]=[];for(let c=0;c<WC;c++)FOG[r][c]=0;}
+  // NOTE: revealFog called AFTER NPCS spawn at bottom of genMap
 
   // ── SPAWN DEER in forest zones ──
   DEER=[];
@@ -1184,6 +1329,8 @@ function genMap(){
     {id:1,houseId:cfId,husbandName:'Wira',wifeName:'Dewi'},
     {id:2,houseId:cfId,husbandName:'Hendra',wifeName:'Ratna'},
   ];
+  // Reveal fog AFTER everything is spawned
+  revealFog(mc,mr,8);
 }
 
 // ─── DRAW TREES ───
@@ -1340,6 +1487,9 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     case 'mill':       bMill(cx,bot,lv);break;
     case 'smelter':    bSmelter(cx,bot,lv);break;
     case 'hunting':    bHunting(cx,bot,lv);break;
+    case 'tavern':     bTavern(cx,bot,lv);break;
+    case 'school':     bSchool(cx,bot,lv);break;
+    case 'hospital':   bHospital(cx,bot,lv);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
   }
   if(rot!==0) X.restore();
@@ -2083,6 +2233,49 @@ function bStorehouse(cx,bot,lv){
 }
 
 // ── GENERIC ──
+function bTavern(cx,bot,lv){
+  // Wide building, warm orange roof, ale sign
+  FR(cx-20,bot-36,40,36,'#7a4a18'); // walls
+  FR(cx-22,bot-40,44,8,'#c06010');  // roof base
+  FR(cx-24,bot-44,48,6,'#e07020');  // roof peak
+  FR(cx-3,bot-30,6,16,'#4a2a08');   // door
+  FR(cx-14,bot-28,10,10,'#a07030'); // window L
+  FR(cx+4, bot-28,10,10,'#a07030'); // window R
+  // Ale mug sign
+  X.font='14px serif';X.textAlign='center';X.fillText('🍺',cx,bot-48);
+  // Warm glow
+  const g=X.createRadialGradient(cx,bot-20,2,cx,bot-20,22);
+  g.addColorStop(0,'rgba(255,140,20,0.18)');g.addColorStop(1,'rgba(255,80,0,0)');
+  X.fillStyle=g;X.fillRect(cx-22,bot-42,44,42);
+}
+function bSchool(cx,bot,lv){
+  // Clean white/grey building, bell tower
+  FR(cx-18,bot-40,36,40,'#d0c8b8'); // walls
+  FR(cx-20,bot-44,40,6,'#608030');  // roof
+  FR(cx-4, bot-32,8, 18,'#4a3820'); // door
+  FR(cx-14,bot-30,10,10,'#80c0e0'); // window L
+  FR(cx+4, bot-30,10,10,'#80c0e0'); // window R
+  // Bell tower
+  FR(cx-5,bot-56,10,14,'#c0b8a8');
+  FR(cx-6,bot-58,12,4,'#608030');
+  X.font='11px serif';X.textAlign='center';X.fillText('🔔',cx,bot-60);
+  X.font='10px serif';X.fillText('📚',cx,bot-16);
+}
+function bHospital(cx,bot,lv){
+  // White building, red cross
+  FR(cx-18,bot-40,36,40,'#e8e4dc'); // walls
+  FR(cx-20,bot-44,40,6,'#c03030');  // red roof
+  FR(cx-4, bot-32,8, 18,'#4a3820'); // door
+  FR(cx-14,bot-30,10,10,'#80d0ff'); // window L
+  FR(cx+4, bot-30,10,10,'#80d0ff'); // window R
+  // Red cross emblem
+  X.fillStyle='#e02020';
+  X.fillRect(cx-2,bot-52,4,14);
+  X.fillRect(cx-6,bot-48,12,4);
+  // Medical icon
+  X.font='11px serif';X.textAlign='center';X.fillText('⚕️',cx,bot-54);
+}
+
 function bGeneric(cx,bot,lv,d){
   WALL(cx,bot-52,56,52);
   THATCH_ROOF(cx,bot-52,56,24);
@@ -2413,6 +2606,7 @@ const NPC_STYLES=[
 ];
 
 function drawNPC(npc){
+  if(!npc||typeof npc.x!=='number'||typeof npc.y!=='number') return;
   const px=Math.round(npc.x+camX), py=Math.round(npc.y+camY);
   if(px<-80||px>CV.width+80||py<-100||py>CV.height+100)return;
 
@@ -2429,6 +2623,10 @@ function drawNPC(npc){
   }
 
   const idx=NPCS.indexOf(npc);
+  if(idx<0){
+    if(isChild) X.restore(); // must restore if we saved for child scale
+    return;
+  }
   // Adults use their family style, children get simpler look
   const styleIdx=isChild?(npc.female?1:0):Math.min(idx,NPC_STYLES.length-1);
   const style=NPC_STYLES[styleIdx]||NPC_STYLES[0];
@@ -2698,6 +2896,19 @@ function drawNPC(npc){
   // Restore scale for children
   if(isChild) X.restore();
 
+  // ── SICK INDICATOR ──
+  if(npc.sick){
+    X.font='11px serif';X.textAlign='center';
+    X.fillText('🤒',px,py-42+bob);
+  }
+
+  // ── AGE INDICATOR (old NPC warning) ──
+  const ageYears=Math.floor((npc.age||0)/90);
+  if(ageYears>=60&&isAdult(npc)&&!npc.sick){
+    X.font='9px serif';X.textAlign='center';
+    X.globalAlpha=0.7;X.fillText('👴',px,py-42+bob);X.globalAlpha=1;
+  }
+
   // ── JOB BADGE + NAME ──
   const jobInfo=typeof JOBS!=='undefined'&&JOBS[npc.job||'idle'];
   const badge=isChild?'👶':(isPreg?'🤰':(jobInfo?jobInfo.e:'😴'));
@@ -2741,21 +2952,18 @@ function lightenColor(hex,amt){
 function doInteract(){
   if(document.getElementById('dialog').classList.contains('show')){closeDialog();return;}
   if(G.mode==='build'){G.mode='walk';buildType=null;notify('Build cancelled','warn');updateModeUI();return;}
-  // Try hunt first
   if(tryHunt())return;
 
-  // Try gather berries — check nearby tiles
   const pc=Math.floor(PL.x/TS),pr2=Math.floor(PL.y/TS);
+  // Try gather berries
   for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
     const r=pr2+dr,c=pc+dc;
     if(r<0||r>=WR||c<0||c>=WC)continue;
+    if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].decor==='berry_bush'){
       const key=c+','+r;
       if(!BERRY_STATE[key]) BERRY_STATE[key]={depleted:false,regrowTick:0,yield:0};
-      if(BERRY_STATE[key].depleted){
-        notify('🍂 This bush has been picked. Come back later!','warn');
-        return;
-      }
+      if(BERRY_STATE[key].depleted){notify('🍂 This bush has been picked. Come back later!','warn');return;}
       gatherBerries(c,r,key);
       return;
     }
@@ -2768,6 +2976,7 @@ function doInteract(){
   for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
     const r=pr2+dr,c=pc+dc;
     if(r<0||r>=WR||c<0||c>=WC)continue;
+    if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].bld){showBldDlg(MAP[r][c].bld,c,r);return;}
   }
   notify('Nothing nearby to interact with','warn');
@@ -3018,6 +3227,11 @@ function updateUI(){
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
   const _rberry=document.getElementById('rberry');if(_rberry)_rberry.textContent=G.res.berry||0;
+  // Quest button pulse when quests active
+  const _tbq=document.getElementById('tb-quest');
+  if(_tbq) _tbq.classList.toggle('has-quests',G_activeQuests.length>0);
+  // Tavern/school/hospital status in HUD health
+  const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
   // Regional Wealth & Treasury HUD
   const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
   const _trd=document.getElementById('trs-display');if(_trd)_trd.textContent=Math.floor(G.res.treasury||0);
@@ -3216,6 +3430,7 @@ function doProd(){
   let foodNeed=0,coalNeed=0,clothNeed=0,beerNeed=0;
   for(const b of G.bld){
     if(b.type!=='house')continue;
+    if(b.under_construction)continue; // house not ready yet
     const needs=BD.house.needs[b.lv]||BD.house.needs[1];
     const residents=NPCS.filter(n=>n.houseId===b.id).length||2;
     foodNeed+=Math.ceil((needs.food||0)*residents);
@@ -3261,6 +3476,36 @@ function doProd(){
     rwLog(`🚢 Trade income: +${tradeIncome} RW (${activeRoutes} routes)`);
   }
 
+  // ── TAVERN — happiness bonus, consumes ale ──
+  for(const b of G.bld.filter(t=>t.type==='tavern'&&!t.under_construction)){
+    if((G.res.ale||0)>=1){
+      G.res.ale--;
+      G.happy=Math.min(100,G.happy+3);
+    } else {
+      G.happy=Math.max(0,G.happy-1); // unhappy if no ale
+    }
+  }
+
+  // ── SCHOOL — children reach adulthood faster (every tick) ──
+  const hasSchool=G.bld.some(b=>b.type==='school'&&!b.under_construction);
+  if(hasSchool){
+    for(const npc of NPCS){
+      if(!isAdult(npc)) npc.age+=1; // extra aging for children = faster growth
+    }
+  }
+
+  // ── HOSPITAL — health bonus, cures sick NPCs ──
+  for(const b of G.bld.filter(t=>t.type==='hospital'&&!t.under_construction)){
+    G.health=Math.min(100,G.health+2);
+    // Cure sick villagers
+    const sick=NPCS.filter(n=>n.sick);
+    if(sick.length>0){
+      const cured=sick[Math.floor(Math.random()*sick.length)];
+      cured.sick=false;
+      notify(`⚕️ ${cured.name} was cured at the hospital!`,'ok');
+    }
+  }
+
   // Goods production bonus → Regional Wealth (shoes, ale, leather, cloak, weapon)
   const rwGoods={shoe:3,cloak:3,ale:2,leather:2,weapon:4,armor:5,beer:1};
   for(const[res,rwPer]of Object.entries(rwGoods)){
@@ -3275,20 +3520,23 @@ function doProd(){
   // Age NPCs
   for(const npc of NPCS)npc.age+=2;
 
-  // Pregnancy
+  // Pregnancy progression
   const babies=[];
   for(const npc of NPCS){
     if(!npc.female||!npc.pregnant)continue;
     npc.pregnant+=2;
     if(npc.pregnant>=PREG_DAYS){
       npc.pregnant=0;
+      // Only allow birth if living in a real house (not campfire)
+      const house=G.bld.find(b=>b.id===npc.houseId&&b.type==='house'&&!b.under_construction);
+      if(!house){notify(`${npc.name} gave birth, but needs a house first!`,'warn');continue;}
       const housemates=NPCS.filter(n=>n.houseId===npc.houseId);
-      if(housemates.length<4)babies.push({npc,houseId:npc.houseId,familyId:npc.familyId});
-      else notify(npc.name+' gave birth to but the house is full!','warn');
+      if(housemates.length<4) babies.push({npc,houseId:npc.houseId,familyId:npc.familyId});
+      else notify(`${npc.name} gave birth but the house is full!`,'warn');
     }
   }
   for(const b of babies){
-    const babyNames=['Aldi','Rini','Danu','Ayu','Fajar','Bunga','Rizki','Sela'];
+    const babyNames=['Aldi','Rini','Danu','Ayu','Fajar','Bunga','Rizki','Sela','Tari','Bima'];
     const isFemale=Math.random()<0.5;
     const bname=babyNames[Math.floor(Math.random()*babyNames.length)];
     const npcMom=b.npc;
@@ -3296,16 +3544,22 @@ function doProd(){
       dir:2,col:isFemale?'#f0a0c0':'#a0d0f0',job:null,female:isFemale,age:0,
       familyId:b.familyId,pregnant:0,houseId:b.houseId};
     NPCS.push(baby);
-    notify('👶 '+npcMom.name+' gave birth to '+bname+'!','ok');
+    notify(`👶 ${npcMom.name} gave birth to ${bname}!`,'ok');
   }
-  // Pregnancy chance
+  // Pregnancy chance — only for women in real houses with a husband
   if(G.res.food>10){
     for(const npc of NPCS){
       if(!npc.female||npc.pregnant||!isAdult(npc))continue;
+      // Must be in a real house
+      const house=G.bld.find(b=>b.id===npc.houseId&&b.type==='house'&&!b.under_construction);
+      if(!house)continue;
       const housemates=NPCS.filter(n=>n.houseId===npc.houseId);
       const hasHusband=housemates.some(n=>!n.female&&isAdult(n));
       const kidsInHouse=housemates.filter(n=>!isAdult(n)).length;
-      if(hasHusband&&kidsInHouse<2&&housemates.length<4&&Math.random()<0.008){npc.pregnant=1;notify('🤰 '+npc.name+' is pregnant!','ok');}
+      if(hasHusband&&kidsInHouse<2&&housemates.length<4&&Math.random()<0.008){
+        npc.pregnant=1;
+        notify(`🤰 ${npc.name} is pregnant!`,'ok');
+      }
     }
   }
   // Adulthood
@@ -3370,13 +3624,18 @@ function doProd(){
     if(bs.regrowTick<=0){
       bs.depleted=false;
       bs.regrowTick=0;
-      // Notify only if bush is near player
       const[kc,kr]=key.split(',').map(Number);
       const dist=Math.hypot(PL.x-kc*TS,PL.y-kr*TS);
       if(dist<TS*6) notify('🍇 A berry bush has regrown nearby!','ok');
       _worldDirty=true;
     }
   }
+
+  // ── NEW SYSTEMS ──
+  if(G.ticks%5===0) checkRandomEvent();
+  if(G_activeDisaster) resolveDisaster();
+  checkQuests();
+  updateNPCStats();
 
   // ── CONSTRUCTION PROGRESS ──
   // Each idle adult worker in village helps build. More workers = faster.
@@ -3478,6 +3737,7 @@ function showNPCDlg(npc){
 
 // Road placement
 function tryPlaceRoad(c,r){
+  if(!MAP[r]||!MAP[r][c])return;
   const tile=MAP[r][c];
   if(tile.t===T.PATH){tile.t=T.GRASS;rebuildTile(c,r);}
   if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
@@ -3486,6 +3746,7 @@ function tryPlaceRoad(c,r){
   }
 }
 function tryEraseRoad(c,r){
+  if(!MAP[r]||!MAP[r][c])return;
   const tile=MAP[r][c];
   if(tile.t===T.PATH){tile.t=T.GRASS;rebuildTile(c,r);}
   if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
@@ -3497,8 +3758,12 @@ function rebuildTile(c,r){_worldDirty=true;}
 function tryPlaceBuilding(c,r){
   if(!buildType)return;
   const d=BD[buildType];if(!d)return;
+  if(!MAP[r]||!MAP[r][c]){notify('Cannot build here!','err');return;}
   const tile=MAP[r][c];
   if(tile.t===T.WATER||tile.bld||tile.decor){notify('Cannot build here!','err');return;}
+  // Check if any adjacent tile has an under_construction building blocking
+  const gbld=tile.bld?G.bld.find(b=>b.id===tile.bld?.id):null;
+  if(gbld?.under_construction){notify('Already building here!','err');return;}
   if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
   pay(d.cost);
   tile.t=T.GRASS;tile.decor=null;
@@ -3663,7 +3928,7 @@ function wanderNPCs(){
       if(npc._wt>60){npc._wt=0;if(Math.random()<.3){npc._dx=0;npc._dy=0;}else{const d=[[-0.7,0],[0.7,0],[0,-0.7],[0,0.7]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}}
     } else {
       const job=npc.job||'idle';
-      const jobLoc=findJobLocation(job,i);
+      const jobLoc=job==='idle'?null:findJobLocation(job,i);
       if(jobLoc){
         const spot=workSpot(jobLoc.x,jobLoc.y,i);
         const dx=spot.x-npc.x,dy=spot.y-npc.y;
@@ -3916,7 +4181,7 @@ function render(){
       }
     }
     for(const deer of DEER)if(deer.alive&&Math.floor(deer.y/TS)===r2)drawDeer(deer);
-    for(const npc of NPCS)if(Math.floor(npc.y/TS)===r2)drawNPC(npc);
+    for(const npc of [...NPCS])try{if(Math.floor(npc.y/TS)===r2)drawNPC(npc);}catch(e){console.warn('drawNPC err',e.message);}
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
     // Draw market zone stall icons on cobblestone tiles
     if(G.marketZones){
@@ -4047,10 +4312,65 @@ function render(){
     }
     for(const b of G.bld){mctx.fillStyle='#e08020';mctx.fillRect(b.col*tw,b.row*th,tw+1,th+1);}
     for(const d of DEER){if(d.alive){mctx.fillStyle='#f0a030';mctx.fillRect(d.x/TS*tw-1,d.y/TS*th-1,2,2);}}
+    // Landmarks on minimap
+    for(const lm of (LANDMARKS||[])){
+      if(FOG_ENABLED&&FOG.length&&FOG[lm.row]&&FOG[lm.row][lm.col]===0) continue;
+      mctx.fillStyle=lm.discovered?'#f0e060':'rgba(200,180,80,0.5)';
+      mctx.fillRect(lm.col*tw-1,lm.row*th-1,3,3);
+    }
+    // Fog overlay on minimap
+    if(FOG_ENABLED&&FOG.length){
+      for(let r2=0;r2<WR;r2++) for(let c2=0;c2<WC;c2++){
+        if(!FOG[r2]||FOG[r2][c2]===undefined) continue;
+        if(FOG[r2][c2]===0){mctx.fillStyle='rgba(0,0,0,0.85)';mctx.fillRect(c2*tw,r2*th,tw+1,th+1);}
+        else if(FOG[r2][c2]===1){mctx.fillStyle='rgba(0,0,0,0.45)';mctx.fillRect(c2*tw,r2*th,tw+1,th+1);}
+      }
+    }
     mctx.fillStyle='#ffffff';mctx.fillRect(PL.x/TS*tw-1,PL.y/TS*th-1,3,3);
     const vw2=CV.width,vh2=CV.height-HH-BH;
     mctx.strokeStyle='rgba(255,255,100,0.7)';mctx.lineWidth=1;
     mctx.strokeRect((-camX/WPX)*mw,(-camY/WPY)*mh,(vw2/WPX)*mw,(vh2/WPY)*mh);
+  }
+
+  // ── LANDMARKS ──
+  drawLandmarks();
+
+  // ── FOG OF WAR ──
+  drawFog();
+
+  // ── SEASON OVERLAY & PARTICLES ──
+  const seasonTint=getSeasonOverlay();
+  if(seasonTint){
+    X.fillStyle=seasonTint;
+    X.fillRect(0,HH,CV.width,CV.height-HH-BH);
+  }
+  drawSeasonParticles();
+
+  // ── DISASTER VISUAL — fire flicker on burning building ──
+  if(G_activeDisaster?.id==='fire'){
+    for(const b of G.bld){
+      if(!b.on_fire)continue;
+      const bx=b.col*TS+camX, by=b.row*TS+camY+HH;
+      const ft=Date.now()/200;
+      for(let fi=0;fi<5;fi++){
+        const fx=bx+TS/2+Math.sin(ft+fi*1.3)*12;
+        const fy=by+TS/4+Math.cos(ft*0.8+fi)*8;
+        const fh=16+Math.sin(ft+fi)*6;
+        X.fillStyle=`rgba(255,${80+fi*20},0,0.8)`;
+        X.beginPath();X.moveTo(fx-5,fy);X.quadraticCurveTo(fx,fy-fh,fx+5,fy);X.fill();
+      }
+      X.font='20px serif';X.textAlign='center';
+      X.fillText('🔥',bx+TS/2,by+TS/2);
+    }
+  }
+
+  // ── QUEST INDICATOR — active quest hint on HUD ──
+  if(G_activeQuests.length>0&&_gameStarted){
+    const q=G_activeQuests[0];
+    X.fillStyle='rgba(0,0,0,0.5)';
+    X.fillRect(CV.width-220,HH+4,216,18);
+    X.fillStyle='#f0c040';X.font='7px "Press Start 2P"';X.textAlign='right';
+    X.fillText(`${q.icon} ${q.title.slice(0,22)}`,CV.width-6,HH+14);
   }
 
   } catch(e){ console.error('render error:',e); }
@@ -4319,7 +4639,7 @@ function renderByPanel(){
       const prod2=Object.entries(by.prod).map(([k,v])=>resIcons[k]+'+'+v).join(' ');
       const canAffBy=canAff(by.cost);
       const bySlots=BD.house.byardSlots[bld.lv];
-      const isLocked=bySlots!=='all'&&!bySlots.includes(id);
+      const isLocked=bySlots!=='all'&&!(Array.isArray(bySlots)?bySlots.includes(id):false);
       let btn='';
       if(active){
         btn='<span style="color:#40c040;font-size:11px">✓ Active</span>';
@@ -4349,7 +4669,7 @@ function setByard(type){
   if(!by) return;
   // Check backyard unlock by house level
   const slots=BD.house.byardSlots[bld.lv];
-  if(slots!=='all'&&!slots.includes(type)){
+  if(slots!=='all'&&!(Array.isArray(slots)?slots.includes(type):false)){
     notify('🏠 Upgrade house to Lv.2 to unlock '+by.n+'!','err'); return;
   }
   if(!canAff(by.cost)){ notify('Not enough materials!','err'); return; }
@@ -4596,6 +4916,7 @@ function loop(now){
   try{
     if(!G.paused&&_gameStarted&&MAP&&MAP.length){
       movePlayer();updateCam();wanderNPCs();updateDeer();tick();
+      updateFog(); // fog of war update every frame
     }
   } catch(e){ console.error('loop error:',e); }
   render();
@@ -5725,6 +6046,9 @@ function buildSaveState(){
     families:FAMILIES.map(f=>({...f})),
     deer:DEER.map(d=>({...d})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
+    landmarks:JSON.parse(JSON.stringify(LANDMARKS||[])),
+    fog:FOG.map(row=>[...row]),
+    fogEnabled:FOG_ENABLED,
     mapData,
     player:{x:PL.x,y:PL.y,dir:PL.dir},
     rwLog:[...(RW_LOG||[])],
@@ -5762,6 +6086,9 @@ function applySaveState(save){
   FAMILIES=(save.families||[]).map(f=>({...f}));
   DEER=(save.deer||[]).map(d=>({...d}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
+  if(save.landmarks) LANDMARKS=JSON.parse(JSON.stringify(save.landmarks));
+  if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
+  if(save.fogEnabled!==undefined) FOG_ENABLED=save.fogEnabled;
   if(save.rwLog) RW_LOG.splice(0,RW_LOG.length,...save.rwLog);
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
   for(const td of (save.mapData||[])){
@@ -6103,6 +6430,410 @@ function animateTitleBg(){
     }
   }
   requestAnimationFrame(animateTitleBg);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DISASTER & EVENT SYSTEM
+// ═══════════════════════════════════════════════════════
+const DISASTERS=[
+  {id:'fire',      name:'🔥 Fire!',        msg:'A building is on fire! Send workers to help.',  dur:3, effect:'destroyBuilding'},
+  {id:'raid',      name:'⚔️ Bandit Raid!', msg:'Bandits are attacking! Lose some resources.',   dur:2, effect:'loseResources'},
+  {id:'flood',     name:'🌊 Flood!',       msg:'River flooding! Farm fields damaged.',           dur:4, effect:'damageFields'},
+  {id:'plague',    name:'🤒 Plague!',      msg:'Sickness spreads! Villager happiness drops.',   dur:5, effect:'reducehappy'},
+  {id:'drought',   name:'☀️ Drought!',     msg:'Severe drought! Food production halved.',       dur:6, effect:'reduceProd'},
+  {id:'storm',     name:'⛈️ Storm!',       msg:'Storm damages buildings! Repairs needed.',      dur:2, effect:'damageBuildings'},
+];
+
+let G_activeDisaster=null;
+let G_disasterTimer=0;
+let G_questLog=[];
+let G_activeQuests=[];
+
+// Called from doProd every ~10 days
+function checkRandomEvent(){
+  if(G_activeDisaster) return; // one disaster at a time
+  if(G.day<20) return; // grace period at start
+  const chance=0.04+(G.day/1000); // increases over time
+  if(Math.random()>chance) return;
+  const d=DISASTERS[Math.floor(Math.random()*DISASTERS.length)];
+  triggerDisaster(d);
+}
+
+function triggerDisaster(d){
+  G_activeDisaster={...d};
+  G_disasterTimer=d.dur;
+  // Apply immediate effect
+  applyDisasterEffect(d.id);
+  // Show big warning
+  showDisasterAlert(d);
+}
+
+function applyDisasterEffect(id){
+  switch(id){
+    case 'fire':{
+      const targets=G.bld.filter(b=>!b.under_construction&&b.type!=='campfire');
+      if(targets.length){
+        const t=targets[Math.floor(Math.random()*targets.length)];
+        t.on_fire=true;
+        setTimeout(()=>{
+          if(t.on_fire){
+            G.bld=G.bld.filter(b=>b.id!==t.id);
+            const tile=MAP[t.row]&&MAP[t.row][t.col];
+            if(tile){tile.bld=null;tile.t=T.GRASS;}
+            notify(`🔥 ${t.type} was destroyed by fire!`,'err');
+            _worldDirty=true; updateUI();
+          }
+        }, 30000); // 30 seconds to respond
+      }
+    } break;
+    case 'raid':{
+      const loss={gold:Math.floor((G.res.gold||0)*0.15), food:Math.floor((G.res.food||0)*0.2)};
+      G.res.gold=Math.max(0,(G.res.gold||0)-loss.gold);
+      G.res.food=Math.max(0,(G.res.food||0)-loss.food);
+      G.happy=Math.max(10,G.happy-15);
+      notify(`⚔️ Bandits stole ${loss.gold} gold and ${loss.food} food!`,'err');
+    } break;
+    case 'flood':{
+      let dmg=0;
+      for(const f of G.fields){if(Math.random()<0.5){f.growStage=0;dmg++;}}
+      if(dmg) notify(`🌊 Flood destroyed ${dmg} farm fields!`,'err');
+    } break;
+    case 'plague':{
+      G.happy=Math.max(10,G.happy-20);
+      G.health=Math.max(10,G.health-25);
+      // Random NPC gets sick
+      const adults=NPCS.filter(n=>isAdult(n)&&!n.sick);
+      if(adults.length){
+        const sick=adults[Math.floor(Math.random()*adults.length)];
+        sick.sick=true;
+        notify(`🤒 ${sick.name} fell sick from the plague!`,'err');
+      }
+    } break;
+    case 'drought':{
+      G.res.food=Math.max(0,Math.floor((G.res.food||0)*0.6));
+      notify('☀️ Drought! Food reserves reduced by 40%!','err');
+    } break;
+    case 'storm':{
+      const targets=G.bld.filter(b=>!b.under_construction);
+      targets.slice(0,Math.min(3,targets.length)).forEach(b=>{
+        if(Math.random()<0.4) b.damaged=true;
+      });
+      G.happy=Math.max(10,G.happy-10);
+      notify('⛈️ Storm damaged some buildings! Check your village.','err');
+    } break;
+  }
+}
+
+function showDisasterAlert(d){
+  // Flash red overlay briefly
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(200,0,0,0.25);pointer-events:none;transition:opacity 1s';
+  document.body.appendChild(overlay);
+  setTimeout(()=>{overlay.style.opacity='0';},500);
+  setTimeout(()=>{overlay.remove();},1500);
+  // Notification
+  notify(`🚨 ${d.name} — ${d.msg}`,'err');
+}
+
+function resolveDisaster(){
+  if(!G_activeDisaster) return;
+  G_disasterTimer--;
+  if(G_disasterTimer<=0){
+    const d=G_activeDisaster;
+    G_activeDisaster=null;
+    // Clear fire flags
+    G.bld.forEach(b=>{b.on_fire=false; b.damaged=false;});
+    // Clear sick flags (recovery)
+    NPCS.forEach(n=>{n.sick=false;});
+    notify(`✅ The ${d.name.replace(/^[^\w]*/,'')} has passed.`,'ok');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  QUEST SYSTEM
+// ═══════════════════════════════════════════════════════
+const QUEST_POOL=[
+  {id:'q_food',    title:'Feed the Village',   desc:'Stockpile 50 food.',         check:()=>(G.res.food||0)>=50,   reward:{gold:20,regional_wealth:15}, icon:'🌾'},
+  {id:'q_house3',  title:'Build 3 Houses',     desc:'House 3 families.',           check:()=>G.bld.filter(b=>b.type==='house'&&!b.under_construction).length>=3, reward:{gold:30,wood:20}, icon:'🏠'},
+  {id:'q_pop10',   title:'Grow to 10 People',  desc:'Reach 10 villagers.',         check:()=>NPCS.length>=10,       reward:{gold:50,regional_wealth:30}, icon:'👥'},
+  {id:'q_farm',    title:'First Harvest',      desc:'Harvest 30 food from farms.', check:()=>(G.farmStats?.totalHarvests||0)>=5, reward:{gold:15,food:30}, icon:'🚜'},
+  {id:'q_road',    title:'Road Builder',       desc:'Place 10 road tiles.',        check:()=>G.bld.filter(b=>b.type==='road').length>=10||[...Array(WR)].reduce((s,_,r)=>[...Array(WC)].reduce((ss,__,c)=>ss+(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.PATH?1:0),s),0)>=10, reward:{stone:20,gold:10}, icon:'🛣️'},
+  {id:'q_iron',    title:'Iron Age',           desc:'Smelt 20 metal.',             check:()=>(G.res.metal||0)>=20, reward:{gold:40,regional_wealth:20}, icon:'⚙️'},
+  {id:'q_trade',   title:'Open Trade Route',   desc:'Open your first trade route.',check:()=>Object.values(G.tradeRoutes||{}).some(r=>r.active), reward:{gold:60,regional_wealth:40}, icon:'🚢'},
+  {id:'q_happy',   title:'Happy Village',      desc:'Reach 80% happiness.',        check:()=>G.happy>=80,           reward:{food:50,gold:25}, icon:'😊'},
+  {id:'q_baby',    title:'New Life',           desc:'Have a baby born.',           check:()=>NPCS.some(n=>n.age<10), reward:{food:20,gold:10}, icon:'👶'},
+  {id:'q_market',  title:'Market Day',         desc:'Build a market zone.',        check:()=>(G.marketZones||[]).length>=1, reward:{gold:20,regional_wealth:25}, icon:'🏪'},
+];
+
+let G_completedQuests=new Set();
+
+function checkQuests(){
+  for(const q of QUEST_POOL){
+    if(G_completedQuests.has(q.id)) continue;
+    if(!G_activeQuests.find(aq=>aq.id===q.id)){
+      // Auto-assign quests as player progresses
+      if(G_activeQuests.length<3) G_activeQuests.push({...q,progress:0});
+    }
+    // Check completion
+    const active=G_activeQuests.find(aq=>aq.id===q.id);
+    if(active&&q.check()){
+      completeQuest(active);
+    }
+  }
+}
+
+function completeQuest(q){
+  G_activeQuests=G_activeQuests.filter(aq=>aq.id!==q.id);
+  G_completedQuests.add(q.id);
+  // Apply reward
+  for(const[res,amt]of Object.entries(q.reward)){
+    if(res==='regional_wealth') G.res.regional_wealth=(G.res.regional_wealth||0)+amt;
+    else addR(res,amt);
+  }
+  const rewardStr=Object.entries(q.reward).map(([k,v])=>'+'+v+' '+k).join(', ');
+  notify(`${q.icon} Quest complete: "${q.title}"! Reward: ${rewardStr}`,'ok');
+  // Flash gold
+  showQuestComplete(q);
+  updateUI();
+  G_questLog.unshift(`[Y${G.yr} D${G.day}] ✅ ${q.title} — ${rewardStr}`);
+  if(G_questLog.length>20) G_questLog.pop();
+}
+
+function showQuestComplete(q){
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:7000;
+    background:rgba(20,12,2,0.95);border:2px solid #f0c040;padding:12px 20px;
+    font-family:'Press Start 2P';font-size:9px;color:#f0d060;text-align:center;
+    animation:fadeInOut 3s forwards;pointer-events:none`;
+  el.innerHTML=`${q.icon} QUEST COMPLETE!<br><span style="font-size:7px;color:#a09040">${q.title}</span>`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3000);
+}
+
+// Quest panel
+let questPanelOpen=false;
+function toggleQuestPanel(){
+  questPanelOpen=!questPanelOpen;
+  const panel=document.getElementById('questpanel');
+  if(panel){panel.style.display=questPanelOpen?'block':'none';}
+  if(questPanelOpen) renderQuestPanel();
+}
+
+function renderQuestPanel(){
+  const panel=document.getElementById('questpanel');
+  if(!panel) return;
+  let html=`<div style="font-family:'Press Start 2P';font-size:7px;color:#f0c040;padding:8px 12px;border-bottom:1px solid #2a1a06">📜 QUESTS</div>`;
+  html+=`<div style="padding:8px 12px">`;
+  if(G_activeQuests.length===0) html+=`<div style="color:#604030;font-size:11px">No active quests.</div>`;
+  for(const q of G_activeQuests){
+    html+=`<div style="margin-bottom:10px;padding:6px 8px;background:rgba(20,10,2,0.5);border:1px solid #3a2a10">
+      <div style="font-family:'Press Start 2P';font-size:6px;color:#f0c040">${q.icon} ${q.title}</div>
+      <div style="font-size:11px;color:#807050;margin-top:3px">${q.desc}</div>
+      <div style="font-size:10px;color:#605040;margin-top:2px">Reward: ${Object.entries(q.reward).map(([k,v])=>'+'+v+' '+k).join(', ')}</div>
+    </div>`;
+  }
+  html+=`<div style="font-family:'Press Start 2P';font-size:6px;color:#406040;margin-top:8px">✅ Completed: ${G_completedQuests.size}/${QUEST_POOL.length}</div>`;
+  html+=`</div>`;
+  html+=`<div style="padding:4px 12px;border-top:1px solid #1a0a02"><button onclick="toggleQuestPanel()" style="background:0;border:1px solid #402010;color:#806040;font-family:'Press Start 2P';font-size:6px;padding:3px 8px;cursor:pointer;width:100%">✖ CLOSE</button></div>`;
+  panel.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NPC INDIVIDUAL STATS — mood, health, aging, death
+// ═══════════════════════════════════════════════════════
+const LIFESPAN_DAYS=90*65; // ~65 years in game days
+
+function updateNPCStats(){
+  const toRemove=[];
+  for(const npc of NPCS){
+    // Age check — elderly NPCs can die
+    if(npc.age>LIFESPAN_DAYS){
+      const deathChance=0.001*(npc.age-LIFESPAN_DAYS)/180;
+      if(Math.random()<deathChance){
+        toRemove.push(npc);
+        notify(`💀 ${npc.name} has passed away at age ${Math.floor(npc.age/90)}.`,'warn');
+        continue;
+      }
+    }
+    // Sick NPCs heal slowly or worsen
+    if(npc.sick){
+      if(G.res.food>20&&Math.random()<0.1) npc.sick=false; // recover if fed
+    }
+    // Individual mood based on house level and food
+    const housed=G.bld.find(b=>b.id===npc.houseId&&b.type==='house');
+    npc.mood=housed?Math.min(100,(G.happy+10)):Math.max(0,G.happy-20);
+  }
+  // Remove dead NPCs
+  for(const dead of toRemove){
+    const deadIdx=NPCS.indexOf(dead);
+    if(deadIdx>=0) NPCS.splice(deadIdx,1);
+    // Free house slot
+    G.happy=Math.max(10,G.happy-5);
+  }
+  upPop();
+}
+
+// ═══════════════════════════════════════════════════════
+//  SEASONAL VISUAL EFFECTS
+// ═══════════════════════════════════════════════════════
+function getSeasonOverlay(){
+  const s=G.season;
+  if(s===3) return 'rgba(200,220,255,0.08)'; // winter blue tint
+  if(s===2) return 'rgba(160,100,20,0.06)';  // autumn orange tint
+  if(s===1) return 'rgba(255,240,100,0.05)'; // summer warm
+  return null; // spring — no overlay
+}
+
+function drawSeasonParticles(){
+  if(!_gameStarted||!G.season) return;
+  const t=Date.now()/1000;
+  if(G.season===3){ // winter snow
+    for(let i=0;i<12;i++){
+      const sx=(Math.sin(t*0.3+i*2.1)*0.5+0.5)*CV.width;
+      const sy=((t*18+i*47)%CV.height);
+      const sz=1+Math.sin(t+i)*0.5;
+      X.fillStyle='rgba(220,235,255,0.7)';
+      X.beginPath();X.arc(sx,sy,sz,0,Math.PI*2);X.fill();
+    }
+  } else if(G.season===2){ // autumn leaves
+    for(let i=0;i<8;i++){
+      const lx=(Math.sin(t*0.4+i*1.8)*0.5+0.5)*CV.width;
+      const ly=((t*22+i*63)%CV.height);
+      X.fillStyle=`rgba(${180+i*8},${80+i*5},10,0.6)`;
+      X.save();X.translate(lx,ly);X.rotate(t+i);
+      X.fillRect(-3,-2,6,4);X.restore();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  FOG OF WAR
+// ═══════════════════════════════════════════════════════
+function revealFog(col,row,radius){
+  if(!FOG.length) return;
+  for(let dr=-radius;dr<=radius;dr++){
+    for(let dc=-radius;dc<=radius;dc++){
+      const r=row+dr, c=col+dc;
+      if(r<0||r>=WR||c<0||c>=WC) continue;
+      const dist=Math.sqrt(dr*dr+dc*dc);
+      if(dist<=radius){
+        FOG[r][c]=2; // fully visible
+        // Check landmark discovery
+        checkLandmarkDiscovery(c,r);
+      } else if(dist<=radius+2){
+        if(FOG[r][c]===0) FOG[r][c]=1; // explored but dim
+      }
+    }
+  }
+}
+
+function updateFog(){
+  if(!FOG_ENABLED||!FOG.length||!_gameStarted) return;
+  // Dim previously-visible tiles to explored
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(!FOG[r]||FOG[r][c]===undefined) continue;
+    if(FOG[r][c]===2) FOG[r][c]=1;
+  }
+  // Reveal around player
+  const pc=Math.floor(PL.x/TS), pr=Math.floor(PL.y/TS);
+  revealFog(pc,pr,6);
+  // Reveal around buildings (they light up their surroundings)
+  for(const b of G.bld){
+    if(!b.under_construction) revealFog(b.col,b.row,3);
+  }
+}
+
+function drawFog(){
+  if(!FOG_ENABLED||!FOG.length||!_gameStarted) return;
+  const vw=CV.width, vh=CV.height;
+  const sc=Math.max(0,Math.floor(-camX/TS)-1);
+  const sr=Math.max(0,Math.floor(-camY/TS)-1);
+  const ec=Math.min(WC,sc+Math.ceil(vw/TS)+3);
+  const er=Math.min(WR,sr+Math.ceil(vh/TS)+3);
+
+  for(let r=sr;r<er;r++){
+    for(let c=sc;c<ec;c++){
+      if(!FOG[r]||FOG[r][c]===undefined) continue;
+      if(FOG[r][c]===2) continue; // fully visible
+      const wx=c*TS+camX, wy=r*TS+camY+HH;
+      if(FOG[r][c]===1){
+        // Explored but not visible — grey shroud
+        X.fillStyle='rgba(0,0,0,0.55)';
+      } else {
+        // Never explored — black
+        X.fillStyle='rgba(0,0,0,0.88)';
+      }
+      X.fillRect(wx,wy,TS+1,TS+1);
+    }
+  }
+}
+
+function toggleFog(){
+  FOG_ENABLED=!FOG_ENABLED;
+  notify(FOG_ENABLED?'🌫️ Fog of War ON':'👁️ Fog of War OFF','ok');
+}
+
+// ═══════════════════════════════════════════════════════
+//  LANDMARKS
+// ═══════════════════════════════════════════════════════
+function checkLandmarkDiscovery(c,r){
+  for(const lm of LANDMARKS){
+    if(lm.discovered) continue;
+    if(Math.abs(lm.col-c)<=2&&Math.abs(lm.row-r)<=2){
+      lm.discovered=true;
+      for(const[res,amt]of Object.entries(lm.bonus)){
+        if(res==='regional_wealth') G.res.regional_wealth=(G.res.regional_wealth||0)+amt;
+        else if(res==='happy') G.happy=Math.min(100,G.happy+amt);
+        else addR(res,amt);
+      }
+      if(!_gameStarted) continue; // don't notify/updateUI during genMap
+      const rewardStr=Object.entries(lm.bonus).map(([k,v])=>'+'+v+' '+k).join(', ');
+      notify(`${lm.icon} Discovered: ${lm.label}! (${rewardStr})`,'ok');
+      showLandmarkDiscovery(lm);
+      updateUI();
+    }
+  }
+}
+
+function showLandmarkDiscovery(lm){
+  const el=document.createElement('div');
+  el.style.cssText=`position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:7000;
+    background:rgba(10,8,2,0.97);border:2px solid #a08040;padding:14px 24px;
+    font-family:'Press Start 2P';font-size:8px;color:#f0d060;text-align:center;
+    animation:fadeInOut 3.5s forwards;pointer-events:none;min-width:220px`;
+  el.innerHTML=`<div style="font-size:24px;margin-bottom:6px">${lm.icon}</div>
+    DISCOVERED!<br><span style="color:#c0a040;font-size:6px">${lm.label}</span>`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+function drawLandmarks(){
+  for(const lm of LANDMARKS){
+    const wx=lm.col*TS+camX, wy=lm.row*TS+camY+HH;
+    // Don't draw in fog
+    if(FOG_ENABLED&&FOG.length&&FOG[lm.row]&&FOG[lm.row][lm.col]===0) continue;
+    if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
+
+    if(!lm.discovered){
+      // Unknown landmark — show question mark glow
+      const grd=X.createRadialGradient(wx+TS/2,wy+TS/2,4,wx+TS/2,wy+TS/2,20);
+      grd.addColorStop(0,'rgba(200,180,80,0.35)');
+      grd.addColorStop(1,'rgba(200,180,80,0)');
+      X.fillStyle=grd;X.fillRect(wx,wy,TS,TS);
+      X.font='16px serif';X.textAlign='center';
+      X.fillStyle='rgba(200,180,80,0.7)';
+      X.fillText('❓',wx+TS/2,wy+TS/2+6);
+    } else {
+      // Discovered landmark icon
+      X.font='18px serif';X.textAlign='center';
+      X.fillText(lm.icon,wx+TS/2,wy+TS/2+6);
+      // Subtle glow
+      const grd=X.createRadialGradient(wx+TS/2,wy+TS/2,2,wx+TS/2,wy+TS/2,24);
+      grd.addColorStop(0,'rgba(255,220,100,0.2)');
+      grd.addColorStop(1,'rgba(255,220,100,0)');
+      X.fillStyle=grd;X.fillRect(wx-4,wy-4,TS+8,TS+8);
+    }
+  }
 }
 
 function toggleMusic(){
