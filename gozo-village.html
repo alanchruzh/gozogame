@@ -777,7 +777,9 @@ const BD={
   church:    {n:'Church',    e:'⛪',d:'+happiness.',    cost:{wood:40,stone:30}, ml:2,         cat:'civic'},
   market:    {n:'Market',    e:'🏪',d:'+2 gold/day.',  cost:{wood:30,gold:20},  ml:3,pr:{gold:2},cat:'civic'},
   blacksmith:{n:'Smith',     e:'🔨',d:'Crafting.',      cost:{wood:20,stone:15}, ml:2,         cat:'civic'},
-  hunting:   {n:'Hunt Lodge',e:'🏹',d:'Unlock Hunter.',  cost:{wood:30,stone:10}, ml:2,         cat:'civic'},
+  hunting:   {n:'Hunt Lodge',e:'🏹',d:'Unlock Hunter.',  cost:{wood:30,stone:10}, ml:2, cat:'civic'},
+  forest_hut:{n:'Forest Hut',e:'🌲',d:'Workers plant trees. Saplings grow in 30 days.', cost:{wood:20,stone:8}, ml:2, cat:'work',
+              lvDesc:{1:'1 planter, plants 1 tree/day.',2:'2 planters, plants 2 trees/day.'}},
   // ── SOCIAL BUILDINGS ──
   tavern:    {n:'Tavern',    e:'🍺',d:'+Happiness. Needs ale.',  cost:{wood:35,stone:20,gold:20}, ml:2, cat:'civic',
               pr:{happiness:5}, needs:{ale:1}, lvDesc:{1:'Simple inn.',2:'Popular pub.'}},
@@ -859,7 +861,8 @@ let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
 let BUFFALO=[]; // {x,y,dir,fr,ft,vx,vy,wt,task,carryRes,carryQty,targetX,targetY,state,ownerId}
 let HORSES=[];  // {x,y,dir,fr,ft,vx,vy,wt,task,carryGoods,targetX,targetY,state,ownerId,traderName}
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
-let BERRY_STATE={};  // key: "c,r" → {depleted:bool, regrowTick:int, yield:int}
+let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
+let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=true;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
@@ -1133,6 +1136,7 @@ function genMap(){
   G.mode='walk';
   NPCS=[];FAMILIES=[];DEER=[];BUFFALO=[];HORSES=[];
   BERRY_STATE={};
+  SAPLINGS={};
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
@@ -1484,15 +1488,97 @@ function drawRock(wx,wy,v){ drawRockOnCtx(X,wx,wy,v); }
 function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
   const cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
   const rot=rotation||0;
-  // Apply rotation around tile center
-  if(rot!==0){
+  // rot: 0=front, 1=right(mirror), 2=back, 3=left(mirror)
+  // We apply horizontal flip for left/right variants, NOT canvas rotation
+  const flipH=(rot===3); // flip horizontally for left-facing
+  // For back-facing (rot=2), slightly darken to indicate back view
+  const backFacing=(rot===2);
+
+  if(flipH){
     X.save();
-    X.translate(cx,bot-TS/2);
-    X.rotate(rot*Math.PI/2);
-    X.translate(-cx,-(bot-TS/2));
+    X.translate(cx,0);
+    X.scale(-1,1);
+    X.translate(-cx,0);
   }
+
+  // ── UNDER CONSTRUCTION — show building stages, not finished ──
+  if(under_construction){
+    const prog=build_progress||0; // 0..1
+    X.fillStyle='rgba(0,0,0,0.15)';
+    X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
+
+    if(prog<0.25){
+      // Stage 1: foundation / dirt patch
+      X.fillStyle='#9a7040';X.fillRect(wx+4,wy+TS-14,TS-8,12);
+      X.strokeStyle='#7a5020';X.lineWidth=1;
+      X.strokeRect(wx+4,wy+TS-14,TS-8,12);
+      // Corner stones
+      X.fillStyle='#c0a070';
+      X.fillRect(wx+4,wy+TS-14,6,6);X.fillRect(wx+TS-10,wy+TS-14,6,6);
+    } else if(prog<0.5){
+      // Stage 2: wooden frame / walls outline
+      X.fillStyle='#9a7040';X.fillRect(wx+4,wy+TS-14,TS-8,12);
+      // Frame posts
+      X.fillStyle='#7a5020';X.lineWidth=2;
+      X.fillRect(wx+6,wy+TS-38,4,26);      // left post
+      X.fillRect(wx+TS-10,wy+TS-38,4,26); // right post
+      X.fillRect(wx+6,wy+TS-38,TS-12,4);  // top beam
+      X.fillRect(wx+6,wy+TS-24,TS-12,3);  // mid beam
+      // Diagonal brace
+      X.strokeStyle='#8a6030';X.lineWidth=1.5;
+      X.beginPath();X.moveTo(wx+6,wy+TS-38);X.lineTo(wx+TS-6,wy+TS-14);X.stroke();
+    } else if(prog<0.75){
+      // Stage 3: walls going up, partially built
+      const wallH=Math.round((prog-0.5)/0.25*(TS-20));
+      X.fillStyle='#d4c8b0';X.fillRect(wx+4,wy+TS-14-wallH,TS-8,wallH+12);
+      X.fillStyle='#b8a888';X.fillRect(wx+4,wy+TS-14-wallH,TS-8,4); // top of wall
+      // Window outline (rough)
+      if(wallH>20){
+        X.strokeStyle='#8a7858';X.lineWidth=1;
+        X.strokeRect(wx+8,wy+TS-14-wallH+6,12,10);
+      }
+      // Scaffolding poles
+      X.strokeStyle='rgba(180,140,60,0.7)';X.lineWidth=1;
+      X.beginPath();X.moveTo(wx+2,wy+4);X.lineTo(wx+2,bot);X.stroke();
+      X.beginPath();X.moveTo(wx+TS-2,wy+4);X.lineTo(wx+TS-2,bot);X.stroke();
+      for(let i=8;i<TS-4;i+=10){X.beginPath();X.moveTo(wx,wy+i);X.lineTo(wx+TS,wy+i);X.stroke();}
+    } else {
+      // Stage 4: nearly done — draw full building at reduced opacity
+      X.globalAlpha=0.5+prog*0.5;
+      X.fillStyle='rgba(0,0,0,0.1)';
+      X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
+      drawBuildingShape(type,lv,cx,bot);
+      X.globalAlpha=1;
+      // Scaffolding still visible
+      X.strokeStyle='rgba(180,140,60,0.4)';X.lineWidth=1;
+      X.beginPath();X.moveTo(wx+2,wy+4);X.lineTo(wx+2,bot);X.stroke();
+      X.beginPath();X.moveTo(wx+TS-2,wy+4);X.lineTo(wx+TS-2,bot);X.stroke();
+    }
+
+    // Workers icon above
+    X.font='14px serif';X.textAlign='center';
+    X.fillText('🔨',cx,wy+16);
+    // Progress bar
+    X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(wx+4,wy+3,TS-8,6);
+    const barW=Math.round((TS-8)*prog);
+    X.fillStyle=prog<0.5?'#e0a020':prog<0.8?'#a0d020':'#40d040';
+    X.fillRect(wx+4,wy+3,barW,6);
+    X.fillStyle='#fff';X.font='bold 6px monospace';X.textAlign='center';
+    X.fillText(Math.round(prog*100)+'%',cx,wy+10);
+
+    if(flipH) X.restore();
+    return;
+  }
+
+  // ── FINISHED BUILDING ──
   X.fillStyle='rgba(0,0,0,0.15)';
   X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
+  drawBuildingShape(type,lv,cx,bot);
+  if(flipH) X.restore();
+}
+
+// Separate function for drawing the finished building shape
+function drawBuildingShape(type,lv,cx,bot){
   switch(type){
     case 'campfire':   bCampfire(cx,bot,lv);break;
     case 'house':      bHouse(cx,bot,lv);break;
@@ -1510,6 +1596,7 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     case 'mill':       bMill(cx,bot,lv);break;
     case 'smelter':    bSmelter(cx,bot,lv);break;
     case 'hunting':    bHunting(cx,bot,lv);break;
+    case 'forest_hut': bForestHut(cx,bot,lv);break;
     case 'tavern':     bTavern(cx,bot,lv);break;
     case 'school':     bSchool(cx,bot,lv);break;
     case 'hospital':   bHospital(cx,bot,lv);break;
@@ -1518,27 +1605,6 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     case 'sheep_farm': bSheepFarm(cx,bot,lv);break;
     case 'weaver_wk':  bWeaverWk(cx,bot,lv);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
-  }
-  if(rot!==0) X.restore();
-  // Construction overlay
-  if(under_construction){
-    const prog=build_progress||0; // 0..1
-    // Scaffold lines
-    X.fillStyle='rgba(180,140,60,0.18)';X.fillRect(wx,wy,TS,TS);
-    X.strokeStyle='rgba(200,160,80,0.5)';X.lineWidth=1;
-    for(let i=0;i<TS;i+=10){X.beginPath();X.moveTo(wx,wy+i);X.lineTo(wx+TS,wy+i);X.stroke();}
-    // Hammer icon
-    X.font='18px serif';X.textAlign='center';
-    X.fillText('🔨',cx,bot-TS/2+6);
-    // Progress bar background
-    X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(wx+4,wy+4,TS-8,8);
-    // Progress bar fill
-    const barW=Math.round((TS-8)*prog);
-    const barCol=prog<0.5?'#e0a020':prog<0.8?'#a0d020':'#40d040';
-    X.fillStyle=barCol;X.fillRect(wx+4,wy+4,barW,8);
-    // Percent text
-    X.fillStyle='#fff';X.font='bold 7px monospace';X.textAlign='center';
-    X.fillText(Math.round(prog*100)+'%',cx,wy+11);
   }
 }
 
@@ -2896,7 +2962,7 @@ function drawNPC(npc){
     }
 
     // ── WORK STATUS BUBBLE ──
-    const workEmojis={farmer:'⚒',logger:'🪓',fisher:'🎣',miner:'⛏',smelter:'🔥',builder:'🔨',trader:'📖',hunter:'🏹'};
+    const workEmojis={farmer:'⚒',logger:'🪓',fisher:'🎣',miner:'⛏',smelter:'🔥',builder:'🔨',trader:'📖',hunter:'🏹',gatherer:'🍇',planter:'🌱'};
     const we=workEmojis[job];
     if(we){
       X.font='13px serif';X.textAlign='center';
@@ -3026,13 +3092,15 @@ function gatherBerries(c,r,key){
 // req  = building type required (null = no req)
 // bonus = building that multiplies output
 const JOBS={
-  idle:   {n:'Idle',     e:'😴',prod:{},         req:null,       mult:null},
+  idle:     {n:'Idle',      e:'😴',prod:{},          req:null,         mult:null},
+  planter:  {n:'Planter',   e:'🌱',prod:{wood:1},    req:'forest_hut', mult:null},
+  gatherer: {n:'Gatherer',  e:'🍇',prod:{berry:2,food:1}, req:null,    mult:null},
   farmer: {n:'Farmer',   e:'🌾',prod:{food:3},   req:'farm',     mult:'mill'},
   logger: {n:'Lumberjack', e:'🪓',prod:{wood:4},   req:'logger',   mult:'sawmill'},
   miner:  {n:'Miner',e:'⛏',prod:{stone:3},  req:'quarry',   mult:null},
   smelter:{n:'Smelter',  e:'🔥',prod:{metal:1},  req:'smelter',  mult:null},
   trader: {n:'Trader', e:'💰',prod:{gold:2},   req:'market',   mult:null},
-  builder:{n:'Builder',  e:'🔨',prod:{wood:1,stone:1},req:'blacksmith',mult:null},
+  builder:{n:'Builder',  e:'🔨',prod:{wood:1,stone:1},req:null,mult:null},
   fisher: {n:'Fisher',  e:'🎣',prod:{food:2},   req:null,       mult:null},
   hunter: {n:'Hunter',  e:'🏹',prod:{meat:2,food:1},req:'hunting', mult:null},
 };
@@ -3472,7 +3540,7 @@ function doProd(){
   let foodNeed=0,coalNeed=0,clothNeed=0,beerNeed=0;
   for(const b of G.bld){
     if(b.type!=='house')continue;
-    if(b.under_construction)continue; // house not ready yet
+    if(b.under_construction)continue;
     const needs=BD.house.needs[b.lv]||BD.house.needs[1];
     const residents=NPCS.filter(n=>n.houseId===b.id).length||2;
     foodNeed+=Math.ceil((needs.food||0)*residents);
@@ -3480,6 +3548,9 @@ function doProd(){
     clothNeed+=Math.ceil((needs.cloth||0)*residents);
     beerNeed+=Math.ceil((needs.beer||0)*residents);
   }
+  // Campfire/homeless settlers also need food (0.3 per person per tick)
+  const homelessNPCs=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'));
+  foodNeed+=Math.ceil(homelessNPCs.length*0.3);
   if(G.res.food>=foodNeed)G.res.food-=foodNeed;
   else{G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
   if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal-=coalNeed;else G.happy=Math.max(10,G.happy-3);}
@@ -3703,19 +3774,21 @@ function doProd(){
   checkQuests();
   updateNPCStats();
   // Spawn animals if buildings exist
-  if(G.ticks%10===0){ spawnBuffalo(); spawnHorse(); } // only check spawn every 10 ticks
+  if(G.ticks%10===0){ spawnBuffalo(); spawnHorse(); }
+  updateSaplings(); // grow saplings every tick
 
   // ── CONSTRUCTION PROGRESS ──
-  // Each idle adult worker in village helps build. More workers = faster.
-  const idleWorkers=NPCS.filter(n=>isAdult(n)&&(!n.job||n.job==='idle')&&
-    !Object.values(G.bldWorkers).flat().includes(n.name)).length;
-  const builderBonus=Math.max(1, idleWorkers); // at least 1 tick progress
+  // Only builders speed up construction
+  const builders=NPCS.filter(n=>isAdult(n)&&n.job==='builder');
   for(const bld of G.bld){
     if(!bld.under_construction) continue;
-    // Each assigned worker or idle villager reduces ticks
-    const assigned=(G.bldWorkers[bld.id]||[]).filter(n=>n).length;
-    const speedup=Math.max(1, assigned + Math.floor(builderBonus*0.5));
-    bld.build_ticks_left=Math.max(0, (bld.build_ticks_left||0) - speedup);
+    // Count builders near this construction site
+    const nearBuilders=builders.filter(n=>
+      Math.hypot(n.x-bld.col*TS,n.y-bld.row*TS)<TS*2
+    ).length;
+    // Base 1 tick/doProd, +0.5 per nearby builder, max speedup x3
+    const speedup=Math.min(3, 1 + nearBuilders*0.5);
+    bld.build_ticks_left=Math.max(0,(bld.build_ticks_left||0)-speedup);
     if(bld.build_ticks_left<=0){
       bld.under_construction=false;
       delete bld.build_ticks_left;
@@ -3865,9 +3938,9 @@ function tryPlaceBuilding(c,r){
   if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
   pay(d.cost);
   tile.t=T.GRASS;tile.decor=null;
-  // Base build time: 60s per level of complexity, reduced by workers
-  // Stored as ticks (each doProd = ~2 game days). Base = 3 ticks = 6 days
-  const baseTicks=d.ml>=3?4:d.ml>=2?3:2; // harder buildings take longer
+  // Build time in doProd ticks (each tick = 2 game days)
+  // ml=1: 6 ticks=12 days, ml=2: 10 ticks=20 days, ml=3: 15 ticks=30 days
+  const baseTicks=d.ml>=3?15:d.ml>=2?10:6;
   tile.bld={type:buildType,id:G.nid,lv:1,rotation:buildRotation};
   G.bld.push({
     id:G.nid, type:buildType, lv:1, col:c, row:r,
@@ -3878,7 +3951,7 @@ function tryPlaceBuilding(c,r){
   });
   G.nid++;
   rebuildTile(c,r);
-  notify('🔨 '+d.n+' construction started! ('+baseTicks*2+' days w/1 worker)','ok');
+  notify('🔨 '+d.n+' construction started! Assign a Builder job to speed it up.','ok');
   G.mode='walk';buildType=null;buildRotation=0;updateModeUI();updateUI();
 }
 
@@ -3984,6 +4057,9 @@ function getWaterSpots(){
 
 // ─── FIND JOB LOCATION ───
 function findJobLocation(job,npcIdx){
+  const npc=NPCS[npcIdx];
+  if(!npc) return null;
+
   if(job==='fisher'){
     const spots=getWaterSpots();
     if(!spots.length)return null;
@@ -3991,22 +4067,103 @@ function findJobLocation(job,npcIdx){
   }
   if(job==='hunter'){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
-      if(workers.includes(NPCS[npcIdx]?.name)){
+      if(workers.includes(npc.name)){
         const bld=G.bld.find(b=>b.id===+bldId&&b.type==='hunting');
         if(bld)return{x:bld.col*TS+TS/2,y:(bld.row+1)*TS+TS/2};
       }
     }
     return null;
   }
-  const req=JOBS[job]?.req;if(!req)return null;
-  // Find assigned building for this NPC
+
+  // Gatherer: walk toward nearest undepleted berry bush
+  if(job==='gatherer'){
+    const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+    let bestDist=999, bestX=npc.x, bestY=npc.y;
+    for(let dr2=-12;dr2<=12;dr2++) for(let dc2=-12;dc2<=12;dc2++){
+      const tr=nr2+dr2, tc=nc2+dc2;
+      if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+      if(!MAP[tr]||!MAP[tr][tc])continue;
+      if(MAP[tr][tc].decor==='berry_bush'){
+        const key=tc+','+tr;
+        if(BERRY_STATE[key]?.depleted) continue;
+        const d=Math.abs(dr2)+Math.abs(dc2);
+        if(d<bestDist){bestDist=d;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;}
+      }
+    }
+    return{x:bestX,y:bestY};
+  }
+
+  // For planter: wander near Forest Hut in search of planting spots
+  if(job==='planter'){
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='forest_hut');
+        if(b){
+          // Target: wander in radius around hut
+          const angle=Math.random()*Math.PI*2;
+          const r2=2+Math.random()*4;
+          return{x:(b.col+Math.cos(angle)*r2)*TS+TS/2, y:(b.row+Math.sin(angle)*r2)*TS+TS/2};
+        }
+      }
+    }
+    return null;
+  }
+
+  // For logger: find nearest FOREST tile cluster to work at
+  if(job==='logger'){
+    // Check if assigned to a logger building
+    let loggerBld=null;
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='logger');
+        if(b){loggerBld=b;break;}
+      }
+    }
+    // Find nearest forest tile from logger building or NPC position
+    const originX=loggerBld?loggerBld.col*TS:npc.x;
+    const originY=loggerBld?loggerBld.row*TS:npc.y;
+    const oc=Math.floor(originX/TS), or2=Math.floor(originY/TS);
+    let bestDist=999, bestX=originX, bestY=originY;
+    for(let dr2=-8;dr2<=8;dr2++) for(let dc2=-8;dc2<=8;dc2++){
+      const tr=or2+dr2, tc=oc+dc2;
+      if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+      if(!MAP[tr]||!MAP[tr][tc])continue;
+      if(MAP[tr][tc].t===T.FOREST&&MAP[tr][tc].decor==='tree'){
+        const d=Math.abs(dr2)+Math.abs(dc2);
+        if(d<bestDist){bestDist=d;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;}
+      }
+    }
+    return{x:bestX,y:bestY};
+  }
+
+  // Builder: go to nearest construction site
+  if(job==='builder'){
+    const underConstr=G.bld.filter(b=>b.under_construction);
+    if(underConstr.length===0) return null;
+    const nearest=underConstr.reduce((best,b)=>{
+      const d=Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y);
+      return(!best||d<best.d)?{b,d}:best;
+    },null);
+    return nearest?{x:nearest.b.col*TS+TS/2,y:nearest.b.row*TS+TS/2}:null;
+  }
+
+  const req=JOBS[job]?.req;
+
+  // First: find the building THIS NPC is assigned to as a worker
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
-    if(workers.includes(NPCS[npcIdx]?.name)){
-      const bld=G.bld.find(b=>b.id===+bldId);
-      if(bld)return{x:bld.col*TS+TS/2,y:bld.row*TS+TS/2};
+    if(!workers||!Array.isArray(workers)) continue;
+    if(workers.includes(npc.name)){
+      const bld=G.bld.find(b=>b.id===+bldId&&!b.under_construction);
+      if(bld&&bld.type===req)return{x:bld.col*TS+TS/2,y:bld.row*TS+TS/2};
+      // Also handle jobs that can work at related buildings
+      const altBuildings={miner:['quarry','coalmine','ironmine'],logger:['logger'],farmer:['farm']};
+      const alts=altBuildings[job]||[];
+      if(bld&&alts.includes(bld.type))return{x:bld.col*TS+TS/2,y:bld.row*TS+TS/2};
     }
   }
-  const bld=G.bld.find(b=>b.type===req);
+
+  // Fallback: find any building of required type
+  const bld=G.bld.find(b=>b.type===req&&!b.under_construction);
   if(!bld)return null;
   return{x:bld.col*TS+TS/2,y:bld.row*TS+TS/2};
 }
@@ -4062,14 +4219,130 @@ function wanderNPCs(){
               }
             } else {npc._dx=0;npc._dy=0;}
           } else {
+            // Job-specific working actions
             npc._wt=(npc._wt||0)+1;
             if(npc._wt>120){npc._wt=0;if(Math.random()<0.4){const tiny=[[-0.3,0],[0.3,0],[0,-0.3],[0,0.3]][Math.random()*4|0];npc._dx=tiny[0];npc._dy=tiny[1];}}
+
+            if(job==='planter'){
+              doPlantingWork(npc);
+            } else if(job==='gatherer'){
+              // Find and harvest nearby berry bushes
+              npc._gatherTimer=(npc._gatherTimer||0)+1;
+              if(npc._gatherTimer>=200){
+                npc._gatherTimer=0;
+                const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+                let gathered=false;
+                for(let dr2=-4;dr2<=4&&!gathered;dr2++){
+                  for(let dc2=-4;dc2<=4&&!gathered;dc2++){
+                    const tr=nr2+dr2, tc=nc2+dc2;
+                    if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+                    if(!MAP[tr]||!MAP[tr][tc])continue;
+                    if(MAP[tr][tc].decor==='berry_bush'){
+                      const key=tc+','+tr;
+                      if(!BERRY_STATE[key]) BERRY_STATE[key]={depleted:false,regrowTick:0};
+                      if(!BERRY_STATE[key].depleted){
+                        gatherBerries(tc,tr,key);
+                        gathered=true;
+                        // Walk to bush
+                        const dx2=tc*TS+TS/2-npc.x, dy2=tr*TS+TS/2-npc.y;
+                        const d2=Math.hypot(dx2,dy2);
+                        if(d2>4){npc._dx=(dx2/d2)*0.7;npc._dy=(dy2/d2)*0.7;}
+                      }
+                    }
+                  }
+                }
+                if(!gathered){
+                  // Wander looking for bushes
+                  if(Math.random()<0.3){
+                    const a=Math.random()*Math.PI*2;
+                    npc._dx=Math.cos(a)*0.6; npc._dy=Math.sin(a)*0.6;
+                  }
+                }
+              }
+            } else if(job==='logger'){              // Find nearest tree in FOREST zone and chop it periodically
+              npc._chopTimer=(npc._chopTimer||0)+1;
+              if(npc._chopTimer>=180){ // chop every ~3 seconds
+                npc._chopTimer=0;
+                const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+                let chopped=false;
+                // Search in radius for a tree
+                for(let dr2=-3;dr2<=3&&!chopped;dr2++){
+                  for(let dc2=-3;dc2<=3&&!chopped;dc2++){
+                    const tr=nr2+dr2, tc=nc2+dc2;
+                    if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+                    if(!MAP[tr]||!MAP[tr][tc])continue;
+                    const tile=MAP[tr][tc];
+                    if(tile.decor==='tree'&&tile.t===T.FOREST){
+                      // Chop tree!
+                      tile.decor=null;
+                      tile.t=T.GRASS;
+                      addR('wood', 2+Math.floor(Math.random()*3));
+                      spawnParticles(tc*TS+TS/2, tr*TS+TS/2, 'build', 6);
+                      _worldDirty=true;
+                      chopped=true;
+                      // Move toward next tree
+                      const tx2=tc*TS+TS/2, ty2=tr*TS+TS/2;
+                      npc.targetTreeX=tx2; npc.targetTreeY=ty2;
+                    }
+                  }
+                }
+                if(!chopped){
+                  // No tree nearby — wander toward forest
+                  const a=Math.random()*Math.PI*2;
+                  npc._dx=Math.cos(a)*0.8; npc._dy=Math.sin(a)*0.8;
+                }
+              }
+            } else if(job==='miner'){
+              // Mine nearby rock/coal/iron deposits
+              npc._mineTimer=(npc._mineTimer||0)+1;
+              if(npc._mineTimer>=200){
+                npc._mineTimer=0;
+                const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+                for(let dr2=-2;dr2<=2;dr2++){
+                  for(let dc2=-2;dc2<=2;dc2++){
+                    const tr=nr2+dr2, tc=nc2+dc2;
+                    if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+                    if(!MAP[tr]||!MAP[tr][tc])continue;
+                    const tile=MAP[tr][tc];
+                    if(tile.t===T.STONE_G){
+                      if(tile.decor==='coal_deposit') addR('coal',1+Math.floor(Math.random()*2));
+                      else if(tile.decor==='iron_deposit') addR('iron',1+Math.floor(Math.random()*2));
+                      else addR('stone',2+Math.floor(Math.random()*2));
+                      spawnParticles(tc*TS+TS/2, tr*TS+TS/2, 'build', 4);
+                      break;
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       } else if(job==='hunter'){
         npc._working=false;npc._wt=(npc._wt||0)+1;
         if(npc._wt>80){npc._wt=0;const d=[[-0.7,0],[0.7,0],[0,-0.7],[0,0.7]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}
+      } else if(job==='builder'){
+        // Builders walk to nearest construction site and work there
+        const underConstr=G.bld.filter(b=>b.under_construction);
+        if(underConstr.length>0){
+          const nearest=underConstr.reduce((best,b)=>{
+            const d=Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y);
+            return(!best||d<best.d)?{b,d}:best;
+          },null);
+          if(nearest&&nearest.d>TS*1.5){
+            const dx2=nearest.b.col*TS+TS/2-npc.x, dy2=nearest.b.row*TS+TS/2-npc.y;
+            const dist2=Math.hypot(dx2,dy2);
+            npc._dx=(dx2/dist2)*0.8; npc._dy=(dy2/dist2)*0.8;
+            npc._working=false;
+          } else if(nearest&&nearest.d<=TS*1.5){
+            npc._working=true; npc._dx=0; npc._dy=0;
+          }
+        } else {
+          // No construction — idle wander near village center
+          npc._working=false;npc._wt=(npc._wt||0)+1;
+          if(npc._wt>90){npc._wt=0;const d=[[-0.5,0],[0.5,0],[0,-0.5],[0,0.5]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}
+        }
       } else {
+        // Other idle workers — normal wander
         npc._working=false;npc._wt=(npc._wt||0)+1;
         if(npc._wt>60){npc._wt=0;if(Math.random()<.5){npc._dx=0;npc._dy=0;}else{const d=[[-0.6,0],[0.6,0],[0,-0.6],[0,0.6]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}}
       }
@@ -4079,7 +4352,7 @@ function wanderNPCs(){
     if(moving){
       const nx=npc.x+npc._dx,ny=npc.y+npc._dy;
       const c=Math.floor(nx/TS),r=Math.floor(ny/TS);
-      const canEnterForest=(npc.job==='hunter');
+      const canEnterForest=(npc.job==='hunter'||npc.job==='logger');
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
       const tileOk=tile_&&tile_.t!==T.WATER&&!tile_.bld&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
       if(tileOk){npc.x=nx;npc.y=ny;}
@@ -4436,20 +4709,19 @@ function render(){
       if(canPlace&&buildType){
         X.save();
         X.globalAlpha=.42;
-        // Apply rotation around tile center
-        const cx2=gx+TS/2, cy2=gy+TS/2;
-        X.translate(cx2,cy2);
-        X.rotate(buildRotation*Math.PI/2);
-        X.translate(-cx2,-cy2);
+        // Apply horizontal flip for left-facing (rot=3), no canvas rotation
+        if(buildRotation===3){
+          X.translate(gx+TS/2,0);X.scale(-1,1);X.translate(-(gx+TS/2),0);
+        }
         drawBuilding(buildType,1,gx,gy);
         X.restore();
         X.globalAlpha=1;
       }
-      // Rotation hint label
-      const rotLabels=['↑','→','↓','←'];
-      X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(gx+2,gy+2,20,14);
-      X.fillStyle='#f0f060';X.font='bold 11px monospace';X.textAlign='left';
-      X.fillText(rotLabels[buildRotation],gx+5,gy+13);
+      // Direction hint label
+      const rotLabels=['Front','Right','Back','Left'];
+      X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(gx,gy+2,TS,14);
+      X.fillStyle='#f0f060';X.font='bold 7px "Press Start 2P"';X.textAlign='center';
+      X.fillText(rotLabels[buildRotation],gx+TS/2,gy+12);
       // [R] hint below ghost
       X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(gx,gy+TS+2,TS,13);
       X.fillStyle='#c0c060';X.font='9px monospace';X.textAlign='center';
@@ -4542,6 +4814,9 @@ function render(){
     mctx.strokeStyle='rgba(255,255,100,0.7)';mctx.lineWidth=1;
     mctx.strokeRect((-camX/WPX)*mw,(-camY/WPY)*mh,(vw2/WPX)*mw,(vh2/WPY)*mh);
   }
+
+  // ── SAPLINGS ──
+  drawSaplings();
 
   // ── LANDMARKS ──
   drawLandmarks();
@@ -4741,7 +5016,10 @@ function renderBldWorker(bldId, maxW){
         if(n&&bld){
           // Assign job based on building type
           const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
-            coalmine:'miner',smelter:'smelter',market:'trader',blacksmith:'builder'};
+            coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
+            blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
+            mill:'farmer',sheep_farm:'farmer',weaver_wk:'builder',
+            granary:'farmer',storehouse:'builder',forest_hut:'planter'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
@@ -5144,8 +5422,8 @@ window.addEventListener('keydown',e=>{
   if(e.key.toLowerCase()==='b'){G.mode=G.mode==='build'?'walk':'build';buildType=null;updateModeUI();}
   if(e.key.toLowerCase()==='r'&&G.mode==='build'&&buildType){
     buildRotation=(buildRotation+1)%4;
-    const dirs=['↑ N','→ E','↓ S','← W'];
-    notify('🔄 Rotation: '+dirs[buildRotation],'ok');
+    const dirs=['Front','Right','Back','Left'];
+    notify('🔄 Facing: '+dirs[buildRotation],'ok');
   }
   if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();updateModeUI();}
   if(e.key.toLowerCase()==='e') doInteract();
@@ -6296,6 +6574,7 @@ function buildSaveState(){
     buffalo:BUFFALO.map(b=>({...b})),
     horses:HORSES.map(h=>({...h})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
+    saplings:JSON.parse(JSON.stringify(SAPLINGS||{})),
     landmarks:JSON.parse(JSON.stringify(LANDMARKS||[])),
     fog:FOG.map(row=>[...row]),
     fogEnabled:FOG_ENABLED,
@@ -6338,6 +6617,7 @@ function applySaveState(save){
   BUFFALO=(save.buffalo||[]).map(b=>({...b}));
   HORSES=(save.horses||[]).map(h=>({...h}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
+  SAPLINGS=JSON.parse(JSON.stringify(save.saplings||{}));
   if(save.landmarks) LANDMARKS=JSON.parse(JSON.stringify(save.landmarks));
   if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
   if(save.fogEnabled!==undefined) FOG_ENABLED=save.fogEnabled;
@@ -7656,6 +7936,189 @@ function drawBuildingGlow(bx,by,type){
   grd.addColorStop(0,color);
   grd.addColorStop(1,'rgba(0,0,0,0)');
   X.fillStyle=grd;X.fillRect(bx-radius,by-radius,radius*2,radius*2);
+}
+
+// ── FOREST HUT BUILDING DRAW ──
+function bForestHut(cx,bot,lv){
+  // Small ranger hut in forest style
+  FR(cx-16,bot-32,32,32,'#7a5028'); // log walls
+  // Log texture
+  X.strokeStyle='#5a3818';X.lineWidth=1.5;
+  for(let i=0;i<4;i++) {X.beginPath();X.moveTo(cx-16,bot-8-i*6);X.lineTo(cx+16,bot-8-i*6);X.stroke();}
+  // Sloped roof
+  X.fillStyle='#3a6018';
+  X.beginPath();X.moveTo(cx-20,bot-32);X.lineTo(cx,bot-48);X.lineTo(cx+20,bot-32);X.closePath();X.fill();
+  X.fillStyle='#4a8020';
+  X.beginPath();X.moveTo(cx-18,bot-33);X.lineTo(cx,bot-46);X.lineTo(cx+18,bot-33);X.closePath();X.fill();
+  // Door
+  FR(cx-4,bot-20,8,18,'#3a2010');
+  // Window
+  FR(cx-12,bot-24,8,8,'#80c060');
+  X.strokeStyle='#5a8040';X.lineWidth=1;
+  X.beginPath();X.moveTo(cx-8,bot-20);X.lineTo(cx-8,bot-16);X.stroke();
+  X.beginPath();X.moveTo(cx-12,bot-20);X.lineTo(cx-4,bot-20);X.stroke();
+  // Tree saplings outside
+  X.fillStyle='#2a8020';
+  X.beginPath();X.arc(cx+14,bot-6,4,0,Math.PI*2);X.fill();
+  X.fillStyle='#6a4010';X.fillRect(cx+13,bot-4,2,6);
+  // Sign
+  X.font='10px serif';X.textAlign='center';X.fillText('🌲',cx,bot-50);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SAPLING / REFORESTATION SYSTEM
+// ═══════════════════════════════════════════════════════
+const SAPLING_GROW_DAYS = 30; // days for sapling → full tree
+const SAPLING_MAX_AGE   = SAPLING_GROW_DAYS * 2; // in doProd ticks (each tick = 2 days)
+
+function plantTree(col, row){
+  if(col<1||col>=WC-1||row<1||row>=WR-1) return false;
+  if(!MAP[row]||!MAP[row][col]) return false;
+  const tile=MAP[row][col];
+  // Can only plant on empty GRASS tiles
+  if(tile.t!==T.GRASS||tile.bld||tile.decor) return false;
+  const key=col+','+row;
+  if(SAPLINGS[key]) return false; // already a sapling here
+  SAPLINGS[key]={age:0, maxAge:SAPLING_MAX_AGE, stage:0};
+  tile.decor='sapling'; // mark tile
+  _worldDirty=true;
+  return true;
+}
+
+function updateSaplings(){
+  // Called from doProd every 2 game days
+  const toGrow=[];
+  for(const[key,sap] of Object.entries(SAPLINGS)){
+    sap.age++;
+    // Stage 0→1 at 33%, 1→2 at 66%, fully grown at 100%
+    const pct=sap.age/sap.maxAge;
+    const newStage=pct>=1?3:pct>=0.66?2:pct>=0.33?1:0;
+    if(newStage!==sap.stage){
+      sap.stage=newStage;
+      _worldDirty=true; // redraw sapling
+    }
+    if(sap.age>=sap.maxAge) toGrow.push(key);
+  }
+  // Grow into full trees
+  for(const key of toGrow){
+    const[c,r]=key.split(',').map(Number);
+    delete SAPLINGS[key];
+    if(!MAP[r]||!MAP[r][c]) continue;
+    const tile=MAP[r][c];
+    if(tile.decor==='sapling'){
+      tile.t=T.FOREST;
+      tile.decor='tree';
+      _worldDirty=true;
+      // Notify if near player
+      const dist=Math.hypot(PL.x-c*TS,PL.y-r*TS);
+      if(dist<TS*8) notify('🌲 A sapling grew into a full tree!','ok');
+    }
+  }
+}
+
+function drawSaplings(){
+  // Draw live sapling visuals on top of world canvas
+  for(const[key,sap] of Object.entries(SAPLINGS)){
+    const[c,r]=key.split(',').map(Number);
+    const wx=c*TS+camX, wy=r*TS+camY+HH;
+    if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
+    // Don't draw if in fog
+    if(FOG_ENABLED&&FOG.length&&FOG[r]&&FOG[r][c]===0) continue;
+
+    const cx2=wx+TS/2, bot=wy+TS;
+    const pct=sap.age/sap.maxAge;
+    const sz=0.15+pct*0.85; // grows from tiny to full size
+
+    X.save();
+    X.translate(cx2,bot);X.scale(sz,sz);X.translate(-cx2,-bot);
+
+    // Shadow
+    X.fillStyle=`rgba(0,0,0,${0.08+pct*0.1})`;
+    X.beginPath();X.ellipse(cx2+2,bot-3,12*sz,4*sz,0,0,Math.PI*2);X.fill();
+
+    if(sap.stage===0){
+      // Tiny sprout
+      X.fillStyle='#6a4010';X.fillRect(cx2-1,bot-8,2,8);
+      X.fillStyle='#3a8020';X.beginPath();X.ellipse(cx2,bot-10,4,3,0,0,Math.PI*2);X.fill();
+    } else if(sap.stage===1){
+      // Small sapling
+      X.fillStyle='#7a4a1a';X.fillRect(cx2-2,bot-14,3,14);
+      X.fillStyle='#2a6018';X.beginPath();X.ellipse(cx2,bot-18,8,6,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#3a8020';X.beginPath();X.ellipse(cx2-2,bot-22,6,5,0,0,Math.PI*2);X.fill();
+    } else if(sap.stage===2){
+      // Medium young tree
+      X.fillStyle='#7a4a1a';X.fillRect(cx2-3,bot-22,5,22);
+      X.fillStyle='#1e5010';X.beginPath();X.ellipse(cx2,bot-28,14,10,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#2a7018';X.beginPath();X.ellipse(cx2-2,bot-34,10,8,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#349020';X.beginPath();X.ellipse(cx2,bot-40,7,6,0,0,Math.PI*2);X.fill();
+    } else {
+      // Almost full tree — use normal drawTreeOnCtx
+      X.restore();
+      drawTreeOnCtx(X,wx,wy,0.5+pct*0.5);
+      continue;
+    }
+
+    X.restore();
+
+    // Growth progress bar
+    const barW=TS-12;
+    X.fillStyle='rgba(0,0,0,0.4)';X.fillRect(wx+6,wy+2,barW,4);
+    X.fillStyle=sap.stage>=2?'#40c040':'#80d040';
+    X.fillRect(wx+6,wy+2,barW*pct,4);
+    // Days remaining
+    const daysLeft=Math.ceil((sap.maxAge-sap.age)*2);
+    X.fillStyle='rgba(255,255,200,0.8)';X.font='6px monospace';X.textAlign='center';
+    X.fillText(daysLeft+'d',cx2,wy+14);
+  }
+}
+
+// Planter job logic — called from wanderNPCs
+function doPlantingWork(npc){
+  // Find nearest Forest Hut this NPC is assigned to
+  let hut=null;
+  for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+    if(workers&&workers.includes(npc.name)){
+      const b=G.bld.find(b=>b.id===+bldId&&b.type==='forest_hut');
+      if(b){hut=b;break;}
+    }
+  }
+  if(!hut) return;
+
+  npc._plantTimer=(npc._plantTimer||0)+1;
+  if(npc._plantTimer<300) return; // plant every ~5 seconds
+  npc._plantTimer=0;
+
+  // Find a good spot to plant — near chopped forest areas or empty grass
+  const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+  // Prefer spots that WERE forest (adjacent to existing forest)
+  const candidates=[];
+  for(let dr2=-5;dr2<=5;dr2++) for(let dc2=-5;dc2<=5;dc2++){
+    const tr=nr2+dr2, tc=nc2+dc2;
+    if(tr<2||tr>=WR-2||tc<2||tc>=WC-2) continue;
+    if(!MAP[tr]||!MAP[tr][tc]) continue;
+    const tile=MAP[tr][tc];
+    if(tile.t!==T.GRASS||tile.bld||tile.decor) continue;
+    const key=tc+','+tr;
+    if(SAPLINGS[key]) continue;
+    // Bonus if adjacent to forest
+    let score=Math.random()*3;
+    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
+      if(MAP[tr+i]&&MAP[tr+i][tc+j]&&MAP[tr+i][tc+j].t===T.FOREST) score+=2;
+    }
+    // Don't plant too close to buildings
+    const nearBld=G.bld.some(b=>Math.abs(b.col-tc)<=2&&Math.abs(b.row-tr)<=2);
+    if(!nearBld) candidates.push({r:tr,c:tc,score});
+  }
+  if(!candidates.length) return;
+  // Pick best candidate
+  candidates.sort((a,b)=>b.score-a.score);
+  const best=candidates[0];
+  if(plantTree(best.c,best.r)){
+    notify(`🌱 ${npc.name} planted a sapling! (grows in ${SAPLING_GROW_DAYS} days)`,'ok');
+    // Walk toward the planted spot
+    npc._dx=(best.c*TS+TS/2-npc.x)/50;
+    npc._dy=(best.r*TS+TS/2-npc.y)/50;
+  }
 }
 
 function toggleMusic(){
