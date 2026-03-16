@@ -3938,9 +3938,9 @@ function tryPlaceBuilding(c,r){
   if(!canAff(d.cost)){notify('Not enough resources!','err');return;}
   pay(d.cost);
   tile.t=T.GRASS;tile.decor=null;
-  // Build time in doProd ticks (each tick = 2 game days)
-  // ml=1: 6 ticks=12 days, ml=2: 10 ticks=20 days, ml=3: 15 ticks=30 days
-  const baseTicks=d.ml>=3?15:d.ml>=2?10:6;
+  // Build time in doProd ticks (each tick ≈ 2 game hours at 1x speed)
+  // ml=1: 4 ticks=~8hrs, ml=2: 8 ticks=~16hrs, ml=3: 15 ticks=~30hrs
+  const baseTicks=d.ml>=3?15:d.ml>=2?8:4;
   tile.bld={type:buildType,id:G.nid,lv:1,rotation:buildRotation};
   G.bld.push({
     id:G.nid, type:buildType, lv:1, col:c, row:r,
@@ -3951,7 +3951,7 @@ function tryPlaceBuilding(c,r){
   });
   G.nid++;
   rebuildTile(c,r);
-  notify('🔨 '+d.n+' construction started! Assign a Builder job to speed it up.','ok');
+  notify('🔨 '+d.n+' construction started! (~'+baseTicks*2+'hrs — assign Builder to speed up)','ok');
   G.mode='walk';buildType=null;buildRotation=0;updateModeUI();updateUI();
 }
 
@@ -3962,9 +3962,9 @@ function showBldDlg(bld,c,r){
     const total=bld.build_ticks_total||1;
     const left=bld.build_ticks_left||0;
     const pct=Math.round((1-left/total)*100);
-    const daysLeft=left*2;
+    const hrsLeft=left*2; // ~2 hrs per tick
     openDlg('🔨 '+d.n+' (Under Construction)',
-      `Progress: ${pct}% complete\nEst. ${daysLeft} days remaining\nMore idle workers = faster build!`,
+      `Progress: ${pct}% complete\nEst. ${hrsLeft} hours remaining\nAssign Builder job to speed it up!`,
       [{l:'✖ Close',cls:'',fn:closeDialog}]);
     return;
   }
