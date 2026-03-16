@@ -267,6 +267,8 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
     <div class="res" title="Eggs — from chicken backyard">🥚<b id="regg">0</b></div>
     <div class="res" title="Honey — from apiary backyard">🍯<b id="rhny">0</b></div>
     <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
+    <div class="res" title="Wool — from sheep pen or sheep farm">🐑<b id="rwool">0</b></div>
+    <div class="res" title="Milk — from cow shed backyard">🥛<b id="rmilk">0</b></div>
   </div>
   <div class="hdv"></div>
   <div class="vp" id="season">🌱 Spring Y1</div>
@@ -324,6 +326,8 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   <button class="tbtn" onclick="toggleTradePanel()" title="Trade System">🚢 TRADE</button>
   <div class="hdv"></div>
   <button class="tbtn" onclick="toggleQuestPanel()" title="Quests" id="tb-quest">📜 QUESTS</button>
+  <div class="hdv"></div>
+  <button class="tbtn" onclick="openBuyLivestockDlg()" title="Buy Livestock from Trading Post">🐑 LIVESTOCK</button>
   <div class="hdv"></div>
   <button class="tbtn" onclick="toggleFog()" title="Toggle Fog of War" id="tb-fog">🌫️ FOG</button>
   <div class="hdv"></div>
@@ -531,6 +535,8 @@ const G={
 let buildType=null;
 let buildRotation=0; // 0=N, 1=E, 2=S, 3=W (90° steps)
 let camX=0,camY=0;
+let _screenShake=0;  // frames remaining of shake
+let _particles=[];   // [{x,y,vx,vy,life,maxLife,color,size,type}]
 let _showFertility=false;
 let _worldDirty=true;
 let isDragging=false,dragMode='';
@@ -779,6 +785,14 @@ const BD={
               pr:{}, lvDesc:{1:'Basic school.',2:'Academy.'}},
   hospital:  {n:'Hospital', e:'⚕️',d:'+Health. Cures sickness.',cost:{wood:40,stone:35,gold:30}, ml:3, cat:'civic',
               pr:{health:3}, lvDesc:{1:'Healer hut.',2:'Full hospital.'}},
+  stable:    {n:'Stable',   e:'🐴',d:'House horses for trade caravan speed.', cost:{wood:30,stone:10,gold:15}, ml:2, cat:'civic',
+              lvDesc:{1:'1 horse slot.',2:'3 horse slots.'}},
+  corral:    {n:'Corral',   e:'🐃',d:'House buffalo to speed up material transport.', cost:{wood:25,stone:10}, ml:2, cat:'work',
+              lvDesc:{1:'1 buffalo slot.',2:'3 buffalo slots.'}},
+  sheep_farm:{n:'Sheep Farm',e:'🐑',d:'Dedicated sheep farm. Produces wool & meat.', cost:{wood:35,stone:15}, ml:2, cat:'food',
+              pr:{wool:2,meat:1}, lvDesc:{1:'Small flock.',2:'Large flock.'}},
+  weaver_wk: {n:'Weaver Workshop',e:'🧶',d:'Turns wool into cloth. Needs workers.', cost:{wood:25,stone:10}, ml:2, cat:'work',
+              pr:{cloth:1}, needs:{wool:2}, lvDesc:{1:'1 loom.',2:'3 looms.'}},
   // ── STALLS (prerequisite for house upgrade) ──
   food_stall:    {n:'Food Stall',    e:'🥘',d:'Sell food goods.',  cost:{wood:20,stone:5},  ml:1, cat:'civic'},
   fuel_stall:    {n:'Fuel Stall',    e:'🪵',d:'Sell fuel/coal.',   cost:{wood:15,stone:5},  ml:1, cat:'civic'},
@@ -818,6 +832,23 @@ const BYARD={
   armor:    {n:'Armorer',     e:'🛡', desc:'Craft armor from metal.',
              cost:{wood:15,stone:15,metal:8},req:{metal:2},
              prod:{armor:1},         prodTime:4,  cat:'craft'},
+  // ── LIVESTOCK BACKYARD ──
+  sheep_pen:{n:'Sheep Pen',   e:'🐑', desc:'+2 wool/tick. Needs hay (food).',
+             cost:{wood:20,stone:5},  req:{food:1},
+             prod:{wool:2},           prodTime:2,  cat:'livestock',
+             animals:['sheep'], maxAnimals:3},
+  cow_pen:  {n:'Cow Shed',    e:'🐄', desc:'+2 milk & +1 hide/tick. Needs hay.',
+             cost:{wood:25,stone:10}, req:{food:2},
+             prod:{milk:2,leather:1}, prodTime:2,  cat:'livestock',
+             animals:['cow'],  maxAnimals:2},
+  pig_pen:  {n:'Pig Sty',     e:'🐷', desc:'+3 meat/tick. Needs scraps (food).',
+             cost:{wood:18,stone:8},  req:{food:1},
+             prod:{meat:3},           prodTime:2,  cat:'livestock',
+             animals:['pig'],  maxAnimals:4},
+  weaver:   {n:'Weaver',      e:'🧶', desc:'Spin wool into cloth. Needs wool.',
+             cost:{wood:14,stone:6},  req:{wool:2},
+             prod:{cloth:1},          prodTime:2,  cat:'craft',
+             chainDesc:'🐑 Wool → 🧶 Weaver → 🧵 Cloth → 👘 Tailor'},
 };
 
 // ── MAP ──
@@ -825,6 +856,8 @@ let MAP=[];  // MAP[r][c] = {t, bld, decor}
 let NPCS=[];
 let FAMILIES=[];
 let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
+let BUFFALO=[]; // {x,y,dir,fr,ft,vx,vy,wt,task,carryRes,carryQty,targetX,targetY,state,ownerId}
+let HORSES=[];  // {x,y,dir,fr,ft,vx,vy,wt,task,carryGoods,targetX,targetY,state,ownerId,traderName}
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted:bool, regrowTick:int, yield:int}
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
@@ -1089,6 +1122,7 @@ function genMap(){
   G.res={wood:30,stone:15,food:20,meat:0,coal:0,iron:0,gold:20,cloth:0,
     leather:0,shoe:0,ale:0,beer:0,plank:0,metal:0,weapon:0,armor:0,
     cloak:0,egg:0,honey:0,berry:0,wheat:0,flour:0,bread:0,
+    wool:0,milk:0,
     regional_wealth:200,wealth:0};
   G.pop=0;G.cap=6;G.happy=80;G.health=70;
   G.day=1;G.hr=6;G.mn=0;G.yr=1;G.season=0;
@@ -1097,7 +1131,7 @@ function genMap(){
   G.marketZones=[];G.farmZones=[];
   G.tradeRoutes={};G.tradeQueue=[];G.tradeLog=[];
   G.mode='walk';
-  NPCS=[];FAMILIES=[];DEER=[];
+  NPCS=[];FAMILIES=[];DEER=[];BUFFALO=[];HORSES=[];
   BERRY_STATE={};
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
@@ -1115,13 +1149,14 @@ function genMap(){
   const riverCol=3+Math.floor(R()*4); // col 3-6
   const riverWiggle=Math.floor(R()*3); // 0-2 extra wobble
   for(let r=3;r<WR-3;r++){
+    if(!MAP[r]||!MAP[r][riverCol])continue;
     MAP[r][riverCol].t=T.WATER;
-    MAP[r][riverCol+1].t=T.WATER;
+    if(riverCol+1<WC) MAP[r][riverCol+1].t=T.WATER;
     if(r%5===0){
       if(riverCol-1>=0) MAP[r][riverCol-1].t=T.WATER;
       if(riverCol+2<WC) MAP[r][riverCol+2].t=T.WATER;
     }
-    if(r%7===0&&riverWiggle>1) MAP[r][riverCol+2].t=T.WATER;
+    if(r%7===0&&riverWiggle>1&&riverCol+2<WC) MAP[r][riverCol+2].t=T.WATER;
   }
 
   // ── FOREST ZONES — 2-4 random zones around edges ──
@@ -1478,6 +1513,10 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     case 'tavern':     bTavern(cx,bot,lv);break;
     case 'school':     bSchool(cx,bot,lv);break;
     case 'hospital':   bHospital(cx,bot,lv);break;
+    case 'stable':     bStable(cx,bot,lv);break;
+    case 'corral':     bCorral(cx,bot,lv);break;
+    case 'sheep_farm': bSheepFarm(cx,bot,lv);break;
+    case 'weaver_wk':  bWeaverWk(cx,bot,lv);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
   }
   if(rot!==0) X.restore();
@@ -3215,6 +3254,8 @@ function updateUI(){
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
   const _rberry=document.getElementById('rberry');if(_rberry)_rberry.textContent=G.res.berry||0;
+  const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
+  const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
   // Disaster event banner
   const _eb=document.getElementById('event-banner');
   if(_eb){
@@ -3380,6 +3421,8 @@ function doFarmProd(){
       field.growStage=4; // harvested
       field.fertility=Math.max(20,field.fertility-5+(Math.random()*10|0));
       G.farmStats.totalHarvests++;
+      // Harvest particles!
+      spawnParticles(field.col*TS+TS/2, field.row*TS+TS/2, 'harvest', 10);
       // Rotate crop
       const ri=(CROP_ROTATION.indexOf(field.crop)+1)%CROP_ROTATION.length;
       field.crop=CROP_ROTATION[ri];
@@ -3473,6 +3516,30 @@ function doProd(){
     const tradeIncome=baseIncome+routeBonus;
     G.res.regional_wealth=(G.res.regional_wealth||0)+tradeIncome;
     rwLog(`🚢 Trade income: +${tradeIncome} RW (${activeRoutes} routes)`);
+  }
+
+  // ── SHEEP FARM — wool + meat production ──
+  for(const b of G.bld.filter(b=>b.type==='sheep_farm'&&!b.under_construction)){
+    const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
+    if(!workers) continue;
+    const output=Math.round((2+b.lv)*workers*mul);
+    addR('wool', output);
+    addR('meat', Math.round(output*0.3));
+    if(Math.random()<0.05) notify('🐑 Sheep farm produced '+output+' wool!','ok');
+  }
+
+  // ── WEAVER WORKSHOP — wool → cloth ──
+  for(const b of G.bld.filter(b=>b.type==='weaver_wk'&&!b.under_construction)){
+    const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
+    if(!workers) continue;
+    const woolNeed=2*workers;
+    if((G.res.wool||0)>=woolNeed){
+      G.res.wool-=woolNeed;
+      const cloth=Math.round(workers*b.lv);
+      addR('cloth', cloth);
+    } else {
+      if(Math.random()<0.02) notify('🧶 Weaver needs wool!','warn');
+    }
   }
 
   // ── TAVERN — happiness bonus, consumes ale ──
@@ -3635,6 +3702,8 @@ function doProd(){
   if(G_activeDisaster) resolveDisaster();
   checkQuests();
   updateNPCStats();
+  // Spawn animals if buildings exist
+  if(G.ticks%10===0){ spawnBuffalo(); spawnHorse(); } // only check spawn every 10 ticks
 
   // ── CONSTRUCTION PROGRESS ──
   // Each idle adult worker in village helps build. More workers = faster.
@@ -3652,6 +3721,7 @@ function doProd(){
       delete bld.build_ticks_left;
       delete bld.build_ticks_total;
       notify('✅ '+BD[bld.type].n+' construction complete!','ok');
+      spawnParticles(bld.col*TS+TS/2, bld.row*TS, 'build', 14);
       rebuildTile(bld.col, bld.row);
     }
   }
@@ -3854,7 +3924,10 @@ function showBldDlg(bld,c,r){
     const fieldCount=G.fields.filter(f=>f.farmId===bld.id).length;
     btns.push({l:'🌾 Manage Fields ('+fieldCount+' fields)',cls:'ok',fn:()=>openFarmPanel(bld.id)});
   }
-  if(bld.type==='tradingpost'){btns.push({l:'🚢 Open Trading',cls:'ok',fn:()=>openTradePanel(bld.id)});}
+  if(bld.type==='tradingpost'){
+    btns.push({l:'🚢 Open Trading',cls:'ok',fn:()=>openTradePanel(bld.id)});
+    btns.push({l:'🐑 Buy Livestock',cls:'ok',fn:openBuyLivestockDlg});
+  }
   if(BLD_WORKERS[bld.type]){
     const assigned=(G.bldWorkers[bld.id]||[]).filter(n=>n).length;
     const maxW=BLD_WORKERS[bld.type];
@@ -3871,6 +3944,7 @@ function doUpgrade(bld,c,r){
   const cost={};for(const[k,v]of Object.entries(d.cost))cost[k]=Math.floor(v*1.6*bld.lv);
   if(!canAff(cost)){notify('Not enough materials!','err');closeDialog();return;}
   pay(cost);bld.lv++;const gb=G.bld.find(x=>x.id===bld.id);if(gb)gb.lv=bld.lv;
+  spawnParticles(bld.col*TS+TS/2, bld.row*TS, 'levelup', 16);
   notify('⬆ '+d.n+' → Lv.'+bld.lv+'!','ok');closeDialog();updateUI();
 }
 function doDemolish(bld,c,r){
@@ -4077,13 +4151,18 @@ function drawCrop(field, wx, wy){
 function drawBackyard(type, wx, wy, timer, prodTime){
   const cx=wx+TS/2, by=wy+TS;
   const prog=prodTime>0?Math.min(1,(timer||0)/prodTime):0;
+  const t=Date.now()/1000;
   switch(type){
     case 'chicken':
-      // Chicken coop - small wooden box
       X.fillStyle='#c4843c';X.fillRect(wx+10,wy+TS-22,TS-20,18);
       X.fillStyle='#a06020';X.fillRect(wx+10,wy+TS-26,TS-20,6);
-      X.fillStyle='#ffffff';X.beginPath();X.arc(wx+18,wy+TS-30,4,0,Math.PI*2);X.fill();
-      X.fillStyle='#ff4040';X.beginPath();X.arc(wx+18,wy+TS-34,2,0,Math.PI*2);X.fill();
+      // Animated chickens
+      for(let i=0;i<2;i++){
+        const cx2=wx+14+i*18, cy2=by-10+Math.sin(t*2+i)*2;
+        X.fillStyle='#ffffff';X.beginPath();X.ellipse(cx2,cy2,5,4,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#ff4040';X.beginPath();X.arc(cx2+4,cy2-3,2,0,Math.PI*2);X.fill();
+        X.fillStyle='#ffaa00';X.beginPath();X.moveTo(cx2+4,cy2-1);X.lineTo(cx2+7,cy2);X.lineTo(cx2+4,cy2+1);X.fill();
+      }
       break;
     case 'goat':
       X.fillStyle='#d4c4a0';X.beginPath();X.ellipse(cx,by-14,14,8,0,0,Math.PI*2);X.fill();
@@ -4091,7 +4170,102 @@ function drawBackyard(type, wx, wy, timer, prodTime){
       X.strokeStyle='#a09070';X.lineWidth=2;
       X.beginPath();X.moveTo(cx,by-6);X.lineTo(cx-4,by);X.stroke();
       X.beginPath();X.moveTo(cx+4,by-6);X.lineTo(cx+8,by);X.stroke();
+      // Horns
+      X.strokeStyle='#806040';X.lineWidth=1.5;
+      X.beginPath();X.moveTo(cx+10,by-21);X.lineTo(cx+14,by-26);X.stroke();
+      X.beginPath();X.moveTo(cx+14,by-21);X.lineTo(cx+18,by-25);X.stroke();
       break;
+    case 'sheep_pen':{
+      // Fence
+      X.strokeStyle='#8a5020';X.lineWidth=2;
+      X.strokeRect(wx+4,wy+TS-28,TS-8,24);
+      // Animated fluffy sheep
+      for(let i=0;i<3;i++){
+        const sx=wx+10+i*14, sy=by-14+Math.sin(t*1.5+i*2)*2;
+        // Body — white fluffy
+        X.fillStyle='#e8e8e0';X.beginPath();X.ellipse(sx,sy,7,5,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(sx-3,sy-2,5,4,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(sx+3,sy-2,4,3,0,0,Math.PI*2);X.fill();
+        // Head
+        X.fillStyle='#c8c0a0';X.beginPath();X.arc(sx+7,sy-2,4,0,Math.PI*2);X.fill();
+        // Legs
+        X.fillStyle='#808070';
+        X.fillRect(sx-4,sy+4,2,5);X.fillRect(sx,sy+4,2,5);
+      }
+      // Wool icon when producing
+      if(prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🧶',cx,wy+4);}
+      break;
+    }
+    case 'cow_pen':{
+      // Fence posts
+      X.fillStyle='#8a5020';
+      for(let i=0;i<4;i++) X.fillRect(wx+4+i*14,wy+TS-30,3,26);
+      X.fillRect(wx+4,wy+TS-26,TS-8,3);X.fillRect(wx+4,wy+TS-16,TS-8,3);
+      // Cow
+      const cowBob=Math.sin(t*0.8)*1.5;
+      X.fillStyle='#e8d8a0';X.beginPath();X.ellipse(cx,by-16+cowBob,16,10,0,0,Math.PI*2);X.fill();
+      // Black spots
+      X.fillStyle='#202020';X.beginPath();X.ellipse(cx-6,by-18+cowBob,5,4,0.3,0,Math.PI*2);X.fill();
+      X.fillStyle='#202020';X.beginPath();X.ellipse(cx+6,by-14+cowBob,4,3,-0.2,0,Math.PI*2);X.fill();
+      // Head
+      X.fillStyle='#e8d8a0';X.beginPath();X.ellipse(cx+18,by-17+cowBob,8,7,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#d0b880';X.beginPath();X.ellipse(cx+22,by-14+cowBob,5,5,0,0,Math.PI*2);X.fill();
+      // Horns
+      X.strokeStyle='#d4c080';X.lineWidth=2;
+      X.beginPath();X.moveTo(cx+16,by-23+cowBob);X.lineTo(cx+12,by-29+cowBob);X.stroke();
+      X.beginPath();X.moveTo(cx+20,by-23+cowBob);X.lineTo(cx+24,by-29+cowBob);X.stroke();
+      // Udder
+      X.fillStyle='#f0a0a0';X.beginPath();X.ellipse(cx+2,by-8+cowBob,8,5,0,0,Math.PI*2);X.fill();
+      // Legs
+      X.fillStyle='#c0a870';
+      for(let i=-2;i<=2;i+=2) X.fillRect(cx+i*4,by-8+cowBob,4,10);
+      if(prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🥛',cx-8,wy+4);}
+      break;
+    }
+    case 'pig_pen':{
+      // Mud pen
+      X.fillStyle='rgba(150,100,60,0.4)';X.fillRect(wx+6,wy+TS-20,TS-12,16);
+      X.strokeStyle='#8a5020';X.lineWidth=2;X.strokeRect(wx+4,wy+TS-24,TS-8,20);
+      // Pigs
+      for(let i=0;i<2;i++){
+        const px2=wx+12+i*16, py2=by-12+Math.sin(t+i*1.7)*1.5;
+        X.fillStyle='#f0a0a0';X.beginPath();X.ellipse(px2,py2,8,6,0,0,Math.PI*2);X.fill();
+        // Snout
+        X.fillStyle='#e08080';X.beginPath();X.ellipse(px2+8,py2,4,3,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#c06060';
+        X.beginPath();X.arc(px2+7,py2-1,1,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(px2+9,py2-1,1,0,Math.PI*2);X.fill();
+        // Ear
+        X.fillStyle='#e090a0';X.beginPath();X.ellipse(px2-4,py2-5,3,4,0.5,0,Math.PI*2);X.fill();
+        // Tail (curly)
+        X.strokeStyle='#f0a0a0';X.lineWidth=1.5;
+        X.beginPath();X.arc(px2-8,py2,3,0,Math.PI*1.5);X.stroke();
+        // Legs
+        X.fillStyle='#e09090';
+        X.fillRect(px2-4,py2+4,3,6);X.fillRect(px2+1,py2+4,3,6);
+      }
+      if(prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🥩',cx+8,wy+4);}
+      break;
+    }
+    case 'weaver':{
+      // Loom structure
+      X.fillStyle='#8a5020';X.fillRect(wx+8,wy+TS-30,TS-16,26);
+      X.fillStyle='#c08040';X.fillRect(wx+10,wy+TS-32,TS-20,4);
+      // Weaving threads animation
+      const phase=Math.floor(t*3)%3;
+      const threadColors=['#e05050','#5080e0','#50c050'];
+      for(let i=0;i<6;i++){
+        X.strokeStyle=threadColors[(i+phase)%3];X.lineWidth=1.5;
+        X.beginPath();X.moveTo(wx+12+i*6,wy+TS-28);X.lineTo(wx+12+i*6,wy+TS-8);X.stroke();
+      }
+      // Horizontal threads
+      for(let j=0;j<4;j++){
+        X.strokeStyle='#e8d080';X.lineWidth=1;
+        X.beginPath();X.moveTo(wx+10,wy+TS-24+j*5);X.lineTo(wx+TS-10,wy+TS-24+j*5);X.stroke();
+      }
+      if(prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🧵',cx,wy+4);}
+      break;
+    }
     case 'garden':
       X.fillStyle='#4a7820';X.fillRect(wx+6,wy+TS-16,TS-12,12);
       for(let i=0;i<4;i++){
@@ -4106,16 +4280,19 @@ function drawBackyard(type, wx, wy, timer, prodTime){
       break;
     case 'smithy': case 'tannery': case 'shoemaker': case 'tailor':
     case 'brewery': case 'armor':
-      // Generic workshop icon
       X.fillStyle='rgba(60,40,20,0.7)';X.fillRect(wx+12,wy+TS-24,TS-24,20);
       X.fillStyle='#c08040';X.fillRect(wx+14,wy+TS-26,TS-28,4);
-      // Progress bar
       if(prog>0){
         X.fillStyle='rgba(0,0,0,0.4)';X.fillRect(wx+8,wy+TS-6,TS-16,4);
         X.fillStyle='#40c040';X.fillRect(wx+8,wy+TS-6,(TS-16)*prog,4);
       }
       break;
     default: break;
+  }
+  // Production progress bar for all types
+  if(prog>0&&prog<1){
+    X.fillStyle='rgba(0,0,0,0.35)';X.fillRect(wx+6,wy+2,TS-12,5);
+    X.fillStyle='#60d040';X.fillRect(wx+6,wy+2,(TS-12)*prog,5);
   }
 }
 
@@ -4134,6 +4311,10 @@ function render(){
   const vw=CV.width,vh=CV.height;
   X.fillStyle='#1a2e10';X.fillRect(0,0,vw,vh);
   X.save();X.translate(0,HH);
+  // Stars (behind everything, before world)
+  drawStars();
+  // Screen shake
+  applyScreenShake();
   try{
   if(WC_)animateWater();
   const sc=Math.max(0,Math.floor(-camX/TS)-1);
@@ -4209,6 +4390,8 @@ function render(){
       }
     }
     for(const deer of DEER)if(deer.alive&&Math.floor(deer.y/TS)===r2)drawDeer(deer);
+    for(const buf of BUFFALO)if(Math.floor(buf.y/TS)===r2)drawBuffalo(buf);
+    for(const h of HORSES)if(Math.floor(h.y/TS)===r2)drawHorse(h);
     for(const npc of [...NPCS])try{if(Math.floor(npc.y/TS)===r2)drawNPC(npc);}catch(e){console.warn('drawNPC err',e.message);}
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
     // Draw market zone stall icons on cobblestone tiles
@@ -4363,8 +4546,27 @@ function render(){
   // ── LANDMARKS ──
   drawLandmarks();
 
+  // ── BUILDING GLOW ──
+  for(const b of G.bld){
+    if(!b.under_construction){
+      const bx=b.col*TS+camX+TS/2, by=b.row*TS+camY+TS/2;
+      drawBuildingGlow(bx,by,b.type);
+    }
+  }
+
+  // ── PARTICLES ──
+  updateParticles();
+  drawParticles();
+
   // ── FOG OF WAR ──
   drawFog();
+
+  // ── DAY/NIGHT LIGHTING ──
+  const dayOverlay=getDayLightOverlay();
+  if(dayOverlay&&_gameStarted){
+    X.fillStyle=dayOverlay;
+    X.fillRect(-camX,-camY,WPX,WPY);
+  }
 
   // ── SEASON OVERLAY & PARTICLES ──
   const seasonTint=getSeasonOverlay();
@@ -4874,12 +5076,25 @@ function doByardProd(){
     const by=BYARD[bld.backyard.type];
     if(!by) continue;
 
-    // Home business: needs adult family member at home
-    const craftTypes=['smithy','tannery','shoemaker','tailor','brewery','armor'];
+    // Livestock needs food (hay) to produce
+    const isLivestock=by.cat==='livestock';
+    if(isLivestock){
+      if((G.res.food||0)<1){
+        if(!bld.backyard._hungryWarn){
+          bld.backyard._hungryWarn=true;
+          notify(by.e+' '+by.n+' needs hay (food)!','warn');
+        }
+        continue;
+      }
+      bld.backyard._hungryWarn=false;
+      G.res.food=Math.max(0,(G.res.food||0)-1);
+    }
+    // Craft backyard: needs adult family member at home
+    const craftTypes=['smithy','tannery','shoemaker','tailor','brewery','armor','weaver'];
     const isCraft=craftTypes.includes(bld.backyard.type);
     if(isCraft){
       const homeAdults=NPCS.filter(n=>n.houseId===bld.id&&isAdult(n));
-      if(!homeAdults.length) continue; // no adult = no production
+      if(!homeAdults.length) continue;
     }
 
     bld.backyard.timer=(bld.backyard.timer||0)+2;
@@ -4943,8 +5158,10 @@ function loop(now){
   const dt=Math.min(now-lastT,50);lastT=now;
   try{
     if(!G.paused&&_gameStarted&&MAP&&MAP.length){
-      movePlayer();updateCam();wanderNPCs();updateDeer();tick();
-      updateFog(); // fog of war update every frame
+      movePlayer();updateCam();wanderNPCs();updateDeer();
+      updateBuffalo();updateHorses();
+      tick();
+      updateFog();
     }
   } catch(e){ console.error('loop error:',e); }
   render();
@@ -5999,6 +6216,9 @@ function processTradeQueue(){
       G.res.regional_wealth=(G.res.regional_wealth||0)+Math.round((q.value||0)*0.2); // 20% to RW
       rwLog(`📤 Export complete: ${g?.label||q.res} +${q.value}g`);
       notify(`💰 ${q.traderName} returned! +${q.value} gold from ${g?.e||''}${g?.label||q.res} sale`,'ok');
+      // Gold particles near trading post
+      const tpGold=G.bld.find(b=>b.type==='tradingpost');
+      if(tpGold) spawnParticles(tpGold.col*TS+TS/2,tpGold.row*TS,'gold',8);
       const entry=`[Day ${G.day}] ✅ Export complete: ${q.qty}× ${g?.label||q.res} +${q.value}g`;
       G.tradeLog.unshift(entry); if(G.tradeLog.length>30) G.tradeLog.pop();
     } else {
@@ -6073,6 +6293,8 @@ function buildSaveState(){
     npcs:NPCS.map(n=>({...n})),
     families:FAMILIES.map(f=>({...f})),
     deer:DEER.map(d=>({...d})),
+    buffalo:BUFFALO.map(b=>({...b})),
+    horses:HORSES.map(h=>({...h})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
     landmarks:JSON.parse(JSON.stringify(LANDMARKS||[])),
     fog:FOG.map(row=>[...row]),
@@ -6113,6 +6335,8 @@ function applySaveState(save){
   NPCS=(save.npcs||[]).map(n=>({...n}));
   FAMILIES=(save.families||[]).map(f=>({...f}));
   DEER=(save.deer||[]).map(d=>({...d}));
+  BUFFALO=(save.buffalo||[]).map(b=>({...b}));
+  HORSES=(save.horses||[]).map(h=>({...h}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
   if(save.landmarks) LANDMARKS=JSON.parse(JSON.stringify(save.landmarks));
   if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
@@ -6553,6 +6777,7 @@ function applyDisasterEffect(id){
 }
 
 function showDisasterAlert(d){
+  triggerShake(18);
   // Flash red overlay briefly
   const overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(200,0,0,0.25);pointer-events:none;transition:opacity 1s';
@@ -6862,6 +7087,575 @@ function drawLandmarks(){
       X.fillStyle=grd;X.fillRect(wx-4,wy-4,TS+8,TS+8);
     }
   }
+}
+
+// ═══════════════════════════════════════════════════════
+//  BUFFALO SYSTEM — transport materials between buildings
+// ═══════════════════════════════════════════════════════
+
+function spawnBuffalo(){
+  const corrals=G.bld.filter(b=>b.type==='corral'&&!b.under_construction);
+  for(const cor of corrals){
+    const slots=cor.lv>=2?3:1;
+    const owned=BUFFALO.filter(b=>b.ownerId===cor.id).length;
+    for(let i=owned;i<slots;i++){
+      BUFFALO.push({
+        x:cor.col*TS+TS/2+Math.random()*TS,
+        y:cor.row*TS+TS/2+Math.random()*TS,
+        dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,
+        state:'idle', // idle | moving | delivering
+        carryRes:null, carryQty:0,
+        targetX:cor.col*TS+TS/2, targetY:cor.row*TS+TS/2,
+        homeX:cor.col*TS+TS/2, homeY:cor.row*TS+TS/2,
+        ownerId:cor.id
+      });
+    }
+  }
+}
+
+function updateBuffalo(){
+  // Remove buffalo whose corral is demolished
+  BUFFALO=BUFFALO.filter(b=>G.bld.some(bld=>bld.id===b.ownerId&&bld.type==='corral'));
+
+  for(const buf of BUFFALO){
+    // State machine
+    if(buf.state==='idle'){
+      // Find a task: carry heavy material from storehouse/quarry to another building
+      const storehouseOrQuarry=G.bld.filter(b=>
+        (b.type==='storehouse'||b.type==='quarry'||b.type==='coalmine'||b.type==='ironmine')
+        &&!b.under_construction
+      );
+      for(const src of storehouseOrQuarry){
+        // Find a building that needs material nearby
+        const heavyRes=['stone','coal','iron','wood','metal'];
+        for(const res of heavyRes){
+          if((G.res[res]||0)>20){
+            // Move to pickup spot
+            buf.state='moving';
+            buf.carryRes=res;
+            buf.carryQty=Math.min(15, Math.floor((G.res[res]||0)*0.3));
+            buf.targetX=src.col*TS+TS/2;
+            buf.targetY=src.row*TS+TS/2;
+            buf.phase='pickup';
+            break;
+          }
+        }
+        if(buf.state!=='idle') break;
+      }
+    } else if(buf.state==='moving'){
+      const dx=buf.targetX-buf.x, dy=buf.targetY-buf.y;
+      const dist=Math.hypot(dx,dy);
+      const spd=0.7; // slower than player — heavy load
+      if(dist>4){
+        buf.vx=(dx/dist)*spd; buf.vy=(dy/dist)*spd;
+        buf.x+=buf.vx; buf.y+=buf.vy;
+        if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
+        if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
+        buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
+      } else {
+        buf.vx=0;buf.vy=0;buf.fr=0;
+        if(buf.phase==='pickup'){
+          // Pick up material — no actual resource deduction, just visual carry
+          buf.state='moving';
+          buf.phase='deliver';
+          // Find nearest building that needs this resource (construction or production)
+          const targets=G.bld.filter(b=>b.under_construction||
+            ['smelter','ironworks','blacksmith','mill','sawmill'].includes(b.type));
+          if(targets.length){
+            const t=targets[Math.floor(Math.random()*targets.length)];
+            buf.targetX=t.col*TS+TS/2;
+            buf.targetY=t.row*TS+TS/2;
+          } else {
+            buf.targetX=buf.homeX; buf.targetY=buf.homeY;
+            buf.phase='return';
+          }
+        } else if(buf.phase==='deliver'){
+          // Deliver — speed up construction or production slightly
+          const nearBld=G.bld.find(b=>{
+            const dx2=b.col*TS-buf.x, dy2=b.row*TS-buf.y;
+            return Math.hypot(dx2,dy2)<TS*1.5&&b.under_construction;
+          });
+          if(nearBld&&nearBld.build_ticks_left>0){
+            nearBld.build_ticks_left=Math.max(0,nearBld.build_ticks_left-0.3);
+            _worldDirty=true;
+          }
+          buf.carryRes=null; buf.carryQty=0;
+          buf.targetX=buf.homeX; buf.targetY=buf.homeY;
+          buf.phase='return';
+        } else {
+          buf.state='idle'; buf.phase=null;
+          buf.wt=0;
+        }
+      }
+    }
+    // Idle wandering near home
+    if(buf.state==='idle'){
+      buf.wt=(buf.wt||0)+1;
+      if(buf.wt>120){
+        buf.wt=0;
+        if(Math.random()<0.5){buf.vx=0;buf.vy=0;}
+        else{
+          const a=Math.random()*Math.PI*2;
+          const wx=buf.homeX+Math.cos(a)*TS*1.5;
+          const wy=buf.homeY+Math.sin(a)*TS*1.5;
+          const dx2=wx-buf.x,dy2=wy-buf.y;
+          const d=Math.hypot(dx2,dy2);
+          if(d>4){buf.vx=(dx2/d)*0.5;buf.vy=(dy2/d)*0.5;}
+        }
+      }
+      if(buf.vx||buf.vy){
+        buf.x+=buf.vx;buf.y+=buf.vy;
+        buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
+        if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
+        if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
+      }
+    }
+  }
+}
+
+function drawBuffalo(buf){
+  const px=Math.round(buf.x+camX), py=Math.round(buf.y+camY);
+  if(px<-80||px>CV.width+80||py<-80||py>CV.height+80)return;
+  const moving=!!(buf.vx||buf.vy), f=buf.fr||0, dir=buf.dir||2;
+  const bob=moving&&f%2===0?-1:0;
+  const lg=moving?(f%4<2?3:-3):0;
+
+  X.save();X.translate(px,py);X.scale(0.7,0.7);X.translate(-px,-py);
+
+  const body='#3a2010', mid='#2a1808', leg='#1a0c04', horn='#f0e080';
+  // Shadow
+  X.fillStyle='rgba(0,0,0,0.22)';X.beginPath();X.ellipse(px+2,py+10,22,6,0,0,Math.PI*2);X.fill();
+
+  if(dir===1||dir===3){
+    const f2=dir===1?1:-1;
+    // Legs
+    X.fillStyle=leg;
+    X.fillRect(px-10+lg,py+bob,5,18);X.fillRect(px-3,py+bob,5,18);
+    X.fillRect(px+4-lg,py+bob,5,18);X.fillRect(px+10,py+bob,5,18);
+    // Heavy body — wider than deer
+    X.fillStyle=body;X.beginPath();X.ellipse(px+2,py-10+bob,26,16,0,0,Math.PI*2);X.fill();
+    X.fillStyle=mid;X.beginPath();X.ellipse(px+6,py-14+bob,18,10,0,0,Math.PI*2);X.fill();
+    // Hump (buffalo has a shoulder hump)
+    X.fillStyle=body;X.beginPath();X.ellipse(px+f2*8,py-22+bob,14,12,f2*0.3,0,Math.PI*2);X.fill();
+    // Head
+    const hx=px+f2*18, hy=py-16+bob;
+    X.fillStyle=body;X.beginPath();X.ellipse(hx,hy,12,10,0,0,Math.PI*2);X.fill();
+    X.fillStyle=mid;X.beginPath();X.ellipse(hx+f2*4,hy+3,7,7,0,0,Math.PI*2);X.fill();
+    // Nose
+    X.fillStyle='#1a0c04';X.beginPath();X.arc(hx+f2*10,hy+4,3,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(255,255,255,0.6)';X.beginPath();X.arc(hx+f2*9,hy+3,1,0,Math.PI*2);X.fill();
+    // Eye
+    X.fillStyle='#f0a020';X.beginPath();X.arc(hx+f2*2,hy-3,2.5,0,Math.PI*2);X.fill();
+    // Horns — curved upward
+    X.strokeStyle=horn;X.lineWidth=3;
+    X.beginPath();X.moveTo(hx-f2*2,hy-10);X.quadraticCurveTo(hx-f2*10,hy-22,hx-f2*4,hy-26);X.stroke();
+    X.beginPath();X.moveTo(hx-f2*6,hy-9);X.quadraticCurveTo(hx-f2*14,hy-20,hx-f2*8,hy-24);X.stroke();
+    // Tail
+    if(dir===3){X.strokeStyle=body;X.lineWidth=2;X.beginPath();X.moveTo(px-14,py-6+bob);X.lineTo(px-20,py+2+bob);X.stroke();}
+    else{X.strokeStyle=body;X.lineWidth=2;X.beginPath();X.moveTo(px+16,py-6+bob);X.lineTo(px+22,py+2+bob);X.stroke();}
+  } else {
+    // Front/back view
+    X.fillStyle=leg;
+    X.fillRect(px-12+lg,py+bob,5,18);X.fillRect(px-4,py+bob,5,18);
+    X.fillRect(px+4,py+bob,5,18);X.fillRect(px+12-lg,py+bob,5,18);
+    X.fillStyle=body;X.beginPath();X.ellipse(px,py-10+bob,22,14,0,0,Math.PI*2);X.fill();
+    X.fillStyle=body;X.beginPath();X.ellipse(px,py-22+bob,14,12,0,0,Math.PI*2);X.fill();
+    X.fillStyle=mid;X.beginPath();X.ellipse(px,py-20+bob,10,9,0,0,Math.PI*2);X.fill();
+    X.fillStyle='#1a0c04';X.beginPath();X.arc(px-3,py-28+bob,3,0,Math.PI*2);X.fill();X.beginPath();X.arc(px+3,py-28+bob,3,0,Math.PI*2);X.fill();
+    X.strokeStyle=horn;X.lineWidth=3;
+    X.beginPath();X.moveTo(px-8,py-28+bob);X.quadraticCurveTo(px-18,py-38+bob,px-12,py-42+bob);X.stroke();
+    X.beginPath();X.moveTo(px+8,py-28+bob);X.quadraticCurveTo(px+18,py-38+bob,px+12,py-42+bob);X.stroke();
+  }
+
+  // Carry indicator
+  if(buf.carryRes){
+    const icons={stone:'🪨',wood:'🪵',coal:'⚫',iron:'⚙',metal:'🔩'};
+    X.font='13px serif';X.textAlign='center';
+    X.fillText(icons[buf.carryRes]||'📦',px,py-46+bob);
+  }
+  X.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+//  HORSE SYSTEM — speed up trade caravans & deliveries
+// ═══════════════════════════════════════════════════════
+
+function spawnHorse(){
+  const stables=G.bld.filter(b=>b.type==='stable'&&!b.under_construction);
+  for(const st of stables){
+    const slots=st.lv>=2?3:1;
+    const owned=HORSES.filter(h=>h.ownerId===st.id).length;
+    for(let i=owned;i<slots;i++){
+      HORSES.push({
+        x:st.col*TS+TS/2+Math.random()*TS,
+        y:st.row*TS+TS/2+Math.random()*TS,
+        dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,
+        state:'idle', carryGoods:null, traderName:null,
+        targetX:st.col*TS+TS/2, targetY:st.row*TS+TS/2,
+        homeX:st.col*TS+TS/2, homeY:st.row*TS+TS/2,
+        ownerId:st.id
+      });
+    }
+  }
+}
+
+function updateHorses(){
+  HORSES=HORSES.filter(h=>G.bld.some(b=>b.id===h.ownerId&&b.type==='stable'));
+
+  // Assign idle horses to active trade caravans to speed them up
+  for(const h of HORSES){
+    if(h.state==='idle'&&G.tradeQueue&&G.tradeQueue.length>0){
+      const unassigned=G.tradeQueue.find(q=>!q.horseAssigned);
+      if(unassigned){
+        unassigned.horseAssigned=true;
+        // Speed up caravan by 30%
+        unassigned.ticksLeft=Math.max(1,Math.floor(unassigned.ticksLeft*0.7));
+        h.state='working';
+        h.carryGoods=unassigned.res;
+        h.traderName=unassigned.traderName;
+        // Move toward trading post
+        const tp=G.bld.find(b=>b.type==='tradingpost');
+        if(tp){h.targetX=tp.col*TS+TS/2;h.targetY=tp.row*TS+TS/2;}
+      }
+    }
+    if(h.state==='working'){
+      // Check if caravan is done
+      const still=G.tradeQueue&&G.tradeQueue.find(q=>q.traderName===h.traderName);
+      if(!still){h.state='returning';h.carryGoods=null;h.traderName=null;h.targetX=h.homeX;h.targetY=h.homeY;}
+    }
+    if(h.state==='returning'){
+      const dx=h.homeX-h.x, dy=h.homeY-h.y;
+      if(Math.hypot(dx,dy)<6){h.state='idle';h.vx=0;h.vy=0;}
+    }
+
+    // Movement
+    const spd=(h.state==='idle')?0.6:1.4; // horses are fast!
+    if(h.state!=='idle'||h.wt%120<60){
+      let tx=h.targetX, ty=h.targetY;
+      if(h.state==='idle'){
+        // Wander near home
+        h.wt=(h.wt||0)+1;
+        if(h.wt%120===0){
+          const a=Math.random()*Math.PI*2;
+          h.targetX=h.homeX+Math.cos(a)*TS*2;
+          h.targetY=h.homeY+Math.sin(a)*TS*2;
+        }
+        tx=h.targetX;ty=h.targetY;
+      }
+      const dx=tx-h.x, dy=ty-h.y;
+      const dist=Math.hypot(dx,dy);
+      if(dist>4){
+        h.vx=(dx/dist)*spd;h.vy=(dy/dist)*spd;
+        h.x+=h.vx;h.y+=h.vy;
+        h.ft=(h.ft||0)+1;if(h.ft>5){h.ft=0;h.fr=(h.fr||0)+1;}
+        if(h.vx<-0.2)h.dir=3;else if(h.vx>0.2)h.dir=1;
+        if(h.vy<-0.2)h.dir=0;else if(h.vy>0.2)h.dir=2;
+      } else {h.vx=0;h.vy=0;h.fr=0;}
+    }
+  }
+}
+
+function drawHorse(horse){
+  const px=Math.round(horse.x+camX), py=Math.round(horse.y+camY);
+  if(px<-80||px>CV.width+80||py<-80||py>CV.height+80)return;
+  const moving=!!(horse.vx||horse.vy), f=horse.fr||0, dir=horse.dir||2;
+  const bob=moving&&f%2===0?-2:0;
+  const lg=moving?(f%4<2?4:-4):0;
+
+  X.save();X.translate(px,py);X.scale(0.72,0.72);X.translate(-px,-py);
+
+  const coat='#c87820', dark='#8a4e10', mane='#2a1808', leg='#7a4010';
+  // Shadow
+  X.fillStyle='rgba(0,0,0,0.2)';X.beginPath();X.ellipse(px+2,py+8,20,5,0,0,Math.PI*2);X.fill();
+
+  if(dir===1||dir===3){
+    const f2=dir===1?1:-1;
+    // Legs (horses have long legs)
+    X.fillStyle=leg;
+    X.fillRect(px-10+lg,py+bob,4,22);X.fillRect(px-3,py+bob,4,22);
+    X.fillRect(px+5-lg,py+bob,4,22);X.fillRect(px+11,py+bob,4,22);
+    // Hooves
+    X.fillStyle='#1a1008';
+    X.fillRect(px-10+lg,py+bob+20,4,4);X.fillRect(px-3,py+bob+20,4,4);
+    X.fillRect(px+5-lg,py+bob+20,4,4);X.fillRect(px+11,py+bob+20,4,4);
+    // Body — sleek athletic shape
+    X.fillStyle=coat;X.beginPath();X.ellipse(px+2,py-14+bob,24,13,0,0,Math.PI*2);X.fill();
+    X.fillStyle=dark;X.beginPath();X.ellipse(px+4,py-18+bob,16,8,0,0,Math.PI*2);X.fill();
+    // Neck
+    X.fillStyle=coat;X.beginPath();X.ellipse(px+f2*10,py-24+bob,8,14,f2*0.4,0,Math.PI*2);X.fill();
+    // Head
+    const hx=px+f2*20, hy=py-28+bob;
+    X.fillStyle=coat;X.beginPath();X.ellipse(hx,hy,9,7,f2*0.2,0,Math.PI*2);X.fill();
+    X.fillStyle=dark;X.beginPath();X.ellipse(hx+f2*5,hy+2,5,5,0,0,Math.PI*2);X.fill();
+    // Nostril
+    X.fillStyle='#5a2808';X.beginPath();X.arc(hx+f2*9,hy+3,2,0,Math.PI*2);X.fill();
+    // Eye
+    X.fillStyle='#1a1008';X.beginPath();X.arc(hx-f2*1,hy-3,2.5,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(255,255,255,0.5)';X.beginPath();X.arc(hx-f2*2,hy-4,1,0,Math.PI*2);X.fill();
+    // Mane
+    X.fillStyle=mane;
+    X.beginPath();X.ellipse(px+f2*8,py-30+bob,4,10,f2*0.3,0,Math.PI*2);X.fill();
+    X.beginPath();X.ellipse(px+f2*4,py-28+bob,3,8,f2*0.2,0,Math.PI*2);X.fill();
+    // Tail
+    X.fillStyle=mane;X.strokeStyle=mane;X.lineWidth=3;
+    const tx2=dir===1?px-16:px+16;
+    X.beginPath();X.moveTo(tx2,py-6+bob);X.quadraticCurveTo(tx2+(dir===1?-8:8),py+8+bob,tx2+(dir===1?-4:4),py+16+bob);X.stroke();
+  } else {
+    X.fillStyle=leg;
+    X.fillRect(px-12+lg,py+bob,4,22);X.fillRect(px-4,py+bob,4,22);
+    X.fillRect(px+4,py+bob,4,22);X.fillRect(px+12-lg,py+bob,4,22);
+    X.fillStyle='#1a1008';
+    [px-12+lg,px-4,px+4,px+12-lg].forEach(lx=>X.fillRect(lx,py+bob+20,4,4));
+    X.fillStyle=coat;X.beginPath();X.ellipse(px,py-14+bob,20,12,0,0,Math.PI*2);X.fill();
+    X.fillStyle=coat;X.beginPath();X.ellipse(px,py-26+bob,10,14,0,0,Math.PI*2);X.fill();
+    X.fillStyle=dark;X.beginPath();X.ellipse(px,py-28+bob,8,10,0,0,Math.PI*2);X.fill();
+    // Ears
+    X.fillStyle=coat;X.fillRect(px-6,py-38+bob,4,7);X.fillRect(px+2,py-38+bob,4,7);
+    X.fillStyle=mane;X.beginPath();X.ellipse(px,py-26+bob,5,10,0,0,Math.PI*2);X.fill();
+  }
+
+  // Carry indicator — saddle bag for trade goods
+  if(horse.carryGoods){
+    const g=TRADE_GOODS?.[horse.carryGoods];
+    if(g){
+      // Saddle bag visual
+      X.fillStyle='rgba(100,60,10,0.8)';X.fillRect(px-12,py-8+bob,8,8);X.fillRect(px+4,py-8+bob,8,8);
+      X.font='11px serif';X.textAlign='center';X.fillText(g.e||'📦',px,py-18+bob);
+    }
+    // Rider name tag
+    X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px-16,py-50+bob,32,10);
+    X.fillStyle='#f0e060';X.font='5px "Press Start 2P"';X.textAlign='center';
+    X.fillText((horse.traderName||'Trader').slice(0,8),px,py-42+bob);
+  }
+  X.restore();
+}
+
+// ── Stable and Corral building draw functions ──
+function bSheepFarm(cx,bot,lv){
+  // Wide pasture fence + small barn
+  // Grass ground
+  X.fillStyle='rgba(60,140,40,0.3)';X.fillRect(cx-26,bot-10,52,10);
+  // Fence
+  X.fillStyle='#a07840';
+  for(let i=-24;i<=24;i+=8)X.fillRect(cx+i,bot-20,3,12);
+  X.fillRect(cx-24,bot-18,48,3);X.fillRect(cx-24,bot-12,48,3);
+  // Small barn
+  FR(cx-14,bot-36,28,28,'#d4a060');
+  FR(cx-16,bot-40,32,6,'#a03010');
+  FR(cx-18,bot-46,36,8,'#c04020');
+  FR(cx-4,bot-24,8,14,'#4a2808');
+  // Animals inside
+  X.font='14px serif';X.textAlign='center';
+  X.fillText('🐑',cx-8,bot-8);
+  if(lv>=2)X.fillText('🐑',cx+8,bot-8);
+  X.fillText('🌾',cx,bot-50);
+}
+
+function bWeaverWk(cx,bot,lv){
+  // Workshop with loom visible
+  FR(cx-18,bot-38,36,38,'#d0c0a0');
+  FR(cx-20,bot-42,40,6,'#806040');
+  FR(cx-22,bot-48,44,8,'#a08050');
+  FR(cx-5,bot-26,10,16,'#4a3010'); // door
+  FR(cx-16,bot-30,10,12,'#80c0e0'); // window
+  // Loom detail visible in window
+  X.strokeStyle='#604020';X.lineWidth=2;
+  X.beginPath();X.moveTo(cx+8,bot-30);X.lineTo(cx+8,bot-20);X.stroke();
+  X.beginPath();X.moveTo(cx+16,bot-30);X.lineTo(cx+16,bot-20);X.stroke();
+  X.strokeStyle='#c08040';X.lineWidth=1;
+  for(let y=bot-29;y>bot-21;y+=2){X.beginPath();X.moveTo(cx+8,y);X.lineTo(cx+16,y);X.stroke();}
+  X.font='13px serif';X.textAlign='center';X.fillText('🧶',cx,bot-52);
+}
+
+// ── BUY LIVESTOCK from Trading Post ──
+function openBuyLivestockDlg(){
+  const hasTP=G.bld.some(b=>b.type==='tradingpost'&&!b.under_construction);
+  if(!hasTP){notify('Build a Trading Post first!','err');return;}
+  const livestock=[
+    {type:'sheep_pen', name:'Sheep',      e:'🐑', cost:15, desc:'Produces 2 wool/tick'},
+    {type:'cow_pen',   name:'Cow',        e:'🐄', cost:25, desc:'Produces milk & leather'},
+    {type:'pig_pen',   name:'Pig',        e:'🐷', cost:12, desc:'Produces 3 meat/tick'},
+    {type:'chicken',   name:'Chickens',   e:'🐔', cost:8,  desc:'Produces eggs & food'},
+    {type:'goat',      name:'Goat',       e:'🐐', cost:10, desc:'Produces hide & milk'},
+  ];
+  const btns=livestock.map(a=>({
+    l:`${a.e} ${a.name} — ${a.cost} 🏛 RW\n${a.desc}`, cls:'ok',
+    fn:()=>{
+      if((G.res.regional_wealth||0)<a.cost){
+        notify(`Need ${a.cost} Regional Wealth!`,'err');return;
+      }
+      // Find a house to assign backyard to
+      const freeHouse=G.bld.find(b=>b.type==='house'&&!b.under_construction&&!b.backyard&&
+        (BD.house.byardSlots[b.lv]==='all'||Array.isArray(BD.house.byardSlots[b.lv])));
+      if(!freeHouse){notify('Need a house with free backyard slot!','err');return;}
+      G.res.regional_wealth-=a.cost;
+      freeHouse.backyard={type:a.type,timer:0,totalProd:0};
+      rwLog(`🐑 Bought ${a.name}: -${a.cost} RW → House #${freeHouse.id}`);
+      notify(`${a.e} ${a.name} added to House #${freeHouse.id} backyard!`,'ok');
+      closeDialog();updateUI();
+    }
+  }));
+  btns.push({l:'✖ Cancel',cls:'',fn:closeDialog});
+  openDlg('🐑 Buy Livestock','Purchase animals from traders (uses Regional Wealth):',btns);
+}
+
+function bStable(cx,bot,lv){
+  // Wide barn with red roof
+  FR(cx-24,bot-40,48,40,'#c8a060'); // walls
+  FR(cx-26,bot-44,52,7,'#a02010');  // roof base
+  FR(cx-28,bot-50,56,8,'#c03020');  // roof peak
+  FR(cx-3,bot-28,6,18,'#4a2808');   // door
+  FR(cx-18,bot-32,10,12,'#6a4020'); // window L
+  FR(cx+8,bot-32,10,12,'#6a4020');  // window R
+  // Hay bale detail
+  X.fillStyle='#d4a020';X.beginPath();X.ellipse(cx-10,bot-4,6,5,0,0,Math.PI*2);X.fill();
+  X.fillStyle='#d4a020';X.beginPath();X.ellipse(cx+10,bot-4,6,5,0,0,Math.PI*2);X.fill();
+  X.font='12px serif';X.textAlign='center';X.fillText('🐴',cx,bot-54);
+}
+function bCorral(cx,bot,lv){
+  // Fence enclosure with dirt ground
+  FR(cx-22,bot-14,44,14,'#c8a060'); // dirt
+  FR(cx-22,bot-14,44,14,'rgba(180,120,60,0.4)');
+  // Fence posts
+  X.fillStyle='#8a5020';
+  for(let i=-20;i<=20;i+=8)FR(cx+i,bot-24,4,12,'#8a5020');
+  // Horizontal rails
+  FR(cx-22,bot-22,44,3,'#a06030');
+  FR(cx-22,bot-16,44,3,'#a06030');
+  // Small shelter
+  FR(cx-10,bot-30,20,18,'#c8a060');
+  FR(cx-12,bot-34,24,6,'#8a5020');
+  X.font='12px serif';X.textAlign='center';X.fillText('🐃',cx,bot-38);
+}
+
+// ═══════════════════════════════════════════════════════
+//  VISUAL EFFECTS SYSTEM
+// ═══════════════════════════════════════════════════════
+
+// ── SCREEN SHAKE ──
+function triggerShake(frames){
+  _screenShake=Math.max(_screenShake, frames);
+}
+
+function applyScreenShake(){
+  if(_screenShake<=0) return;
+  const intensity=Math.min(_screenShake,8)*0.8;
+  const sx=(Math.random()-0.5)*intensity;
+  const sy=(Math.random()-0.5)*intensity;
+  X.translate(sx,sy);
+  _screenShake--;
+}
+
+// ── PARTICLE SYSTEM ──
+function spawnParticles(worldX,worldY,type,count){
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const spd=0.5+Math.random()*2;
+    let color,size,life;
+    switch(type){
+      case 'harvest': color=`hsl(${40+Math.random()*40},90%,60%)`; size=4+Math.random()*4; life=40+Math.random()*20; break;
+      case 'build':   color=`hsl(${30+Math.random()*20},70%,55%)`; size=3+Math.random()*3; life=30+Math.random()*15; break;
+      case 'fire':    color=`hsl(${Math.random()*40},100%,55%)`;   size=5+Math.random()*5; life=50+Math.random()*30; break;
+      case 'gold':    color='#f0d040'; size=3+Math.random()*3; life=35+Math.random()*20; break;
+      case 'wool':    color='#e8e8e0'; size=5+Math.random()*4; life=30+Math.random()*15; break;
+      case 'levelup': color=`hsl(${200+Math.random()*60},80%,65%)`; size=4+Math.random()*4; life=60+Math.random()*30; break;
+      default:        color='#ffffff'; size=3; life=30; break;
+    }
+    _particles.push({
+      x:worldX, y:worldY,
+      vx:Math.cos(a)*spd, vy:Math.sin(a)*spd-1,
+      life, maxLife:life, color, size, type
+    });
+  }
+}
+
+function updateParticles(){
+  _particles=_particles.filter(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    p.vy+=0.08; // gravity
+    p.vx*=0.96;
+    p.life--;
+    return p.life>0;
+  });
+}
+
+function drawParticles(){
+  if(!_particles.length) return;
+  for(const p of _particles){
+    const px=p.x+camX, py=p.y+camY+HH;
+    if(px<-20||px>CV.width+20||py<-20||py>CV.height+20) continue;
+    const alpha=p.life/p.maxLife;
+    X.globalAlpha=alpha;
+    X.fillStyle=p.color;
+    if(p.type==='wool'){
+      X.beginPath();X.ellipse(px,py,p.size,p.size*0.7,Math.random(),0,Math.PI*2);X.fill();
+    } else if(p.type==='fire'){
+      X.beginPath();X.moveTo(px,py-p.size);X.quadraticCurveTo(px+p.size*0.5,py,px,py+p.size*0.5);X.quadraticCurveTo(px-p.size*0.5,py,px,py-p.size);X.fill();
+    } else {
+      X.beginPath();X.arc(px,py,p.size*alpha,0,Math.PI*2);X.fill();
+    }
+  }
+  X.globalAlpha=1;
+}
+
+// ── DAY/NIGHT LIGHTING ──
+function getDayLightOverlay(){
+  const hr=G.hr+(G.mn/60);
+  // Dawn 5-7, Day 7-18, Dusk 18-20, Night 20-5
+  let alpha=0, r=0,g=0,b=0;
+  if(hr>=20||hr<5){
+    // Night — deep blue overlay
+    alpha=0.38;r=5;g=10;b=40;
+  } else if(hr>=18){
+    // Dusk — orange fading to night
+    const t=(hr-18)/2;
+    alpha=t*0.38; r=Math.round(80*(1-t));g=Math.round(30*(1-t));b=Math.round(40*t);
+  } else if(hr<7){
+    // Dawn — dark fading to light
+    const t=(hr-5)/2;
+    alpha=(1-t)*0.3; r=10;g=5;b=30;
+  } else {
+    return null; // Full daylight
+  }
+  return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+}
+
+function drawStars(){
+  // Draw stars only at night
+  const hr=G.hr+(G.mn/60);
+  let starAlpha=0;
+  if(hr>=22||hr<4) starAlpha=0.7;
+  else if(hr>=20) starAlpha=(hr-20)/2*0.7;
+  else if(hr<6) starAlpha=(1-(hr-4)/2)*0.7;
+  if(starAlpha<=0.05) return;
+
+  X.globalAlpha=starAlpha*0.8;
+  // Deterministic stars based on seed
+  const rng2=rng(WORLD_SEED+999);
+  for(let i=0;i<40;i++){
+    const sx=rng2()*CV.width;
+    const sy=rng2()*(CV.height*0.5);
+    const twinkle=0.5+Math.sin(Date.now()/1000+i*1.3)*0.5;
+    X.fillStyle=`rgba(255,255,240,${twinkle})`;
+    X.beginPath();X.arc(sx,sy+HH,0.8+rng2()*1.2,0,Math.PI*2);X.fill();
+  }
+  X.globalAlpha=1;
+}
+
+// ── BUILDING GLOW (active buildings pulse softly) ──
+function drawBuildingGlow(bx,by,type){
+  const t=Date.now()/1000;
+  let color=null, radius=30;
+  if(type==='campfire'){color=`rgba(255,140,20,${0.15+Math.sin(t*2)*0.08})`;radius=35;}
+  else if(type==='tavern'){color=`rgba(200,120,20,${0.08+Math.sin(t*1.5)*0.04})`;radius=28;}
+  else if(type==='church'){color=`rgba(180,200,255,${0.08+Math.sin(t)*0.04})`;radius=32;}
+  else if(type==='smelter'||type==='ironworks'){color=`rgba(255,80,20,${0.1+Math.sin(t*3)*0.05})`;radius=24;}
+  else if(type==='tradingpost'){color=`rgba(220,200,40,${0.07+Math.sin(t*0.8)*0.03})`;radius=26;}
+  if(!color) return;
+  const grd=X.createRadialGradient(bx,by,4,bx,by,radius);
+  grd.addColorStop(0,color);
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  X.fillStyle=grd;X.fillRect(bx-radius,by-radius,radius*2,radius*2);
 }
 
 function toggleMusic(){
