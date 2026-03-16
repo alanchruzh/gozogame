@@ -285,6 +285,7 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
     <div class="res" title="Wool — from sheep pen or sheep farm">🐑<b id="rwool">0</b></div>
     <div class="res" title="Milk — from cow shed backyard">🥛<b id="rmilk">0</b></div>
+    <div class="res" title="Village Health — improved by Hospital & Well">❤️<b id="rhlt">70</b></div>
   </div>
   <div class="hdv"></div>
   <div class="vp" id="season">🌱 Spring Y1</div>
@@ -3326,21 +3327,20 @@ function notify(msg,type='ok'){
 // ─── UI UPDATE ───
 function updateUI(){
   document.getElementById('rw').textContent=G.res.wood;
+  // Resource updates with color coding for low amounts
+  const _rw_el=document.getElementById('rw');if(_rw_el){_rw_el.textContent=G.res.wood;_rw_el.style.color=G.res.wood<5?'#ff6060':'#c0b080';}
   document.getElementById('rs').textContent=G.res.stone;
   document.getElementById('rc').textContent=G.res.coal;
   const _ri=document.getElementById('ri');if(_ri)_ri.textContent=G.res.iron||0;
   const _rm=document.getElementById('rm');if(_rm)_rm.textContent=G.res.metal||0;
-  document.getElementById('rf').textContent=G.res.food;
+  const _rf_el=document.getElementById('rf');if(_rf_el){_rf_el.textContent=G.res.food;_rf_el.style.color=G.res.food<5?'#ff6060':G.res.food<15?'#ffaa00':'#c0b080';}
   const _rmt=document.getElementById('rmt');if(_rmt)_rmt.textContent=G.res.meat||0;
   const _rbrd=document.getElementById('rbrd');if(_rbrd)_rbrd.textContent=G.res.bread||0;
   const _rale=document.getElementById('rale');if(_rale)_rale.textContent=G.res.ale||0;
   const _rplk=document.getElementById('rplk');if(_rplk)_rplk.textContent=G.res.plank||0;
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
-  const _rberry=document.getElementById('rberry');if(_rberry)_rberry.textContent=G.res.berry||0;
-  const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
-  const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
-  // Disaster event banner
+  const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
   const _eb=document.getElementById('event-banner');
   if(_eb){
     if(G_activeDisaster){
@@ -3351,7 +3351,13 @@ function updateUI(){
   // Quest button pulse when quests active
   const _tbq=document.getElementById('tb-quest');
   if(_tbq) _tbq.classList.toggle('has-quests',G_activeQuests.length>0);
-  // Tavern/school/hospital status in HUD health
+  // All secondary resources
+  const _regg=document.getElementById('regg');if(_regg)_regg.textContent=G.res.egg||0;
+  const _rhny=document.getElementById('rhny');if(_rhny)_rhny.textContent=G.res.honey||0;
+  const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
+  const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
+  const _rberry2=document.getElementById('rberry');if(_rberry2)_rberry2.textContent=G.res.berry||0;
+  // Health & hospital
   const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
   // Regional Wealth & Treasury HUD
   const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
@@ -7879,6 +7885,8 @@ function updateParticles(){
     p.life--;
     return p.life>0;
   });
+  // Cap to prevent memory leak
+  if(_particles.length>400) _particles=_particles.slice(-400);
 }
 
 function drawParticles(){
@@ -8045,7 +8053,7 @@ function drawSaplings(){
     const wx=c*TS+camX, wy=r*TS+camY+HH;
     if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
     // Don't draw if in fog
-    if(FOG_ENABLED&&FOG.length&&FOG[r]&&FOG[r][c]===0) continue;
+    if(FOG_ENABLED&&FOG[r]&&FOG[r][c]===0) continue;
 
     const cx2=wx+TS/2, bot=wy+TS;
     const pct=sap.age/sap.maxAge;
