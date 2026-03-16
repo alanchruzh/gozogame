@@ -558,9 +558,9 @@ function checkPopGrowth(){
   const fName=femNames[Math.floor(Math.random()*femNames.length)];
   const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
   NPCS.push({name:mName,x:hx-8,y:hy,dir:2,col:'#60c0e0',job:null,female:false,
-    age:ADULT_DAYS+Math.floor(Math.random()*3600),familyId:newFamilyId,pregnant:0,houseId:house.id});
+    age:ADULT_DAYS+Math.floor(Math.random()*900),familyId:newFamilyId,pregnant:0,houseId:house.id}); // 15-25 thn
   NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:'#e080c0',job:null,female:true,
-    age:ADULT_DAYS+Math.floor(Math.random()*2700),familyId:newFamilyId,pregnant:0,houseId:house.id});
+    age:ADULT_DAYS+Math.floor(Math.random()*720),familyId:newFamilyId,pregnant:0,houseId:house.id}); // 15-23 thn
   FAMILIES.push({id:newFamilyId,houseId:house.id,husbandName:mName,wifeName:fName});
   notify(`🏠 New family moved in! ${mName} & ${fName} moved into house #${house.id}`,'ok');
   upPop();
@@ -1017,12 +1017,12 @@ function genMap(){
   // NPCs — 3 families = 6 settlers, all sleeping near campfire
   const cfId=G.bld.find(b=>b.type==='campfire')?.id??0;
   NPCS=[
-    {name:'Budi',   x:(mc-2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:5400,familyId:0,pregnant:0,houseId:cfId},
-    {name:'Sari',   x:(mc+2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:4860,familyId:0,pregnant:0,houseId:cfId},
-    {name:'Wira',   x:(mc-2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:6300,familyId:1,pregnant:0,houseId:cfId},
-    {name:'Dewi',   x:(mc+2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:5850,familyId:1,pregnant:0,houseId:cfId},
-    {name:'Hendra', x:(mc-1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:7200,familyId:2,pregnant:0,houseId:cfId},
-    {name:'Ratna',  x:(mc+1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:6750,familyId:2,pregnant:0,houseId:cfId},
+    {name:'Budi',   x:(mc-2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:1980,familyId:0,pregnant:0,houseId:cfId}, // ~22 thn
+    {name:'Sari',   x:(mc+2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:1800,familyId:0,pregnant:0,houseId:cfId}, // ~20 thn
+    {name:'Wira',   x:(mc-2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:2250,familyId:1,pregnant:0,houseId:cfId}, // ~25 thn
+    {name:'Dewi',   x:(mc+2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:2070,familyId:1,pregnant:0,houseId:cfId}, // ~23 thn
+    {name:'Hendra', x:(mc-1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:2520,familyId:2,pregnant:0,houseId:cfId}, // ~28 thn
+    {name:'Ratna',  x:(mc+1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:2340,familyId:2,pregnant:0,houseId:cfId}, // ~26 thn
   ];
   FAMILIES=[
     {id:0,houseId:cfId,husbandName:'Budi',wifeName:'Sari'},
@@ -2339,29 +2339,46 @@ function drawNPC(npc){
 
     if(job==='farmer'){
       // Hoe: up-down chopping into soil
-      const hoeAngle = -Math.PI*0.3 + phase*0.5;
-      X.save();X.translate(px+7, py-16+bob);X.rotate(hoeAngle);
-      FR(-2,-28,3,28,'#8a5020');          // handle
-      FR(-7,-28,12,4,'#909090');          // blade
-      X.fillStyle='rgba(140,100,40,0.6)'; // dirt puff when hitting down
-      if(phase>0.6) X.beginPath(),X.ellipse(0,0,8,4,0,0,Math.PI*2),X.fill();
+      const hoeAngle = -Math.PI*0.4 + phase*0.7;
+      X.save();X.translate(px+9, py-18+bob);X.rotate(hoeAngle);
+      X.strokeStyle='#7a4010';X.lineWidth=4;
+      X.beginPath();X.moveTo(0,0);X.lineTo(0,-30);X.stroke();
+      FR(-9,-30,18,5,'#808080'); // blade horizontal
+      FR(-9,-35,18,6,'#a0a0a0'); // blade highlight
       X.restore();
-      // sweat drop
-      if(phase>0.7){X.fillStyle='rgba(100,160,255,0.7)';X.beginPath();X.arc(px+12,py-28,2,0,Math.PI*2);X.fill();}
+      // Dirt puff when striking
+      if(phase>0.5){
+        X.fillStyle=`rgba(140,100,40,${(phase-0.5)*0.8})`;
+        X.beginPath();X.ellipse(px+12,py+2+bob,8+phase*4,4,0,0,Math.PI*2);X.fill();
+      }
+      if(phase>0.75){X.fillStyle='rgba(100,160,255,0.8)';X.beginPath();X.arc(px+14,py-30,2.5,0,Math.PI*2);X.fill();}
 
     } else if(job==='logger'){
-      // Axe: big chopping swing
-      const axeAngle = -Math.PI*0.6 + phase*0.8;
-      X.save();X.translate(px+8, py-20+bob);X.rotate(axeAngle);
-      FR(-2,-22,3,26,'#8a5020');
-      X.fillStyle='#888'; X.beginPath();X.moveTo(-2,-22);X.lineTo(10,-26);X.lineTo(9,-14);X.closePath();X.fill();
-      X.fillStyle='#aaa'; X.beginPath();X.moveTo(-2,-22);X.lineTo(4,-26);X.lineTo(4,-20);X.closePath();X.fill();
+      // Axe: big chopping swing — drawn big and obvious
+      const axeAngle = -Math.PI*0.7 + phase*1.1;
+      X.save();X.translate(px+10, py-22+bob);X.rotate(axeAngle);
+      // Handle
+      X.strokeStyle='#6a3810';X.lineWidth=4;
+      X.beginPath();X.moveTo(0,0);X.lineTo(0,-28);X.stroke();
+      // Axe head
+      X.fillStyle='#909090';
+      X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.fill();
+      X.fillStyle='#c0c0c0';
+      X.beginPath();X.moveTo(-2,-28);X.lineTo(6,-33);X.lineTo(6,-24);X.closePath();X.fill();
+      X.strokeStyle='rgba(0,0,0,0.3)';X.lineWidth=1;
+      X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.stroke();
       X.restore();
-      // wood chip particles on impact
-      if(phase>0.7){
-        X.fillStyle='#c8901a';
-        X.beginPath();X.ellipse(px+14,py-4+bob,5,3,Math.random(),0,Math.PI*2);X.fill();
-        X.beginPath();X.ellipse(px+10,py-8+bob,3,2,Math.random(),0,Math.PI*2);X.fill();
+      // Wood chip burst on impact
+      if(phase>0.6){
+        X.fillStyle='#c8801a';
+        for(let ci=0;ci<4;ci++){
+          const ang=ci*1.2+phase*3;
+          const dist2=8+ci*4;
+          X.beginPath();X.ellipse(px+16+Math.cos(ang)*dist2,py-6+bob+Math.sin(ang)*dist2*0.5,3,2,ang,0,Math.PI*2);X.fill();
+        }
+        // Thud effect
+        X.strokeStyle='rgba(150,100,20,0.4)';X.lineWidth=2;
+        X.beginPath();X.arc(px+16,py-4+bob,10*(phase-0.6)*3,0,Math.PI*2);X.stroke();
       }
 
     } else if(job==='fisher'){
@@ -2384,18 +2401,22 @@ function drawNPC(npc){
 
     } else if(job==='miner'){
       // Pickaxe: heavy overhead swing
-      const pickAngle = -Math.PI*0.7 + phase*0.9;
-      X.save();X.translate(px+7,py-18+bob);X.rotate(pickAngle);
-      FR(-2,-24,3,28,'#8a5020');
-      X.fillStyle='#909090';X.beginPath();X.moveTo(-2,-24);X.lineTo(12,-28);X.lineTo(10,-18);X.closePath();X.fill();
-      X.fillStyle='#b0b0b0';X.beginPath();X.moveTo(-2,-20);X.lineTo(6,-24);X.lineTo(6,-18);X.closePath();X.fill();
+      const pickAngle = -Math.PI*0.8 + phase*1.1;
+      X.save();X.translate(px+8,py-20+bob);X.rotate(pickAngle);
+      X.strokeStyle='#7a4010';X.lineWidth=4;
+      X.beginPath();X.moveTo(0,0);X.lineTo(0,-28);X.stroke();
+      X.fillStyle='#888';X.beginPath();X.moveTo(-4,-28);X.lineTo(16,-32);X.lineTo(14,-20);X.closePath();X.fill();
+      X.fillStyle='#b0b0b0';X.beginPath();X.moveTo(-2,-26);X.lineTo(8,-30);X.lineTo(7,-22);X.closePath();X.fill();
       X.restore();
-      // spark + dust on impact
-      if(phase>0.65){
-        X.fillStyle='rgba(255,200,50,0.8)';
-        for(let i=0;i<3;i++) {X.beginPath();X.arc(px+14+i*3,py-3+bob-i*2,1.5,0,Math.PI*2);X.fill();}
+      // Sparks + dust on impact
+      if(phase>0.6){
+        X.fillStyle='rgba(255,220,60,0.9)';
+        for(let si=0;si<4;si++){
+          const sa=si*0.9+phase*4;
+          X.beginPath();X.arc(px+16+Math.cos(sa)*6,py-4+bob+Math.sin(sa)*3,2,0,Math.PI*2);X.fill();
+        }
         X.fillStyle='rgba(160,150,140,0.5)';
-        X.beginPath();X.ellipse(px+12,py-2+bob,7,4,0,0,Math.PI*2);X.fill();
+        X.beginPath();X.ellipse(px+14,py-2+bob,9+phase*3,5,0,0,Math.PI*2);X.fill();
       }
 
     } else if(job==='smelter'){
@@ -2457,15 +2478,19 @@ function drawNPC(npc){
     }
 
     // ── WORK STATUS BUBBLE ──
-    // Small emoji showing current action
     const workEmojis={farmer:'⚒',logger:'🪓',fisher:'🎣',miner:'⛏',smelter:'🔥',builder:'🔨',trader:'📖',hunter:'🏹'};
     const we=workEmojis[job];
     if(we){
-      X.font='10px serif';X.textAlign='center';
-      // bounce bubble
-      const bubbleY=py-44+bob+Math.sin(t*2+idx)*2;
-      X.fillStyle='rgba(255,255,220,0.88)';
-      X.beginPath();X.roundRect(px-8,bubbleY-10,16,13,3);X.fill();
+      X.font='13px serif';X.textAlign='center';
+      const bubbleY=py-48+bob+Math.sin(t*2.5+idx)*3;
+      // Shadow
+      X.fillStyle='rgba(0,0,0,0.25)';
+      X.beginPath();X.roundRect(px-9,bubbleY-11,20,16,4);X.fill();
+      // Bubble
+      X.fillStyle='rgba(255,255,220,0.95)';
+      X.beginPath();X.roundRect(px-10,bubbleY-12,20,16,4);X.fill();
+      X.strokeStyle='rgba(0,0,0,0.2)';X.lineWidth=1;
+      X.beginPath();X.roundRect(px-10,bubbleY-12,20,16,4);X.stroke();
       X.fillText(we,px,bubbleY);
     }
 
@@ -3426,7 +3451,11 @@ function findJobLocation(job,npcIdx){
 }
 
 function workSpot(targetX,targetY,npcIdx){
-  const offsets=[{x:-TS*.8,y:0},{x:TS*.8,y:0},{x:0,y:-TS*.8},{x:0,y:TS*.8},{x:-TS*.5,y:-TS*.5},{x:TS*.5,y:-TS*.5}];
+  // Offsets smaller than 32px threshold so NPC reaches working state
+  const offsets=[
+    {x:-20,y:0},{x:20,y:0},{x:0,y:-20},{x:0,y:20},
+    {x:-16,y:-16},{x:16,y:-16},{x:-16,y:16},{x:16,y:16}
+  ];
   const off=offsets[npcIdx%offsets.length];
   return{x:targetX+off.x,y:targetY+off.y};
 }
@@ -3445,7 +3474,7 @@ function wanderNPCs(){
         const spot=workSpot(jobLoc.x,jobLoc.y,i);
         const dx=spot.x-npc.x,dy=spot.y-npc.y;
         const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist>32){
+        if(dist>40){
           const spd=0.9;npc._dx=(dx/dist)*spd;npc._dy=(dy/dist)*spd;npc._working=false;
         } else {
           npc._working=true;
