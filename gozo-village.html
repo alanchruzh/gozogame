@@ -144,11 +144,6 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
 </head>
 <body>
 <canvas id="c"></canvas>
-<!-- Debug error overlay -->
-<div id="_err_overlay" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:rgba(180,0,0,0.95);color:#fff;font-family:monospace;font-size:11px;
-  padding:10px;white-space:pre-wrap;max-height:40vh;overflow:auto;pointer-events:auto"
-  onclick="this.style.display='none'">CLICK TO DISMISS</div>
 
 <!-- TITLE SCREEN -->
 <div id="title-screen" style="position:fixed;inset:0;z-index:9999;background:#0a0603;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'VT323',monospace;overflow:hidden">
@@ -261,17 +256,17 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   <div id="logo">⚔ GOZO</div>
   <div class="hdv"></div>
   <div id="resbar">
-    <div class="res">🪵<b id="rw">0</b></div>
-    <div class="res">🪨<b id="rs">0</b></div>
-    <div class="res">⚫<b id="rc">0</b></div>
-    <div class="res">⚙<b id="rm">0</b></div>
-    <div class="res">🌾<b id="rf">0</b></div>
-    <div class="res">🥩<b id="rmt">0</b></div>
-    <div class="res">💰<b id="rg">0</b></div>
-    <div class="res">🧴<b id="rlth">0</b></div>
-    <div class="res">🥚<b id="regg">0</b></div>
-    <div class="res">🍯<b id="rhny">0</b></div>
-    <div class="res">🍇<b id="rberry">0</b></div>
+    <div class="res" title="Wood — gather from forests or Logger">🪵<b id="rw">0</b></div>
+    <div class="res" title="Stone — mine from Quarry">🪨<b id="rs">0</b></div>
+    <div class="res" title="Coal — mine from Coal Mine">⚫<b id="rc">0</b></div>
+    <div class="res" title="Metal — smelt iron at Smelter">⚙<b id="rm">0</b></div>
+    <div class="res" title="Food — grow at Farm or gather berries">🌾<b id="rf">0</b></div>
+    <div class="res" title="Meat — hunters bring from deer">🥩<b id="rmt">0</b></div>
+    <div class="res" title="Gold — tax income from houses">💰<b id="rg">0</b></div>
+    <div class="res" title="Leather — tannery production">🧴<b id="rlth">0</b></div>
+    <div class="res" title="Eggs — from chicken backyard">🥚<b id="regg">0</b></div>
+    <div class="res" title="Honey — from apiary backyard">🍯<b id="rhny">0</b></div>
+    <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
   </div>
   <div class="hdv"></div>
   <div class="vp" id="season">🌱 Spring Y1</div>
@@ -284,6 +279,12 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
     👥 <span id="pop">0</span>/<span id="cap">0</span> ▾
   </div>
 </div>
+
+<!-- Disaster / Event status banner -->
+<div id="event-banner" style="display:none;position:fixed;top:40px;left:50%;transform:translateX(-50%);
+  z-index:800;background:rgba(180,20,20,0.92);border:1px solid #ff4040;
+  padding:3px 16px;font-family:'Press Start 2P';font-size:7px;color:#ffdddd;
+  pointer-events:none;border-radius:2px;white-space:nowrap"></div>
 
 <!-- WORKER PANEL -->
 <div id="wpanel">
@@ -309,7 +310,7 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   <div class="hdv"></div>
   <button class="tbtn" id="tb-pause" onclick="togglePause()">⏸</button>
   <select id="spd" onchange="G.spd=+this.value" style="background:#100a04;border:1px solid #3a2a10;color:#908060;font-family:'Press Start 2P';font-size:6px;padding:1px 3px;cursor:pointer">
-    <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+    <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="6">6×</option>
   </select>
   <div class="hdv"></div>
   <button class="tbtn" onclick="centerCam()">🎯</button>
@@ -474,19 +475,6 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
 </div>
 
 <script>
-// Global error handler — shows stack trace overlay for debugging
-window.onerror=function(msg,src,line,col,err){
-  const el=document.getElementById('_err_overlay');
-  if(el){
-    el.style.display='block';
-    el.textContent=(err&&err.stack?err.stack:msg)+'\nLine:'+line+' Col:'+col;
-  }
-  return false; // don't suppress
-};
-window.addEventListener('unhandledrejection',e=>{
-  const el=document.getElementById('_err_overlay');
-  if(el){el.style.display='block';el.textContent='Promise: '+(e.reason?.stack||e.reason);}
-});
 'use strict';
 // ══════════════════════════════════════════════════════
 //  GOZO VILLAGE  —  Sandbox RPG
@@ -3227,6 +3215,14 @@ function updateUI(){
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
   const _rberry=document.getElementById('rberry');if(_rberry)_rberry.textContent=G.res.berry||0;
+  // Disaster event banner
+  const _eb=document.getElementById('event-banner');
+  if(_eb){
+    if(G_activeDisaster){
+      _eb.style.display='block';
+      _eb.textContent=`${G_activeDisaster.name} — ${G_disasterTimer} days left`;
+    } else { _eb.style.display='none'; }
+  }
   // Quest button pulse when quests active
   const _tbq=document.getElementById('tb-quest');
   if(_tbq) _tbq.classList.toggle('has-quests',G_activeQuests.length>0);
@@ -3258,7 +3254,7 @@ function updateUI(){
   // Season label
   const sl=document.getElementById('season');if(sl)sl.textContent=(['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'][G.season||0])+' Y'+G.yr;
   const tl=document.getElementById('timelbl');if(tl)tl.textContent='Day '+G.day;
-  const tl2=document.getElementById('timelbl2');if(tl2)tl2.textContent=(String(G.hr).padStart(2,'0'))+':'+String(G.mn).padStart(2,'0');
+  const tl2=document.getElementById('timelbl2');if(tl2)tl2.textContent=(String(G.hr).padStart(2,'0'))+':'+String(Math.floor(G.mn)).padStart(2,'0');
   if(wpOpen)renderWorkerPanel();
 }
 
@@ -3318,13 +3314,16 @@ function centerCam(){
 
 // ─── TICK ───
 function tick(){
-  G.mn+=G.spd*2;
+  // 24 jam game = 5 menit nyata (300 detik) at 1x speed
+  // 60fps × 300s = 18000 frames per hari
+  // 24×60=1440 menit / 18000 frames = 0.08 menit per frame
+  G.mn+=G.spd*0.08;
   if(G.mn>=60){G.mn=0;G.hr++;}
   if(G.hr>=24){G.hr=0;G.day++;G.ticks++;if(G.ticks%2===0)doProd();
     if(G.day>90){G.day=1;G.season=(G.season+1)%4;}if(G.day>360){G.day=1;G.yr++;}
   }
   const _tl=document.getElementById('timelbl');if(_tl)_tl.textContent='Day '+G.day;
-  const _tl2=document.getElementById('timelbl2');if(_tl2)_tl2.textContent=String(G.hr).padStart(2,'0')+':'+String(G.mn).padStart(2,'0');
+  const _tl2=document.getElementById('timelbl2');if(_tl2)_tl2.textContent=String(G.hr).padStart(2,'0')+':'+String(Math.floor(G.mn)).padStart(2,'0');
 }
 
 // ─── MISSING: GHOST TILE (hover highlight) ───
@@ -3725,14 +3724,43 @@ function togglePause(){
 
 function showNPCDlg(npc){
   const ageYears=Math.floor(npc.age/90);
-  const job=npc.job||'Idle';
+  const job=JOBS[npc.job||'idle']?.n||'Idle';
+  const jobE=JOBS[npc.job||'idle']?.e||'😴';
   const house=G.bld.find(b=>b.id===npc.houseId);
-  const houseInfo=house?`House #${house.id} (Lv.${house.lv})`:'Homeless';
-  const pregInfo=npc.pregnant?` | 🤰 Pregnant (${Math.floor(npc.pregnant/PREG_DAYS*100)}%)`:'';
-  const msg=`Age: ${ageYears} yrs${pregInfo}\nWorkersan: ${job}\n${houseInfo}`;
-  openDlg(npc.col?`${npc.female?'👩':'👨'} ${npc.name}`:npc.name, msg,[
-    {l:'✖ Close',cls:'',fn:closeDialog}
-  ]);
+  const houseInfo=house?`${BD[house.type]?.n||'House'} Lv.${house.lv}`:'Sleeping at campfire';
+  const pregInfo=npc.pregnant>0?` | 🤰 ${Math.floor(npc.pregnant/PREG_DAYS*100)}% pregnant`:'';
+  const sickInfo=npc.sick?' | 🤒 Sick':'';
+  const moodE=(npc.mood||G.happy)>=70?'😊':(npc.mood||G.happy)>=40?'😐':'😞';
+  const agePhase=ageYears<18?'Child':ageYears<35?'Young adult':ageYears<55?'Adult':'Elder';
+  const greetings={
+    happy:['Life is good here!','The harvest looks great!','I love this village!','Our chief is wise!'],
+    neutral:['Just another day...','Work never ends.','Could use some rest.','Fine weather today.'],
+    sad:['We need more food...','I am worried.','Things have been hard.','I hope it gets better.'],
+    sick:['I feel terrible...','Please, I need medicine.','The hospital would help.'],
+    child:['Can I play later?','I go to school!','I want to be a farmer!','Berries are nearby!'],
+    elder:['I saw this village grow.','My back aches...','I remember simpler times.'],
+  };
+  let pool=greetings.neutral;
+  if(npc.sick) pool=greetings.sick;
+  else if(ageYears<18) pool=greetings.child;
+  else if(ageYears>=60) pool=greetings.elder;
+  else if((npc.mood||G.happy)>=70) pool=greetings.happy;
+  else if((npc.mood||G.happy)<40) pool=greetings.sad;
+  const greeting=pool[Math.floor(Math.abs(Math.sin(npc.name.length*7.3+G.day))*pool.length)];
+  const title=`${npc.female?'👩':'👨'} ${npc.name}`;
+  const body=`"${greeting}"\n\n${moodE} Mood: ${npc.mood||G.happy}%  |  Age: ${ageYears} (${agePhase})\n${jobE} Job: ${job}${pregInfo}${sickInfo}\n🏠 ${houseInfo}`;
+  const btns=[];
+  if(ageYears>=15&&!npc.sick) btns.push({l:'👷 Assign Job',cls:'ok',fn:()=>{closeDialog();openJobAssignDlg(npc);}});
+  btns.push({l:'✖ Close',cls:'',fn:closeDialog});
+  openDlg(title,body,btns);
+}
+
+function openJobAssignDlg(npc){
+  const btns=Object.entries(JOBS).map(([id,j])=>({
+    l:`${j.e} ${j.n}`,cls:'',fn:()=>{npc.job=id;notify(`${npc.name} is now a ${j.n}!`,'ok');closeDialog();}
+  }));
+  btns.push({l:'✖ Cancel',cls:'',fn:closeDialog});
+  openDlg(`Assign Job — ${npc.name}`,'Choose a job for this villager:',btns);
 }
 
 // Road placement
