@@ -143,6 +143,7 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
     <div class="res">🧴<b id="rlth">0</b></div>
     <div class="res">🥚<b id="regg">0</b></div>
     <div class="res">🍯<b id="rhny">0</b></div>
+    <div class="res">🍇<b id="rberry">0</b></div>
   </div>
   <div class="hdv"></div>
   <div class="vp" id="season">🌱 Spring Y1</div>
@@ -192,6 +193,10 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
   <button class="tbtn" onclick="toggleEconomyPanel()" title="Economy">🏛 ECONOMY</button>
   <div class="hdv"></div>
   <button class="tbtn" onclick="toggleTradePanel()" title="Trade System">🚢 TRADE</button>
+  <div class="hdv"></div>
+  <button class="tbtn" onclick="saveGameToFile()" title="Save game to file">💾 SAVE</button>
+  <button class="tbtn" onclick="document.getElementById('load-file-input').click()" title="Load game from file">📂 LOAD</button>
+  <input type="file" id="load-file-input" accept=".gozo,.json" style="display:none" onchange="loadGameFromFile(event)">
 </div>
 
 <!-- BUILD PANEL -->
@@ -673,6 +678,7 @@ let NPCS=[];
 let FAMILIES=[];
 let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
+let BERRY_STATE={};  // key: "c,r" → {depleted:bool, regrowTick:int, yield:int}
 
 // ─── HASH NOISE ───
 function hh(x,y){let n=Math.sin(x*127.1+y*311.7)*43758.5;return n-(n|0);}
@@ -718,6 +724,8 @@ function buildWorld(){
         drawRockOnCtx(W,sx,sy,v);
       } else if(tile.decor==='bush'){
         drawBushOnCtx(W,sx,sy,v);
+      } else if(tile.decor==='berry_bush'){
+        drawBerryBushOnCtx(W,sx,sy,v,0); // 0 = full berries on world canvas
       }
     }
   }}
@@ -928,7 +936,7 @@ function genMap(){
 
   // ── FOREST ECOSYSTEM — dense forest zones in corners/edges ──
   const forestZones=[
-    {c:2,  r:2,   w:8, h:10}, // left forest strip (near river)
+    // left forest removed — river is there
     {c:36, r:2,   w:10,h:14}, // top-right forest
     {c:34, r:22,  w:12,h:12}, // bottom-right forest
     {c:8,  r:24,  w:8, h:10}, // bottom-left forest
@@ -939,19 +947,31 @@ function genMap(){
       if(fr<0||fr>=WR||fc<0||fc>=WC)continue;
       if(MAP[fr][fc].t===T.PATH||MAP[fr][fc].t===T.WATER)continue;
       MAP[fr][fc].t=T.FOREST;
-      // dense tree coverage in forest zones
+      // dense tree coverage in forest zones, some berry bushes
       const fv=R();
       if(fv>0.15) MAP[fr][fc].decor='tree';
-      else if(fv>0.05) MAP[fr][fc].decor='bush';
+      else if(fv>0.08) MAP[fr][fc].decor='berry_bush'; // berry bushes in forests!
+      else if(fv>0.03) MAP[fr][fc].decor='bush';
     }
   }
 
-  // stone patches
-  for(let i=0;i<6;i++){
-    const sc2=6+R()*( WC-12)|0, sr=3+R()*(WR-6)|0;
-    for(let dr=-1;dr<=2;dr++) for(let dc=-1;dc<=2;dc++){
-      if(MAP[sr+dr]&&MAP[sr+dr][sc2+dc]&&MAP[sr+dr][sc2+dc].t===T.GRASS&&R()>.3)
-        MAP[sr+dr][sc2+dc].t=T.STONE_G;
+  // ── BERRY BUSHES scattered around map (not just in forests) ──
+  // Place ~20 berry bush clusters across the map for early-game food
+  const berryClusters=[
+    {c:8,  r:10}, {c:12, r:6},  {c:18, r:4},  {c:28, r:3},
+    {c:33, r:8},  {c:6,  r:20}, {c:15, r:26}, {c:22, r:28},
+    {c:30, r:30}, {c:10, r:32}, {c:20, r:18}, {c:26, r:14},
+    {c:32, r:18}, {c:7,  r:16}, {c:16, r:12}, {c:24, r:24},
+    {c:38, r:20}, {c:14, r:20}, {c:40, r:28}, {c:4,  r:28},
+  ];
+  for(const bc of berryClusters){
+    // Each cluster has 2-4 berry bushes in a small radius
+    for(let i=0;i<3;i++){
+      const br=bc.r+Math.floor(R()*3)-1;
+      const bcc=bc.c+Math.floor(R()*3)-1;
+      if(br<1||br>=WR-1||bcc<1||bcc>=WC-1)continue;
+      if(MAP[br][bcc].t===T.WATER||MAP[br][bcc].t===T.PATH||MAP[br][bcc].bld)continue;
+      MAP[br][bcc].decor='berry_bush';
     }
   }
 
@@ -959,11 +979,9 @@ function genMap(){
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
     if(MAP[r][c].t!==T.GRASS)continue;
     const n=R();
-    // dense trees on left near river and borders
-    if(c<6&&MAP[r][c].t!==T.WATER) {if(n>.22){MAP[r][c].decor='tree';} continue;}
     if(r<2||r>=WR-2||c<1||c>=WC-1){MAP[r][c].decor='tree';continue;}
     if(n>.88) MAP[r][c].decor='tree';
-    else if(n>.84&&MAP[r][c].t===T.GRASS) MAP[r][c].decor='rock';
+    // rocks removed — use Quarry building to get stone
   }
 
   // clear decors from road tiles
@@ -1046,6 +1064,45 @@ function drawBushOnCtx(ctx,wx,wy,v){
   X2.fillStyle='#2e7020';X2.beginPath();X2.ellipse(cx+3,bot-13,8,6,0,0,Math.PI*2);X2.fill();
   // berries sometimes
   if(v>0.7){X2.fillStyle='#c03020';X2.beginPath();X2.arc(cx-4,bot-12,2,0,Math.PI*2);X2.fill();X2.beginPath();X2.arc(cx+4,bot-11,2,0,Math.PI*2);X2.fill();}
+}
+
+// ── BERRY BUSH — distinct from regular bush, always shows berries ──
+function drawBerryBushOnCtx(ctx,wx,wy,v,depleted){
+  const X2=ctx, cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
+  // Shadow
+  X2.fillStyle='rgba(0,0,0,0.15)';X2.beginPath();X2.ellipse(cx+2,bot-3,16,5,0,0,Math.PI*2);X2.fill();
+  // Bush body — rounder and denser than regular bush
+  X2.fillStyle='#16480c';X2.beginPath();X2.ellipse(cx,bot-12,15,11,0,0,Math.PI*2);X2.fill();
+  X2.fillStyle='#1e6014';X2.beginPath();X2.ellipse(cx-4,bot-15,11,9,0,0,Math.PI*2);X2.fill();
+  X2.fillStyle='#268018';X2.beginPath();X2.ellipse(cx+4,bot-15,10,8,0,0,Math.PI*2);X2.fill();
+  X2.fillStyle='#2a901c';X2.beginPath();X2.ellipse(cx,bot-19,8,7,0,0,Math.PI*2);X2.fill();
+  // Highlight
+  X2.fillStyle='rgba(80,200,40,0.18)';X2.beginPath();X2.ellipse(cx-3,bot-18,6,5,0,0,Math.PI*2);X2.fill();
+
+  if(!depleted){
+    // Berry clusters — bright red/purple berries, clearly visible
+    const berryPositions=[
+      [cx-7,bot-11],[cx-4,bot-14],[cx+5,bot-13],[cx+8,bot-11],
+      [cx-1,bot-17],[cx+3,bot-16],[cx-6,bot-16],[cx+1,bot-12],
+    ];
+    const colors=['#d02020','#c02828','#8820a0','#b01818','#cc2020','#9018a0','#d83030','#a82090'];
+    for(let i=0;i<berryPositions.length;i++){
+      const[bx,by]=berryPositions[i];
+      X2.fillStyle=colors[i%colors.length];
+      X2.beginPath();X2.arc(bx,by,2.5,0,Math.PI*2);X2.fill();
+      // Sheen
+      X2.fillStyle='rgba(255,255,255,0.4)';
+      X2.beginPath();X2.arc(bx-0.8,by-0.8,0.9,0,Math.PI*2);X2.fill();
+    }
+    // Berry icon label
+    X2.font='10px serif';X2.textAlign='center';
+    X2.fillText('🍇',cx,bot-TS+6);
+  } else {
+    // Depleted — grey/dark bush, no berries
+    X2.fillStyle='rgba(0,0,0,0.35)';X2.beginPath();X2.ellipse(cx,bot-14,13,10,0,0,Math.PI*2);X2.fill();
+    X2.fillStyle='rgba(180,180,180,0.25)';X2.font='8px sans-serif';X2.textAlign='center';
+    X2.fillText('✗',cx,bot-12);
+  }
 }
 function drawRockOnCtx(ctx,wx,wy,v){
   const X2=ctx;
@@ -2468,17 +2525,46 @@ function doInteract(){
   if(G.mode==='build'){G.mode='walk';buildType=null;notify('Build cancelled','warn');updateModeUI();return;}
   // Try hunt first
   if(tryHunt())return;
+
+  // Try gather berries — check nearby tiles
+  const pc=Math.floor(PL.x/TS),pr2=Math.floor(PL.y/TS);
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    const r=pr2+dr,c=pc+dc;
+    if(r<0||r>=WR||c<0||c>=WC)continue;
+    if(MAP[r][c].decor==='berry_bush'){
+      const key=c+','+r;
+      if(!BERRY_STATE[key]) BERRY_STATE[key]={depleted:false,regrowTick:0,yield:0};
+      if(BERRY_STATE[key].depleted){
+        notify('🍂 This bush has been picked. Come back later!','warn');
+        return;
+      }
+      gatherBerries(c,r,key);
+      return;
+    }
+  }
+
   const pr=TS*1.7;
   for(const npc of NPCS){
     if(Math.sqrt((PL.x-npc.x)**2+(PL.y-npc.y)**2)<pr){showNPCDlg(npc);return;}
   }
-  const pc=Math.floor(PL.x/TS),pr2=Math.floor(PL.y/TS);
   for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
     const r=pr2+dr,c=pc+dc;
     if(r<0||r>=WR||c<0||c>=WC)continue;
     if(MAP[r][c].bld){showBldDlg(MAP[r][c].bld,c,r);return;}
   }
   notify('Nothing nearby to interact with','warn');
+}
+
+// ── BERRY GATHERING ──
+function gatherBerries(c,r,key){
+  const v=hh(c,r);
+  const yield_=2+Math.round(v*3); // 2-5 berries
+  addR('berry',yield_);
+  addR('food',Math.floor(yield_/2)); // berries also count as food
+  BERRY_STATE[key]={depleted:true,regrowTick:12,yield:yield_}; // 12 ticks = ~24 days to regrow
+  _worldDirty=true; // rebuild world canvas to hide berries from baked layer
+  notify(`🍇 Gathered ${yield_} berries! (+${Math.floor(yield_/2)} food)`,'ok');
+  updateUI();
 }
 
 // Job definitions
@@ -2713,6 +2799,7 @@ function updateUI(){
   const _rplk=document.getElementById('rplk');if(_rplk)_rplk.textContent=G.res.plank||0;
   document.getElementById('rg').textContent=G.res.gold;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
+  const _rberry=document.getElementById('rberry');if(_rberry)_rberry.textContent=G.res.berry||0;
   // Regional Wealth & Treasury HUD
   const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
   const _trd=document.getElementById('trs-display');if(_trd)_trd.textContent=Math.floor(G.res.treasury||0);
@@ -2774,6 +2861,8 @@ function solid(wx,wy){
     const tx=c*TS+TS/2, ty2=r*TS+TS/2;
     return Math.abs(wx-tx)<20&&Math.abs(wy-ty2)<20;
   }
+  // berry_bush is walkable (player can walk into it to gather)
+  if(tile.decor==='berry_bush') return false;
   return false;
 }
 
@@ -3053,6 +3142,22 @@ function doProd(){
   }
 
   doFarmProd();doByardProd();collectPending();updateMarket();checkPopGrowth();doTraderSpawn();processTradeQueue();
+
+  // ── BERRY BUSH REGROW ──
+  for(const key of Object.keys(BERRY_STATE)){
+    const bs=BERRY_STATE[key];
+    if(!bs.depleted)continue;
+    bs.regrowTick--;
+    if(bs.regrowTick<=0){
+      bs.depleted=false;
+      bs.regrowTick=0;
+      // Notify only if bush is near player
+      const[kc,kr]=key.split(',').map(Number);
+      const dist=Math.hypot(PL.x-kc*TS,PL.y-kr*TS);
+      if(dist<TS*6) notify('🍇 A berry bush has regrown nearby!','ok');
+      _worldDirty=true;
+    }
+  }
 
   // ── CONSTRUCTION PROGRESS ──
   // Each idle adult worker in village helps build. More workers = faster.
@@ -3530,6 +3635,27 @@ function render(){
     const ry=r2*TS+camY;
     for(let c2=sc;c2<ec;c2++){
       const tile=MAP[r2][c2],wx=c2*TS+camX;
+      // Draw berry bushes live (so depleted state shows correctly)
+      if(tile.decor==='berry_bush'){
+        const key=c2+','+r2;
+        const bs=BERRY_STATE[key];
+        const depleted=bs?.depleted||false;
+        const v2=hh(c2,r2);
+        drawBerryBushOnCtx(X,wx,ry,v2,depleted);
+        // Regrow timer visual
+        if(depleted&&bs?.regrowTick>0){
+          const pct=1-(bs.regrowTick/12);
+          X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(wx+4,ry+4,TS-8,5);
+          X.fillStyle='#40a020';X.fillRect(wx+4,ry+4,Math.round((TS-8)*pct),5);
+        }
+        // [E] hint when player nearby
+        const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
+        if(!depleted&&pdist<TS*1.8){
+          X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(wx+2,ry+TS+2,TS-4,13);
+          X.fillStyle='#f0e060';X.font='8px monospace';X.textAlign='center';
+          X.fillText('[E] Gather',wx+TS/2,ry+TS+12);
+        }
+      }
       if(tile.t===T.FIELD){
         const field=G.fields.find(f=>f.col===c2&&f.row===r2);
         if(field&&field.growStage>0&&field.growStage<4)drawCrop(field,wx,ry);
@@ -4214,6 +4340,7 @@ let lastT=0;
 const keys=new Set();
 window.addEventListener('keydown',e=>{
   keys.add(e.key.toLowerCase());
+  if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();saveGameToFile();return;}
   if(e.key.toLowerCase()==='b'){G.mode=G.mode==='build'?'walk':'build';buildType=null;updateModeUI();}
   if(e.key.toLowerCase()==='r'&&G.mode==='build'&&buildType){
     buildRotation=(buildRotation+1)%4;
@@ -5297,6 +5424,242 @@ function processTradeQueue(){
   }
 }
 
+// ═══════════════════════════════════════════════════════
+//  SAVE / LOAD SYSTEM
+//  - Manual save → downloads .json file to computer
+//  - Manual load → uploads .json file from computer
+//  - Autosave    → localStorage every 5 real minutes
+// ═══════════════════════════════════════════════════════
+
+const SAVE_VERSION = 5;
+let _autosaveTimer = null;
+let _lastAutosave  = null;
+
+// ── HMAC-SHA256 SIGNING — prevents save file tampering ──
+const SIGN_SECRET = 'GozoVillage$2025#s3cr3t!@kunci-privat-game';
+
+async function signData(jsonStr){
+  const enc=new TextEncoder();
+  const key=await crypto.subtle.importKey(
+    'raw',enc.encode(SIGN_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const sig=await crypto.subtle.sign('HMAC',key,enc.encode(jsonStr));
+  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function verifyData(jsonStr,hexSig){
+  const enc=new TextEncoder();
+  const key=await crypto.subtle.importKey(
+    'raw',enc.encode(SIGN_SECRET),{name:'HMAC',hash:'SHA-256'},false,['verify']);
+  const sigBytes=new Uint8Array(hexSig.match(/.{2}/g).map(h=>parseInt(h,16)));
+  return await crypto.subtle.verify('HMAC',key,sigBytes,enc.encode(jsonStr));
+}
+
+// ── BUILD SAVE STATE ──
+function buildSaveState(){
+  const mapData=[];
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    const tile=MAP[r][c];
+    if(tile.t!==T.GRASS||tile.bld||tile.decor){
+      mapData.push({r,c,t:tile.t,bld:tile.bld?{...tile.bld}:null,decor:tile.decor||null});
+    }
+  }
+  return {
+    version:SAVE_VERSION, savedAt:new Date().toISOString(),
+    day:G.day, hr:G.hr, mn:G.mn, yr:G.yr, season:G.season, ticks:G.ticks,
+    res:{...G.res}, pop:G.pop, cap:G.cap, happy:G.happy, health:G.health,
+    paused:G.paused, spd:G.spd, nid:G.nid,
+    bld:G.bld.map(b=>({...b})),
+    bldWorkers:JSON.parse(JSON.stringify(G.bldWorkers||{})),
+    pending:{...(G.pending||{})},
+    market:JSON.parse(JSON.stringify(G.market||{})),
+    fields:G.fields.map(f=>({...f})),
+    farmStats:{...G.farmStats},
+    marketZones:JSON.parse(JSON.stringify(G.marketZones||[])),
+    farmZones:JSON.parse(JSON.stringify(G.farmZones||[])),
+    tradeRoutes:JSON.parse(JSON.stringify(G.tradeRoutes||{})),
+    tradeQueue:JSON.parse(JSON.stringify(G.tradeQueue||[])),
+    tradeLog:[...(G.tradeLog||[])],
+    npcs:NPCS.map(n=>({...n})),
+    families:FAMILIES.map(f=>({...f})),
+    deer:DEER.map(d=>({...d})),
+    berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
+    mapData,
+    player:{x:PL.x,y:PL.y,dir:PL.dir},
+    rwLog:[...(RW_LOG||[])],
+  };
+}
+
+// ── APPLY SAVE STATE ──
+function applySaveState(save){
+  if(!save||!save.version) throw new Error('Invalid save file');
+  if(save.version>SAVE_VERSION) notify('⚠ Save from a newer version.','warn');
+  G.day=save.day||1; G.hr=save.hr||6; G.mn=save.mn||0;
+  G.yr=save.yr||1; G.season=save.season||0; G.ticks=save.ticks||0;
+  Object.assign(G.res,save.res||{});
+  G.pop=save.pop||0; G.cap=save.cap||6;
+  G.happy=save.happy??80; G.health=save.health??70;
+  G.paused=save.paused||false; G.spd=save.spd||1; G.nid=save.nid||1;
+  G.bld=(save.bld||[]).map(b=>({...b}));
+  G.bldWorkers=JSON.parse(JSON.stringify(save.bldWorkers||{}));
+  G.pending=save.pending||{};
+  G.market=JSON.parse(JSON.stringify(save.market||{food:{stock:0,variety:0},fuel:{stock:0},clothing:{stock:0,variety:0}}));
+  G.fields=(save.fields||[]).map(f=>({...f}));
+  G.farmStats=save.farmStats||{totalHarvests:0,failedHarvests:0};
+  G.marketZones=JSON.parse(JSON.stringify(save.marketZones||[]));
+  G.farmZones=JSON.parse(JSON.stringify(save.farmZones||[]));
+  G.tradeRoutes=JSON.parse(JSON.stringify(save.tradeRoutes||{}));
+  G.tradeQueue=JSON.parse(JSON.stringify(save.tradeQueue||[]));
+  G.tradeLog=[...(save.tradeLog||[])];
+  NPCS=(save.npcs||[]).map(n=>({...n}));
+  FAMILIES=(save.families||[]).map(f=>({...f}));
+  DEER=(save.deer||[]).map(d=>({...d}));
+  BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
+  if(save.rwLog) RW_LOG.splice(0,RW_LOG.length,...save.rwLog);
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
+  for(const td of (save.mapData||[])){
+    if(td.r>=0&&td.r<WR&&td.c>=0&&td.c<WC)
+      MAP[td.r][td.c]={t:td.t,bld:td.bld||null,decor:td.decor||null};
+  }
+  if(save.player){PL.x=save.player.x||PL.x;PL.y=save.player.y||PL.y;PL.dir=save.player.dir||2;}
+  _worldDirty=true; WC_=null;
+  upPop(); updateUI(); centerCam(); buildWorld();
+}
+
+// ── SAVE TO FILE (HMAC signed + base64 encoded) ──
+async function saveGameToFile(){
+  try{
+    const state=buildSaveState();
+    const payload=JSON.stringify(state);
+    const sig=await signData(payload);
+    // base64 encode so users cannot read/edit the JSON directly
+    const b64=btoa(unescape(encodeURIComponent(payload)));
+    const fileObj={_gozo:true,v:SAVE_VERSION,sig,d:b64};
+    const blob=new Blob([JSON.stringify(fileObj)],{type:'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const dateStr=new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    a.href=url;
+    a.download=`gozo_Y${G.yr}D${G.day}_${dateStr}.gozo`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    notify(`💾 Saved & signed! (Y${G.yr} Day ${G.day})`,'ok');
+    _lastAutosave=Date.now();
+  } catch(e){
+    notify('❌ Save failed: '+e.message,'err');
+    console.error('Save error:',e);
+  }
+}
+
+// ── LOAD FROM FILE (verify signature before applying) ──
+function loadGameFromFile(event){
+  const file=event.target.files?.[0];
+  if(!file) return;
+  event.target.value='';
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      let parsed;
+      try{ parsed=JSON.parse(e.target.result); }
+      catch{ throw new Error('File is not a valid .gozo save file.'); }
+
+      if(parsed._gozo===true){
+        // Decode and verify signature
+        const payload=decodeURIComponent(escape(atob(parsed.d)));
+        const valid=await verifyData(payload,parsed.sig);
+        if(!valid){
+          openDlg('🔒 Tampered Save Detected',
+            '❌ This save file has been modified!\n\nThe HMAC signature does not match.\nLoading is blocked to protect game integrity.',
+            [{l:'✖ Dismiss',cls:'bad',fn:closeDialog}]);
+          return;
+        }
+        applySaveState(JSON.parse(payload));
+      } else if(parsed.version){
+        // Legacy plain JSON (v4-) — load with warning
+        notify('⚠ Legacy save (no signature). Re-save to upgrade.','warn');
+        applySaveState(parsed);
+      } else {
+        throw new Error('Unrecognized save format.');
+      }
+      notify(`📂 Loaded! Y${G.yr} Day ${G.day}`,'ok');
+    } catch(err){
+      notify('❌ Load failed: '+err.message,'err');
+      console.error('Load error:',err);
+    }
+  };
+  reader.onerror=()=>notify('❌ Could not read file.','err');
+  reader.readAsText(file);
+}
+
+// ── AUTOSAVE to localStorage (also signed) ──
+const AUTOSAVE_KEY='gozo_autosave_v5';
+const AUTOSAVE_INTERVAL=5*60*1000;
+
+async function autosave(){
+  try{
+    const state=buildSaveState();
+    const payload=JSON.stringify(state);
+    const sig=await signData(payload);
+    const b64=btoa(unescape(encodeURIComponent(payload)));
+    localStorage.setItem(AUTOSAVE_KEY,JSON.stringify({_gozo:true,v:SAVE_VERSION,sig,d:b64}));
+    localStorage.setItem(AUTOSAVE_KEY+'_meta',JSON.stringify({
+      savedAt:state.savedAt, day:G.day, yr:G.yr, season:G.season
+    }));
+    _lastAutosave=Date.now();
+    showAutosaveIndicator();
+  } catch(e){ console.warn('Autosave failed:',e.message); }
+}
+
+function showAutosaveIndicator(){
+  let el=document.getElementById('autosave-indicator');
+  if(!el){
+    el=document.createElement('div');
+    el.id='autosave-indicator';
+    el.style.cssText='position:fixed;bottom:44px;right:4px;z-index:999;font-size:9px;color:#40c040;font-family:monospace;padding:2px 5px;background:rgba(0,0,0,0.6);border-radius:2px;pointer-events:none;transition:opacity .5s';
+    document.body.appendChild(el);
+  }
+  el.textContent='💾 Autosaved';
+  el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';},2500);
+}
+
+async function loadAutosave(){
+  try{
+    const raw=localStorage.getItem(AUTOSAVE_KEY);
+    if(!raw) return false;
+    const parsed=JSON.parse(raw);
+    if(parsed._gozo===true){
+      const payload=decodeURIComponent(escape(atob(parsed.d)));
+      const valid=await verifyData(payload,parsed.sig);
+      if(!valid){
+        notify('⚠ Autosave corrupted/tampered — discarded.','err');
+        localStorage.removeItem(AUTOSAVE_KEY);
+        return false;
+      }
+      applySaveState(JSON.parse(payload));
+    } else {
+      applySaveState(parsed); // legacy
+    }
+    return true;
+  } catch(e){
+    console.warn('Autosave load failed:',e.message);
+    return false;
+  }
+}
+
+function hasAutosave(){
+  try{
+    const meta=localStorage.getItem(AUTOSAVE_KEY+'_meta');
+    return meta?JSON.parse(meta):null;
+  } catch{ return null; }
+}
+
+function startAutosave(){
+  if(_autosaveTimer) clearInterval(_autosaveTimer);
+  _autosaveTimer=setInterval(()=>{ if(!G.paused) autosave(); },AUTOSAVE_INTERVAL);
+}
+
+
 function toggleMusic(){
   initAudio();
   if(audioCtx.state==='suspended') audioCtx.resume();
@@ -5346,7 +5709,29 @@ upPop();updateUI();
   _worldDirty=true;
 })();
 resize();centerCam();
-// Startup welcome notifications (delayed so render loop is running)
+// Start autosave timer
+startAutosave();
+
+// Check for autosave and prompt to load
+(function(){
+  const meta=hasAutosave();
+  if(!meta) return;
+  const d=new Date(meta.savedAt||0);
+  const dateStr=d.toLocaleString();
+  setTimeout(()=>{
+    openDlg('💾 Autosave Found',
+      `Found autosave from:\n${dateStr}\nYear ${meta.yr||1}, Day ${meta.day||1}, ${['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'][meta.season||0]}\n\nLoad it?`,
+      [
+        {l:'📂 Load Autosave',cls:'ok',fn:()=>{
+          if(loadAutosave()) notify('✅ Autosave loaded!','ok');
+          closeDialog();
+        }},
+        {l:'🆕 New Game',cls:'',fn:closeDialog},
+      ]);
+  },1200);
+})();
+
+// Startup welcome notifications
 setTimeout(()=>{
   notify('🔥 Your settlers have arrived! A campfire keeps them warm.','ok');
 },800);
