@@ -129,6 +129,113 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
 <body>
 <canvas id="c"></canvas>
 
+<!-- TITLE SCREEN -->
+<div id="title-screen" style="position:fixed;inset:0;z-index:9999;background:#0a0603;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'VT323',monospace;overflow:hidden">
+  <!-- Animated background trees -->
+  <canvas id="title-bg" style="position:absolute;inset:0;width:100%;height:100%;opacity:0.18"></canvas>
+
+  <!-- Logo -->
+  <div style="text-align:center;margin-bottom:32px;position:relative">
+    <div style="font-family:'Press Start 2P';font-size:clamp(20px,5vw,48px);color:#f0c040;text-shadow:0 0 30px rgba(240,192,64,0.6),3px 3px 0 #8b4000;letter-spacing:2px;line-height:1.3">
+      ⚔ GOZO VILLAGE
+    </div>
+    <div style="font-family:'Press Start 2P';font-size:clamp(7px,1.5vw,12px);color:#a08040;margin-top:8px;letter-spacing:3px">
+      A SANDBOX VILLAGE RPG
+    </div>
+    <div style="font-size:13px;color:#604830;margin-top:6px;letter-spacing:2px">
+      by alanchruzh
+    </div>
+    <!-- Campfire animation -->
+    <canvas id="title-fire" width="80" height="80" style="margin-top:16px;display:block;margin-left:auto;margin-right:auto"></canvas>
+  </div>
+
+  <!-- Menu buttons -->
+  <div id="title-menu" style="display:flex;flex-direction:column;gap:12px;align-items:center;min-width:280px">
+    <button onclick="showNewGameForm()" style="
+      width:100%;padding:12px 0;
+      background:linear-gradient(180deg,#1a0e04,#0e0804);
+      border:2px solid #c8a020;color:#f0d060;
+      font-family:'Press Start 2P';font-size:clamp(8px,1.8vw,13px);
+      cursor:pointer;letter-spacing:1px;
+      transition:all .15s;box-shadow:0 0 12px rgba(200,160,32,0.2)
+    " onmouseover="this.style.background='linear-gradient(180deg,#2a1a06,#1a0e04)';this.style.boxShadow='0 0 20px rgba(240,192,64,0.4)'"
+       onmouseout="this.style.background='linear-gradient(180deg,#1a0e04,#0e0804)';this.style.boxShadow='0 0 12px rgba(200,160,32,0.2)'">
+      🌱 NEW GAME
+    </button>
+    <button onclick="showLoadGame()" id="title-load-btn" style="
+      width:100%;padding:12px 0;
+      background:linear-gradient(180deg,#04100a,#020a06);
+      border:2px solid #208040;color:#40c060;
+      font-family:'Press Start 2P';font-size:clamp(8px,1.8vw,13px);
+      cursor:pointer;letter-spacing:1px;
+      transition:all .15s;box-shadow:0 0 12px rgba(32,128,64,0.2)
+    " onmouseover="this.style.background='linear-gradient(180deg,#061a0c,#041006)';this.style.boxShadow='0 0 20px rgba(64,192,96,0.4)'"
+       onmouseout="this.style.background='linear-gradient(180deg,#04100a,#020a06)';this.style.boxShadow='0 0 12px rgba(32,128,64,0.2)'">
+      📂 LOAD GAME
+    </button>
+    <input type="file" id="title-load-input" accept=".gozo,.json" style="display:none" onchange="titleLoadGame(event)">
+    <div id="title-autosave-hint" style="font-size:11px;color:#406040;display:none;text-align:center;padding:4px 8px;border:1px solid #203020;background:rgba(0,20,0,0.4);border-radius:3px"></div>
+  </div>
+
+  <!-- New Game Form (hidden initially) -->
+  <div id="new-game-form" style="display:none;flex-direction:column;gap:14px;align-items:center;min-width:320px;max-width:90vw">
+    <div style="font-family:'Press Start 2P';font-size:10px;color:#f0c040;margin-bottom:4px">✦ NEW SETTLEMENT ✦</div>
+
+    <div style="width:100%">
+      <div style="font-size:13px;color:#a08040;margin-bottom:4px;font-family:'Press Start 2P';font-size:8px">🏘 VILLAGE NAME</div>
+      <input id="input-village" type="text" maxlength="24" placeholder="e.g. Oakwood, Riverdale..."
+        style="width:100%;box-sizing:border-box;padding:10px 12px;background:#0a0804;border:2px solid #806020;
+        color:#f0d060;font-family:'VT323';font-size:18px;outline:none;
+        transition:border-color .15s"
+        onfocus="this.style.borderColor='#f0c040'" onblur="this.style.borderColor='#806020'">
+    </div>
+
+    <div style="width:100%">
+      <div style="font-size:13px;color:#a08040;margin-bottom:4px;font-family:'Press Start 2P';font-size:8px">👑 CHIEF'S NAME</div>
+      <input id="input-chief" type="text" maxlength="16" placeholder="Your name..."
+        style="width:100%;box-sizing:border-box;padding:10px 12px;background:#0a0804;border:2px solid #806020;
+        color:#f0d060;font-family:'VT323';font-size:18px;outline:none;
+        transition:border-color .15s"
+        onfocus="this.style.borderColor='#f0c040'" onblur="this.style.borderColor='#806020'">
+    </div>
+
+    <div id="new-game-seed-row" style="width:100%;display:flex;align-items:center;gap:8px">
+      <div style="flex:1">
+        <div style="font-family:'Press Start 2P';font-size:7px;color:#806040;margin-bottom:3px">🌍 WORLD SEED (optional)</div>
+        <input id="input-seed" type="number" min="1" max="99999" placeholder="Random"
+          style="width:100%;box-sizing:border-box;padding:8px 10px;background:#0a0804;border:1px solid #503010;
+          color:#c09050;font-family:'VT323';font-size:16px;outline:none"
+          onfocus="this.style.borderColor='#c09040'" onblur="this.style.borderColor='#503010'">
+      </div>
+      <button onclick="document.getElementById('input-seed').value=''" style="
+        margin-top:20px;padding:8px 10px;background:#100804;border:1px solid #503010;
+        color:#806040;font-family:'Press Start 2P';font-size:6px;cursor:pointer">🎲 RANDOM</button>
+    </div>
+
+    <div style="display:flex;gap:10px;width:100%;margin-top:4px">
+      <button onclick="startNewGame()" style="
+        flex:2;padding:12px 0;
+        background:linear-gradient(180deg,#1a0e04,#0e0804);
+        border:2px solid #c8a020;color:#f0d060;
+        font-family:'Press Start 2P';font-size:9px;cursor:pointer;letter-spacing:1px"
+        onmouseover="this.style.borderColor='#f0e060'" onmouseout="this.style.borderColor='#c8a020'">
+        ▶ START GAME
+      </button>
+      <button onclick="showTitleMenu()" style="
+        flex:1;padding:12px 0;
+        background:#0a0804;border:1px solid #503010;
+        color:#806040;font-family:'Press Start 2P';font-size:8px;cursor:pointer"
+        onmouseover="this.style.borderColor='#a06030'" onmouseout="this.style.borderColor='#503010'">
+        ◀ BACK
+      </button>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:12px;font-size:11px;color:#302010;text-align:center">
+    v1.0 &nbsp;|&nbsp; Press [E] to interact &nbsp;|&nbsp; [R] to rotate buildings
+  </div>
+</div>
+
 <div id="hud">
   <div id="logo">⚔ GOZO</div>
   <div class="hdv"></div>
@@ -380,7 +487,9 @@ const G={
   day:1,hr:6,mn:0,yr:1,season:0,
   seasons:['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'],
   paused:false,spd:1,bld:[],nid:1,ticks:0,bldWorkers:{},pending:{},market:{food:{stock:0,variety:0},fuel:{stock:0},clothing:{stock:0,variety:0}},fields:[],farmStats:{totalHarvests:0,failedHarvests:0},
-  mode:'walk', // walk | build | road | erase | demo | farmzone | marketzone
+  mode:'walk',
+  villageName:'Gozo Village',
+  chiefName:'Gozo', // walk | build | road | erase | demo | farmzone | marketzone
   marketZones:[], // [{id, col, row, w, h, stalls:[{res,qty,price,traderName}]}]
   farmZones:[],   // [{id, farmId, col, row, w, h}] - custom-sized farm zones
   tradeRoutes:{}, // {routeId: {res, dir:'export'|'import', active, level, priceModifier, totalVolume}}
@@ -722,6 +831,12 @@ function buildWorld(){
         if(!skipL||!skipU||v>0.55) drawTreeOnCtx(W,sx,sy,v);
       } else if(tile.decor==='rock'){
         drawRockOnCtx(W,sx,sy,v);
+      } else if(tile.decor==='coal_deposit'){
+        drawRockOnCtx(W,sx,sy,v);
+        drawDepositOverlay(W,sx,sy,'coal');
+      } else if(tile.decor==='iron_deposit'){
+        drawRockOnCtx(W,sx,sy,v);
+        drawDepositOverlay(W,sx,sy,'iron');
       } else if(tile.decor==='bush'){
         drawBushOnCtx(W,sx,sy,v);
       } else if(tile.decor==='berry_bush'){
@@ -917,63 +1032,101 @@ function animateWater(){
 
 // ─── GEN MAP ───
 function rng(seed){let s=seed;return()=>{s=Math.sin(s*9301+49297)*233280;return s-(s|0);};}
-const R=rng(42);
+// Random seed each new game — stored so save/load can reproduce same map
+let WORLD_SEED=Math.floor(Math.random()*99999)+1;
+let R=rng(WORLD_SEED);
 
 function genMap(){
   MAP=[];
   for(let r=0;r<WR;r++){MAP[r]=[];for(let c=0;c<WC;c++)MAP[r][c]={t:T.GRASS,bld:null,decor:null};}
 
   const mc=WC/2|0, mr=WR/2|0;
+  // Re-seed R so genMap is deterministic from WORLD_SEED
+  R=rng(WORLD_SEED);
 
-  // No pre-built roads — player builds their own paths
-
-  // river (left side)
+  // ── RIVER — random starting column (left quarter of map) ──
+  const riverCol=3+Math.floor(R()*4); // col 3-6
+  const riverWiggle=Math.floor(R()*3); // 0-2 extra wobble
   for(let r=3;r<WR-3;r++){
-    MAP[r][3].t=T.WATER; MAP[r][4].t=T.WATER;
-    if(r%5===0){MAP[r][2].t=T.WATER; MAP[r][5].t=T.WATER;}
-    if(r%7===0) MAP[r][5].t=T.WATER;
+    MAP[r][riverCol].t=T.WATER;
+    MAP[r][riverCol+1].t=T.WATER;
+    if(r%5===0){MAP[r][riverCol-1].t=T.WATER; MAP[r][riverCol+2].t=T.WATER;}
+    if(r%7===0&&riverWiggle>1) MAP[r][riverCol+2].t=T.WATER;
   }
 
-  // ── FOREST ECOSYSTEM — dense forest zones in corners/edges ──
-  const forestZones=[
-    // left forest removed — river is there
-    {c:36, r:2,   w:10,h:14}, // top-right forest
-    {c:34, r:22,  w:12,h:12}, // bottom-right forest
-    {c:8,  r:24,  w:8, h:10}, // bottom-left forest
+  // ── FOREST ZONES — 2-4 random zones around edges ──
+  const possibleForests=[
+    {c:36,r:2, w:10,h:14},{c:34,r:22,w:12,h:12},
+    {c:8, r:24,w:8, h:10},{c:38,r:18,w:8, h:10},
+    {c:14,r:2, w:8, h:8}, {c:6, r:14,w:6, h:8},
+    {c:32,r:2, w:8, h:8}, {c:8, r:18,w:6, h:8},
   ];
+  // Always keep top-right and bottom-right, randomly pick 1-2 others
+  const forestZones=[possibleForests[0],possibleForests[1]];
+  for(let i=2;i<possibleForests.length;i++){
+    if(R()>0.45) forestZones.push(possibleForests[i]);
+  }
   for(const fz of forestZones){
     for(let dr=0;dr<fz.h;dr++) for(let dc=0;dc<fz.w;dc++){
-      const fr=fz.r+dr, fc=fz.c+dc;
+      const fr=fz.r+dr,fc=fz.c+dc;
       if(fr<0||fr>=WR||fc<0||fc>=WC)continue;
       if(MAP[fr][fc].t===T.PATH||MAP[fr][fc].t===T.WATER)continue;
       MAP[fr][fc].t=T.FOREST;
-      // dense tree coverage in forest zones, some berry bushes
       const fv=R();
       if(fv>0.15) MAP[fr][fc].decor='tree';
-      else if(fv>0.08) MAP[fr][fc].decor='berry_bush'; // berry bushes in forests!
+      else if(fv>0.08) MAP[fr][fc].decor='berry_bush';
       else if(fv>0.03) MAP[fr][fc].decor='bush';
     }
   }
 
-  // ── BERRY BUSHES scattered around map (not just in forests) ──
-  // Place ~20 berry bush clusters across the map for early-game food
-  const berryClusters=[
-    {c:8,  r:10}, {c:12, r:6},  {c:18, r:4},  {c:28, r:3},
-    {c:33, r:8},  {c:6,  r:20}, {c:15, r:26}, {c:22, r:28},
-    {c:30, r:30}, {c:10, r:32}, {c:20, r:18}, {c:26, r:14},
-    {c:32, r:18}, {c:7,  r:16}, {c:16, r:12}, {c:24, r:24},
-    {c:38, r:20}, {c:14, r:20}, {c:40, r:28}, {c:4,  r:28},
-  ];
-  for(const bc of berryClusters){
-    // Each cluster has 2-4 berry bushes in a small radius
-    for(let i=0;i<3;i++){
+  // ── BERRY BUSHES — random clusters, 12-22 total ──
+  const berryCount=12+Math.floor(R()*10);
+  for(let i=0;i<berryCount;i++){
+    const bc={c:6+Math.floor(R()*(WC-12)), r:4+Math.floor(R()*(WR-8))};
+    const clusterSize=2+Math.floor(R()*3);
+    for(let j=0;j<clusterSize;j++){
       const br=bc.r+Math.floor(R()*3)-1;
       const bcc=bc.c+Math.floor(R()*3)-1;
       if(br<1||br>=WR-1||bcc<1||bcc>=WC-1)continue;
       if(MAP[br][bcc].t===T.WATER||MAP[br][bcc].t===T.PATH||MAP[br][bcc].bld)continue;
+      if(MAP[br][bcc].t===T.FOREST)continue; // forest has its own berries
       MAP[br][bcc].decor='berry_bush';
     }
   }
+
+  // ── MINERAL DEPOSITS — randomized positions & amounts ──
+  // Each deposit type: pick 4-7 random non-center locations
+  function placeDeposits(count,decorType,avoidCenter){
+    const minDist=avoidCenter?8:4;
+    let placed=0,attempts=0;
+    while(placed<count&&attempts<200){
+      attempts++;
+      const dc=5+Math.floor(R()*(WC-10));
+      const dr=4+Math.floor(R()*(WR-8));
+      // Keep away from center campfire area
+      if(Math.abs(dc-mc)<minDist&&Math.abs(dr-mr)<minDist)continue;
+      if(MAP[dr][dc].t!==T.GRASS||MAP[dr][dc].bld||MAP[dr][dc].decor)continue;
+      // Place 2x2 cluster
+      const w=2+Math.floor(R()*2), h=2+Math.floor(R()*2);
+      let ok=true;
+      for(let ddr=0;ddr<h&&ok;ddr++) for(let ddc=0;ddc<w&&ok;ddc++){
+        const rr=dr+ddr,cc=dc+ddc;
+        if(!MAP[rr]||!MAP[rr][cc]||MAP[rr][cc].t!==T.GRASS) ok=false;
+      }
+      if(!ok)continue;
+      for(let ddr=0;ddr<h;ddr++) for(let ddc=0;ddc<w;ddc++){
+        const rr=dr+ddr,cc=dc+ddc;
+        if(MAP[rr]&&MAP[rr][cc]&&MAP[rr][cc].t===T.GRASS){
+          MAP[rr][cc].t=T.STONE_G;
+          MAP[rr][cc].decor=decorType;
+        }
+      }
+      placed++;
+    }
+  }
+  placeDeposits(4+Math.floor(R()*4), 'rock',       true);  // stone: 4-7
+  placeDeposits(3+Math.floor(R()*3), 'coal_deposit',true);  // coal:  3-5
+  placeDeposits(3+Math.floor(R()*3), 'iron_deposit',true);  // iron:  3-5
 
   // borders: trees (stored as decors, tile stays grass/forest-floor)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
@@ -1055,6 +1208,40 @@ function drawTreeOnCtx(ctx,wx,wy,v){
 }
 // Draw tree on main canvas (calls through to ctx version with global X)
 function drawTree(wx,wy,v){ drawTreeOnCtx(X,wx,wy,v); }
+
+// ── DEPOSIT OVERLAY — drawn on top of rock to show mineral type ──
+function drawDepositOverlay(ctx,sx,sy,type){
+  const cx=sx+TS/2|0, cy=sy+TS/2|0;
+  if(type==='coal'){
+    // Dark charcoal veins
+    ctx.fillStyle='rgba(15,15,15,0.75)';
+    ctx.beginPath();ctx.ellipse(cx-4,cy-6,7,5,0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+5,cy-2,5,4,-0.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-2,cy+4,6,4,0.1,0,Math.PI*2);ctx.fill();
+    // Shiny coal glint
+    ctx.fillStyle='rgba(80,80,100,0.5)';
+    ctx.beginPath();ctx.ellipse(cx-3,cy-7,3,2,0.3,0,Math.PI*2);ctx.fill();
+    // Label
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(cx-14,sy+4,28,11);
+    ctx.fillStyle='#a0a0c0';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('⚫ COAL',cx,sy+12);
+  } else if(type==='iron'){
+    // Rust-red iron ore streaks
+    ctx.fillStyle='rgba(140,50,20,0.7)';
+    ctx.beginPath();ctx.ellipse(cx-3,cy-5,8,5,0.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(180,80,30,0.6)';
+    ctx.beginPath();ctx.ellipse(cx+4,cy-1,6,4,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(200,100,40,0.5)';
+    ctx.beginPath();ctx.ellipse(cx-1,cy+5,5,3,0.2,0,Math.PI*2);ctx.fill();
+    // Metallic glint
+    ctx.fillStyle='rgba(220,160,100,0.45)';
+    ctx.beginPath();ctx.ellipse(cx-4,cy-6,2,1.5,0.5,0,Math.PI*2);ctx.fill();
+    // Label
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(cx-13,sy+4,26,11);
+    ctx.fillStyle='#d09060';ctx.font='bold 8px monospace';ctx.textAlign='center';
+    ctx.fillText('⚙ IRON',cx,sy+12);
+  }
+}
 
 function drawBushOnCtx(ctx,wx,wy,v){
   const X2=ctx, cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
@@ -1909,6 +2096,9 @@ function drawDeer(deer){
   if(!deer.alive)return;
   const px=Math.round(deer.x+camX), py=Math.round(deer.y+camY);
   if(px<-80||px>CV.width+80||py<-80||py>CV.height+80)return;
+  // Scale deer to ~55% — deer should be smaller than player
+  X.save();
+  X.translate(px,py);X.scale(0.55,0.55);X.translate(-px,-py);
   const moving=!!(deer.vx||deer.vy), f=deer.fr||0, dir=deer.dir||2;
   const bob=moving&&f%2===0?-1.5:0;
   const lg=moving?(f%4<2?4:-4):0;
@@ -2042,6 +2232,7 @@ function drawDeer(deer){
     X.fillStyle='#fff';X.font='5px "Press Start 2P"';X.textAlign='center';
     X.fillText('🏹 HUNT',px,py-34);
   }
+  X.restore(); // end deer scale
 }
 
 // ─── UPDATE DEER ───
@@ -2199,7 +2390,7 @@ function drawPlayer(){
 
   // ── NAMA TAG ──
   X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(px-18,py-39+bob,36,10);
-  X.fillStyle='#f0e060';X.font='6px "Press Start 2P"';X.textAlign='center';X.fillText('GOZO',px,py-31+bob);
+  X.fillStyle='#f0e060';X.font='6px "Press Start 2P"';X.textAlign='center';X.fillText((G.chiefName||'GOZO').slice(0,8).toUpperCase(),px,py-31+bob);
 }
 
 // ─── NPC ───
@@ -2882,7 +3073,8 @@ function solid(wx,wy){
     const walkable=['campfire','well'];
     if(!walkable.includes(tile.bld.type)) return true;
   }
-  if(tile.decor==='tree'||tile.decor==='rock'||tile.decor==='bush'){
+  if(tile.decor==='tree'||tile.decor==='rock'||tile.decor==='bush'||
+     tile.decor==='coal_deposit'||tile.decor==='iron_deposit'){
     const tx=c*TS+TS/2, ty2=r*TS+TS/2;
     return Math.abs(wx-tx)<20&&Math.abs(wy-ty2)<20;
   }
@@ -3634,6 +3826,13 @@ function drawBackyard(type, wx, wy, timer, prodTime){
 
 function render(){
   if(!CV.width||!CV.height)return;
+  // Don't render game world until map is generated
+  if(!MAP||!MAP.length||!_gameStarted){
+    // Just clear canvas — title screen is on top anyway
+    X.setTransform(1,0,0,1,0,0);
+    X.fillStyle='#0a0603';X.fillRect(0,0,CV.width,CV.height);
+    return;
+  }
   // Reset transform sepenuhnya setiap frame agar tidak terakumulasi
   X.setTransform(1,0,0,1,0,0);
   doRebuildWorld();
@@ -3834,8 +4033,12 @@ function render(){
     mctx.fillStyle='#1a2e10';mctx.fillRect(0,0,mw,mh);
     for(let r2=0;r2<WR;r2++)for(let c2=0;c2<WC;c2++){
       const t=MAP[r2][c2].t;
-      mctx.fillStyle=t===T.WATER?'#4488cc':t===T.FOREST?'#1a5010':t===T.PATH?'#c0a050':t===T.FIELD?'#8a6020':t===T.FARM_ZONE?'#60a020':t===T.MARKET_ZONE?'#d0c080':'#3a7020';
+      mctx.fillStyle=t===T.WATER?'#4488cc':t===T.FOREST?'#1a5010':t===T.PATH?'#c0a050':t===T.FIELD?'#8a6020':t===T.FARM_ZONE?'#60a020':t===T.MARKET_ZONE?'#d0c080':t===T.STONE_G?'#888070':'#3a7020';
       mctx.fillRect(c2*tw,r2*th,tw+1,th+1);
+      // Highlight deposits on minimap
+      const md=MAP[r2][c2].decor;
+      if(md==='coal_deposit'){mctx.fillStyle='#202030';mctx.fillRect(c2*tw,r2*th,tw+1,th+1);}
+      else if(md==='iron_deposit'){mctx.fillStyle='#8b3a10';mctx.fillRect(c2*tw,r2*th,tw+1,th+1);}
     }
     for(const b of G.bld){mctx.fillStyle='#e08020';mctx.fillRect(b.col*tw,b.row*th,tw+1,th+1);}
     for(const d of DEER){if(d.alive){mctx.fillStyle='#f0a030';mctx.fillRect(d.x/TS*tw-1,d.y/TS*th-1,2,2);}}
@@ -4386,7 +4589,9 @@ window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 function loop(now){
   const dt=Math.min(now-lastT,50);lastT=now;
   try{
-    if(!G.paused){movePlayer();updateCam();wanderNPCs();updateDeer();tick();}
+    if(!G.paused&&_gameStarted&&MAP&&MAP.length){
+      movePlayer();updateCam();wanderNPCs();updateDeer();tick();
+    }
   } catch(e){ console.error('loop error:',e); }
   render();
   requestAnimationFrame(loop);
@@ -5494,6 +5699,9 @@ function buildSaveState(){
   }
   return {
     version:SAVE_VERSION, savedAt:new Date().toISOString(),
+    worldSeed:WORLD_SEED,
+    villageName:G.villageName||'Gozo Village',
+    chiefName:G.chiefName||'Gozo',
     day:G.day, hr:G.hr, mn:G.mn, yr:G.yr, season:G.season, ticks:G.ticks,
     res:{...G.res}, pop:G.pop, cap:G.cap, happy:G.happy, health:G.health,
     paused:G.paused, spd:G.spd, nid:G.nid,
@@ -5522,6 +5730,12 @@ function buildSaveState(){
 function applySaveState(save){
   if(!save||!save.version) throw new Error('Invalid save file');
   if(save.version>SAVE_VERSION) notify('⚠ Save from a newer version.','warn');
+  // Restore world seed so map generates identically
+  if(save.worldSeed) WORLD_SEED=save.worldSeed;
+  if(save.villageName) G.villageName=save.villageName;
+  if(save.chiefName)   G.chiefName=save.chiefName;
+  const logo=document.getElementById('logo');
+  if(logo&&G.villageName) logo.textContent='⚔ '+G.villageName;
   G.day=save.day||1; G.hr=save.hr||6; G.mn=save.mn||0;
   G.yr=save.yr||1; G.season=save.season||0; G.ticks=save.ticks||0;
   Object.assign(G.res,save.res||{});
@@ -5611,6 +5825,8 @@ function loadGameFromFile(event){
         throw new Error('Unrecognized save format.');
       }
       notify(`📂 Loaded! Y${G.yr} Day ${G.day}`,'ok');
+      // Hide title screen if it's still showing
+      if(!_gameStarted) launchGame(false);
     } catch(err){
       notify('❌ Load failed: '+err.message,'err');
       console.error('Load error:',err);
@@ -5689,6 +5905,196 @@ function startAutosave(){
 }
 
 
+// ═══════════════════════════════════════════════════════
+//  TITLE SCREEN
+// ═══════════════════════════════════════════════════════
+
+let _gameStarted = false;
+
+function showTitleMenu(){
+  document.getElementById('title-menu').style.display='flex';
+  document.getElementById('new-game-form').style.display='none';
+  // Check autosave
+  const meta=hasAutosave();
+  const hint=document.getElementById('title-autosave-hint');
+  if(meta&&hint){
+    const d=new Date(meta.savedAt||0);
+    hint.style.display='block';
+    hint.textContent=`💾 Autosave: Y${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleDateString()}`;
+  }
+}
+
+function showNewGameForm(){
+  document.getElementById('title-menu').style.display='none';
+  document.getElementById('new-game-form').style.display='flex';
+  setTimeout(()=>document.getElementById('input-village').focus(),50);
+}
+
+function showLoadGame(){
+  const meta=hasAutosave();
+  if(meta){
+    const d=new Date(meta.savedAt||0);
+    openDlg('📂 LOAD GAME',
+      `Autosave found:\nY${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleString()}\n\nOr load a .gozo file from your computer.`,
+      [
+        {l:'💾 Load Autosave',cls:'ok',fn:()=>{
+          closeDialog();
+          loadAutosave().then(ok=>{
+            if(ok&&!_gameStarted) launchGame(false);
+          }).catch(()=>{});
+        }},
+        {l:'📁 Load File',cls:'',fn:()=>{
+          closeDialog();
+          document.getElementById('title-load-input').click();
+        }},
+        {l:'✖ Cancel',cls:'',fn:closeDialog},
+      ]);
+  } else {
+    document.getElementById('title-load-input').click();
+  }
+}
+
+function titleLoadGame(event){
+  // Reuse existing loadGameFromFile but also start the game
+  loadGameFromFile(event);
+  // loadGameFromFile is async, so we watch for it to apply
+  const orig=applySaveState;
+  // After load, hide title screen
+  setTimeout(()=>{
+    if(_gameStarted) return;
+    launchGame(false); // launch without genMap (save already has map)
+  },800);
+}
+
+function startNewGame(){
+  const vname=document.getElementById('input-village').value.trim();
+  const cname=document.getElementById('input-chief').value.trim();
+  const seedInput=document.getElementById('input-seed').value.trim();
+
+  if(!vname){
+    document.getElementById('input-village').style.borderColor='#c04040';
+    document.getElementById('input-village').placeholder='⚠ Please enter a village name!';
+    return;
+  }
+  if(!cname){
+    document.getElementById('input-chief').style.borderColor='#c04040';
+    document.getElementById('input-chief').placeholder='⚠ Please enter your name!';
+    return;
+  }
+
+  G.villageName = vname;
+  G.chiefName   = cname;
+  if(seedInput) WORLD_SEED=Math.max(1,Math.min(99999,parseInt(seedInput)||WORLD_SEED));
+
+  // Update HUD logo with village name
+  const logo=document.getElementById('logo');
+  if(logo) logo.textContent='⚔ '+vname;
+
+  // Update player name tag
+  // (drawPlayer uses 'GOZO' hardcoded — will now use chiefName)
+
+  launchGame(true);
+}
+
+function launchGame(doGenMap){
+  _gameStarted=true;
+  // Fade out title screen
+  const ts=document.getElementById('title-screen');
+  ts.style.transition='opacity .6s';
+  ts.style.opacity='0';
+  setTimeout(()=>{ts.style.display='none';},650);
+
+  if(doGenMap){
+    genMap();
+    buildWorld();
+    upPop();updateUI();
+    // Spawn player
+    const mc=WC/2|0,mr=WR/2|0;
+    for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
+      const r=mr+dr,c=mc+dc;
+      if(MAP[r]&&MAP[r][c]&&!MAP[r][c].bld){
+        MAP[r][c].decor=null;
+        if(MAP[r][c].t!==T.WATER&&MAP[r][c].t!==T.PATH) MAP[r][c].t=T.GRASS;
+      }
+    }
+    PL.x=(mc)*TS+TS/2;
+    PL.y=(mr+1)*TS+TS/2;
+    _worldDirty=true;
+  }
+
+  resize();centerCam();
+  startAutosave();
+
+  setTimeout(()=>notify(`🏘 Welcome to ${G.villageName}, Chief ${G.chiefName}!`,'ok'),700);
+  setTimeout(()=>notify(`🌍 World seed: ${WORLD_SEED}`,'ok'),1800);
+  setTimeout(()=>notify('🔥 Your settlers are gathered around the campfire.','ok'),2800);
+  setTimeout(()=>notify('💡 Build houses to grow your settlement!','warn'),4000);
+}
+
+// ── TITLE SCREEN CAMPFIRE ANIMATION ──
+function animateTitleFire(){
+  const cv=document.getElementById('title-fire');
+  if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const cx=40,cy=60;
+  const t=Date.now()/300;
+  ctx.clearRect(0,0,80,80);
+  // Logs
+  ctx.fillStyle='#5a2e08';
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(0.4);ctx.fillRect(-18,-3,36,6);ctx.restore();
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(-0.4);ctx.fillRect(-18,-3,36,6);ctx.restore();
+  // Embers
+  ctx.fillStyle='#e03000';ctx.beginPath();ctx.ellipse(cx,cy-3,8,4,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#ff6000';ctx.beginPath();ctx.ellipse(cx,cy-5,5,3,0,0,Math.PI*2);ctx.fill();
+  // Flames
+  for(let i=0;i<6;i++){
+    const fx=cx+(-12+i*5)+Math.sin(t+i*1.1)*3;
+    const fh=18+Math.sin(t*1.3+i)*7;
+    const a=0.75+Math.sin(t+i)*0.2;
+    ctx.fillStyle=`rgba(230,90,10,${a*0.85})`;
+    ctx.beginPath();ctx.moveTo(fx-4,cy-4);
+    ctx.quadraticCurveTo(fx+4,cy-4-fh*0.4,fx,cy-4-fh);
+    ctx.quadraticCurveTo(fx-4,cy-4-fh*0.4,fx-4,cy-4);ctx.fill();
+    ctx.fillStyle=`rgba(255,190,20,${a})`;
+    ctx.beginPath();ctx.moveTo(fx-2,cy-5);
+    ctx.quadraticCurveTo(fx+2,cy-5-fh*0.3,fx,cy-5-fh*0.65);
+    ctx.quadraticCurveTo(fx-2,cy-5-fh*0.3,fx-2,cy-5);ctx.fill();
+  }
+  // Glow
+  const g=ctx.createRadialGradient(cx,cy-10,2,cx,cy-10,28);
+  g.addColorStop(0,'rgba(255,140,20,0.22)');g.addColorStop(1,'rgba(255,80,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(cx-28,cy-38,56,40);
+  requestAnimationFrame(animateTitleFire);
+}
+
+// ── TITLE BACKGROUND (subtle drifting particles) ──
+function animateTitleBg(){
+  const cv=document.getElementById('title-bg');
+  if(!cv||!document.getElementById('title-screen')||
+     document.getElementById('title-screen').style.display==='none') return;
+  cv.width=window.innerWidth; cv.height=window.innerHeight;
+  const ctx=cv.getContext('2d');
+  const t=Date.now()/4000;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  // Draw a subtle grid of grass/tree silhouettes
+  const cols=Math.ceil(cv.width/80)+1, rows=Math.ceil(cv.height/80)+1;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const x=c*80+(Math.sin(t+r*0.5)*8|0);
+    const y=r*80+(Math.cos(t*0.7+c*0.4)*6|0);
+    const v=(Math.sin(c*3.1+r*7.3)*0.5+0.5);
+    if(v>0.7){
+      ctx.fillStyle=`rgba(30,80,15,${0.3+v*0.3})`;
+      ctx.beginPath();ctx.arc(x,y,8+v*10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(20,50,8,${0.2+v*0.2})`;
+      ctx.beginPath();ctx.arc(x,y-10,6+v*6,0,Math.PI*2);ctx.fill();
+    } else if(v>0.5){
+      ctx.fillStyle=`rgba(40,100,20,${0.1+v*0.15})`;
+      ctx.beginPath();ctx.arc(x,y,5+v*5,0,Math.PI*2);ctx.fill();
+    }
+  }
+  requestAnimationFrame(animateTitleBg);
+}
+
 function toggleMusic(){
   initAudio();
   if(audioCtx.state==='suspended') audioCtx.resume();
@@ -5712,64 +6118,22 @@ function toggleMusic(){
 }
 
 resize();window.addEventListener('resize',resize);
-// Suppress cross-origin SecurityError from iframe sandbox
-window.addEventListener('error', function(e){
-  if(e.message&&e.message.includes('cross-origin')) e.preventDefault();
-});
-genMap();
-buildWorld();
-upPop();updateUI();
-
-// spawn player near starter buildings
-(function(){
-  const mc=WC/2|0,mr=WR/2|0;
-  // Clear a small open area around center so player can walk
-  for(let dr=-2;dr<=2;dr++) for(let dc=-2;dc<=2;dc++){
-    const r=mr+dr,c=mc+dc;
-    if(MAP[r]&&MAP[r][c]&&!MAP[r][c].bld){
-      MAP[r][c].decor=null;
-      if(MAP[r][c].t!==T.WATER&&MAP[r][c].t!==T.PATH) MAP[r][c].t=T.GRASS;
-    }
+// ── START: show title screen, don't run game yet ──
+resize();
+window.addEventListener('resize',resize);
+// Start title animations
+animateTitleFire();
+animateTitleBg();
+// Show menu and autosave hint
+showTitleMenu();
+// Enter key submits new game form
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&document.getElementById('new-game-form').style.display!=='none'){
+    startNewGame();
   }
-  // Spawn at center (between all the starter buildings)
-  PL.x=(mc)*TS+TS/2;
-  PL.y=(mr+1)*TS+TS/2; // one tile south of campfire
-  // Force rebuild world canvas with cleared tiles
-  _worldDirty=true;
-})();
-resize();centerCam();
-// Start autosave timer
-startAutosave();
-
-// Check for autosave and prompt to load
-(function(){
-  const meta=hasAutosave();
-  if(!meta) return;
-  const d=new Date(meta.savedAt||0);
-  const dateStr=d.toLocaleString();
-  setTimeout(()=>{
-    openDlg('💾 Autosave Found',
-      `Found autosave from:\n${dateStr}\nYear ${meta.yr||1}, Day ${meta.day||1}, ${['🌱 Spring','☀ Summer','🍂 Autumn','❄ Winter'][meta.season||0]}\n\nLoad it?`,
-      [
-        {l:'📂 Load Autosave',cls:'ok',fn:()=>{
-          if(loadAutosave()) notify('✅ Autosave loaded!','ok');
-          closeDialog();
-        }},
-        {l:'🆕 New Game',cls:'',fn:closeDialog},
-      ]);
-  },1200);
-})();
-
-// Startup welcome notifications
-setTimeout(()=>{
-  notify('🔥 Your settlers have arrived! A campfire keeps them warm.','ok');
-},800);
-setTimeout(()=>{
-  notify('🌲 Gather wood & stone. Build houses, then a farm to feed your people.','warn');
-},2400);
-setTimeout(()=>{
-  notify('💡 Tip: Press [R] to rotate buildings before placing!','ok');
-},4200);
+});
+// Start game loop (render only — G.paused prevents game ticks)
+G.paused=true;
 requestAnimationFrame(loop);
 </script>
 </body>
