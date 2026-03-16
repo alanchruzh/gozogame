@@ -142,6 +142,22 @@ body{background:#1a1a1a;font-family:'VT323',monospace}
 }
 </style>
 </head>
+
+<script>
+// ── PROTECT SOURCE CODE ──
+// Disable right-click context menu
+document.addEventListener('contextmenu',e=>e.preventDefault());
+// Disable common keyboard shortcuts to view source / devtools
+document.addEventListener('keydown',e=>{
+  // F12
+  if(e.key==='F12'){e.preventDefault();return false;}
+  // Ctrl+U (view source), Ctrl+S (save page), Ctrl+Shift+I/J/C (devtools)
+  if(e.ctrlKey&&['u','U','s','S'].includes(e.key)&&!e.shiftKey){e.preventDefault();return false;}
+  if(e.ctrlKey&&e.shiftKey&&['i','I','j','J','c','C'].includes(e.key)){e.preventDefault();return false;}
+});
+// Disable text selection on game canvas
+document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA')e.preventDefault();});
+</script>
 <body>
 <canvas id="c"></canvas>
 
