@@ -990,7 +990,7 @@ function genMap(){
   // ── SPAWN DEER in forest zones ──
   DEER=[];
   const deerSpawns=[
-    {c:5,r:5},{c:38,r:5},{c:37,r:26},{c:10,r:27},{c:3,r:14},{c:40,r:12},
+    {c:38,r:5},{c:37,r:26},{c:10,r:27},{c:40,r:12},
   ];
   for(const ds of deerSpawns){
     DEER.push({x:ds.c*TS+TS/2,y:ds.r*TS+TS/2,dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,alive:true,respawnT:0});
