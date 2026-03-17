@@ -661,12 +661,26 @@ function getTileFertility(c,r){
 function nearMarket(houseId){
   const house=G.bld.find(b=>b.id===houseId);
   if(!house) return false;
-  const markets=G.bld.filter(b=>b.type==='market');
-  if(!markets.length) return false;
+  const RANGE=10; // 10 tile radius
+
+  // Check market buildings
+  const markets=G.bld.filter(b=>b.type==='market'&&!b.under_construction);
   for(const m of markets){
     const dx=house.col-m.col, dy=house.row-m.row;
-    if(Math.sqrt(dx*dx+dy*dy)<=8) return true; // 8 tile radius
+    if(Math.sqrt(dx*dx+dy*dy)<=RANGE) return true;
   }
+
+  // Check market zones (the drawn zones)
+  if(G.marketZones&&G.marketZones.length){
+    for(const z of G.marketZones){
+      // Find closest point in zone to house
+      const closestC=Math.max(z.col,Math.min(house.col,z.col+z.w-1));
+      const closestR=Math.max(z.row,Math.min(house.row,z.row+z.h-1));
+      const dx=house.col-closestC, dy=house.row-closestR;
+      if(Math.sqrt(dx*dx+dy*dy)<=RANGE) return true;
+    }
+  }
+
   return false;
 }
 
@@ -722,9 +736,11 @@ function getAdults(){ return NPCS.filter(isAdult); }
 
 function upPop(){
   G.pop=getAdults().length;
-  const houses=G.bld.filter(b=>b.type==='house');
-  const campfires=G.bld.filter(b=>b.type==='campfire');
-  G.cap=Math.max(6, houses.length*4 + campfires.length*6);
+  const campfires=G.bld.filter(b=>b.type==='campfire'&&!b.under_construction);
+  const houses=G.bld.filter(b=>b.type==='house'&&!b.under_construction);
+  // Lv1=2, Lv2=4, Lv3=6 per house
+  const houseCap=houses.reduce((sum,h)=>sum+(h.lv||1)*2, 0);
+  G.cap=Math.max(6, houseCap + campfires.length*6);
 }
 
 // Population growth: new family moves in if happy + empty house available
@@ -735,8 +751,9 @@ function checkPopGrowth(){
   // ── IMMIGRATION: new family moves into empty/underpopulated house ──
   const availHouses=G.bld.filter(b=>{
     if(b.type!=='house'||b.under_construction) return false;
+    const cap=(b.lv||1)*2; // Lv1=2, Lv2=4, Lv3=6
     const residents=NPCS.filter(n=>n.houseId===b.id);
-    return residents.length<2; // house needs a couple
+    return residents.length<cap;
   });
 
   if(availHouses.length && Math.random()<0.08){
@@ -791,7 +808,7 @@ const BD={
     lvDesc:{1:'A warm fire for your settlers. Build houses to grow.'},
   },
   house: {n:'House', e:'🏠', cat:'house', ml:3, pop:2, cost:{wood:15,stone:5},
-    d:'Family home.',
+    d:'Family home. Lv1: 2 residents, Lv2: 4, Lv3: 6.',
     // Per-level description
     lvDesc:{
       1:'Needs: food, water, fuel. Limited backyard.',
@@ -1203,33 +1220,33 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
 // Autotile: for each tile boundary with a DIFFERENT neighbour type,
 // draw an organic soft bleed of that neighbour's colour
 function autoTileBlend(W,c,r,t){
-  // Only blend for non-path, non-building tiles
-  // PATH tiles stay as clean rectangles — no blob edges
   if(t===T.PATH||t===T.WATER) return;
   if(MAP[r][c].bld) return;
 
   const v=sh(c,r), v2=hh(c*2+7,r*3+3);
   const sx=c*TS, sy=r*TS;
-  const myCol=getBaseColor(t,0);
 
   const dirs=[[c+1,r,1,0],[c-1,r,-1,0],[c,r+1,0,1],[c,r-1,0,-1]];
   for(const[nc,nr,dx,dy]of dirs){
     if(nc<0||nc>=WC||nr<0||nr>=WR)continue;
     if(!MAP[nr]||!MAP[nr][nc])continue;
     const nt=MAP[nr][nc].t;
-    if(nt===t||nt===T.PATH) continue; // don't blend toward PATH
+    if(nt===t||nt===T.PATH||nt===T.WATER) continue;
     if(MAP[nr][nc].bld) continue;
+    // Skip GRASS↔FOREST blend — colors are too similar, looks like a dark shadow
+    if((t===T.GRASS&&nt===T.FOREST)||(t===T.FOREST&&nt===T.GRASS)) continue;
+    // Skip STONE_G blending onto grass — looks like dark blobs
+    if(nt===T.STONE_G||t===T.STONE_G) continue;
 
-    const nv=sh(nc,nr);
     const nCol=getBaseColor(nt,0);
-    const warp=(v-.5)*10, w2=(v2-.5)*10;
-    const b=TS*(0.16+v*0.05);
+    const warp=(v-.5)*8, w2=(v2-.5)*8;
+    const b=TS*(0.12+v*0.04); // smaller blob
 
     W.fillStyle=nCol;
-    if(dx===1)       { W.beginPath();W.ellipse(sx+TS-2, sy+TS*(0.3+v*0.4)+warp, b, TS*(0.28+v2*0.12), v*.15, 0, Math.PI*2);W.fill(); }
-    else if(dx===-1) { W.beginPath();W.ellipse(sx+2,    sy+TS*(0.3+v2*0.4)+w2,  b, TS*(0.28+v*.12),  -v2*.15,0, Math.PI*2);W.fill(); }
-    else if(dy===1)  { W.beginPath();W.ellipse(sx+TS*(0.3+v*0.4)+warp, sy+TS-2, TS*(0.28+v2*0.12), b, v*.15, 0, Math.PI*2);W.fill(); }
-    else if(dy===-1) { W.beginPath();W.ellipse(sx+TS*(0.3+v2*0.4)+w2, sy+2,     TS*(0.28+v*.12),  b, -v2*.15,0, Math.PI*2);W.fill(); }
+    if(dx===1)       { W.beginPath();W.ellipse(sx+TS-2, sy+TS*(0.3+v*0.4)+warp, b, TS*(0.22+v2*0.1), v*.15, 0, Math.PI*2);W.fill(); }
+    else if(dx===-1) { W.beginPath();W.ellipse(sx+2,    sy+TS*(0.3+v2*0.4)+w2,  b, TS*(0.22+v*.1),  -v2*.15,0, Math.PI*2);W.fill(); }
+    else if(dy===1)  { W.beginPath();W.ellipse(sx+TS*(0.3+v*0.4)+warp, sy+TS-2, TS*(0.22+v2*0.1), b, v*.15, 0, Math.PI*2);W.fill(); }
+    else if(dy===-1) { W.beginPath();W.ellipse(sx+TS*(0.3+v2*0.4)+w2, sy+2,     TS*(0.22+v*.1),  b, -v2*.15,0, Math.PI*2);W.fill(); }
   }
 }
 
@@ -1399,9 +1416,9 @@ function genMap(){
       if(MAP[fr][fc].t===T.PATH||MAP[fr][fc].t===T.WATER)continue;
       MAP[fr][fc].t=T.FOREST;
       const fv=R();
-      if(fv>0.15) MAP[fr][fc].decor='tree';
-      else if(fv>0.08) MAP[fr][fc].decor='berry_bush';
-      else if(fv>0.03) MAP[fr][fc].decor='bush';
+      if(fv>0.05) MAP[fr][fc].decor='tree';       // 95% trees (was 85%)
+      else if(fv>0.02) MAP[fr][fc].decor='berry_bush';
+      else MAP[fr][fc].decor='bush';
     }
   }
 
@@ -1503,14 +1520,13 @@ function genMap(){
   if(ironPlaced<1) placeDeposits(1,'iron_deposit',false);
   placeDeposits(2+Math.floor(R()*2),'iron_deposit',true); // iron: 2-3 extra
 
-  // borders: trees (stored as decors, tile stays grass/forest-floor)
+  // Border tree line at map edges only (not on grass interior)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
     if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].t!==T.GRASS)continue;
-    const n=R();
-    if(r<2||r>=WR-2||c<1||c>=WC-1){MAP[r][c].decor='tree';continue;}
-    if(n>.88) MAP[r][c].decor='tree';
-    // rocks removed — use Quarry building to get stone
+    // Only place trees on the outermost 1-tile border
+    if(r<1||r>=WR-1||c<1||c>=WC-1) MAP[r][c].decor='tree';
+    // No random trees on open grass tiles
   }
 
   // clear decors from road tiles
@@ -4548,21 +4564,29 @@ function findJobLocation(job,npcIdx){
         if(b){loggerBld=b;break;}
       }
     }
-    // Find nearest forest tile from logger building or NPC position
     const originX=loggerBld?loggerBld.col*TS:npc.x;
     const originY=loggerBld?loggerBld.row*TS:npc.y;
     const oc=Math.floor(originX/TS), or2=Math.floor(originY/TS);
-    let bestDist=999, bestX=originX, bestY=originY;
-    for(let dr2=-8;dr2<=8;dr2++) for(let dc2=-8;dc2<=8;dc2++){
-      const tr=or2+dr2, tc=oc+dc2;
-      if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
-      if(!MAP[tr]||!MAP[tr][tc])continue;
-      if(MAP[tr][tc].t===T.FOREST&&MAP[tr][tc].decor==='tree'){
-        const d=Math.abs(dr2)+Math.abs(dc2);
-        if(d<bestDist){bestDist=d;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;}
+
+    // Cache work zone per NPC — only recalculate when trees run out
+    if(!npc._logZone||npc._logZoneEmpty){
+      let bestDist=999,bestX=originX,bestY=originY,found=false;
+      for(let dr2=-10;dr2<=10;dr2++) for(let dc2=-10;dc2<=10;dc2++){
+        const tr=or2+dr2,tc=oc+dc2;
+        if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+        if(!MAP[tr]||!MAP[tr][tc])continue;
+        if(MAP[tr][tc].t===T.FOREST&&MAP[tr][tc].decor==='tree'){
+          const d=Math.abs(dr2)+Math.abs(dc2);
+          if(d<bestDist){bestDist=d;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;found=true;}
+        }
       }
+      // Lock NPC to a 5-tile radius work zone around nearest forest
+      npc._logZone={cx:Math.floor(bestX/TS),cy:Math.floor(bestY/TS),r:5};
+      npc._logZoneEmpty=false;
     }
-    return{x:bestX,y:bestY};
+    // Return position within work zone
+    const z=npc._logZone;
+    return{x:z.cx*TS+TS/2, y:z.cy*TS+TS/2};
   }
 
   // Builder: go to nearest construction site
@@ -4688,37 +4712,37 @@ function wanderNPCs(){
                   }
                 }
               }
-            } else if(job==='logger'){              // Find nearest tree in FOREST zone and chop it periodically
+            } else if(job==='logger'){
               npc._chopTimer=(npc._chopTimer||0)+1;
-              if(npc._chopTimer>=90){ // chop every ~3 seconds
+              if(npc._chopTimer>=90){
                 npc._chopTimer=0;
                 const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
                 let chopped=false;
-                // Search in radius for a tree
-                for(let dr2=-3;dr2<=3&&!chopped;dr2++){
-                  for(let dc2=-3;dc2<=3&&!chopped;dc2++){
+                const zr=npc._logZone?.cy||nr2, zc=npc._logZone?.cx||nc2, zRadius=npc._logZone?.r||4;
+                // Search within assigned work zone only
+                for(let dr2=-zRadius;dr2<=zRadius&&!chopped;dr2++){
+                  for(let dc2=-zRadius;dc2<=zRadius&&!chopped;dc2++){
                     const tr=nr2+dr2, tc=nc2+dc2;
+                    if(Math.abs(tr-zr)>zRadius||Math.abs(tc-zc)>zRadius)continue;
                     if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
                     if(!MAP[tr]||!MAP[tr][tc])continue;
                     const tile=MAP[tr][tc];
                     if(tile.decor==='tree'&&tile.t===T.FOREST){
-                      // Chop tree!
-                      tile.decor=null;
-                      tile.t=T.GRASS;
-                      addR('wood', 2+Math.floor(Math.random()*3));
-                      spawnParticles(tc*TS+TS/2, tr*TS+TS/2, 'build', 6);
-                      _worldDirty=true;
-                      chopped=true;
-                      // Move toward next tree
-                      const tx2=tc*TS+TS/2, ty2=tr*TS+TS/2;
-                      npc.targetTreeX=tx2; npc.targetTreeY=ty2;
+                      tile.decor=null; tile.t=T.GRASS;
+                      addR('wood',2+Math.floor(Math.random()*3));
+                      spawnParticles(tc*TS+TS/2,tr*TS+TS/2,'build',6);
+                      _worldDirty=true; chopped=true;
+                      npc._dx=(tc*TS+TS/2-npc.x)*0.05;
+                      npc._dy=(tr*TS+TS/2-npc.y)*0.05;
                     }
                   }
                 }
                 if(!chopped){
-                  // No tree nearby — wander toward forest
-                  const a=Math.random()*Math.PI*2;
-                  npc._dx=Math.cos(a)*0.8; npc._dy=Math.sin(a)*0.8;
+                  // Zone depleted — find new zone next tick
+                  npc._logZoneEmpty=true;
+                  // Wander back toward logger building
+                  npc._dx=(zc*TS+TS/2-npc.x)*0.02;
+                  npc._dy=(zr*TS+TS/2-npc.y)*0.02;
                 }
               }
             } else if(job==='miner'){
@@ -4786,6 +4810,12 @@ function wanderNPCs(){
         }
       } else {
         // Other idle workers — normal wander
+        // Unstick: if standing on a building tile that isn't their home, push out
+        const stuckC=Math.floor(npc.x/TS),stuckR=Math.floor(npc.y/TS);
+        const stuckTile=stuckC>=0&&stuckC<WC&&stuckR>=0&&stuckR<WR?MAP[stuckR][stuckC]:null;
+        if(stuckTile?.bld&&stuckTile.bld.id!==npc.houseId){
+          npc.x=stuckC*TS+TS/2; npc.y=(stuckR+1)*TS+TS/2;
+        }
         npc._working=false;npc._wt=(npc._wt||0)+1;
         if(npc._wt>60){npc._wt=0;if(Math.random()<.5){npc._dx=0;npc._dy=0;}else{const d=[[-0.6,0],[0.6,0],[0,-0.6],[0,0.6]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}}
       }
@@ -4797,18 +4827,25 @@ function wanderNPCs(){
       const c=Math.floor(nx/TS),r=Math.floor(ny/TS);
       const canEnterForest=(npc.job==='hunter'||npc.job==='logger');
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
-      const tileOk=tile_&&tile_.t!==T.WATER&&!tile_.bld&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
+      // NPC can pass through their own home tile
+      const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId);
+      const tileOk=tile_&&tile_.t!==T.WATER&&bldOk(tile_)&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
       if(tileOk){npc.x=nx;npc.y=ny;}
       else{
         const cx2=Math.floor((npc.x+npc._dx)/TS),cy2=Math.floor(npc.y/TS);
         const t2=cx2>=0&&cx2<WC&&cy2>=0&&cy2<WR?MAP[cy2][cx2]:null;
-        const t2ok=t2&&t2.t!==T.WATER&&!t2.bld&&(canEnterForest||(t2.t!==T.FOREST&&!(t2.decor==='tree')));
+        const t2ok=t2&&t2.t!==T.WATER&&bldOk(t2)&&(canEnterForest||(t2.t!==T.FOREST&&!(t2.decor==='tree')));
         if(t2ok)npc.x+=npc._dx;
         const cx3=Math.floor(npc.x/TS),cy3=Math.floor((npc.y+npc._dy)/TS);
         const t3=cx3>=0&&cx3<WC&&cy3>=0&&cy3<WR?MAP[cy3][cx3]:null;
-        const t3ok=t3&&t3.t!==T.WATER&&!t3.bld&&(canEnterForest||(t3.t!==T.FOREST&&!(t3.decor==='tree')));
+        const t3ok=t3&&t3.t!==T.WATER&&bldOk(t3)&&(canEnterForest||(t3.t!==T.FOREST&&!(t3.decor==='tree')));
         if(t3ok)npc.y+=npc._dy;
-        if(!t2ok&&!t3ok){npc._dx=0;npc._dy=0;}
+        if(!t2ok&&!t3ok){
+          // Stuck — teleport slightly outside home tile to unstick
+          const hb=G.bld.find(b=>b.id===npc.houseId);
+          if(hb){npc.x=hb.col*TS+TS/2;npc.y=(hb.row+1)*TS+TS/2;}
+          npc._dx=0;npc._dy=0;
+        }
       }
       if(npc._dx<-0.1)npc.dir=3;else if(npc._dx>0.1)npc.dir=1;
       if(npc._dy<-0.1)npc.dir=0;else if(npc._dy>0.1)npc.dir=2;
@@ -5025,7 +5062,7 @@ function render(){
   X.setTransform(1,0,0,1,0,0);
   doRebuildWorld();
   const vw=CV.width,vh=CV.height;
-  X.fillStyle='#1a2e10';X.fillRect(0,0,vw,vh);
+  X.fillStyle='#588236';X.fillRect(0,0,vw,vh); // match grass color
   X.save();X.translate(0,HH);
   // Stars (behind everything, before world)
   drawStars();
