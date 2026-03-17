@@ -1057,15 +1057,9 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
       W.fillRect(sx,sy,tw_,th_);
     }
 
-    // Subtle grass tufts (small, no ellipses)
-    if(v>0.5){
-      const gx=sx+(hh(c+1,r+2)*(TS-20))|0, gy=sy+(hh(c+3,r+1)*(TS-16))|0;
-      W.fillStyle='rgba(55,128,28,0.35)';
-      W.fillRect(gx,gy-4,2,4); W.fillRect(gx+5,gy-5,2,5); W.fillRect(gx+10,gy-3,2,3);
-    }
-    // Tiny flowers
-    if(v2>0.82){W.fillStyle='rgba(255,255,255,0.7)';W.fillRect(sx+(hh(c*2,r*2)*(TS-10))|0,sy+(hh(c,r*3)*(TS-10))|0,2,2);}
-    if(v3>0.86){W.fillStyle='rgba(255,210,70,0.65)';W.fillRect(sx+(hh(c*4,r)*(TS-9))|0,sy+(hh(c,r*4)*(TS-9))|0,2,2);}
+    // Tiny dot details only
+    if(v2>0.82){W.fillStyle='rgba(255,255,255,0.6)';W.fillRect(sx+(hh(c*2,r*2)*(TS-10))|0,sy+(hh(c,r*3)*(TS-10))|0,2,2);}
+    if(v3>0.86){W.fillStyle='rgba(255,210,70,0.6)';W.fillRect(sx+(hh(c*4,r)*(TS-9))|0,sy+(hh(c,r*4)*(TS-9))|0,2,2);}
 
   } else if(type===T.FIELD){
     // Farm field - brown soil
@@ -1185,13 +1179,8 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
     W.fillRect(sx,sy,tw_,th_);
     // Low-frequency variation (same technique as grass)
     const lv=hh(Math.floor(c/4)*4,Math.floor(r/4)*4);
-    if(lv>0.3){W.fillStyle=`rgba(60,130,30,${(lv-0.3)*0.12})`;W.fillRect(sx,sy,tw_,th_);}
-    // Leaf litter / dark patches on ground
-    const b1x=sx+TS*(0.15+v2*0.7), b1y=sy+TS*(0.15+v*0.7);
-    W.fillStyle=`rgba(50,110,24,${0.08+v*0.07})`;
-    W.beginPath();W.ellipse(b1x,b1y,TS*(0.18+v3*0.12),TS*(0.14+v2*0.1),v*Math.PI,0,Math.PI*2);W.fill();
-    // Occasional root/twig
-    if(v<0.15){W.fillStyle='rgba(100,70,30,0.18)';W.fillRect(sx+TS*(0.3+v2*0.3)|0,sy+TS*(0.5+v*0.3)|0,TS*0.3,2);}
+    if(lv>0.3){W.fillStyle=`rgba(60,130,30,${(lv-0.3)*0.1})`;W.fillRect(sx,sy,tw_,th_);}
+    // No extra details — trees cover the floor
 
   } else if(type===T.FARM_ZONE){
     // Tilled soil with fertility tint baked in
