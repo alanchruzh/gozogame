@@ -1055,18 +1055,20 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
     W.fillRect(sx,sy,tw_,th_);
     W.fillStyle=`rgba(255,255,255,0.06)`;W.fillRect(sx,sy,tw_,th_*0.3);
   } else if(type===T.MARKET_ZONE){
-    // Cobblestone market square
-    W.fillStyle='#c0b090';W.fillRect(sx,sy,tw_,th_);
-    W.strokeStyle='rgba(0,0,0,0.15)';W.lineWidth=1;
-    for(let bi=0;bi<4;bi++) for(let bj=0;bj<4;bj++){
-      const bx=sx+(bi*(tw_/4))|0, by=sy+(bj*(th_/4))|0;
-      const bw=(tw_/4)|0, bh=(th_/4)|0;
-      const off=(bi+bj)%2?1:0;
-      W.fillStyle=`rgba(0,0,0,${0.03+off*0.04})`;W.fillRect(bx,by,bw,bh);
-      W.strokeRect(bx,by,bw,bh);
+    // Packed earth / sand market floor — no grid lines
+    const v2=hh(c*2+3,r*3+1);
+    W.fillStyle=`rgb(${196+Math.round(v2*12)},${172+Math.round(v2*10)},${120+Math.round(v2*8)})`;
+    W.fillRect(sx,sy,tw_,th_);
+    // Subtle worn patches
+    if(v2>0.6){
+      W.fillStyle='rgba(0,0,0,0.04)';
+      W.beginPath();W.ellipse(sx+tw_*(0.3+v2*0.4),sy+th_*(0.4+v2*0.3),tw_*0.25,th_*0.2,v2,0,Math.PI*2);W.fill();
     }
-    // Subtle yellow border
-    W.strokeStyle='rgba(220,180,60,0.3)';W.lineWidth=2;W.strokeRect(sx+1,sy+1,tw_-2,th_-2);
+    // Scattered straw/dust bits
+    if(v2>0.75){
+      W.fillStyle='rgba(180,150,60,0.25)';
+      W.fillRect(sx+(v2*tw_*0.6)|0, sy+(v2*th_*0.4)|0, 4, 2);
+    }
   } else if(type===T.FARM_ZONE){
     // Tilled soil with fertility tint baked in
     const fert=getTileFertility((sx/TS)|0,(sy/TS)|0);
@@ -4717,31 +4719,74 @@ function render(){
     for(const h of HORSES)if(Math.floor(h.y/TS)===r2)drawHorse(h);
     for(const npc of [...NPCS])try{if(Math.floor(npc.y/TS)===r2)drawNPC(npc);}catch(e){console.warn('drawNPC err',e.message);}
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
-    // Draw market zone stall icons on cobblestone tiles
+    // Draw market stalls — one stall per 2x2 tile block
     if(G.marketZones){
       for(const zone of G.marketZones){
         if(r2<zone.row||r2>=zone.row+zone.h)continue;
         for(let c2=Math.max(sc,zone.col);c2<Math.min(ec,zone.col+zone.w);c2++){
           if(MAP[r2][c2].t!==T.MARKET_ZONE)continue;
-          const wx2=c2*TS+camX,ry2=r2*TS+camY;
-          // Draw stall indicator for occupied stalls
-          const stallIdx=Math.floor((r2-zone.row)*zone.w+(c2-zone.col));
-          const stall=zone.stalls[Math.floor(stallIdx/4)];
-          if(stall&&stallIdx%4===0){
-            // Stall canopy
-            X.fillStyle='rgba(180,140,40,0.7)';X.fillRect(wx2+4,ry2+4,TS-8,TS-8);
-            X.fillStyle='rgba(220,180,60,0.9)';X.fillRect(wx2+4,ry2+4,TS-8,10);
-            X.font='14px serif';X.textAlign='center';
-            X.fillText(stall.icon||'🛒',wx2+TS/2,ry2+TS/2+5);
-            // Price tag
-            X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(wx2+2,ry2+TS-14,TS-4,12);
-            X.fillStyle='#f0d060';X.font='8px monospace';X.textAlign='center';
-            X.fillText(stall.price+'g',wx2+TS/2,ry2+TS-5);
-          } else if(!stall&&zone.stalls.length===0){
-            // Empty stall spot
-            X.fillStyle='rgba(100,80,20,0.3)';X.fillRect(wx2+8,ry2+8,TS-16,TS-16);
-            X.strokeStyle='rgba(150,120,40,0.4)';X.lineWidth=1;X.setLineDash([3,3]);
-            X.strokeRect(wx2+8,ry2+8,TS-16,TS-16);X.setLineDash([]);
+          const wx2=c2*TS+camX, ry2=r2*TS+camY;
+          // Each stall occupies one tile - use tile position to get stall index
+          const si=(r2-zone.row)*zone.w+(c2-zone.col);
+          const stall=zone.stalls[Math.floor(si/2)]; // 1 stall per 2 tiles
+          const stallPhase=si%2; // 0=front/canopy, 1=back
+          const stallColors=['#e05030','#3060d0','#30a040','#d0a020','#9030b0','#d06020'];
+          const sc2=stallColors[Math.floor(si/2)%stallColors.length];
+
+          if(stallPhase===0){
+            // ── STALL FRONT: table + canopy ──
+            // Table surface
+            X.fillStyle='#c8a060';X.fillRect(wx2+2,ry2+TS-22,TS-4,14);
+            X.fillStyle='#a07840';X.fillRect(wx2+2,ry2+TS-24,TS-4,3);
+            // Table legs
+            X.fillStyle='#7a5020';
+            X.fillRect(wx2+4,ry2+TS-10,4,10);X.fillRect(wx2+TS-8,ry2+TS-10,4,10);
+            // Goods on table
+            if(stall){
+              X.font='13px serif';X.textAlign='center';
+              X.fillText(stall.icon||'🛒',wx2+TS/2-8,ry2+TS-12);
+              X.fillText(stall.icon||'🛒',wx2+TS/2+8,ry2+TS-12);
+              // Price tag
+              X.fillStyle='rgba(255,250,200,0.95)';X.fillRect(wx2+6,ry2+TS-36,TS-12,12);
+              X.fillStyle='#604010';X.font='bold 7px monospace';X.textAlign='center';
+              X.fillText(stall.price+'g',wx2+TS/2,ry2+TS-27);
+            } else {
+              X.font='11px serif';X.textAlign='center';X.fillText('?',wx2+TS/2,ry2+TS-12);
+            }
+            // Canopy poles
+            X.fillStyle='#8a6020';
+            X.fillRect(wx2+3,ry2+4,3,TS-26);X.fillRect(wx2+TS-6,ry2+4,3,TS-26);
+            // Canopy fabric (striped)
+            const stripes=4;
+            for(let si2=0;si2<stripes;si2++){
+              const sw=(TS-6)/stripes;
+              X.fillStyle=si2%2===0?sc2:'rgba(255,255,255,0.8)';
+              X.fillRect(wx2+3+si2*sw,ry2+4,sw,14);
+            }
+            // Canopy edge drape
+            X.fillStyle=sc2;
+            for(let di=0;di<5;di++){
+              const dy=Math.sin(di/4*Math.PI)*4;
+              X.fillRect(wx2+3+di*(TS-6)/5,ry2+16,Math.ceil((TS-6)/5),3+dy);
+            }
+            // Seller NPC (simple pixel figure)
+            if(stall){
+              const npcColors=['#c09060','#d0a070','#b08050'];
+              const nc=npcColors[Math.floor(si/2)%npcColors.length];
+              X.fillStyle=nc;X.beginPath();X.arc(wx2+TS/2,ry2+TS-32,5,0,Math.PI*2);X.fill();
+              X.fillStyle='#e0c090';X.fillRect(wx2+TS/2-5,ry2+TS-27,10,10);
+            }
+          } else {
+            // ── STALL BACK: storage boxes/crates behind table ──
+            X.fillStyle='#a07830';X.fillRect(wx2+4,ry2+TS-18,14,14);
+            X.fillStyle='#c09040';X.fillRect(wx2+5,ry2+TS-17,12,12);
+            X.strokeStyle='#7a5820';X.lineWidth=1;
+            X.strokeRect(wx2+4,ry2+TS-18,14,14);
+            X.beginPath();X.moveTo(wx2+11,ry2+TS-18);X.lineTo(wx2+11,ry2+TS-4);X.stroke();
+            X.beginPath();X.moveTo(wx2+4,ry2+TS-11);X.lineTo(wx2+18,ry2+TS-11);X.stroke();
+            // Second crate
+            X.fillStyle='#b08840';X.fillRect(wx2+TS-18,ry2+TS-14,12,12);
+            X.strokeStyle='#7a5820';X.strokeRect(wx2+TS-18,ry2+TS-14,12,12);
           }
         }
       }
@@ -6132,31 +6177,57 @@ function removeZoneTile(c,r){
 
 // ── MARKET ZONE DIALOG — click on cobblestone to see stalls ──
 function openMarketZoneDlg(c,r){
-  // Find which zone this tile belongs to
   const zone=G.marketZones.find(z=>c>=z.col&&c<z.col+z.w&&r>=z.row&&r<z.row+z.h);
-  if(!zone){openDlg('🏪 Market Square','Empty market square. Traders will arrive soon!',
+  if(!zone){openDlg('🏪 Market Square','Gunakan mode MARKET lalu drag untuk buat zona pasar.',
     [{l:'✖ Close',cls:'',fn:closeDialog}]); return;}
 
-  const stallCount=Math.floor(zone.w*zone.h/4);
-  let stallInfo=zone.stalls.length===0
-    ? 'No traders yet. They will arrive in a few days.'
-    : zone.stalls.map((s,i)=>`${s.icon||'🛒'} ${s.traderName}: ${s.label} ×${s.qty} @ ${s.price}g`).join('\n');
+  const maxStalls=Math.max(1,Math.floor(zone.w*zone.h/4));
 
-  const btns=[{l:'✖ Close',cls:'',fn:closeDialog}];
-  // Allow buying from active stalls
-  for(const s of zone.stalls){
-    btns.push({l:`Buy ${s.icon||'🛒'} ${s.label} (${s.price}g)`,cls:'ok',fn:()=>{
-      if((G.res.gold||0)<s.price){notify('Not enough gold!','err');return;}
-      G.res.gold-=s.price;
-      addR(s.res,s.qty);
-      s.qty=Math.max(0,s.qty-1);
-      if(s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==s);notify(`${s.traderName} sold out!`,'warn');}
-      else notify(`Bought ${s.icon||'🛒'} ${s.label} from ${s.traderName}!`,'ok');
-      updateUI();
-    }});
+  // Warga dengan job Trader otomatis buka lapak
+  const traderNPCs=NPCS.filter(n=>isAdult(n)&&n.job==='trader');
+  for(const t of traderNPCs){
+    const already=zone.stalls.some(s=>s.traderName===t.name);
+    if(!already&&zone.stalls.length<maxStalls){
+      const sellable=['food','meat','cloth','shoe','ale','bread','leather','honey','wood','stone'];
+      const best=sellable.reduce((a,b)=>(G.res[a]||0)>(G.res[b]||0)?a:b);
+      if((G.res[best]||0)>=5){
+        const g=TRADER_GOODS.find(g=>g.res===best)||TRADER_GOODS[0];
+        const qty=Math.min(10,Math.floor((G.res[best]||0)*0.3));
+        G.res[best]=Math.max(0,(G.res[best]||0)-qty);
+        zone.stalls.push({...g,traderName:t.name,qty,_isVillager:true});
+        notify('🛒 '+t.name+' buka lapak! Jual '+g.icon+' '+g.label,'ok');
+      }
+    }
   }
-  openDlg(`🏪 Market Square (${zone.w}×${zone.h})`,
-    `${zone.stalls.length}/${stallCount} stalls occupied\n\n${stallInfo}`, btns);
+
+  const btns=[];
+  if(zone.stalls.length===0){
+    btns.push({l:'⏳ Belum ada pedagang — assign job Trader!',cls:'',fn:()=>{}});
+  }
+  for(const s of zone.stalls){
+    const tag=s._isVillager?'👤 Warga':'🧑 Pedagang';
+    btns.push({l:s.icon+' '+s.label+' — '+s.price+'g  ('+tag+': '+s.traderName+' ×'+s.qty+')',cls:'ok',fn:(()=>{
+      const _s=s;
+      return ()=>{
+        if((G.res.gold||0)<_s.price){notify('Gold tidak cukup!','err');return;}
+        G.res.gold-=_s.price; addR(_s.res,1);
+        _s.qty=Math.max(0,_s.qty-1);
+        if(_s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==_s);notify(_s.traderName+' habis stok!','warn');}
+        else notify('✅ Beli '+_s.icon+' '+_s.label+' dari '+_s.traderName+'!','ok');
+        updateUI(); closeDialog(); setTimeout(()=>openMarketZoneDlg(c,r),50);
+      };
+    })()});
+  }
+
+  const villagers=zone.stalls.filter(s=>s._isVillager).map(s=>s.traderName).join(', ')||'Tidak ada';
+  const travelers=zone.stalls.filter(s=>!s._isVillager).map(s=>s.traderName).join(', ')||'Tidak ada';
+  btns.push({l:'✖ Close',cls:'',fn:closeDialog});
+  openDlg('🏪 Pasar ('+zone.w+'×'+zone.h+' tiles)',
+    'Lapak: '+zone.stalls.length+'/'+maxStalls+' terisi\n'
+    +'👤 Warga berjualan: '+villagers+'\n'
+    +'🧑 Pedagang luar: '+travelers+'\n'
+    +'\nTip: Assign job Trader ke warga untuk buka lapak!',
+    btns);
 }
 
 function openFarmZoneDlg(c,r){
