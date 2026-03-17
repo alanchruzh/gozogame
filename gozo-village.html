@@ -3360,7 +3360,6 @@ function updateUI(){
   // Health & hospital
   const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
   // Regional Wealth & Treasury HUD
-  const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
   const _trd=document.getElementById('trs-display');if(_trd)_trd.textContent=Math.floor(G.res.treasury||0);
   upPop();
   const adults=getAdults().length;
@@ -4906,7 +4905,14 @@ function render(){
     X.fillText(`${q.icon} ${q.title.slice(0,22)}`,CV.width-6,HH+14);
   }
 
-  } catch(e){ console.error('render error:',e); }
+  } catch(e){
+    console.error('render error:',e);
+    X.setTransform(1,0,0,1,0,0);
+    X.fillStyle='rgba(180,0,0,0.85)';X.fillRect(0,HH,CV.width,60);
+    X.fillStyle='#fff';X.font='11px monospace';X.textAlign='left';
+    X.fillText('RENDER ERROR: '+e.message,8,HH+20);
+    X.fillText(e.stack?.split('\n')[1]||'',8,HH+38);
+  }
   finally{ X.restore(); }
 }
 
