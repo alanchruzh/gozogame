@@ -289,6 +289,7 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
     <div class="res" title="Wool — from sheep pen or sheep farm">🐑<b id="rwool">0</b></div>
     <div class="res" title="Milk — from cow shed backyard">🥛<b id="rmilk">0</b></div>
+    <div class="res" title="Fish — caught by Fishers at lakes">🐟<b id="rfish">0</b></div>
     <div class="res" title="Ale — from Malthouse">🍺<b id="rale2">0</b></div>
     <div class="res" title="Bread — from Bakery">🍞<b id="rbrd2">0</b></div>
     <div class="res" title="Cloth — from Weaver">🧵<b id="rclth2">0</b></div>
@@ -574,6 +575,7 @@ const G={
 let buildType=null;
 let buildRotation=0; // 0=N, 1=E, 2=S, 3=W (90° steps)
 let camX=0,camY=0;
+let _gameStarted=false; // set true when game launches from title screen
 let _screenShake=0;  // frames remaining of shake
 let _particles=[];   // [{x,y,vx,vy,life,maxLife,color,size,type}]
 let _showFertility=false;
@@ -909,6 +911,7 @@ let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
+let _depositNotified=new Set(); // tracks which deposits player has been notified about
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
@@ -930,7 +933,7 @@ function buildWorld(){
   const OV=2; // overlap pixels each side
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
     if(!MAP[r]||!MAP[r][c])continue;
-    drawTileTexture(W,MAP[r][c].t,c,r,c*TS-OV,r*TS-OV,TS+OV*2,TS+OV*2);
+    drawTileTexture(W,MAP[r][c].t,c,r,c*TS-OV,r*TS-OV,TS+OV*2,TS+OV*2,MAP[r][c].decor);
   }
 
   // Step 2: autotile transitions
@@ -956,16 +959,31 @@ function buildWorld(){
         const skipU=r>0&&MAP[r-1][c]&&MAP[r-1][c].decor==='tree';
         if(!skipL||!skipU||v>0.55) drawTreeOnCtx(W,sx,sy,v);
       } else if(tile.decor==='rock'){
-        drawRockOnCtx(W,sx,sy,v);
-        // Quarry scaffold for stone deposits near quarry buildings
-        const nearQuarry=G.bld.some(b=>b.type==='quarry'&&Math.hypot(b.col-c,b.row-r)<4);
-        if(nearQuarry) drawDepositStatic(W,sx,sy,'stone');
+        // STONE_G tile texture draws the open pit — no overlay needed
       } else if(tile.decor==='coal_deposit'){
-        // drawDepositStatic draws the full coal pit — no need for rock base
-        drawDepositStatic(W,sx,sy,'coal');
+        // Tile texture draws coal pit — just add ore veins on top
+        const vx=hh(c*3+1,r*2+7);
+        W.save();W.beginPath();W.rect(sx,sy,TS,TS);W.clip();
+        W.fillStyle='rgba(8,8,12,0.88)';
+        W.fillRect(sx+8,sy+14,16,6);W.fillRect(sx+32,sy+18,12,5);W.fillRect(sx+20,sy+10,10,4);
+        W.fillStyle='rgba(60,60,90,0.5)';
+        W.fillRect(sx+9,sy+15,7,3);W.fillRect(sx+33,sy+19,5,2);
+        W.fillStyle='#141010';
+        for(let i=0;i<5;i++)W.fillRect(sx+4+i*11,sy+TS-13+(vx*4|0),(4+vx*3)|0,3);
+        W.restore();
       } else if(tile.decor==='iron_deposit'){
-        // drawDepositStatic draws the full iron pit — no need for rock base
-        drawDepositStatic(W,sx,sy,'iron');
+        // Tile texture draws iron pit — just add ore veins on top
+        const vx=hh(c*3+1,r*2+7);
+        W.save();W.beginPath();W.rect(sx,sy,TS,TS);W.clip();
+        W.fillStyle='rgba(160,55,15,0.88)';
+        W.fillRect(sx+7,sy+14,18,6);W.fillRect(sx+32,sy+17,12,5);
+        W.fillStyle='rgba(210,90,25,0.7)';
+        W.fillRect(sx+20,sy+10,10,4);W.fillRect(sx+10,sy+24,9,4);
+        W.fillStyle='rgba(240,140,50,0.45)';
+        W.fillRect(sx+8,sy+15,5,3);W.fillRect(sx+33,sy+18,4,3);
+        W.fillStyle='#5a2808';
+        for(let i=0;i<5;i++)W.fillRect(sx+4+i*11,sy+TS-13+(vx*4|0),(4+vx*3)|0,3);
+        W.restore();
       } else if(tile.decor==='bush'){
         drawBushOnCtx(W,sx,sy,v);
       } else if(tile.decor==='berry_bush'){
@@ -974,7 +992,7 @@ function buildWorld(){
     }
   }}
 
-function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
+function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
   const v=sh(c,r), v2=hh(c*3+5,r*2+8), v3=hh(c+50,r+50);
   const g=v*20|0;
 
@@ -1064,44 +1082,45 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
     const isInterior=neighborCount>=3;
     const isDeepCenter=neighborCount===4;
 
+    const isCoalDep=decor==='coal_deposit';
+    const isIronDep=decor==='iron_deposit';
+
+    // Clip to tile to prevent bleed
+    W.save();
+    W.beginPath();W.rect(sx,sy,tw_,th_);W.clip();
+
+    // Color palette per deposit type
+    const deepCol =isCoalDep?`rgb(${22+v*5|0},${18+v*4|0},${14+v*3|0})`:
+                   isIronDep?`rgb(${38+v*8|0},${18+v*4|0},${8+v*2|0})`:
+                              `rgb(${38+v*8|0},${34+v*6|0},${26+v*5|0})`;
+    const midCol  =isCoalDep?`rgb(${35+v*8|0},${28+v*6|0},${20+v*4|0})`:
+                   isIronDep?`rgb(${58+v*10|0},${28+v*6|0},${12+v*4|0})`:
+                              `rgb(${58+v*12|0},${52+v*10|0},${42+v*8|0})`;
+    const rimCol  =isCoalDep?`rgb(${55+v*12|0},${45+v*10|0},${32+v*8|0})`:
+                   isIronDep?`rgb(${88+v*14|0},${48+v*10|0},${22+v*6|0})`:
+                              `rgb(${105+v*18|0},${98+v*15|0},${82+v*12|0})`;
+
     if(isDeepCenter){
-      // Deep pit floor — very dark
-      W.fillStyle=`rgb(${42+v*8|0},${38+v*6|0},${30+v*5|0})`;
-      W.fillRect(sx,sy,tw_,th_);
-      // Dust/debris on floor
-      W.fillStyle='rgba(80,74,60,0.4)';
-      W.beginPath();W.ellipse(sx+tw_*0.5,sy+th_*0.5,tw_*0.35,th_*0.3,v*2,0,Math.PI*2);W.fill();
+      W.fillStyle=deepCol; W.fillRect(sx,sy,tw_,th_);
+      W.fillStyle='rgba(0,0,0,0.35)'; W.fillRect(sx+tw_*0.2,sy+th_*0.2,tw_*0.6,th_*0.6);
     } else if(isInterior){
-      // Mid-pit — dark rocky floor
-      W.fillStyle=`rgb(${65+v*12|0},${60+v*10|0},${50+v*8|0})`;
-      W.fillRect(sx,sy,tw_,th_);
-      // Rocky texture
-      W.fillStyle='rgba(90,84,68,0.5)';
-      for(let i=0;i<3;i++){
-        const rx=sx+tw_*(0.2+v*(0.3+i*0.2)), ry=sy+th_*(0.15+v2*(0.3+i*0.15));
-        W.beginPath();W.ellipse(rx,ry,tw_*(0.08+v*0.06),th_*(0.06+v2*0.05),(i+v)*1.2,0,Math.PI*2);W.fill();
-      }
+      W.fillStyle=midCol; W.fillRect(sx,sy,tw_,th_);
+      W.fillStyle='rgba(0,0,0,0.25)';
+      W.fillRect(sx+tw_*0.1,sy+th_*0.1,tw_*0.4,th_*0.35);
+      W.fillRect(sx+tw_*0.5,sy+th_*0.45,tw_*0.35,tw_*0.3);
     } else {
-      // Pit wall/rim — lighter stone with depth gradient
-      const rimLight=`rgb(${110+v*18|0},${104+v*16|0},${88+v*12|0})`;
-      const rimDark=`rgb(${78+v*12|0},${72+v*10|0},${60+v*8|0})`;
-      W.fillStyle=rimLight; W.fillRect(sx,sy,tw_,th_);
-      // Darker toward interior
-      if(hasStoneN){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx,sy,tw_,th_*0.45);}
-      if(hasStoneS){W.fillStyle='rgba(0,0,0,0.18)';W.fillRect(sx,sy+th_*0.55,tw_,th_*0.45);}
-      if(hasStoneE){W.fillStyle='rgba(0,0,0,0.18)';W.fillRect(sx+tw_*0.55,sy,tw_*0.45,th_);}
-      if(hasStoneW){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx,sy,tw_*0.45,th_);}
-      // Rocky surface texture
-      W.fillStyle=`rgba(140,134,118,${0.3+v*0.2})`;
-      W.beginPath();W.ellipse(sx+tw_*0.3,sy+th_*0.35,tw_*0.18,th_*0.14,v*1.5,0,Math.PI*2);W.fill();
-      W.fillStyle=`rgba(160,154,138,${0.25+v2*0.15})`;
-      W.beginPath();W.ellipse(sx+tw_*0.65,sy+th_*0.6,tw_*0.14,th_*0.12,-v*1.2,0,Math.PI*2);W.fill();
-      // Stone chunks on rim
-      W.fillStyle=`rgba(90,86,74,0.55)`;
-      W.beginPath();W.ellipse(sx+tw_*(0.2+v2*0.2),sy+th_*(0.6+v*0.2),tw_*0.12,th_*0.09,v*2,0,Math.PI*2);W.fill();
+      W.fillStyle=rimCol; W.fillRect(sx,sy,tw_,th_);
+      if(hasStoneN){W.fillStyle='rgba(0,0,0,0.28)';W.fillRect(sx,sy,tw_,th_*0.5);}
+      if(hasStoneS){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx,sy+th_*0.5,tw_,th_*0.5);}
+      if(hasStoneE){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx+tw_*0.5,sy,tw_*0.5,th_);}
+      if(hasStoneW){W.fillStyle='rgba(0,0,0,0.28)';W.fillRect(sx,sy,tw_*0.5,th_);}
+      // Surface detail rects
+      W.fillStyle=isCoalDep?'rgba(20,18,14,0.5)':isIronDep?'rgba(140,55,15,0.45)':'rgba(130,124,108,0.45)';
+      W.fillRect(sx+tw_*0.15,sy+th_*0.25,tw_*0.22,th_*0.18);
+      W.fillRect(sx+tw_*0.55,sy+th_*0.55,tw_*0.18,th_*0.15);
     }
-    // Slight top highlight on all stone tiles
-    W.fillStyle='rgba(255,255,255,0.03)';W.fillRect(sx,sy,tw_,th_*0.25);
+    W.fillStyle='rgba(255,255,255,0.02)';W.fillRect(sx,sy,tw_,th_*0.3);
+    W.restore();
 
   } else if(type===T.SAND){
     const sg=v*14|0;
@@ -1190,14 +1209,49 @@ function animateWater(){
     if(!MAP[r]||!MAP[r][c])continue;
     if(MAP[r][c].t!==T.WATER)continue;
     const v=sh(c,r),g=v*10|0,sx=c*TS,sy=r*TS;
-    const w=Math.sin(t*0.9+c*0.5+r*0.4);
-    W.fillStyle=`rgb(${48+g+(w*3|0)},${112+g+(w*5|0)},${200+g+(w*2|0)})`;
+    // Deeper, calmer lake water color (less blue-grey than river)
+    const w=Math.sin(t*0.6+c*0.4+r*0.3)*0.5;
+    W.fillStyle=`rgb(${38+g+(w*2|0)},${98+g+(w*4|0)},${185+g+(w*2|0)})`;
     W.fillRect(sx,sy,TS,TS);
-    W.fillStyle=`rgba(20,70,160,${0.08+sh(c,r)*0.07})`;
-    W.beginPath();W.ellipse(sx+TS*(0.35+v*0.3),sy+TS*(0.35+sh(c,r)*0.3),TS*0.26+v*8,TS*0.2+v*6,v*2,0,Math.PI*2);W.fill();
-    const ry=((t*22+r*TS)%TS)|0;
-    W.fillStyle='rgba(175,225,255,0.13)';W.fillRect(sx,sy+ry,TS,2);
-    W.fillRect(sx,sy+(ry+TS/2|0)%TS,TS,1);
+    // Subtle depth shadow in center of water body
+    const neighbors=['N','S','E','W'].filter(d=>{
+      const nr=d==='N'?r-1:d==='S'?r+1:r;
+      const nc=d==='W'?c-1:d==='E'?c+1:c;
+      return nr>=0&&nr<WR&&nc>=0&&nc<WC&&MAP[nr][nc].t===T.WATER;
+    }).length;
+    if(neighbors>=3){
+      W.fillStyle=`rgba(0,20,60,${0.12+v*0.08})`;
+      W.fillRect(sx,sy,TS,TS);
+    }
+    // Gentle ripples
+    const ry=((t*16+r*TS+c*7)%TS)|0;
+    W.fillStyle='rgba(160,210,255,0.1)';W.fillRect(sx,sy+ry,TS,2);
+    // Lily pad (random on some tiles)
+    const lilyV=sh(c*3+7,r*5+2);
+    if(lilyV>0.78){
+      const lx=sx+TS*(0.2+v*0.5), ly=sy+TS*(0.3+lilyV*0.3);
+      const ls=5+v*4;
+      W.fillStyle='rgba(30,120,20,0.75)';
+      W.beginPath();W.ellipse(lx,ly,ls,ls*0.7,v*2,0,Math.PI*2);W.fill();
+      W.fillStyle='rgba(50,160,30,0.5)';
+      W.beginPath();W.ellipse(lx-1,ly-1,ls*0.6,ls*0.5,v*2,0,Math.PI*2);W.fill();
+      // Lily flower
+      if(lilyV>0.87){
+        W.fillStyle='rgba(255,220,200,0.85)';
+        W.beginPath();W.arc(lx,ly,2.5,0,Math.PI*2);W.fill();
+      }
+    }
+    // Animated fish (on some tiles, swimming)
+    const fishV=sh(c*7+t*0.3|0,r*3+t*0.2|0);
+    if(fishV>0.91){
+      const fx=sx+TS*(0.3+(Math.sin(t*1.2+c)*0.35));
+      const fy=sy+TS*(0.4+(Math.cos(t*0.8+r)*0.25));
+      W.fillStyle='rgba(255,200,50,0.7)';
+      W.beginPath();W.ellipse(fx,fy,5,3,Math.sin(t+c)*0.5,0,Math.PI*2);W.fill();
+      // Fish tail
+      W.fillStyle='rgba(255,180,30,0.6)';
+      W.beginPath();W.moveTo(fx-5,fy);W.lineTo(fx-9,fy-3);W.lineTo(fx-9,fy+3);W.closePath();W.fill();
+    }
   }
 }
 
@@ -1214,7 +1268,7 @@ function genMap(){
   G.res={wood:30,stone:15,food:20,meat:0,coal:0,iron:0,gold:20,cloth:0,
     leather:0,shoe:0,ale:0,beer:0,plank:0,metal:0,weapon:0,armor:0,
     cloak:0,egg:0,honey:0,berry:0,wheat:0,flour:0,bread:0,
-    wool:0,milk:0,
+    wool:0,milk:0,fish:0,
     regional_wealth:200,wealth:0};
   G.pop=0;G.cap=6;G.happy=80;G.health=70;
   G.day=1;G.hr=6;G.mn=0;G.yr=1;G.season=0;
@@ -1227,6 +1281,8 @@ function genMap(){
   BERRY_STATE={};
   SAPLINGS={};
   DEPOSIT_STATE={};
+  _depositNotified=new Set();
+  _waterSpots=null; // reset so fisher recalculates lake spots
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
@@ -1239,18 +1295,44 @@ function genMap(){
   // Re-seed R so genMap is deterministic from WORLD_SEED
   R=rng(WORLD_SEED);
 
-  // ── RIVER — random starting column (left quarter of map) ──
-  const riverCol=3+Math.floor(R()*4); // col 3-6
-  const riverWiggle=Math.floor(R()*3); // 0-2 extra wobble
-  for(let r=3;r<WR-3;r++){
-    if(!MAP[r]||!MAP[r][riverCol])continue;
-    MAP[r][riverCol].t=T.WATER;
-    if(riverCol+1<WC) MAP[r][riverCol+1].t=T.WATER;
-    if(r%5===0){
-      if(riverCol-1>=0) MAP[r][riverCol-1].t=T.WATER;
-      if(riverCol+2<WC) MAP[r][riverCol+2].t=T.WATER;
+  // ── LAKES — 2-3 small lakes scattered around map ──
+  const numLakes=2+Math.floor(R()*2); // 2-3 lakes
+  const lakeDefs=[];
+  for(let li=0;li<numLakes;li++){
+    let lc,lr,lw,lh,ok=false,attempts=0;
+    while(!ok&&attempts<50){
+      attempts++;
+      lw=3+Math.floor(R()*4); // 3-6 tiles wide
+      lh=3+Math.floor(R()*3); // 3-5 tiles tall
+      lc=4+Math.floor(R()*(WC-lw-8));
+      lr=4+Math.floor(R()*(WR-lh-8));
+      // Keep away from center (campfire area)
+      if(Math.abs(lc+lw/2-mc)<8&&Math.abs(lr+lh/2-mr)<8) continue;
+      // Keep away from other lakes
+      if(lakeDefs.some(l=>Math.abs(l.c-lc)<8&&Math.abs(l.r-lr)<8)) continue;
+      ok=true;
     }
-    if(r%7===0&&riverWiggle>1&&riverCol+2<WC) MAP[r][riverCol+2].t=T.WATER;
+    if(!ok) continue;
+    lakeDefs.push({c:lc,r:lr,w:lw,h:lh});
+    // Fill lake tiles with WATER using elliptical shape
+    const lcx=lc+lw/2, lcy=lr+lh/2;
+    for(let dr=0;dr<lh+2;dr++) for(let dc=0;dc<lw+2;dc++){
+      const tr=lr+dr-1, tc=lc+dc-1;
+      if(tr<1||tr>=WR-1||tc<1||tc>=WC-1) continue;
+      // Ellipse check for natural lake shape
+      const nx=(dc-lw/2)/(lw/2+0.5), ny=(dr-lh/2)/(lh/2+0.5);
+      if(nx*nx+ny*ny<=1+R()*0.15){
+        if(!MAP[tr]||!MAP[tr][tc]) continue;
+        MAP[tr][tc].t=T.WATER;
+        MAP[tr][tc].decor=null;
+      }
+    }
+    // Sandy beach around lake
+    for(let dr=-1;dr<=lh+1;dr++) for(let dc=-1;dc<=lw+1;dc++){
+      const tr=lr+dr, tc=lc+dc;
+      if(tr<0||tr>=WR||tc<0||tc>=WC) continue;
+      if(MAP[tr][tc].t!==T.WATER) MAP[tr][tc].t=T.SAND;
+    }
   }
 
   // ── FOREST ZONES — 2-4 random zones around edges ──
@@ -1349,17 +1431,8 @@ function genMap(){
     if(MAP[r][c].t===T.PATH) MAP[r][c].decor=null;
   }
 
-  // ── BIOME ZONES — sandy beach along river, stone mountain patches ──
-  // Sandy beach strip along river banks
-  for(let r=2;r<WR-2;r++){
-    for(let dc=0;dc<=2;dc++){
-      const c=riverCol+2+dc;
-      if(c>=WC)continue;
-      if(MAP[r][c]&&MAP[r][c].t===T.GRASS&&!MAP[r][c].bld&&R()>0.4){
-        MAP[r][c].t=T.SAND;
-      }
-    }
-  }
+  // ── BIOME ZONES — stone mountain patches ──
+  // (River removed — lakes have their own sand beaches)
   // Mountain/highland zone — random elevated area with stone
   const mtCol=Math.floor(R()*(WC-18))+10, mtRow=Math.floor(R()*(WR-14))+4;
   for(let dr=0;dr<8;dr++) for(let dc=0;dc<10;dc++){
@@ -1481,112 +1554,64 @@ function drawTreeOnCtx(ctx,wx,wy,v){
 function drawTree(wx,wy,v){ drawTreeOnCtx(X,wx,wy,v); }
 
 // ── DEPOSIT OVERLAY — drawn on top of rock to show mineral type ──
-// Static deposit tile rendering — coal/iron open pit style (replaces rock + vein overlay)
+// Static deposit overlay — scaffold, rails, ore veins (pit floor drawn by tile texture)
 function drawDepositStatic(ctx,sx,sy,type){
   const cx=sx+TS/2|0, bot=sy+TS;
   const v=((Math.sin(cx*0.317+bot*0.513)*43758)%1+1)%1;
   const v2=((Math.sin(cx*0.7+bot*1.1)*12345)%1+1)%1;
 
-  // ── PIT FLOOR — color depends on ore type ──
-  const floorCol  =type==='coal'?'#1a1510':type==='iron'?'#2a1808':'#1a1510';
-  const midCol    =type==='coal'?'#252015':type==='iron'?'#361e0a':'#252015';
-  const innerCol  =type==='coal'?'#181210':type==='iron'?'#281404':'#181210';
-  const rimCol    =type==='coal'?'#3a3028':type==='iron'?'#4a2a12':'#3a3028';
-  const rimLight  =type==='coal'?'#504438':type==='iron'?'#6a3c18':'#504438';
-
-  // Outer rim — packed excavated earth
-  ctx.fillStyle=rimLight;
-  ctx.beginPath();ctx.ellipse(cx,bot-16,30,18,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=rimCol;
-  ctx.beginPath();ctx.ellipse(cx+2,bot-18,26,15,0,0,Math.PI*2);ctx.fill();
-
-  // Mid level
-  ctx.fillStyle=midCol;
-  ctx.beginPath();ctx.ellipse(cx+2,bot-20,21,13,0,0,Math.PI*2);ctx.fill();
-
-  // Inner pit
-  ctx.fillStyle=floorCol;
-  ctx.beginPath();ctx.ellipse(cx+2,bot-22,16,10,0,0,Math.PI*2);ctx.fill();
-
-  // Deep center
-  ctx.fillStyle=innerCol;
-  ctx.beginPath();ctx.ellipse(cx+3,bot-24,10,7,0,0,Math.PI*2);ctx.fill();
+  // Clip ore veins to tile
+  ctx.save();
+  ctx.beginPath();ctx.rect(sx,sy,TS,TS);ctx.clip();
 
   // ── ORE VEINS exposed in pit walls ──
   if(type==='coal'){
-    // Glossy black coal seams
-    ctx.fillStyle='rgba(8,8,12,0.95)';
-    ctx.beginPath();ctx.ellipse(cx-9,bot-19,10,4,0.4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx+7,bot-17,8,3,-0.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx-3,bot-23,7,3,0.1,0,Math.PI*2);ctx.fill();
-    // Shiny glint on coal
-    ctx.fillStyle='rgba(80,80,110,0.5)';
-    ctx.beginPath();ctx.ellipse(cx-8,bot-20,3,1.5,0.4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx+7,bot-18,2,1.5,-0.3,0,Math.PI*2);ctx.fill();
-    // Rubble chunks on rim
-    ctx.fillStyle='#282018';
-    for(let i=0;i<4;i++){
-      const rx=cx-12+i*8+v2*4, ry=bot-12+v*3;
-      ctx.beginPath();ctx.ellipse(rx,ry,3+v*2,2+v2*1.5,i*0.6,0,Math.PI*2);ctx.fill();
-    }
+    ctx.fillStyle='rgba(8,8,12,0.9)';
+    ctx.fillRect(sx+8,sy+12,18,7);
+    ctx.fillRect(sx+34,sy+16,14,6);
+    ctx.fillRect(sx+20,sy+8,12,5);
+    ctx.fillStyle='rgba(70,70,100,0.5)';
+    ctx.fillRect(sx+9,sy+13,8,3);
+    ctx.fillRect(sx+35,sy+17,6,3);
+    // Coal rubble
+    ctx.fillStyle='#1a1410';
+    for(let i=0;i<5;i++)
+      ctx.fillRect(sx+4+i*11+(v2*4|0), bot-12+(v*4|0), (4+v*3)|0, (3+v2*2)|0);
   } else if(type==='iron'){
-    // Rust-red iron ore streaks
     ctx.fillStyle='rgba(160,55,15,0.9)';
-    ctx.beginPath();ctx.ellipse(cx-8,bot-19,10,4,0.5,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx+6,bot-17,8,3,-0.3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(210,90,25,0.75)';
-    ctx.beginPath();ctx.ellipse(cx-2,bot-22,7,3,0.2,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(sx+7,sy+12,20,7);
+    ctx.fillRect(sx+34,sy+15,14,6);
+    ctx.fillStyle='rgba(210,90,25,0.7)';
+    ctx.fillRect(sx+20,sy+8,12,5);
+    ctx.fillRect(sx+10,sy+22,10,5);
     ctx.fillStyle='rgba(240,140,50,0.5)';
-    ctx.beginPath();ctx.ellipse(cx+4,bot-20,4,2,-0.2,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx-6,bot-18,3,2,0.5,0,Math.PI*2);ctx.fill();
-    // Reddish rock chunks on rim
+    ctx.fillRect(sx+8,sy+13,6,3);
+    ctx.fillRect(sx+35,sy+16,5,3);
+    // Iron ore rubble
     ctx.fillStyle='#5a2808';
-    for(let i=0;i<4;i++){
-      const rx=cx-12+i*8+v2*4, ry=bot-11+v*3;
-      ctx.beginPath();ctx.ellipse(rx,ry,3+v*2,2.5+v2,i*0.5,0,Math.PI*2);ctx.fill();
-    }
-    // Metallic glint
-    ctx.fillStyle='rgba(230,160,80,0.45)';
-    ctx.beginPath();ctx.ellipse(cx-7,bot-20,2,1.5,0.5,0,Math.PI*2);ctx.fill();
+    for(let i=0;i<5;i++)
+      ctx.fillRect(sx+4+i*11+(v2*4|0), bot-12+(v*4|0), (4+v*3)|0, (3+v2*2)|0);
   }
+  ctx.restore();
 
-  // ── SCAFFOLD HEADFRAME (one per tile group — draw on every tile for simplicity) ──
+  // ── SCAFFOLD HEADFRAME ──
   ctx.fillStyle='#6a4010';
-  ctx.fillRect(cx-2,sy+2,4,TS-18);
-  ctx.fillRect(cx-13,sy+2,26,4);
+  ctx.fillRect(cx-2,sy,4,TS-18);
+  ctx.fillRect(cx-13,sy,26,4);
   ctx.strokeStyle='#5a3010';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cx-13,sy+6);ctx.lineTo(cx-2,sy+20);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+13,sy+6);ctx.lineTo(cx+2,sy+20);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-13,sy+4);ctx.lineTo(cx-2,sy+18);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+13,sy+4);ctx.lineTo(cx+2,sy+18);ctx.stroke();
 
   // ── RAILS ──
   ctx.strokeStyle='#787060';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cx-20,bot-9);ctx.lineTo(cx+20,bot-9);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-20,bot-5);ctx.lineTo(cx+20,bot-5);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx+4,bot-9);ctx.lineTo(sx+TS-4,bot-9);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(sx+4,bot-5);ctx.lineTo(sx+TS-4,bot-5);ctx.stroke();
   ctx.fillStyle='#5a3810';
-  for(let i=-16;i<=16;i+=8)ctx.fillRect(cx+i-1,bot-11,3,7);
+  for(let i=4;i<TS-4;i+=10)ctx.fillRect(sx+i,bot-11,3,7);
 
   // Pulley rope
   ctx.strokeStyle='rgba(160,120,60,0.55)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(cx,sy+6);ctx.lineTo(cx,bot-20);ctx.stroke();
-}
-
-// Animated part drawn live each frame (cart movement)
-function drawDepositOverlay(ctx,sx,sy,type){
-  const cx=sx+TS/2|0, bot=sy+TS;
-  const cartT=(Date.now()/2500)%1;
-  const cartX=cx-12+cartT*24;
-
-  ctx.fillStyle='#3a2c1a';ctx.fillRect(cartX-6,bot-18,12,8);
-  ctx.fillStyle='#2a1c0a';ctx.fillRect(cartX-7,bot-19,14,4);
-  ctx.fillStyle='#484030';
-  ctx.beginPath();ctx.arc(cartX-4,bot-10,2.5,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(cartX+4,bot-10,2.5,0,Math.PI*2);ctx.fill();
-  if(type==='coal'){
-    ctx.fillStyle='#111008';ctx.fillRect(cartX-5,bot-19,10,4);
-  } else {
-    ctx.fillStyle='#8a3a10';ctx.fillRect(cartX-5,bot-19,10,4);
-    ctx.fillStyle='rgba(200,100,40,0.6)';ctx.fillRect(cartX-4,bot-20,8,3);
-  }
+  ctx.beginPath();ctx.moveTo(cx,sy+4);ctx.lineTo(cx,bot-18);ctx.stroke();
 }
 function drawBushOnCtx(ctx,wx,wy,v){
   const X2=ctx, cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
@@ -3323,7 +3348,7 @@ const JOBS={
   smelter:{n:'Smelter',  e:'🔥',prod:{metal:1},  req:'smelter',  mult:null},
   trader: {n:'Trader', e:'💰',prod:{gold:2},   req:'market',   mult:null},
   builder:{n:'Builder',  e:'🔨',prod:{wood:1,stone:1},req:null,mult:null},
-  fisher: {n:'Fisher',  e:'🎣',prod:{food:2},   req:null,       mult:null},
+  fisher: {n:'Fisher',  e:'🎣',prod:{fish:2,food:1}, req:null, mult:null},
   hunter: {n:'Hunter',  e:'🏹',prod:{meat:2,food:1},req:'hunting', mult:null},
 };
 
@@ -3566,6 +3591,7 @@ function updateUI(){
   const _rhny=document.getElementById('rhny');if(_rhny)_rhny.textContent=G.res.honey||0;
   const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
   const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
+  const _rfish=document.getElementById('rfish');if(_rfish)_rfish.textContent=G.res.fish||0;
   const _rberry2=document.getElementById('rberry');if(_rberry2)_rberry2.textContent=G.res.berry||0;
   // Health & hospital
   const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
@@ -3845,8 +3871,14 @@ function doProd(){
   // Campfire/homeless settlers also need food (0.3 per person per tick)
   const homelessNPCs=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'));
   foodNeed+=Math.ceil(homelessNPCs.length*0.3);
-  if(G.res.food>=foodNeed)G.res.food-=foodNeed;
-  else{G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
+  // Fish also counts as food — use fish first if food is low
+  const totalFood=(G.res.food||0)+(G.res.fish||0);
+  if(totalFood>=foodNeed){
+    // Consume fish first, then food
+    const fishUse=Math.min(G.res.fish||0,foodNeed);
+    G.res.fish=Math.max(0,(G.res.fish||0)-fishUse);
+    G.res.food=Math.max(0,(G.res.food||0)-(foodNeed-fishUse));
+  } else {G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
   if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal-=coalNeed;else G.happy=Math.max(10,G.happy-3);}
   if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth-=clothNeed;else{G.happy=Math.max(10,G.happy-3);notify('👘 Need clothing!','warn');}}
   if(beerNeed>0&&(G.res.beer||0)>=beerNeed){G.res.beer-=beerNeed;G.happy=Math.min(100,G.happy+1);}
@@ -4946,12 +4978,18 @@ function render(){
     for(let c2=sc;c2<ec;c2++){
       if(!MAP[r2]||!MAP[r2][c2])continue;
       const tile=MAP[r2][c2],wx=c2*TS+camX;
-      // Draw berry bushes live (so depleted state shows correctly)
-      // Deposit animated cart (drawn live) + proximity label
+      // Stone deposit proximity notification
+      if(tile.t===T.STONE_G&&tile.decor==='rock'){
+        const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
+        const key='rock:'+c2+','+r2;
+        if(pdist<TS*2&&!_depositNotified.has(key)){
+          _depositNotified.add(key);
+          notify('🪨 Stone Deposit discovered! Build a Quarry nearby to mine.','ok');
+        }
+      }
+      // Deposit proximity label only (no animated overlay)
       if(tile.decor==='coal_deposit'||tile.decor==='iron_deposit'){
-        const dtype=tile.decor==='coal_deposit'?'coal':'iron';
-        drawDepositOverlay(X,wx,ry,dtype);
-        // Proximity label
+        // Proximity label + first-time notification
         const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
         if(pdist<TS*3){
           const key=c2+','+r2;
@@ -4964,6 +5002,12 @@ function render(){
           const richCol=pct>0.66?'#60e040':pct>0.33?'#e0c040':'#e06020';
           const icon=isCoal?'⚫':'⚙';
           const name=isCoal?'Coal Deposit':'Iron Deposit';
+
+          // One-time notification toast when first discovered
+          if(!_depositNotified.has(key)&&pdist<TS*2){
+            _depositNotified.add(key);
+            notify(`${icon} ${richness} ${name} discovered! (${qty} ore)`, 'ok');
+          }
           const alpha=Math.max(0,Math.min(1,(TS*3-pdist)/(TS*1.5)));
           X.globalAlpha=alpha;
           // Background panel
@@ -6575,6 +6619,7 @@ function openFarmZoneDlg(c,r){
 const TRADER_NAMES=['Ahmad','Bagas','Candra','Dimas','Eko','Fajar','Gilang','Hadi','Ivan','Jono'];
 const TRADER_GOODS=[
   {res:'food',  label:'Fresh Produce',icon:'🥬',qty:10,price:3},
+  {res:'fish',  label:'Fresh Fish',   icon:'🐟',qty:8, price:4},
   {res:'meat',  label:'Smoked Meat',  icon:'🥩',qty:5, price:5},
   {res:'cloth', label:'Fine Cloth',   icon:'🧵',qty:8, price:6},
   {res:'shoe',  label:'Leather Shoes',icon:'👟',qty:6, price:8},
@@ -7236,7 +7281,6 @@ function startAutosave(){
 //  TITLE SCREEN
 // ═══════════════════════════════════════════════════════
 
-let _gameStarted = false;
 
 function showTitleMenu(){
   document.getElementById('title-menu').style.display='flex';
