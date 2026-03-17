@@ -761,14 +761,11 @@ function checkPopGrowth(){
     const house=availHouses[Math.floor(Math.random()*availHouses.length)];
     const residents=NPCS.filter(n=>n.houseId===house.id);
     const newFamilyId=Math.max(...FAMILIES.map(f=>f.id),-1)+1;
-    const maleNames=['Arthur','Edmund','William','Thomas','Henry','George','Robert','James','Edward','Richard','John','Walter'];
-    const femNames=['Alice','Emma','Eleanor','Margaret','Catherine','Anne','Elizabeth','Mary','Agnes','Joan','Isabel','Grace'];
     const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
 
     if(residents.length===0){
-      // Full couple moves in
-      const mName=maleNames[Math.floor(Math.random()*maleNames.length)];
-      const fName=femNames[Math.floor(Math.random()*femNames.length)];
+      const mName=uniqueName(false);
+      const fName=uniqueName(true);
       NPCS.push({name:mName,x:hx-8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,65%)`,job:null,female:false,
         age:ADULT_DAYS+Math.floor(Math.random()*900),familyId:newFamilyId,pregnant:0,houseId:house.id});
       NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,72%)`,job:null,female:true,
@@ -777,7 +774,7 @@ function checkPopGrowth(){
       notify(`🏠 New family moved in! ${mName} & ${fName}`,'ok');
     } else if(residents.length===1&&!residents[0].female){
       // Single man — a woman moves in
-      const fName=femNames[Math.floor(Math.random()*femNames.length)];
+      const fName=uniqueName(true);
       NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,72%)`,job:null,female:true,
         age:ADULT_DAYS+Math.floor(Math.random()*720),familyId:residents[0].familyId,pregnant:0,houseId:house.id});
       notify(`💑 ${fName} moved in with ${residents[0].name}!`,'ok');
@@ -948,6 +945,22 @@ const BYARD={
 // ── MAP ──
 let MAP=[];  // MAP[r][c] = {t, bld, decor}
 let NPCS=[];
+
+// ── NAME POOLS — large unique pools ──
+const MALE_NAMES=['Arthur','Edmund','William','Thomas','Henry','George','Robert','James','Edward','Richard','John','Walter','Alfred','Harold','Roger','Ralph','Hugh','Simon','Gilbert','Geoffrey','Nicholas','Philip','Stephen','Lawrence','Bernard','Frederick','Leonard','Vincent','Duncan','Owen'];
+const FEM_NAMES=['Alice','Emma','Eleanor','Margaret','Catherine','Anne','Elizabeth','Mary','Agnes','Joan','Isabel','Grace','Maud','Edith','Matilda','Beatrice','Cecily','Constance','Dorothy','Elaine','Florence','Gertrude','Hannah','Irene','Judith','Katherine','Laura','Miriam','Nora','Philippa'];
+const BABY_NAMES=['Robin','Lily','Tom','Rose','Jack','Clara','Will','Ada','Sam','Nell','Harry','Flora','Pip','Ivy','Ash','Belle','Cole','Dawn','Eli','Fern','Guy','Hope','Ian','June','Kit','Lark','Max','Nell','Odo','Pearl'];
+
+function uniqueName(female){
+  const pool=female?FEM_NAMES:MALE_NAMES;
+  const used=new Set(NPCS.map(n=>n.name));
+  const available=pool.filter(n=>!used.has(n));
+  if(available.length) return available[Math.floor(Math.random()*available.length)];
+  // All names taken — add suffix
+  const base=pool[Math.floor(Math.random()*pool.length)];
+  const suffixes=['Jr','II','III','the Younger','the Elder'];
+  return base+' '+suffixes[Math.floor(Math.random()*suffixes.length)];
+}
 let FAMILIES=[];
 let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
 let BUFFALO=[]; // {x,y,dir,fr,ft,vx,vy,wt,task,carryRes,carryQty,targetX,targetY,state,ownerId}
@@ -1582,12 +1595,12 @@ function genMap(){
   // NPCs — 3 families = 6 settlers, all sleeping near campfire
   const cfId=G.bld.find(b=>b.type==='campfire')?.id??0;
   NPCS=[
-    {name:'Edmund',   x:(cfCol-2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:1980,familyId:0,pregnant:0,houseId:cfId},
-    {name:'Alice',   x:(cfCol+2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:1800,familyId:0,pregnant:0,houseId:cfId},
-    {name:'William',   x:(cfCol-2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:2250,familyId:1,pregnant:0,houseId:cfId},
-    {name:'Margaret',   x:(cfCol+2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:2070,familyId:1,pregnant:0,houseId:cfId},
-    {name:'Thomas', x:(cfCol-1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:2520,familyId:2,pregnant:0,houseId:cfId},
-    {name:'Eleanor',  x:(cfCol+1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:2340,familyId:2,pregnant:0,houseId:cfId},
+      {name:uniqueName(false),   x:(cfCol-2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:1980,familyId:0,pregnant:0,houseId:cfId},
+      {name:uniqueName(true),   x:(cfCol+2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:1800,familyId:0,pregnant:0,houseId:cfId},
+      {name:uniqueName(false),   x:(cfCol-2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:2250,familyId:1,pregnant:0,houseId:cfId},
+      {name:uniqueName(true),   x:(cfCol+2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:2070,familyId:1,pregnant:0,houseId:cfId},
+      {name:uniqueName(false), x:(cfCol-1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:2520,familyId:2,pregnant:0,houseId:cfId},
+      {name:uniqueName(true),  x:(cfCol+1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:2340,familyId:2,pregnant:0,houseId:cfId},
   ];
   FAMILIES=[
     {id:0,houseId:cfId,husbandName:'Edmund',wifeName:'Alice'},
@@ -4314,9 +4327,8 @@ function doProd(){
     }
   }
   for(const b of babies){
-    const babyNames=['Robin','Lily','Tom','Rose','Jack','Clara','Will','Ada','Sam','Nell','Harry','Flora','Pip','Ivy'];
     const isFemale=Math.random()<0.5;
-    const bname=babyNames[Math.floor(Math.random()*babyNames.length)];
+    const bname=uniqueName(isFemale);
     const npcMom=b.npc;
     const baby={name:bname,x:npcMom.x+(-10+Math.random()*20),y:npcMom.y+(-10+Math.random()*20),
       dir:2,col:isFemale?'#f0a0c0':'#a0d0f0',job:null,female:isFemale,age:0,
@@ -4857,10 +4869,25 @@ function findJobLocation(job,npcIdx){
       if(workers&&workers.includes(npc.name)){
         const b=G.bld.find(b=>b.id===+bldId&&b.type==='forest_hut');
         if(b){
-          // Target: wander in radius around hut
-          const angle=Math.random()*Math.PI*2;
-          const r2=2+Math.random()*4;
-          return{x:(b.col+Math.cos(angle)*r2)*TS+TS/2, y:(b.row+Math.sin(angle)*r2)*TS+TS/2};
+          // Find nearest grass tile adjacent to forest (good planting spot)
+          const oc=b.col, or2=b.row;
+          let bestX=b.col*TS+TS/2, bestY=b.row*TS+TS/2, bestScore=-1;
+          for(let dr=-12;dr<=12;dr++) for(let dc=-12;dc<=12;dc++){
+            const tr=or2+dr, tc=oc+dc;
+            if(tr<2||tr>=WR-2||tc<2||tc>=WC-2) continue;
+            if(!MAP[tr]||!MAP[tr][tc]) continue;
+            const tile=MAP[tr][tc];
+            if(tile.t!==T.GRASS||tile.bld||tile.decor) continue;
+            const key=tc+','+tr;
+            if(SAPLINGS[key]) continue;
+            // Score: prefer tiles adjacent to forest
+            let score=0;
+            for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
+              if(MAP[tr+i]&&MAP[tr+i][tc+j]&&MAP[tr+i][tc+j].t===T.FOREST) score+=3;
+            }
+            if(score>bestScore){bestScore=score;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;}
+          }
+          return{x:bestX, y:bestY};
         }
       }
     }
@@ -5230,7 +5257,7 @@ function wanderNPCs(){
     if(moving){
       const nx=npc.x+npc._dx,ny=npc.y+npc._dy;
       const c=Math.floor(nx/TS),r=Math.floor(ny/TS);
-      const canEnterForest=(npc.job==='hunter'||npc.job==='logger');
+      const canEnterForest=(npc.job==='hunter'||npc.job==='logger'||npc.job==='planter');
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
       // NPC can pass through their own home tile OR assigned stall
       const myStallId=npc.job==='vendor'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&['food_stall','fuel_stall','clothing_stall'].includes(b.type)))?.[0]:null;
@@ -5932,10 +5959,32 @@ CV.addEventListener('mousedown',e=>{
   else if(G.mode==='demo'){
     const tile=MAP[r][c];
     if(tile.bld){const gb=G.bld.find(b=>b.id===tile.bld.id);if(gb)showBldDlg(gb,c,r);}
+    else if(tile.decor==='berry_bush'||tile.decor==='bush'){
+      tile.decor=null;
+      delete BERRY_STATE[c+','+r];
+      _worldDirty=true;
+      notify('🌿 Bush cleared.','ok');
+    }
     else if(tile.t===T.FARM_ZONE||tile.t===T.MARKET_ZONE) removeZoneTile(c,r);
   } else {
     const tile=MAP[r][c];
     if(tile.bld){const gb=G.bld.find(b=>b.id===tile.bld.id);if(gb)showBldDlg(gb,c,r);}
+    else if(tile.decor==='berry_bush'||tile.decor==='bush'){
+      // Show option to clear bush
+      openDlg('🌿 Berry Bush','Remove this bush to free up the land for building?',[
+        {l:'✂ Clear Bush',cls:'bad',fn:()=>{
+          tile.decor=null; delete BERRY_STATE[c+','+r];
+          _worldDirty=true; notify('🌿 Bush cleared.','ok'); closeDialog();
+        }},
+        {l:'[E] Gather Berries',cls:'ok',fn:()=>{
+          const key=c+','+r;
+          if(!BERRY_STATE[key]||!BERRY_STATE[key].depleted){gatherBerries(c,r,key||c+','+r);}
+          else notify('🍂 Bush depleted, come back later.','warn');
+          closeDialog();
+        }},
+        {l:'✖ Cancel',cls:'',fn:closeDialog},
+      ]);
+    }
     else if(tile.t===T.MARKET_ZONE) openMarketZoneDlg(c,r);
     else if(tile.t===T.FARM_ZONE) openFarmZoneDlg(c,r);
   }
@@ -7244,7 +7293,7 @@ function updateTravelingTraders(){
       } else {
         t.vx=0;t.vy=0;t.fr=0;
         t.state='selling';
-        t.stayTimer=300+Math.floor(Math.random()*300); // stay 5-10 min
+        t.stayTimer=3600+Math.floor(Math.random()*3600); // stay 1-2 real minutes (at 60fps)
         // Add stall to market zone
         const zone=G.marketZones[0];
         if(zone){
@@ -7254,6 +7303,8 @@ function updateTravelingTraders(){
         notify(`🛒 ${t.name} from ${t.village} has arrived! Selling ${t.goods.icon} ${t.goods.label}`,'ok');
       }
     } else if(t.state==='selling'){
+      // Stand still at stall, face south toward customers
+      t.vx=0; t.vy=0; t.dir=2;
       t.stayTimer--;
       if(t.stayTimer<=0||(t.stall&&t.stall.qty<=0)){
         t.state='leaving';
@@ -9214,14 +9265,13 @@ function doPlantingWork(npc){
   if(!hut) return;
 
   npc._plantTimer=(npc._plantTimer||0)+1;
-  if(npc._plantTimer<300) return; // plant every ~5 seconds
+  if(npc._plantTimer<120) return; // plant every ~2 seconds
   npc._plantTimer=0;
 
   // Find a good spot to plant — near chopped forest areas or empty grass
   const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
-  // Prefer spots that WERE forest (adjacent to existing forest)
   const candidates=[];
-  for(let dr2=-5;dr2<=5;dr2++) for(let dc2=-5;dc2<=5;dc2++){
+  for(let dr2=-8;dr2<=8;dr2++) for(let dc2=-8;dc2<=8;dc2++){
     const tr=nr2+dr2, tc=nc2+dc2;
     if(tr<2||tr>=WR-2||tc<2||tc>=WC-2) continue;
     if(!MAP[tr]||!MAP[tr][tc]) continue;
