@@ -907,11 +907,15 @@ let FAMILIES=[];
 let DEER=[];  // deer entities {x,y,dir,fr,ft,vx,vy,wt,alive,respawnT}
 let BUFFALO=[]; // {x,y,dir,fr,ft,vx,vy,wt,task,carryRes,carryQty,targetX,targetY,state,ownerId}
 let HORSES=[];  // {x,y,dir,fr,ft,vx,vy,wt,task,carryGoods,targetX,targetY,state,ownerId,traderName}
+let VISITING_TRADERS=[]; // NPCs from other villages walking in via main road
+let MAIN_ROAD_ENTRY={col:0,row:0}; // where the main road enters the map
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
-let _depositNotified=new Set(); // tracks which deposits player has been notified about
+let _depositNotified=new Set();
+let TRAVELING_TRADERS=[]; // [{x,y,vx,vy,dir,fr,ft,name,goods,state,targetX,targetY,stall}]
+let ROAD_ENTRY={c:0,r:0}; // where main road meets map edge // tracks which deposits player has been notified about
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
@@ -1142,6 +1146,20 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
       W.fillStyle='rgba(180,150,60,0.25)';
       W.fillRect(sx+(v2*tw_*0.6)|0, sy+(v2*th_*0.4)|0, 4, 2);
     }
+  } else if(type===T.FOREST){
+    // Forest floor — same brightness as grass, just slightly deeper green
+    W.fillStyle='rgb(82,158,50)';
+    W.fillRect(sx,sy,tw_,th_);
+    // Low-frequency variation (same technique as grass)
+    const lv=hh(Math.floor(c/4)*4,Math.floor(r/4)*4);
+    if(lv>0.3){W.fillStyle=`rgba(60,130,30,${(lv-0.3)*0.12})`;W.fillRect(sx,sy,tw_,th_);}
+    // Leaf litter / dark patches on ground
+    const b1x=sx+TS*(0.15+v2*0.7), b1y=sy+TS*(0.15+v*0.7);
+    W.fillStyle=`rgba(50,110,24,${0.08+v*0.07})`;
+    W.beginPath();W.ellipse(b1x,b1y,TS*(0.18+v3*0.12),TS*(0.14+v2*0.1),v*Math.PI,0,Math.PI*2);W.fill();
+    // Occasional root/twig
+    if(v<0.15){W.fillStyle='rgba(100,70,30,0.18)';W.fillRect(sx+TS*(0.3+v2*0.3)|0,sy+TS*(0.5+v*0.3)|0,TS*0.3,2);}
+
   } else if(type===T.FARM_ZONE){
     // Tilled soil with fertility tint baked in
     const fert=getTileFertility((sx/TS)|0,(sy/TS)|0);
@@ -1194,7 +1212,7 @@ function getBaseColor(type,g){
   if(type===T.WATER)return`rgb(${48+g},${112+g},${200+g})`;
   if(type===T.DIRT)return`rgb(${148+g},${108+g},${58+g})`;
   if(type===T.STONE_G)return`rgb(${118+g},${112+g},${98+g})`;
-  if(type===T.FOREST)return`rgb(${34+g},${72+g},${20+g})`;
+  if(type===T.FOREST)return`rgb(${82+g},${158+g},${50+g})`;
   if(type===T.FARM_ZONE)return`rgb(${100+g},${60+g},${20+g})`;
   if(type===T.MARKET_ZONE)return`rgb(${192+g},${176+g},${144+g})`;
   return`rgb(${210+g},${185+g},${130+g})`;
@@ -1282,11 +1300,11 @@ function genMap(){
   SAPLINGS={};
   DEPOSIT_STATE={};
   _depositNotified=new Set();
+  TRAVELING_TRADERS=[];
   _waterSpots=null; // reset so fisher recalculates lake spots
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
-  LANDMARKS=[];
   FOG=[];
 
   for(let r=0;r<WR;r++){MAP[r]=[];for(let c=0;c<WC;c++)MAP[r][c]={t:T.GRASS,bld:null,decor:null};}
@@ -1357,6 +1375,39 @@ function genMap(){
       if(fv>0.15) MAP[fr][fc].decor='tree';
       else if(fv>0.08) MAP[fr][fc].decor='berry_bush';
       else if(fv>0.03) MAP[fr][fc].decor='bush';
+    }
+  }
+
+  // ── MAIN ROAD — from map edge to village center ──
+  // Pick one of 4 sides randomly for road entry
+  const roadSide=Math.floor(R()*4); // 0=top,1=right,2=bottom,3=left
+  const roadWidth=2; // 2 tiles wide
+  let roadEntryC=mc, roadEntryR=mr;
+  if(roadSide===0){      roadEntryC=mc; roadEntryR=0;   } // top
+  else if(roadSide===1){ roadEntryC=WC-1; roadEntryR=mr; } // right
+  else if(roadSide===2){ roadEntryC=mc; roadEntryR=WR-1; } // bottom
+  else {                 roadEntryC=0; roadEntryR=mr;    } // left
+  MAIN_ROAD_ENTRY={col:roadEntryC, row:roadEntryR};
+
+  // Draw road: walk from entry toward center
+  let rc=roadEntryC, rr=roadEntryR;
+  const destC=mc, destR=mr;
+  let safety=0;
+  while((Math.abs(rc-destC)>1||Math.abs(rr-destR)>1)&&safety++<200){
+    // Pave road tiles (2 wide)
+    for(let dw=-1;dw<=1;dw++){
+      const tc2=Math.max(0,Math.min(WC-1,rc+(roadSide===0||roadSide===2?dw:0)));
+      const tr2=Math.max(0,Math.min(WR-1,rr+(roadSide===1||roadSide===3?dw:0)));
+      if(MAP[tr2]&&MAP[tr2][tc2]&&MAP[tr2][tc2].t!==T.WATER){
+        MAP[tr2][tc2].t=T.PATH;
+        MAP[tr2][tc2].decor=null;
+      }
+    }
+    // Step toward center
+    if(Math.abs(rc-destC)>Math.abs(rr-destR)){
+      rc+=rc<destC?1:-1;
+    } else {
+      rr+=rr<destR?1:-1;
     }
   }
 
@@ -1445,37 +1496,6 @@ function genMap(){
   }
 
   // ── LANDMARKS — unique discoverable points of interest ──
-  LANDMARKS=[];
-  const landmarkCandidates=[
-    {type:'ruins',    label:'Ancient Ruins',    icon:'🏛', bonus:{regional_wealth:30}},
-    {type:'oasis',    label:'Hidden Oasis',     icon:'🌊', bonus:{food:25,berry:10}},
-    {type:'shrine',   label:'Old Shrine',       icon:'⛩️',  bonus:{happy:10}},
-    {type:'cave',     label:'Dark Cave',        icon:'🕳️',  bonus:{iron:20,coal:15}},
-    {type:'camp',     label:'Abandoned Camp',   icon:'🏕️',  bonus:{wood:30,gold:10}},
-    {type:'meadow',   label:'Wildflower Meadow',icon:'🌸', bonus:{food:20,happy:5}},
-  ];
-  // Place 3-5 random landmarks far from center
-  const numLandmarks=3+Math.floor(R()*3);
-  for(let i=0;i<numLandmarks;i++){
-    let lc,lr,attempts=0;
-    do{
-      lc=4+Math.floor(R()*(WC-8));
-      lr=4+Math.floor(R()*(WR-8));
-      attempts++;
-    } while(attempts<50&&(
-      (Math.abs(lc-mc)<8&&Math.abs(lr-mr)<8)||
-      (MAP[lr]&&MAP[lr][lc]&&MAP[lr][lc].t===T.WATER)||
-      LANDMARKS.some(l=>Math.abs(l.col-lc)<6&&Math.abs(l.row-lr)<6)
-    ));
-    if(attempts>=50) continue;
-    const def=landmarkCandidates[i%landmarkCandidates.length];
-    LANDMARKS.push({col:lc,row:lr,...def,discovered:false});
-    // Mark tile
-    if(MAP[lr]&&MAP[lr][lc]){
-      MAP[lr][lc].decor=null;
-      MAP[lr][lc].landmark=def.type;
-    }
-  }
 
   // ── INIT FOG OF WAR ──
   FOG=[];
@@ -1507,17 +1527,38 @@ function genMap(){
     MAP[r2][c2].bld={type,id:G.nid++,lv:1};
     G.bld.push({id:MAP[r2][c2].bld.id,type,lv:1,col:c2,row:r2});
   }
-  pb('campfire', mc, mr);  // Only the campfire at world center
+  // ── MAIN ROAD — connects to other villages ──
+  const roadCol=mc;
+  ROAD_ENTRY={c:roadCol,r:WR-1};
+  // South road: bottom edge to village center
+  for(let r=WR-1;r>=mr;r--){
+    if(!MAP[r]||!MAP[r][roadCol])continue;
+    if(MAP[r][roadCol].t===T.WATER) break;
+    MAP[r][roadCol].t=T.PATH; MAP[r][roadCol].decor=null;
+    // Single tile width road
+  }
+  // West road: left edge to village center
+  for(let c=0;c<=mc;c++){
+    if(!MAP[mr]||!MAP[mr][c])continue;
+    if(MAP[mr][c].t===T.WATER) break;
+    MAP[mr][c].t=T.PATH; MAP[mr][c].decor=null;
+  }
+
+  // Place campfire offset from road intersection (2 tiles up-right)
+  const cfCol=mc+2, cfRow=mr-2;
+  pb('campfire', cfCol, cfRow);
+  // Make sure campfire tile is GRASS not PATH
+  if(MAP[cfRow]&&MAP[cfRow][cfCol]) MAP[cfRow][cfCol].t=T.GRASS;
 
   // NPCs — 3 families = 6 settlers, all sleeping near campfire
   const cfId=G.bld.find(b=>b.type==='campfire')?.id??0;
   NPCS=[
-    {name:'Budi',   x:(mc-2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:1980,familyId:0,pregnant:0,houseId:cfId}, // ~22 thn
-    {name:'Sari',   x:(mc+2)*TS+TS/2,y:(mr+2)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:1800,familyId:0,pregnant:0,houseId:cfId}, // ~20 thn
-    {name:'Wira',   x:(mc-2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:2250,familyId:1,pregnant:0,houseId:cfId}, // ~25 thn
-    {name:'Dewi',   x:(mc+2)*TS+TS/2,y:(mr-2)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:2070,familyId:1,pregnant:0,houseId:cfId}, // ~23 thn
-    {name:'Hendra', x:(mc-1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:2520,familyId:2,pregnant:0,houseId:cfId}, // ~28 thn
-    {name:'Ratna',  x:(mc+1)*TS+TS/2,y:(mr+1)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:2340,familyId:2,pregnant:0,houseId:cfId}, // ~26 thn
+    {name:'Budi',   x:(cfCol-2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:0,col:'#40b8e8',job:null,female:false,age:1980,familyId:0,pregnant:0,houseId:cfId},
+    {name:'Sari',   x:(cfCol+2)*TS+TS/2,y:(cfRow+1)*TS+TS/2,dir:2,col:'#e880c0',job:null,female:true, age:1800,familyId:0,pregnant:0,houseId:cfId},
+    {name:'Wira',   x:(cfCol-2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#40e860',job:null,female:false,age:2250,familyId:1,pregnant:0,houseId:cfId},
+    {name:'Dewi',   x:(cfCol+2)*TS+TS/2,y:(cfRow-1)*TS+TS/2,dir:2,col:'#a0f080',job:null,female:true, age:2070,familyId:1,pregnant:0,houseId:cfId},
+    {name:'Hendra', x:(cfCol-1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:0,col:'#8040e8',job:null,female:false,age:2520,familyId:2,pregnant:0,houseId:cfId},
+    {name:'Ratna',  x:(cfCol+1)*TS+TS/2,y:(cfRow+2)*TS+TS/2,dir:2,col:'#b080f0',job:null,female:true, age:2340,familyId:2,pregnant:0,houseId:cfId},
   ];
   FAMILIES=[
     {id:0,houseId:cfId,husbandName:'Budi',wifeName:'Sari'},
@@ -1525,7 +1566,7 @@ function genMap(){
     {id:2,houseId:cfId,husbandName:'Hendra',wifeName:'Ratna'},
   ];
   // Reveal fog AFTER everything is spawned
-  revealFog(mc,mr,8);
+  revealFog(mc+2,mr-2,8); // reveal around campfire
 }
 
 // ─── DRAW TREES ───
@@ -4984,7 +5025,7 @@ function render(){
         const key='rock:'+c2+','+r2;
         if(pdist<TS*2&&!_depositNotified.has(key)){
           _depositNotified.add(key);
-          notify('🪨 Stone Deposit discovered! Build a Quarry nearby to mine.','ok');
+          notify('🪨 Stone Deposit discovered! Build a Quarry nearby to mine it.','ok');
         }
       }
       // Deposit proximity label only (no animated overlay)
@@ -5079,6 +5120,8 @@ function render(){
     for(const buf of BUFFALO)if(Math.floor(buf.y/TS)===r2)drawBuffalo(buf);
     for(const h of HORSES)if(Math.floor(h.y/TS)===r2)drawHorse(h);
     for(const npc of [...NPCS])try{if(Math.floor(npc.y/TS)===r2)drawNPC(npc);}catch(e){console.warn('drawNPC err',e.message);}
+    // Draw traveling traders
+    for(const tr of TRAVELING_TRADERS)if(Math.floor(tr.y/TS)===r2)drawTravelingTrader(tr);
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
     // Draw market stalls — one stall per 2x2 tile block
     if(G.marketZones){
@@ -5112,7 +5155,10 @@ function render(){
               X.fillStyle='#604010';X.font='bold 7px monospace';X.textAlign='center';
               X.fillText(stall.price+'g',wx2+TS/2,ry2+TS-27);
             } else {
-              X.font='11px serif';X.textAlign='center';X.fillText('?',wx2+TS/2,ry2+TS-12);
+              X.font='9px serif';X.textAlign='center';X.fillText('🪑',wx2+TS/2,ry2+TS-12);
+              X.fillStyle='rgba(0,0,0,0.45)';X.fillRect(wx2+4,ry2+TS-22,TS-8,10);
+              X.fillStyle='#c0a060';X.font='5px monospace';X.textAlign='center';
+              X.fillText('EMPTY',wx2+TS/2,ry2+TS-14);
             }
             // Canopy poles
             X.fillStyle='#8a6020';
@@ -5265,11 +5311,6 @@ function render(){
     for(const b of G.bld){mctx.fillStyle='#e08020';mctx.fillRect(b.col*tw,b.row*th,tw+1,th+1);}
     for(const d of DEER){if(d.alive){mctx.fillStyle='#f0a030';mctx.fillRect(d.x/TS*tw-1,d.y/TS*th-1,2,2);}}
     // Landmarks on minimap
-    for(const lm of (LANDMARKS||[])){
-      if(FOG_ENABLED&&FOG.length&&FOG[lm.row]&&FOG[lm.row][lm.col]===0) continue;
-      mctx.fillStyle=lm.discovered?'#f0e060':'rgba(200,180,80,0.5)';
-      mctx.fillRect(lm.col*tw-1,lm.row*th-1,3,3);
-    }
     // Fog overlay on minimap
     if(FOG_ENABLED&&FOG.length){
       for(let r2=0;r2<WR;r2++) for(let c2=0;c2<WC;c2++){
@@ -5288,8 +5329,7 @@ function render(){
   drawSaplings();
 
   // ── LANDMARKS ──
-  drawLandmarks();
-
+  
   // ── BUILDING GLOW ──
   for(const b of G.bld){
     if(!b.under_construction){
@@ -5916,7 +5956,7 @@ function loop(now){
   try{
     if(!G.paused&&_gameStarted&&MAP&&MAP.length){
       movePlayer();updateCam();wanderNPCs();updateDeer();
-      updateBuffalo();updateHorses();
+      updateBuffalo();updateHorses();updateTravelingTraders();
       tick();
       updateFog();
     }
@@ -6552,7 +6592,7 @@ function removeZoneTile(c,r){
 // ── MARKET ZONE DIALOG — click on cobblestone to see stalls ──
 function openMarketZoneDlg(c,r){
   const zone=G.marketZones.find(z=>c>=z.col&&c<z.col+z.w&&r>=z.row&&r<z.row+z.h);
-  if(!zone){openDlg('🏪 Market Square','Gunakan mode MARKET lalu drag untuk buat zona pasar.',
+  if(!zone){openDlg('🏪 Market Square','Use MARKET mode and drag to create a market zone.',
     [{l:'✖ Close',cls:'',fn:closeDialog}]); return;}
 
   const maxStalls=Math.max(1,Math.floor(zone.w*zone.h/4));
@@ -6569,7 +6609,7 @@ function openMarketZoneDlg(c,r){
         const qty=Math.min(10,Math.floor((G.res[best]||0)*0.3));
         G.res[best]=Math.max(0,(G.res[best]||0)-qty);
         zone.stalls.push({...g,traderName:t.name,qty,_isVillager:true});
-        notify('🛒 '+t.name+' buka lapak! Jual '+g.icon+' '+g.label,'ok');
+        notify('🛒 '+t.name+' opened a stall! Selling '+g.icon+' '+g.label,'ok');
       }
     }
   }
@@ -6579,28 +6619,28 @@ function openMarketZoneDlg(c,r){
     btns.push({l:'⏳ Belum ada pedagang — assign job Trader!',cls:'',fn:()=>{}});
   }
   for(const s of zone.stalls){
-    const tag=s._isVillager?'👤 Warga':'🧑 Pedagang';
+    const tag=s._isVillager?'👤 Villager':'🧑 Traveler';
     btns.push({l:s.icon+' '+s.label+' — '+s.price+'g  ('+tag+': '+s.traderName+' ×'+s.qty+')',cls:'ok',fn:(()=>{
       const _s=s;
       return ()=>{
-        if((G.res.gold||0)<_s.price){notify('Gold tidak cukup!','err');return;}
+        if((G.res.gold||0)<_s.price){notify('Not enough gold!','err');return;}
         G.res.gold-=_s.price; addR(_s.res,1);
         _s.qty=Math.max(0,_s.qty-1);
-        if(_s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==_s);notify(_s.traderName+' habis stok!','warn');}
-        else notify('✅ Beli '+_s.icon+' '+_s.label+' dari '+_s.traderName+'!','ok');
+        if(_s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==_s);notify(_s.traderName+' sold out!','warn');}
+        else notify('✅ Bought '+_s.icon+' '+_s.label+' from '+_s.traderName+'!','ok');
         updateUI(); closeDialog(); setTimeout(()=>openMarketZoneDlg(c,r),50);
       };
     })()});
   }
 
-  const villagers=zone.stalls.filter(s=>s._isVillager).map(s=>s.traderName).join(', ')||'Tidak ada';
-  const travelers=zone.stalls.filter(s=>!s._isVillager).map(s=>s.traderName).join(', ')||'Tidak ada';
+  const villagers=zone.stalls.filter(s=>s._isVillager).map(s=>s.traderName).join(', ')||'None';
+  const travelers=zone.stalls.filter(s=>!s._isVillager).map(s=>s.traderName).join(', ')||'None';
   btns.push({l:'✖ Close',cls:'',fn:closeDialog});
   openDlg('🏪 Pasar ('+zone.w+'×'+zone.h+' tiles)',
-    'Lapak: '+zone.stalls.length+'/'+maxStalls+' terisi\n'
-    +'👤 Warga berjualan: '+villagers+'\n'
-    +'🧑 Pedagang luar: '+travelers+'\n'
-    +'\nTip: Assign job Trader ke warga untuk buka lapak!',
+    'Stalls: '+zone.stalls.length+'/'+maxStalls+' occupied\n'
+    +'👤 Your villagers: '+villagers+'\n'
+    +'🧑 Traveling traders: '+travelers+'\n'
+    +'\nTip: Assign Trader job to villagers to open stalls!',
     btns);
 }
 
@@ -6633,24 +6673,94 @@ const TRADER_GOODS=[
   {res:'honey', label:'Jar of Honey', icon:'🍯',qty:6, price:4},
 ];
 
+const VILLAGE_NAMES=['Oakfield','Riverdale','Roseton','Millhaven','Peacevale','Bloomwood'];
+const TRAVELING_TRADER_NAMES=['Old Hasan','Widow Sari','Trader Edo','Merchant Tini','Asep','Rina','Budi','Elder Yati'];
+
 function doTraderSpawn(){
-  if(!G.marketZones) return;
-  for(const zone of G.marketZones){
-    // Countdown before first traders arrive
-    if(zone._spawnCountdown>0){zone._spawnCountdown--;continue;}
-    const maxStalls=Math.max(1,Math.floor(zone.w*zone.h/4));
-    if(zone.stalls.length>=maxStalls) continue;
-    // Random chance each production cycle
-    if(Math.random()>0.4) continue;
-    // Pick a random good not already sold in this market
-    const existing=new Set(zone.stalls.map(s=>s.res));
-    const available=TRADER_GOODS.filter(g=>!existing.has(g.res));
-    if(!available.length) continue;
-    const good=available[Math.floor(Math.random()*available.length)];
-    const name=TRADER_NAMES[Math.floor(Math.random()*TRADER_NAMES.length)];
-    const stall={...good,traderName:name,qty:good.qty+Math.floor(Math.random()*5)};
-    zone.stalls.push(stall);
-    notify(`🛒 ${name} set up a stall in the market! Selling ${good.icon} ${good.label}`,'ok');
+  if(!G.marketZones||G.marketZones.length===0) return;
+
+  // Spawn new traveling trader every ~3-5 days if market exists
+  if(Math.random()>0.15) return;
+  if(TRAVELING_TRADERS.length>=4) return; // max 4 traveling traders at once
+
+  const good=TRADER_GOODS[Math.floor(Math.random()*TRADER_GOODS.length)];
+  const name=TRAVELING_TRADER_NAMES[Math.floor(Math.random()*TRAVELING_TRADER_NAMES.length)];
+  const village=VILLAGE_NAMES[Math.floor(Math.random()*VILLAGE_NAMES.length)];
+  const qty=good.qty+Math.floor(Math.random()*8);
+
+  // Spawn at road entry (south or west edge)
+  const fromSouth=Math.random()<0.6;
+  const spawnX=fromSouth?(ROAD_ENTRY.c*TS+TS/2):(0);
+  const spawnY=fromSouth?((WR-1)*TS+TS/2):(ROAD_ENTRY.r*TS+TS/2); // use mr for west
+
+  // Target: nearest market zone
+  const zone=G.marketZones[0];
+  const targetX=zone?(zone.col+Math.floor(zone.w/2))*TS+TS/2:WPX/2;
+  const targetY=zone?(zone.row+Math.floor(zone.h/2))*TS+TS/2:WPY/2;
+
+  TRAVELING_TRADERS.push({
+    x:spawnX, y:spawnY,
+    dir:2, fr:0, ft:0, vx:0, vy:0,
+    name, village, goods:{...good,qty},
+    state:'walking', // walking | selling | leaving
+    targetX, targetY,
+    stayTimer:0,
+    stall:null,
+  });
+  notify(`🛒 ${name} from ${village} is heading to the market!`,'ok');
+}
+
+function updateTravelingTraders(){
+  const spd=0.8*G.spd;
+  for(let i=TRAVELING_TRADERS.length-1;i>=0;i--){
+    const t=TRAVELING_TRADERS[i];
+    if(t.state==='walking'){
+      const dx=t.targetX-t.x, dy=t.targetY-t.y;
+      const dist=Math.hypot(dx,dy);
+      if(dist>8){
+        t.vx=(dx/dist)*spd; t.vy=(dy/dist)*spd;
+        t.x+=t.vx; t.y+=t.vy;
+        if(t.vx<-0.2)t.dir=3;else if(t.vx>0.2)t.dir=1;
+        if(t.vy<-0.2)t.dir=0;else if(t.vy>0.2)t.dir=2;
+        t.ft=(t.ft||0)+1;if(t.ft>8){t.ft=0;t.fr=(t.fr||0)+1;}
+      } else {
+        t.vx=0;t.vy=0;t.fr=0;
+        t.state='selling';
+        t.stayTimer=300+Math.floor(Math.random()*300); // stay 5-10 min
+        // Add stall to market zone
+        const zone=G.marketZones[0];
+        if(zone){
+          zone.stalls.push({...t.goods,traderName:t.name,_isVillager:false,_traveler:true});
+          t.stall=zone.stalls[zone.stalls.length-1];
+        }
+        notify(`🛒 ${t.name} from ${t.village} has arrived! Selling ${t.goods.icon} ${t.goods.label}`,'ok');
+      }
+    } else if(t.state==='selling'){
+      t.stayTimer--;
+      if(t.stayTimer<=0||(t.stall&&t.stall.qty<=0)){
+        t.state='leaving';
+        // Leave back the way they came
+        t.targetX=t.x<WPX/2?-TS:WPX+TS;
+        t.targetY=t.y<WPY/2?-TS:WPY+TS;
+        // Remove stall
+        if(t.stall){
+          for(const zone of G.marketZones)
+            zone.stalls=zone.stalls.filter(s=>s!==t.stall);
+        }
+        notify(`👋 ${t.name} from ${t.village} has left the market.`,'ok');
+      }
+    } else if(t.state==='leaving'){
+      const dx=t.targetX-t.x, dy=t.targetY-t.y;
+      const dist=Math.hypot(dx,dy);
+      if(dist>8){
+        t.vx=(dx/dist)*spd; t.vy=(dy/dist)*spd;
+        t.x+=t.vx; t.y+=t.vy;
+        t.ft=(t.ft||0)+1;if(t.ft>8){t.ft=0;t.fr=(t.fr||0)+1;}
+      } else {
+        // Gone — remove
+        TRAVELING_TRADERS.splice(i,1);
+      }
+    }
   }
 }
 
@@ -7082,8 +7192,7 @@ function buildSaveState(){
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
     saplings:JSON.parse(JSON.stringify(SAPLINGS||{})),
     depositState:JSON.parse(JSON.stringify(DEPOSIT_STATE||{})),
-    landmarks:JSON.parse(JSON.stringify(LANDMARKS||[])),
-    fog:FOG.map(row=>[...row]),
+        fog:FOG.map(row=>[...row]),
     fogEnabled:FOG_ENABLED,
     mapData,
     player:{x:PL.x,y:PL.y,dir:PL.dir},
@@ -7126,7 +7235,6 @@ function applySaveState(save){
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
   SAPLINGS=JSON.parse(JSON.stringify(save.saplings||{}));
   DEPOSIT_STATE=JSON.parse(JSON.stringify(save.depositState||{}));
-  if(save.landmarks) LANDMARKS=JSON.parse(JSON.stringify(save.landmarks));
   if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
   if(save.fogEnabled!==undefined) FOG_ENABLED=save.fogEnabled;
   if(save.rwLog) RW_LOG.splice(0,RW_LOG.length,...save.rwLog);
@@ -7390,8 +7498,8 @@ function launchGame(doGenMap){
         if(MAP[r][c].t!==T.WATER&&MAP[r][c].t!==T.PATH) MAP[r][c].t=T.GRASS;
       }
     }
-    PL.x=(mc)*TS+TS/2;
-    PL.y=(mr+1)*TS+TS/2;
+    PL.x=(mc+2)*TS+TS/2; // cfCol
+    PL.y=(mr-1)*TS+TS/2; // cfRow
     _worldDirty=true;
   }
 
@@ -7759,7 +7867,6 @@ function revealFog(col,row,radius){
       if(dist<=radius){
         FOG[r][c]=2; // fully visible
         // Check landmark discovery
-        checkLandmarkDiscovery(c,r);
       } else if(dist<=radius+2){
         if(FOG[r][c]===0) FOG[r][c]=1; // explored but dim
       }
@@ -7835,65 +7942,8 @@ function toggleFog(){
 // ═══════════════════════════════════════════════════════
 //  LANDMARKS
 // ═══════════════════════════════════════════════════════
-function checkLandmarkDiscovery(c,r){
-  for(const lm of LANDMARKS){
-    if(lm.discovered) continue;
-    if(Math.abs(lm.col-c)<=2&&Math.abs(lm.row-r)<=2){
-      lm.discovered=true;
-      for(const[res,amt]of Object.entries(lm.bonus)){
-        if(res==='regional_wealth') G.res.regional_wealth=(G.res.regional_wealth||0)+amt;
-        else if(res==='happy') G.happy=Math.min(100,G.happy+amt);
-        else addR(res,amt);
-      }
-      if(!_gameStarted) continue; // don't notify/updateUI during genMap
-      const rewardStr=Object.entries(lm.bonus).map(([k,v])=>'+'+v+' '+k).join(', ');
-      notify(`${lm.icon} Discovered: ${lm.label}! (${rewardStr})`,'ok');
-      showLandmarkDiscovery(lm);
-      updateUI();
-    }
-  }
-}
 
-function showLandmarkDiscovery(lm){
-  const el=document.createElement('div');
-  el.style.cssText=`position:fixed;top:100px;left:50%;transform:translateX(-50%);z-index:7000;
-    background:rgba(10,8,2,0.97);border:2px solid #a08040;padding:14px 24px;
-    font-family:'Press Start 2P';font-size:8px;color:#f0d060;text-align:center;
-    animation:fadeInOut 3.5s forwards;pointer-events:none;min-width:220px`;
-  el.innerHTML=`<div style="font-size:24px;margin-bottom:6px">${lm.icon}</div>
-    DISCOVERED!<br><span style="color:#c0a040;font-size:6px">${lm.label}</span>`;
-  document.body.appendChild(el);
-  setTimeout(()=>el.remove(),3500);
-}
 
-function drawLandmarks(){
-  for(const lm of LANDMARKS){
-    const wx=lm.col*TS+camX, wy=lm.row*TS+camY;
-    // Don't draw in fog
-    if(FOG_ENABLED&&FOG.length&&FOG[lm.row]&&FOG[lm.row][lm.col]===0) continue;
-    if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
-
-    if(!lm.discovered){
-      // Unknown landmark — show question mark glow
-      const grd=X.createRadialGradient(wx+TS/2,wy+TS/2,4,wx+TS/2,wy+TS/2,20);
-      grd.addColorStop(0,'rgba(200,180,80,0.35)');
-      grd.addColorStop(1,'rgba(200,180,80,0)');
-      X.fillStyle=grd;X.fillRect(wx,wy,TS,TS);
-      X.font='16px serif';X.textAlign='center';
-      X.fillStyle='rgba(200,180,80,0.7)';
-      X.fillText('❓',wx+TS/2,wy+TS/2+6);
-    } else {
-      // Discovered landmark icon
-      X.font='18px serif';X.textAlign='center';
-      X.fillText(lm.icon,wx+TS/2,wy+TS/2+6);
-      // Subtle glow
-      const grd=X.createRadialGradient(wx+TS/2,wy+TS/2,2,wx+TS/2,wy+TS/2,24);
-      grd.addColorStop(0,'rgba(255,220,100,0.2)');
-      grd.addColorStop(1,'rgba(255,220,100,0)');
-      X.fillStyle=grd;X.fillRect(wx-4,wy-4,TS+8,TS+8);
-    }
-  }
-}
 
 // ═══════════════════════════════════════════════════════
 //  BUFFALO SYSTEM — transport materials between buildings
@@ -8658,6 +8708,75 @@ function toggleSecRes(){
   const btn=document.getElementById('res-more-btn');
   if(bar2){bar2.style.display=_secResOpen?'flex':'none';}
   if(btn){btn.textContent=_secResOpen?'▲ less':'▼ more';}
+}
+
+// ── DRAW TRAVELING TRADER NPC ──
+function drawTravelingTrader(tr){
+  const px=Math.round(tr.x+camX), py=Math.round(tr.y+camY);
+  if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) return;
+  const moving=!!(tr.vx||tr.vy), f=tr.fr||0, dir=tr.dir||2;
+  const bob=moving&&f%2===0?-1:0;
+  const lg=moving?(f%4<2?3:-3):0;
+
+  // Merchant outfit — brown/green tones
+  const skin='#c8885a', hair='#2a1a08';
+  const coat='#5a3818', coatL='#7a4a28';
+  const pants='#3a2810', boot='#2a1808';
+
+  X.save();
+  // Shadow
+  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(px+2,py+6,12,4,0,0,Math.PI*2);X.fill();
+
+  if(dir===1||dir===3){
+    const f2=dir===1?1:-1;
+    // Boots
+    X.fillStyle=boot;X.fillRect(px-5+lg,py-2+bob,5,8);X.fillRect(px+1-lg,py-2+bob,5,8);
+    // Pants
+    X.fillStyle=pants;X.fillRect(px-5,py-10+bob,11,10);
+    // Coat
+    X.fillStyle=coat;X.fillRect(px-6,py-22+bob,13,13);
+    X.fillStyle=coatL;X.fillRect(px-6,py-22+bob,4,13);
+    // Pack/bag on back
+    X.fillStyle='#8a6030';X.fillRect(px-f2*8,py-20+bob,7,9);
+    X.fillStyle='#6a4818';X.fillRect(px-f2*8,py-21+bob,7,3);
+    // Arms
+    X.fillStyle=coat;X.fillRect(px+f2*4,py-20+bob,4,8);X.fillRect(px-f2*7,py-20+bob,4,8);
+    // Head
+    X.fillStyle=skin;X.beginPath();X.arc(px,py-28+bob,7,0,Math.PI*2);X.fill();
+    // Hat (merchant hat)
+    X.fillStyle='#3a2808';X.fillRect(px-8,py-34+bob,16,4);X.fillRect(px-5,py-40+bob,10,8);
+    // Face
+    X.fillStyle='#1a1008';X.fillRect(px+f2*2,py-28+bob,2,2);
+  } else {
+    X.fillStyle=boot;X.fillRect(px-5+lg,py-2+bob,5,8);X.fillRect(px+1-lg,py-2+bob,5,8);
+    X.fillStyle=pants;X.fillRect(px-5,py-10+bob,11,10);
+    X.fillStyle=coat;X.fillRect(px-6,py-22+bob,13,13);
+    X.fillStyle=coatL;X.fillRect(px-6,py-22+bob,4,13);
+    X.fillStyle=coat;X.fillRect(px-9,py-20+bob,4,8);X.fillRect(px+5,py-20+bob,4,8);
+    // Pack visible from front/back
+    if(dir===2){
+      X.fillStyle='#8a6030';X.fillRect(px-3,py-20+bob,7,9);
+    }
+    X.fillStyle=skin;X.beginPath();X.arc(px,py-28+bob,7,0,Math.PI*2);X.fill();
+    X.fillStyle='#3a2808';X.fillRect(px-8,py-34+bob,16,4);X.fillRect(px-5,py-40+bob,10,8);
+    if(dir===2){X.fillStyle='#1a1008';X.fillRect(px-2,py-28+bob,2,2);X.fillRect(px+2,py-28+bob,2,2);}
+  }
+
+  // Goods icon above head
+  X.font='13px serif';X.textAlign='center';
+  X.fillText(tr.goods.icon||'🛒',px,py-46+bob);
+
+  // Name + village tag
+  const tag=tr.name;
+  X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px-20,py-58+bob,40,10);
+  X.fillStyle='#f0d080';X.font='5px "Press Start 2P"';X.textAlign='center';
+  X.fillText(tag.slice(0,10),px,py-50+bob);
+
+  // Selling badge
+  if(tr.state==='selling'){
+    X.font='10px serif';X.fillText('💬',px+12,py-42+bob);
+  }
+  X.restore();
 }
 
 function toggleMusic(){
