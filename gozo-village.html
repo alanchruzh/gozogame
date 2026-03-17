@@ -3792,7 +3792,7 @@ function tick(){
       if(b.under_construction) continue;
       const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
       if(!workers) continue;
-      if(b.type==='coalmine'){
+      if(b.type==='coalmine'&&G.hr%2===0){
         const isDeep=b.lv>=3;
         if(isDeep){ addR('coal',workers); }
         else {
@@ -3806,7 +3806,7 @@ function tick(){
             if(nearDep[1].qty<=0){nearDep[1].depleted=true;notify('⛏ Coal deposit exhausted!','warn');_worldDirty=true;}
           } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Coal Mine: no coal deposit nearby!','warn');}
         }
-      } else if(b.type==='ironmine'){
+      } else if(b.type==='ironmine'&&G.hr%2===0){
         const isDeep=b.lv>=3;
         if(isDeep){ addR('iron',workers); }
         else {
@@ -3821,7 +3821,8 @@ function tick(){
           } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Iron Mine: no iron deposit nearby!','warn');}
         }
       } else if(b.type==='quarry'){
-        addR('stone',workers);
+        // Stone every 4 hrs per worker (slower since unlimited)
+        if(G.hr%4===0) addR('stone',workers);
       }
     }
     updateUI();
