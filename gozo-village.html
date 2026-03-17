@@ -2065,280 +2065,208 @@ function bCampfire(cx,bot,lv){
 }
 
 function bHouse(cx,bot,lv){
-  const W=76+lv*8, H=52+lv*5, wy=bot-H-20;
+  if(lv===1) bHouseLv1(cx,bot);
+  else if(lv===2) bHouseLv2(cx,bot);
+  else bHouseLv3(cx,bot);
+}
 
-  // ── TERAS (porch) — flush dengan dinding ──
-  const pW=W*0.55|0, pH=14, px2=cx, py2=bot-pH;
-  // Lantai teras (warna sedikit berbeda, tapi flush di bawah)
-  FR(px2-pW/2, bot-pH, pW, pH, '#d4c8b0');
-  FR(px2-pW/2, bot-pH, pW, 2, 'rgba(255,255,255,0.15)');
-  // Tiang teras kiri & kanan (memanjang dari wy sampai bot)
-  FR(px2-pW/2+3, wy, 6, H+pH, '#e8e0d0');
-  FR(px2+pW/2-9, wy, 6, H+pH, '#e8e0d0');
-  // Atap teras (overhang)
-  const oW=pW+12;
-  X.fillStyle='#7a3e18';
-  X.beginPath();X.moveTo(px2-oW/2,wy);X.lineTo(px2+oW/2,wy);X.lineTo(px2+oW/2,wy+10);X.lineTo(px2-oW/2,wy+10);X.closePath();X.fill();
-  for(let i=0;i<3;i++){
-    X.fillStyle=i%2===0?'#8a4820':'#6e3410';
-    X.fillRect(Math.round(px2-oW/2),Math.round(wy+i*3+1),Math.round(oW),3);
-  }
-
-  // ── DINDING UTAMA — putih/krem ──
-  FR(cx-W/2, wy, W, H+pH, '#e8e0d0'); // wall extends to cover porch area
-  FR(cx-W/2, wy, W, 4, 'rgba(255,255,255,0.18)'); // top highlight
-  FR(cx+W/2-3, wy, 3, H+pH, 'rgba(0,0,0,0.08)');
-  FR(cx-W/2, wy+H+pH-3, W, 3, 'rgba(0,0,0,0.1)');
-  // Plaster texture — smooth, not wood
-  X.fillStyle='rgba(0,0,0,0.025)';
-  for(let i=16;i<H+pH;i+=16) X.fillRect(Math.round(cx-W/2+1),Math.round(wy+i),Math.round(W-2),1);
-
-
-
-  // ── JENDELA BESAR (kiri) ──
-  const wx1=cx-W/2+10, wy1=wy+12, ww=18, wh=16;
-  FR(wx1-2,wy1-2,ww+4,wh+4,'#c8b898');  // frame
-  FR(wx1,wy1,ww,wh,'#1c2e48');           // glass dark
-  FR(wx1+1,wy1+1,ww-2,wh-2,'#4898c8');  // glass
-  FR(wx1+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.55)'); // glare
-  LN(wx1+ww/2,wy1+1,wx1+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
-  LN(wx1+1,wy1+wh/2,wx1+ww-1,wy1+wh/2,'rgba(0,0,0,0.2)');
-  // Kusen putih
-
-
-  // ── JENDELA KANAN (lv>=2) ──
-  if(lv>=2){
-    const wx2=cx+W/2-28, wy2=wy+12;
-    FR(wx2-2,wy2-2,ww+4,wh+4,'#c8b898');
-    FR(wx2,wy2,ww,wh,'#1c2e48');
-    FR(wx2+1,wy2+1,ww-2,wh-2,'#4898c8');
-    FR(wx2+1,wy2+1,(ww-2)/2,4,'rgba(255,255,255,0.55)');
-    LN(wx2+ww/2,wy2+1,wx2+ww/2,wy2+wh-1,'rgba(0,0,0,0.2)');
-    LN(wx2+1,wy2+wh/2,wx2+ww-1,wy2+wh/2,'rgba(0,0,0,0.2)');
-
-  }
-
-  // ── BROWN WOODEN DOOR — centered, proportional ──
-  const dw=20, dh=30, dx2=cx-dw/2, dy2=bot-pH-dh;
-  // Frame kusen
-  FR(dx2-2, dy2-2, dw+4, dh+2, '#c8a870');
-  // Pintu
-  FR(dx2, dy2, dw, dh, '#8a4c14');
-  // Top arch hint
-  FR(dx2, dy2, dw, 4, '#7a3c08');
-  // Panel atas kiri
-  FR(dx2+2, dy2+5, dw/2-4, dh*0.32, 'rgba(0,0,0,0.16)');
-  FR(dx2+dw/2+2, dy2+5, dw/2-4, dh*0.32, 'rgba(0,0,0,0.12)');
-  // Panel bawah kiri
-  FR(dx2+2, dy2+dh*0.46, dw/2-4, dh*0.44, 'rgba(0,0,0,0.12)');
-  FR(dx2+dw/2+2, dy2+dh*0.46, dw/2-4, dh*0.44, 'rgba(0,0,0,0.09)');
-  // Garis tengah pintu
-  LN(cx, dy2, cx, dy2+dh, 'rgba(0,0,0,0.18)', 1);
-  // Handle
-  FR(dx2+dw-7, dy2+dh/2-3, 3, 6, '#d4a820');
-  FR(dx2+dw-8, dy2+dh/2-1, 5, 3, '#b88010');
-
-  // ── ATAP GENTENG (tiled roof) ──
-  const rH=28+lv*4, rW=W+16;
-  // Base atap
-  X.fillStyle='#8a3e18';
+// ── HOUSE LEVEL 1 — Simple cottage ──
+function bHouseLv1(cx,bot){
+  const W=72,H=46,wy=bot-H-18;
+  // Foundation
+  FR(cx-W/2-2,bot-6,W+4,6,'#c8b898');
+  // Walls — whitewashed plaster
+  FR(cx-W/2,wy,W,H,'#ece4d4');
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.2)');
+  FR(cx+W/2-3,wy,3,H,'rgba(0,0,0,0.07)');
+  // Horizontal plaster lines
+  X.fillStyle='rgba(0,0,0,0.03)';
+  for(let i=12;i<H;i+=12) X.fillRect(cx-W/2+1,wy+i,W-2,1);
+  // Single window left
+  const wx=cx-W/2+10,wy1=wy+10,ww=16,wh=14;
+  FR(wx-2,wy1-2,ww+4,wh+4,'#c0a880'); FR(wx,wy1,ww,wh,'#1c2e48');
+  FR(wx+1,wy1+1,ww-2,wh-2,'#4898c8'); FR(wx+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.5)');
+  LN(wx+ww/2,wy1+1,wx+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
+  LN(wx+1,wy1+wh/2,wx+ww-1,wy1+wh/2,'rgba(0,0,0,0.2)');
+  // Simple wooden door
+  const dw=18,dh=26,dx=cx-dw/2,dy=bot-18-dh;
+  FR(dx-2,dy-2,dw+4,dh+2,'#b89860');
+  FR(dx,dy,dw,dh,'#7a3e10'); FR(dx,dy,dw,4,'#6a2e08');
+  FR(dx+2,dy+5,dw/2-3,dh*0.35,'rgba(0,0,0,0.14)');
+  FR(dx+dw/2+1,dy+5,dw/2-3,dh*0.35,'rgba(0,0,0,0.10)');
+  LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.15)',1);
+  FR(dx+dw-6,dy+dh/2-2,3,5,'#d4a820');
+  // Small porch step
+  FR(cx-18,bot-18,36,18,'#d4c8b0');
+  FR(cx-18,bot-18,36,2,'rgba(255,255,255,0.12)');
+  // Simple triangular roof
+  const rW=W+14,rH=26;
+  X.fillStyle='#8a4018';
   X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
-  // Shadow sisi kanan
-  X.fillStyle='#6a2e10';
+  X.fillStyle='#6a3010';
+  X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-3,wy);X.closePath();X.fill();
+  for(let i=1;i<5;i++){const t=i/5;const lx=cx-rW/2*t,rx=cx+rW/2*t,ly=wy-rH*t;X.strokeStyle=`rgba(0,0,0,${0.12+i*0.02})`;X.lineWidth=1.5;X.beginPath();X.moveTo(lx,ly);X.lineTo(rx,ly);X.stroke();}
+  FR(cx-4,wy-rH-2,8,6,'#6a3010');
+  // Chimney
+  FR(cx+18,wy-rH+4,8,rH-2,'#a07858');
+  FR(cx+17,wy-rH+3,10,4,'#b08868');
+  // Warm light in window at night
+  const lt=Date.now()/1500;
+  X.fillStyle=`rgba(255,200,80,${0.2+Math.sin(lt)*0.07})`;
+  X.beginPath();X.arc(wx+ww/2,wy1+wh/2,7,0,Math.PI*2);X.fill();
+}
+
+// ── HOUSE LEVEL 2 — Two-storey townhouse ──
+function bHouseLv2(cx,bot){
+  const W=84,H=70,wy=bot-H-14;
+  // Foundation/base
+  FR(cx-W/2-3,bot-8,W+6,8,'#b8a888');
+  FR(cx-W/2-3,bot-8,W+6,3,'#c8b898');
+  // Ground floor walls — brick texture
+  FR(cx-W/2,wy+36,W,H-36,'#c8905a');
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let i=0;i<H-36;i+=7){
+    for(let j=0;j<W;j+=14) X.fillRect(cx-W/2+j+(i%2===0?0:7),wy+36+i,13,6);
+  }
+  // Second floor — lighter plaster
+  FR(cx-W/2,wy,W,36,'#ece4d4');
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.2)');
+  // Floor divider beam
+  FR(cx-W/2-2,wy+36,W+4,5,'#7a5828');
+  FR(cx-W/2-2,wy+36,W+4,2,'rgba(255,255,255,0.15)');
+  // Ground floor: 2 windows
+  const ww=15,wh=14;
+  for(let s=-1;s<=1;s+=2){
+    const wx=cx+s*(W/2-20),wy1=wy+44;
+    FR(wx-2,wy1-2,ww+4,wh+4,'#c0a060'); FR(wx,wy1,ww,wh,'#1c2e48');
+    FR(wx+1,wy1+1,ww-2,wh-2,'#4898c8'); FR(wx+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.5)');
+    LN(wx+ww/2,wy1+1,wx+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
+    LN(wx+1,wy1+wh/2,wx+ww-1,wy1+wh/2,'rgba(0,0,0,0.2)');
+  }
+  // Second floor: 2 windows with shutters
+  for(let s=-1;s<=1;s+=2){
+    const wx=cx+s*(W/2-20),wy1=wy+8;
+    FR(wx-4,wy1-2,ww+8,wh+4,'#6a4010'); // shutter frame
+    FR(wx-4,wy1-2,3,wh+4,'#5a3008'); FR(wx+ww+1,wy1-2,3,wh+4,'#5a3008'); // shutters
+    FR(wx,wy1,ww,wh,'#1c2e48'); FR(wx+1,wy1+1,ww-2,wh-2,'#5aa8d8');
+    FR(wx+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.55)');
+    LN(wx+ww/2,wy1+1,wx+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
+  }
+  // Arched door
+  const dw=22,dh=32,dx=cx-dw/2,dy=bot-14-dh;
+  FR(dx-3,dy-2,dw+6,dh+2,'#c0a060');
+  X.fillStyle='#6a3808'; X.beginPath(); X.arc(cx,dy+2,dw/2+2,Math.PI,0); X.fill();
+  FR(dx,dy+2,dw,dh,'#8a4814'); FR(dx,dy+2,dw,5,'#7a3808');
+  FR(dx+2,dy+8,dw/2-3,12,'rgba(0,0,0,0.14)'); FR(dx+dw/2+1,dy+8,dw/2-3,12,'rgba(0,0,0,0.10)');
+  FR(dx+dw-7,dy+dh/2,3,6,'#d4a820'); LN(cx,dy+2,cx,dy+dh,'rgba(0,0,0,0.15)',1);
+  // Porch overhang
+  FR(cx-30,bot-14,60,14,'#d4c8b0'); FR(cx-30,bot-14,60,2,'rgba(255,255,255,0.12)');
+  FR(cx-28,wy+H-2,5,14,'#c0b090'); FR(cx+23,wy+H-2,5,14,'#c0b090');
+  // Gabled roof
+  const rW=W+18,rH=32;
+  X.fillStyle='#7a3818';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+  X.fillStyle='#5a2810';
   X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-4,wy);X.closePath();X.fill();
-  // Genteng — garis horizontal berlapis
-  const bands=6+lv;
-  for(let i=1;i<bands;i++){
-    const t=i/bands;
-    const lx=cx-rW/2*t, rx=cx+rW/2*t, ly=wy-rH*t;
-    // Garis gelap (lekukan genteng)
-    X.strokeStyle=`rgba(0,0,0,${0.15+i*0.02})`;X.lineWidth=1.5;
-    X.beginPath();X.moveTo(lx,ly);X.lineTo(rx,ly);X.stroke();
-    // Garis terang (tonjolan genteng)
-    X.strokeStyle='rgba(255,255,255,0.1)';X.lineWidth=1;
-    X.beginPath();X.moveTo(lx,ly+2);X.lineTo(rx,ly+2);X.stroke();
-  }
-  // Ridge cap (bubungan)
-  FR(cx-5,wy-rH-3,10,7,'#6a2e10');
-  FR(cx-3,wy-rH-4,6,3,'#7a3818');
-
-  // ── LAMPU TERAS (animated warm glow) ──
-  const lt=Date.now()/1200;
-  const glow=0.65+Math.sin(lt)*0.1;
-  // Lampu kiri teras
-  X.fillStyle=`rgba(255,${200+Math.sin(lt)*20|0},80,${glow})`;
-  X.beginPath();X.arc(px2-pW/2+14,wy+4,5,0,Math.PI*2);X.fill();
-  X.fillStyle='rgba(255,220,120,0.3)';
-  X.beginPath();X.arc(px2-pW/2+14,wy+6,10,0,Math.PI*2);X.fill();
-  // Lampu kanan teras
-  X.fillStyle=`rgba(255,${200+Math.sin(lt+1)*20|0},80,${glow})`;
-  X.beginPath();X.arc(px2+pW/2-14,wy+4,5,0,Math.PI*2);X.fill();
-  X.fillStyle='rgba(255,220,120,0.3)';
-  X.beginPath();X.arc(px2+pW/2-14,wy+6,10,0,Math.PI*2);X.fill();
-
-  // ── BANGKU TERAS (bench) ──
-  if(lv>=1){
-    FR(cx+pW/2-20,bot-12,16,4,'#9a6830');  // seat
-    FR(cx+pW/2-20,bot-16,2,8,'#7a5020');   // leg L
-    FR(cx+pW/2-6, bot-16,2,8,'#7a5020');   // leg R
-    FR(cx+pW/2-20,bot-18,16,3,'#9a6830');  // backrest
-  }
-
-  // ── TANAMAN HIAS di samping pintu ──
-  X.fillStyle='#4a7818';X.beginPath();X.arc(cx-pW/2+8,bot-10,5,Math.PI,0);X.fill();
-  FR(cx-pW/2+5,bot-10,6,6,'#7a5020');
+  for(let i=1;i<7;i++){const t=i/7;const lx=cx-rW/2*t,rx=cx+rW/2*t,ly=wy-rH*t;X.strokeStyle=`rgba(0,0,0,${0.12+i*0.02})`;X.lineWidth=1.5;X.beginPath();X.moveTo(lx,ly);X.lineTo(rx,ly);X.stroke();}
+  FR(cx-5,wy-rH-3,10,7,'#5a2810');
+  // Two chimneys
+  FR(cx-20,wy-rH+6,7,rH-4,'#9a7858'); FR(cx-21,wy-rH+5,9,4,'#aa8868');
+  FR(cx+14,wy-rH+8,7,rH-6,'#9a7858'); FR(cx+13,wy-rH+7,9,4,'#aa8868');
+  // Warm glow
+  const lt=Date.now()/1500;
+  X.fillStyle=`rgba(255,200,80,${0.18+Math.sin(lt)*0.06})`;
+  for(let s=-1;s<=1;s+=2) X.beginPath(),X.arc(cx+s*(W/2-12),wy+51,8,0,Math.PI*2),X.fill();
 }
 
-// ── GUDANG (storage barn) ──
-function bStorage(cx,bot,lv){
-  const W=72, H=46, wy=bot-H-18;
-  FR(cx-W/2-2,bot-5,W+4,7,'#907050'); // foundation
-  WALL(cx,wy,W,H,'#c49050');
-  // Big barn doors
-  FR(cx-14,bot-30,12,30,'#6a3808');FR(cx+2,bot-30,12,30,'#6a3808');
-  FR(cx-14,bot-30,12,14,'rgba(0,0,0,0.15)');FR(cx+2,bot-30,12,14,'rgba(0,0,0,0.12)');
-  LN(cx,bot-30,cx,bot-1,'rgba(0,0,0,0.25)',1.5);
-  FR(cx-1,bot-18,2,3,'#c89018'); // latch
-  // Rounded roof (hip roof style)
-  X.fillStyle='#b09020';
-  X.beginPath();X.moveTo(cx-W/2-5,wy);X.lineTo(cx+W/2+5,wy);X.lineTo(cx+W/2-5,wy-14);X.lineTo(cx-W/2+5,wy-14);X.closePath();X.fill();
-  X.fillStyle='#886e10';
-  X.beginPath();X.moveTo(cx+W/2+5,wy);X.lineTo(cx+W/2-5,wy-14);X.lineTo(cx+W/2-4,wy-14);X.closePath();X.fill();
-  // Ventilation hole
-  X.fillStyle='#1a1008';X.beginPath();X.ellipse(cx,wy-7,8,5,0,0,Math.PI*2);X.fill();
-  WIN(cx-W/2+7,wy+8,12,10);
+// ── HOUSE LEVEL 3 — Manor house with tower ──
+function bHouseLv3(cx,bot){
+  const W=96,H=80,wy=bot-H-12;
+  // Foundation stones
+  FR(cx-W/2-4,bot-10,W+8,10,'#a89878');
+  X.fillStyle='rgba(0,0,0,0.08)';
+  for(let i=0;i<10;i+=5) for(let j=0;j<W+8;j+=18) X.fillRect(cx-W/2-4+j,bot-10+i,17,4);
+  // Main walls — dressed stone
+  FR(cx-W/2,wy,W,H,'#b8a888');
+  X.fillStyle='rgba(0,0,0,0.05)';
+  for(let i=0;i<H;i+=8) for(let j=0;j<W;j+=16) X.fillRect(cx-W/2+j+(i%2===0?0:8),wy+i,15,7);
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.12)');
+  FR(cx+W/2-3,wy,3,H,'rgba(0,0,0,0.1)');
+  // Stone quoins (corner blocks)
+  X.fillStyle='#c8b898';
+  for(let i=0;i<H;i+=10){X.fillRect(cx-W/2,wy+i,6,8);X.fillRect(cx+W/2-6,wy+i,6,8);}
+  // Floor belt course
+  FR(cx-W/2-2,wy+40,W+4,5,'#c8b898');
+  // Ground floor 3 windows with arches
+  const ww=14,wh=18;
+  for(let n=-1;n<=1;n++){
+    if(n===0)continue;
+    const wx=cx+n*(W/2-22),wy1=wy+48;
+    X.fillStyle='#6a5030';X.beginPath();X.arc(wx+ww/2,wy1,ww/2+2,Math.PI,0);X.fill();
+    FR(wx-2,wy1,ww+4,wh,'#6a5030');
+    FR(wx,wy1,ww,wh,'#1a2840'); FR(wx+1,wy1+1,ww-2,wh-2,'#4888c0');
+    FR(wx+1,wy1+1,(ww-2)/2,5,'rgba(255,255,255,0.5)');
+  }
+  // 2nd floor 3 windows
+  for(let n=-1;n<=1;n++){
+    const wx=cx+n*(W/3),wy1=wy+10;
+    X.fillStyle='#5a4020';X.beginPath();X.arc(wx+ww/2,wy1,ww/2+2,Math.PI,0);X.fill();
+    FR(wx-2,wy1,ww+4,wh-2,'#5a4020');
+    FR(wx,wy1,ww,wh-2,'#1a2840'); FR(wx+1,wy1+1,ww-2,wh-4,'#5898d0');
+    FR(wx+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.55)');
+    // Decorative sill
+    FR(wx-3,wy1+wh-2,ww+6,3,'#c8b090');
+  }
+  // Grand entrance portico
+  const dw=28,dh=38,dx=cx-dw/2,dy=bot-12-dh;
+  FR(cx-22,wy+H-2,7,12,'#a89070'); FR(cx+15,wy+H-2,7,12,'#a89070');
+  FR(cx-24,bot-12,50,5,'#b8a080');
+  X.fillStyle='#5a4020';X.beginPath();X.arc(cx,dy+2,dw/2+4,Math.PI,0);X.fill();
+  FR(dx-4,dy+2,dw+8,dh,'#7a5030');
+  FR(dx,dy+2,dw,dh,'#9a6040'); FR(dx,dy+2,dw,6,'#8a5030');
+  FR(dx+2,dy+9,dw/2-3,14,'rgba(0,0,0,0.15)'); FR(dx+dw/2+1,dy+9,dw/2-3,14,'rgba(0,0,0,0.11)');
+  FR(dx+2,dy+26,dw/2-3,12,'rgba(0,0,0,0.11)'); FR(dx+dw/2+1,dy+26,dw/2-3,12,'rgba(0,0,0,0.08)');
+  FR(dx+dw-8,dy+dh/2-3,4,8,'#e0c040'); LN(cx,dy+2,cx,dy+dh,'rgba(0,0,0,0.15)',1);
+  // Tower left
+  const tx=cx-W/2-6,twy=wy-30,tW=22,tH=H+30;
+  FR(tx,twy,tW,tH,'#b0a080');
+  X.fillStyle='rgba(0,0,0,0.05)';
+  for(let i=0;i<tH;i+=8) for(let j=0;j<tW;j+=12) X.fillRect(tx+j+(i%2===0?0:6),twy+i,11,7);
+  FR(tx,twy,tW,3,'rgba(255,255,255,0.1)');
+  // Tower window
+  X.fillStyle='#4a3818';X.beginPath();X.arc(tx+tW/2,twy+14,6,Math.PI,0);X.fill();
+  FR(tx+tW/2-6,twy+14,12,12,'#4a3818'); FR(tx+tW/2-5,twy+14,11,11,'#1a2840'); FR(tx+tW/2-4,twy+15,9,9,'#4888c0');
+  // Tower battlements
+  X.fillStyle='#c0b090';
+  for(let i=0;i<3;i++) X.fillRect(tx+i*8,twy-8,6,8);
+  FR(tx-2,twy-2,tW+4,4,'#a09070');
+  // Conical tower roof
+  X.fillStyle='#5a3050';
+  X.beginPath();X.moveTo(tx,twy-2);X.lineTo(tx+tW,twy-2);X.lineTo(tx+tW/2,twy-22);X.closePath();X.fill();
+  X.fillStyle='#4a2040';X.beginPath();X.moveTo(tx+tW/2,twy-22);X.lineTo(tx+tW,twy-2);X.lineTo(tx+tW-2,twy-2);X.closePath();X.fill();
+  FR(tx+tW/2-1,twy-26,3,6,'#d4a820'); // flag pole
+  X.fillStyle='#e03020';X.beginPath();X.moveTo(tx+tW/2+2,twy-26);X.lineTo(tx+tW/2+10,twy-22);X.lineTo(tx+tW/2+2,twy-18);X.closePath();X.fill();
+  // Main roof — hipped
+  const rW=W+14,rH=34;
+  X.fillStyle='#6a3018';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-12,wy-rH);X.lineTo(cx-rW/2+12,wy-rH);X.closePath();X.fill();
+  X.fillStyle='#4a2010';
+  X.beginPath();X.moveTo(cx+rW/2,wy);X.lineTo(cx+rW/2-12,wy-rH);X.lineTo(cx+rW/2-12,wy-rH+2);X.closePath();X.fill();
+  for(let i=1;i<8;i++){const t=i/8;const off=12*t;const lx=cx-rW/2+off,rx=cx+rW/2-off,ly=wy-rH*t;X.strokeStyle=`rgba(0,0,0,${0.12+i*0.02})`;X.lineWidth=1.5;X.beginPath();X.moveTo(lx,ly);X.lineTo(rx,ly);X.stroke();}
+  // Three chimneys
+  for(let s=-1;s<=1;s++){
+    const chx=cx+s*28,chH=rH-s*4+4;
+    FR(chx-3,wy-chH,7,chH,'#907060'); FR(chx-4,wy-chH-1,9,4,'#a08070');
+  }
+  // Manor glow — warm multiple windows
+  const lt=Date.now()/1500;
+  X.fillStyle=`rgba(255,200,80,${0.2+Math.sin(lt)*0.07})`;
+  for(let n=-1;n<=1;n++) X.beginPath(),X.arc(cx+n*(W/3)+ww/2,wy+19,7,0,Math.PI*2),X.fill();
+  for(let n=-1;n<=1;n++) if(n!==0) X.beginPath(),X.arc(cx+n*(W/2-22)+ww/2,wy+57,8,0,Math.PI*2),X.fill();
+  X.fillStyle=`rgba(255,200,80,${0.15+Math.sin(lt+1)*0.05})`;
+  X.beginPath();X.arc(tx+tW/2,twy+19,6,0,Math.PI*2);X.fill();
 }
 
-// ── LADANG (farm) ──
-function bFarm(cx,bot,lv){
-  const fw=80,fh=55,fy=bot-fh;
-  // Soil bed
-  FR(cx-fw/2,fy,fw,fh,'#6a4010');
-  FR(cx-fw/2,fy,fw,4,'rgba(255,255,255,0.06)');
-  // Furrow rows
-  const rows=3+lv;
-  for(let i=0;i<=rows;i++){
-    const y=fy+i*(fh/rows);
-    FR(cx-fw/2,y,fw,2,'#7a5020');
-    X.strokeStyle='rgba(0,0,0,0.08)';X.lineWidth=1;
-    X.beginPath();X.moveTo(cx-fw/2,y);X.lineTo(cx+fw/2,y);X.stroke();
-  }
-  // Crops (animated growth bob)
-  const t=Date.now()/1800;
-  for(let row=0;row<rows;row++){
-    for(let col=0;col<5;col++){
-      const px=cx-fw/2+8+col*15, py=fy+6+row*(fh/rows);
-      const bob=Math.sin(t+col*0.5+row)*1.2;
-      X.fillStyle='#2a9018';X.beginPath();X.arc(px,py+bob,5,0,Math.PI*2);X.fill();
-      X.fillStyle='#38b824';X.beginPath();X.arc(px-1,py-2+bob,3.5,0,Math.PI*2);X.fill();
-      X.fillStyle='#50d030';X.beginPath();X.arc(px-1,py-4+bob,2,0,Math.PI*2);X.fill();
-    }
-  }
-  // Scarecrow / small hut
-  FR(cx-10,bot-28,20,16,'#c8a040');
-  THATCH_ROOF(cx,bot-28,20,12,'#b89020','#806010');
-  DOOR(cx,bot-12,8,14);
-  // Fence
-  for(let i=0;i<7;i++){FR(cx-fw/2+i*12+1,bot-8,3,8,'#a07840');}
-}
-
-// ── KEBUN BUAH (orchard) ──
-function bOrchard(cx,bot,lv){
-  const trees=[[cx-22,bot-14],[cx+22,bot-18],[cx,bot-10]];
-  for(const[tx,ty]of trees){
-    // Shadow
-    X.fillStyle='rgba(0,0,0,0.12)';X.beginPath();X.ellipse(tx+2,ty+3,10,4,0,0,Math.PI*2);X.fill();
-    // Trunk
-    FR(tx-3,ty-18,6,18,'#6a3c10');FR(tx,ty-18,2,18,'#4a2808');
-    // Canopy layers
-    X.fillStyle='#164010';X.beginPath();X.arc(tx,ty-26,13,0,Math.PI*2);X.fill();
-    X.fillStyle='#1e5c18';X.beginPath();X.arc(tx-2,ty-30,10,0,Math.PI*2);X.fill();
-    X.fillStyle='#289020';X.beginPath();X.arc(tx-2,ty-34,7,0,Math.PI*2);X.fill();
-    // Fruits (animated slight sway)
-    const t2=Date.now()/2000;
-    X.fillStyle='#e02820';
-    for(let i=0;i<3;i++) X.beginPath(),X.arc(tx-7+i*7,ty-24+Math.sin(t2+i)*1.5,3,0,Math.PI*2),X.fill();
-  }
-}
-
-// ── PENEBANG KAYU (logger) ──
-function bLogger(cx,bot,lv){
-  // Log pile
-  for(let i=0;i<2+lv;i++){
-    FR(cx-26,bot-10-i*9,52,8,'#8a4a18');
-    LN(cx-26,bot-10-i*9+4,cx+26,bot-10-i*9+4,'rgba(0,0,0,0.12)');
-    X.fillStyle='#5a2e0a';
-    X.beginPath();X.ellipse(cx-26,bot-6-i*9,4.5,3.5,0,0,Math.PI*2);X.fill();
-    X.beginPath();X.ellipse(cx+26,bot-6-i*9,4.5,3.5,0,0,Math.PI*2);X.fill();
-    // Tree rings
-    X.strokeStyle='rgba(0,0,0,0.15)';X.lineWidth=0.5;
-    X.beginPath();X.ellipse(cx+26,bot-6-i*9,2.5,2,0,0,Math.PI*2);X.stroke();
-  }
-  // Chopping stump
-  FR(cx-16,bot-14,16,10,'#7a4820');FR(cx-15,bot-15,14,4,'#5a3210');
-  // Axe (animated chop)
-  const t=Date.now()/500, chop=Math.abs(Math.sin(t))*0.6-0.1;
-  X.save();X.translate(cx+8,bot-18);X.rotate(chop);
-  FR(-2,-28,3,30,'#8a5020');
-  X.fillStyle='#a0a0a0';X.beginPath();X.moveTo(-2,-28);X.lineTo(12,-33);X.lineTo(10,-20);X.closePath();X.fill();
-  X.fillStyle='#c8c8c8';X.beginPath();X.moveTo(-2,-25);X.lineTo(5,-28);X.lineTo(5,-22);X.closePath();X.fill();
-  X.restore();
-  // Wood chips flying when chopping
-  if(Math.sin(t)>0.8){
-    X.fillStyle='rgba(180,120,40,0.7)';
-    for(let i=0;i<3;i++) X.beginPath(),X.ellipse(cx+14+i*4,bot-16-i*3,3,2,i,0,Math.PI*2),X.fill();
-  }
-}
-
-// ── PENGGERGAJI (sawmill) ──
-function bSawmill(cx,bot,lv){
-  WALL(cx,bot-48,64,48,'#c0985a');
-  DOOR(cx,bot,14,24);
-  WIN(cx-24,bot-40,12,10);WIN(cx+12,bot-40,12,10);
-  THATCH_ROOF(cx,bot-48,64,22,'#a89018','#786010');
-  // Spinning saw blade (animated)
-  const a=Date.now()/150;
-  X.save();X.translate(cx+28,bot-24);X.rotate(a);
-  X.strokeStyle='#c0c0c0';X.lineWidth=2;
-  X.beginPath();X.arc(0,0,11,0,Math.PI*2);X.stroke();
-  X.fillStyle='#a0a0a0';
-  for(let i=0;i<8;i++){
-    X.save();X.rotate(i*Math.PI/4);
-    X.beginPath();X.moveTo(8,0);X.lineTo(12,-3);X.lineTo(14,0);X.lineTo(12,3);X.closePath();X.fill();
-    X.restore();
-  }
-  X.restore();
-  // Plank output
-  FR(cx-32,bot-8,20,4,'#d4a860');FR(cx-32,bot-12,20,3,'#c09040');
-}
-
-// ── QUARRY ──
-function bQuarry(cx,bot,lv){
-  // Rock pile (layered)
-  X.fillStyle='rgba(0,0,0,0.15)';X.beginPath();X.ellipse(cx+3,bot-5,26,8,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#6e6a5a';X.beginPath();X.ellipse(cx,bot-18,26,16,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#8a8672';X.beginPath();X.ellipse(cx-4,bot-24,20,13,0,0,Math.PI*2);X.fill();
-  X.fillStyle='#a8a494';X.beginPath();X.ellipse(cx-6,bot-30,13,10,0,0,Math.PI*2);X.fill();
-  X.fillStyle='rgba(220,218,210,0.5)';X.beginPath();X.ellipse(cx-9,bot-35,7,5,0,0,Math.PI*2);X.fill();
-  // Crack detail
-  X.strokeStyle='rgba(0,0,0,0.18)';X.lineWidth=1;
-  X.beginPath();X.moveTo(cx-2,bot-20);X.lineTo(cx+5,bot-28);X.stroke();
-  X.beginPath();X.moveTo(cx-6,bot-18);X.lineTo(cx-10,bot-26);X.stroke();
-  // Pickaxe (animated)
-  const t=Date.now()/600, chop=Math.abs(Math.sin(t))*0.7-0.15;
-  X.save();X.translate(cx+16,bot-20);X.rotate(chop);
-  FR(-2,-26,3,28,'#8a5020');
-  X.fillStyle='#989090';X.beginPath();X.moveTo(-2,-26);X.lineTo(13,-31);X.lineTo(11,-18);X.closePath();X.fill();
-  X.fillStyle='#b8b0b0';X.beginPath();X.moveTo(-2,-22);X.lineTo(6,-25);X.lineTo(5,-18);X.closePath();X.fill();
-  X.restore();
-  // Dust puff
-  if(Math.sin(t)>0.75){
-    X.fillStyle='rgba(180,170,150,0.5)';
-    X.beginPath();X.ellipse(cx+18,bot-16,9,5,0,0,Math.PI*2);X.fill();
-  }
-}
-
-// ── TAMBANG BATU BARA (coal mine) ──
 function bMine(cx,bot,lv,type){
   const col=type==='coal'?'#282020':'#3c2c2c';
   const isDeep=lv>=3;
