@@ -8088,9 +8088,9 @@ async function saveGameToFile(){
 function loadGameFromFile(event){
   const file=event.target.files?.[0];
   if(!file) return;
-  event.target.value='';
   const reader=new FileReader();
   reader.onload=async function(e){
+    event.target.value=''; // reset after reading
     try{
       let parsed;
       try{ parsed=JSON.parse(e.target.result); }
@@ -8239,9 +8239,9 @@ function showLoadGame(){
 function titleLoadGame(event){
   const file=event.target.files?.[0];
   if(!file) return;
-  event.target.value='';
   const reader=new FileReader();
   reader.onload=async function(e){
+    event.target.value=''; // reset after reading
     try{
       let parsed;
       try{ parsed=JSON.parse(e.target.result); }
