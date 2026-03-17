@@ -1431,16 +1431,17 @@ function genMap(){
   function placeDeposits(count,decorType,avoidCenter){
     const minDist=avoidCenter?8:4;
     let placed=0,attempts=0;
-    while(placed<count&&attempts<200){
+    while(placed<count&&attempts<300){
       attempts++;
+      // After 150 attempts, relax constraints to guarantee placement
+      const relaxed=attempts>150;
       const dc=5+Math.floor(R()*(WC-10));
       const dr=4+Math.floor(R()*(WR-8));
-      // Keep away from center campfire area
-      if(Math.abs(dc-mc)<minDist&&Math.abs(dr-mr)<minDist)continue;
+      if(!relaxed&&Math.abs(dc-mc)<minDist&&Math.abs(dr-mr)<minDist)continue;
       if(!MAP[dr]||!MAP[dr][dc])continue;
       if(MAP[dr][dc].t!==T.GRASS||MAP[dr][dc].bld||MAP[dr][dc].decor)continue;
-      // Place 2x2 cluster
-      const w=2+Math.floor(R()*2), h=2+Math.floor(R()*2);
+      // Smaller cluster when relaxed (1x1 guaranteed)
+      const w=relaxed?1:2+Math.floor(R()*2), h=relaxed?1:2+Math.floor(R()*2);
       let ok=true;
       for(let ddr=0;ddr<h&&ok;ddr++) for(let ddc=0;ddc<w&&ok;ddc++){
         const rr=dr+ddr,cc=dc+ddc;
@@ -1452,19 +1453,28 @@ function genMap(){
         if(MAP[rr]&&MAP[rr][cc]&&MAP[rr][cc].t===T.GRASS){
           MAP[rr][cc].t=T.STONE_G;
           MAP[rr][cc].decor=decorType;
-          // Init deposit quantity
           if(decorType!=='rock'){
-            const maxQty=80+Math.floor(R()*120); // 80-200 ore
+            const maxQty=80+Math.floor(R()*120);
             DEPOSIT_STATE[cc+','+rr]={type:decorType,qty:maxQty,maxQty,depleted:false};
           }
         }
       }
       placed++;
     }
+    return placed;
   }
-  placeDeposits(4+Math.floor(R()*4), 'rock',       true);  // stone: 4-7
-  placeDeposits(3+Math.floor(R()*3), 'coal_deposit',true);  // coal:  3-5
-  placeDeposits(3+Math.floor(R()*3), 'iron_deposit',true);  // iron:  3-5
+  // Guaranteed minimums — then add random extras
+  const stonePlaced=placeDeposits(1,'rock',true);
+  if(stonePlaced<1) placeDeposits(1,'rock',false); // fallback: no avoidCenter
+  placeDeposits(3+Math.floor(R()*3),'rock',true);  // stone: 3-5 extra
+
+  const coalPlaced=placeDeposits(1,'coal_deposit',true);
+  if(coalPlaced<1) placeDeposits(1,'coal_deposit',false);
+  placeDeposits(2+Math.floor(R()*2),'coal_deposit',true); // coal: 2-3 extra
+
+  const ironPlaced=placeDeposits(1,'iron_deposit',true);
+  if(ironPlaced<1) placeDeposits(1,'iron_deposit',false);
+  placeDeposits(2+Math.floor(R()*2),'iron_deposit',true); // iron: 2-3 extra
 
   // borders: trees (stored as decors, tile stays grass/forest-floor)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
@@ -7477,7 +7487,22 @@ function startNewGame(){
 
 function launchGame(doGenMap){
   _gameStarted=true;
-  G.paused=false; // UNPAUSE — was set to true at init to block ticks before map loaded
+  G.paused=false;
+
+  // Auto-start music (browser requires user gesture — launchGame is called from button click)
+  setTimeout(()=>{
+    if(!musicOn){
+      initAudio();
+      if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+      musicOn=true;
+      const btn=document.getElementById('tb-music');
+      if(btn){btn.textContent='🔇';btn.classList.add('on');}
+      masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+2);
+      beatCount=0;
+      scheduleMusic();
+    }
+  },800); // slight delay so title screen fades first
 
   // Fade out title screen
   const ts=document.getElementById('title-screen');
