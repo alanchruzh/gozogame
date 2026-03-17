@@ -276,16 +276,22 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Stone — mine from Quarry">🪨<b id="rs">0</b></div>
     <div class="res" title="Coal — mine from Coal Mine">⚫<b id="rc">0</b></div>
     <div class="res" title="Metal — smelt iron at Smelter">⚙<b id="rm">0</b></div>
-    <div class="res" title="Food — grow at Farm or gather berries">🌾<b id="rf">0</b></div>
+    <div class="res" title="Food — grow at Farm or gather berries" style="margin-left:6px">🌾<b id="rf">0</b></div>
     <div class="res" title="Meat — hunters bring from deer">🥩<b id="rmt">0</b></div>
-    <div class="res" title="Gold — tax income from houses">💰<b id="rg">0</b></div>
+    <div class="res" title="Gold — tax income from houses" style="margin-left:6px">💰<b id="rg">0</b></div>
+    <div class="res" title="Village Health — improved by Hospital & Well" style="margin-left:6px">❤️<b id="rhlt">70</b></div>
+    <div class="res" style="cursor:pointer;color:#a09060;font-size:8px;padding:0 4px" onclick="toggleSecRes()" title="Show/hide more resources" id="res-more-btn">▼ more</div>
+  </div>
+  <div id="resbar2" style="display:none;position:absolute;top:40px;left:0;right:0;background:rgba(10,6,2,0.97);border-bottom:1px solid #5a3a1a;padding:3px 8px;display:none;flex-wrap:wrap;gap:3px;z-index:99">
     <div class="res" title="Leather — tannery production">🧴<b id="rlth">0</b></div>
     <div class="res" title="Eggs — from chicken backyard">🥚<b id="regg">0</b></div>
     <div class="res" title="Honey — from apiary backyard">🍯<b id="rhny">0</b></div>
     <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
     <div class="res" title="Wool — from sheep pen or sheep farm">🐑<b id="rwool">0</b></div>
     <div class="res" title="Milk — from cow shed backyard">🥛<b id="rmilk">0</b></div>
-    <div class="res" title="Village Health — improved by Hospital & Well">❤️<b id="rhlt">70</b></div>
+    <div class="res" title="Ale — from Malthouse">🍺<b id="rale2">0</b></div>
+    <div class="res" title="Bread — from Bakery">🍞<b id="rbrd2">0</b></div>
+    <div class="res" title="Cloth — from Weaver">🧵<b id="rclth2">0</b></div>
   </div>
   <div class="hdv"></div>
   <div class="vp" id="season">🌱 Spring Y1</div>
@@ -793,7 +799,10 @@ const BD={
   orchard:   {n:'Orchard',  e:'🍎',d:'+2 food.',       cost:{wood:8},           ml:2,pr:{food:2},cat:'food'},
   mill:      {n:'Windmill',  e:'⚙',d:'Farm +50%.',     cost:{wood:25,stone:15}, ml:2,         cat:'food'},
   logger:    {n:'Logger',    e:'🪓',d:'+4 wood/day.',   cost:{wood:12,stone:5},  ml:3, pr:{wood:4}, cat:'work'},
-  ironmine:  {n:'Iron Mine', e:'⛏',d:'+2 iron/day.',   cost:{wood:20,stone:20}, ml:3, pr:{iron:2},  cat:'work'},
+  ironmine:  {n:'Iron Mine', e:'⛏',d:'Mine iron ore deposits. Upgrade to Deep Mining for unlimited iron.',
+              cost:{wood:20,stone:20}, ml:3, pr:{iron:2}, cat:'work',
+              lvDesc:{1:'Surface mining. Uses iron deposits.',2:'Deep shafts. +4 iron/day.',3:'⚒ Deep Mining — UNLIMITED iron!'},
+              upCostOverride:{3:{metal:20,stone:30,gold:30}}},
   bakery:    {n:'Bakery',    e:'🍞',d:'Flour→Bread.',    cost:{wood:20,stone:15}, ml:2, cat:'work',
               chain:{input:{flour:2},output:{bread:3},workers:2}},
   malthouse: {n:'Malthouse', e:'🌾',d:'Wheat→Ale.',     cost:{wood:18,stone:10}, ml:2, cat:'work',
@@ -804,7 +813,10 @@ const BD={
   sawmill:   {n:'Sawmill',   e:'🪚',d:'Wood→Planks.',    cost:{wood:20,stone:12}, ml:2, cat:'work',
               chain:{input:{wood:2},output:{plank:3},workers:1}},
   quarry:    {n:'Quarry',    e:'⛏',d:'+3 stone/day.', cost:{wood:15},          ml:3,pr:{stone:3},cat:'work'},
-  coalmine:  {n:'Coal Mine', e:'⛏',d:'+2 coal/day.',  cost:{wood:20,stone:10}, ml:3,pr:{coal:2},cat:'work'},
+  coalmine:  {n:'Coal Mine', e:'⛏',d:'Mine coal deposits. Upgrade to Deep Mining for unlimited coal.',
+              cost:{wood:20,stone:10}, ml:3, pr:{coal:2}, cat:'work',
+              lvDesc:{1:'Surface mining. Uses coal deposits.',2:'Deep shafts. +4 coal/day.',3:'⚒ Deep Mining — UNLIMITED coal!'},
+              upCostOverride:{3:{metal:15,stone:25,gold:20}}},
   smelter:   {n:'Smelter',   e:'🔥',d:'Makes metal.',  cost:{wood:30,stone:25,coal:5},ml:2,pr:{metal:1},cat:'work'},
   well:      {n:'Well',      e:'💧',d:'+health.',       cost:{wood:8,stone:10},  ml:2,         cat:'civic'},
   church:    {n:'Church',    e:'⛪',d:'+happiness.',    cost:{wood:40,stone:30}, ml:2,         cat:'civic'},
@@ -896,6 +908,7 @@ let HORSES=[];  // {x,y,dir,fr,ft,vx,vy,wt,task,carryGoods,targetX,targetY,state
 let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
+let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
@@ -946,10 +959,10 @@ function buildWorld(){
         drawRockOnCtx(W,sx,sy,v);
       } else if(tile.decor==='coal_deposit'){
         drawRockOnCtx(W,sx,sy,v);
-        drawDepositOverlay(W,sx,sy,'coal');
+        drawDepositStatic(W,sx,sy,'coal');
       } else if(tile.decor==='iron_deposit'){
         drawRockOnCtx(W,sx,sy,v);
-        drawDepositOverlay(W,sx,sy,'iron');
+        drawDepositStatic(W,sx,sy,'iron');
       } else if(tile.decor==='bush'){
         drawBushOnCtx(W,sx,sy,v);
       } else if(tile.decor==='berry_bush'){
@@ -1172,6 +1185,7 @@ function genMap(){
   NPCS=[];FAMILIES=[];DEER=[];BUFFALO=[];HORSES=[];
   BERRY_STATE={};
   SAPLINGS={};
+  DEPOSIT_STATE={};
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
@@ -1264,6 +1278,11 @@ function genMap(){
         if(MAP[rr]&&MAP[rr][cc]&&MAP[rr][cc].t===T.GRASS){
           MAP[rr][cc].t=T.STONE_G;
           MAP[rr][cc].decor=decorType;
+          // Init deposit quantity
+          if(decorType!=='rock'){
+            const maxQty=80+Math.floor(R()*120); // 80-200 ore
+            DEPOSIT_STATE[cc+','+rr]={type:decorType,qty:maxQty,maxQty,depleted:false};
+          }
         }
       }
       placed++;
@@ -1421,39 +1440,72 @@ function drawTreeOnCtx(ctx,wx,wy,v){
 function drawTree(wx,wy,v){ drawTreeOnCtx(X,wx,wy,v); }
 
 // ── DEPOSIT OVERLAY — drawn on top of rock to show mineral type ──
-function drawDepositOverlay(ctx,sx,sy,type){
-  const cx=sx+TS/2|0, cy=sy+TS/2|0;
+// Static part baked onto world canvas (pit + scaffold + rails)
+function drawDepositStatic(ctx,sx,sy,type){
+  const cx=sx+TS/2|0, bot=sy+TS;
+
+  // Dark excavated pit
+  ctx.fillStyle='#1a1008';
+  ctx.beginPath();ctx.ellipse(cx,bot-18,28,16,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#2a1a0a';
+  ctx.beginPath();ctx.ellipse(cx,bot-20,24,13,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#1a1005';
+  ctx.beginPath();ctx.ellipse(cx,bot-22,18,10,0,0,Math.PI*2);ctx.fill();
+
+  // Ore veins
   if(type==='coal'){
-    // Dark charcoal veins
-    ctx.fillStyle='rgba(15,15,15,0.75)';
-    ctx.beginPath();ctx.ellipse(cx-4,cy-6,7,5,0.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx+5,cy-2,5,4,-0.4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx-2,cy+4,6,4,0.1,0,Math.PI*2);ctx.fill();
-    // Shiny coal glint
-    ctx.fillStyle='rgba(80,80,100,0.5)';
-    ctx.beginPath();ctx.ellipse(cx-3,cy-7,3,2,0.3,0,Math.PI*2);ctx.fill();
-    // Label
-    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(cx-14,sy+4,28,11);
-    ctx.fillStyle='#a0a0c0';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('⚫ COAL',cx,sy+12);
-  } else if(type==='iron'){
-    // Rust-red iron ore streaks
-    ctx.fillStyle='rgba(140,50,20,0.7)';
-    ctx.beginPath();ctx.ellipse(cx-3,cy-5,8,5,0.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(180,80,30,0.6)';
-    ctx.beginPath();ctx.ellipse(cx+4,cy-1,6,4,-0.3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(200,100,40,0.5)';
-    ctx.beginPath();ctx.ellipse(cx-1,cy+5,5,3,0.2,0,Math.PI*2);ctx.fill();
-    // Metallic glint
-    ctx.fillStyle='rgba(220,160,100,0.45)';
-    ctx.beginPath();ctx.ellipse(cx-4,cy-6,2,1.5,0.5,0,Math.PI*2);ctx.fill();
-    // Label
-    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(cx-13,sy+4,26,11);
-    ctx.fillStyle='#d09060';ctx.font='bold 8px monospace';ctx.textAlign='center';
-    ctx.fillText('⚙ IRON',cx,sy+12);
+    ctx.fillStyle='rgba(10,10,10,0.9)';
+    ctx.beginPath();ctx.ellipse(cx-8,bot-20,8,4,0.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+6,bot-18,6,3,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(60,60,80,0.6)';
+    ctx.beginPath();ctx.ellipse(cx-7,bot-21,3,2,0.4,0,Math.PI*2);ctx.fill();
+  } else {
+    ctx.fillStyle='rgba(160,60,15,0.85)';
+    ctx.beginPath();ctx.ellipse(cx-7,bot-20,9,4,0.5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(200,90,30,0.7)';
+    ctx.beginPath();ctx.ellipse(cx+5,bot-18,7,3,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(230,130,50,0.5)';
+    ctx.beginPath();ctx.ellipse(cx-5,bot-22,4,2,0.2,0,Math.PI*2);ctx.fill();
   }
+
+  // Scaffold headframe
+  ctx.fillStyle='#6a4010';
+  ctx.fillRect(cx-2,sy+4,4,TS-20);
+  ctx.fillRect(cx-14,sy+4,28,4);
+  ctx.strokeStyle='#5a3010';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-14,sy+8);ctx.lineTo(cx-2,sy+24);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+14,sy+8);ctx.lineTo(cx+2,sy+24);ctx.stroke();
+
+  // Rails
+  ctx.strokeStyle='#707060';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-20,bot-10);ctx.lineTo(cx+20,bot-10);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-20,bot-6);ctx.lineTo(cx+20,bot-6);ctx.stroke();
+  ctx.fillStyle='#5a3810';
+  for(let i=-16;i<=16;i+=8)ctx.fillRect(cx+i-1,bot-12,3,8);
+
+  // Pulley rope
+  ctx.strokeStyle='rgba(160,120,60,0.6)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cx,sy+8);ctx.lineTo(cx,bot-18);ctx.stroke();
 }
 
+// Animated part drawn live each frame (cart movement)
+function drawDepositOverlay(ctx,sx,sy,type){
+  const cx=sx+TS/2|0, bot=sy+TS;
+  const cartT=(Date.now()/2500)%1;
+  const cartX=cx-12+cartT*24;
+
+  ctx.fillStyle='#3a2c1a';ctx.fillRect(cartX-6,bot-18,12,8);
+  ctx.fillStyle='#2a1c0a';ctx.fillRect(cartX-7,bot-19,14,4);
+  ctx.fillStyle='#484030';
+  ctx.beginPath();ctx.arc(cartX-4,bot-10,2.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cartX+4,bot-10,2.5,0,Math.PI*2);ctx.fill();
+  if(type==='coal'){
+    ctx.fillStyle='#111008';ctx.fillRect(cartX-5,bot-19,10,4);
+  } else {
+    ctx.fillStyle='#8a3a10';ctx.fillRect(cartX-5,bot-19,10,4);
+    ctx.fillStyle='rgba(200,100,40,0.6)';ctx.fillRect(cartX-4,bot-20,8,3);
+  }
+}
 function drawBushOnCtx(ctx,wx,wy,v){
   const X2=ctx, cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
   X2.fillStyle='rgba(0,0,0,0.12)';X2.beginPath();X2.ellipse(cx+2,bot-4,14,4,0,0,Math.PI*2);X2.fill();
@@ -2053,24 +2105,40 @@ function bQuarry(cx,bot,lv){
 // ── TAMBANG BATU BARA (coal mine) ──
 function bMine(cx,bot,lv,type){
   const col=type==='coal'?'#282020':'#3c2c2c';
+  const isDeep=lv>=3;
   const W=66,H=46;
-  WALL(cx,bot-H,W,H,'#5a4838');
+  WALL(cx,bot-H,W,H,isDeep?'#2a1e14':'#5a4838');
   // Mine arch entrance
   X.fillStyle=col;
   X.beginPath();X.arc(cx,bot-H+22,19,Math.PI,0);X.fillRect(cx-19,bot-H+22,38,H-18);X.fill();
-  // Dark interior
+  // Dark interior — deeper glow for deep mining
   X.fillStyle='rgba(0,0,0,0.7)';
   X.beginPath();X.arc(cx,bot-H+22,15,Math.PI,0);X.fillRect(cx-15,bot-H+22,30,H-18);X.fill();
-  // Flickering torch inside
-  const fl=Math.sin(Date.now()/150)*0.3+0.7;
-  X.fillStyle=`rgba(255,${160+fl*40|0},0,${fl*0.7})`;
-  X.beginPath();X.arc(cx,bot-H+26,5,0,Math.PI*2);X.fill();
+
+  if(isDeep){
+    // Deep mining: blue-white glow from shaft below
+    const dl=0.6+Math.sin(Date.now()/300)*0.4;
+    const glowColor=type==='coal'?`rgba(100,180,255,${dl*0.6})`:`rgba(255,160,60,${dl*0.6})`;
+    X.fillStyle=glowColor;
+    X.beginPath();X.arc(cx,bot-H+26,12,0,Math.PI*2);X.fill();
+    // DEEP MINING sign
+    FR(cx-18,bot-H-10,36,10,'#1a0a00');
+    X.fillStyle='#f0d040';X.font='bold 6px "Press Start 2P"';X.textAlign='center';
+    X.fillText('DEEP',cx,bot-H-3);
+    // Extra support struts for deep mine
+    FR(cx-8,bot-H+10,3,22,'#5a3810');FR(cx+5,bot-H+10,3,22,'#5a3810');
+    FR(cx-8,bot-H+10,16,3,'#4a2808');FR(cx-8,bot-H+20,16,3,'#4a2808');
+  } else {
+    // Normal torch
+    const fl=Math.sin(Date.now()/150)*0.3+0.7;
+    X.fillStyle=`rgba(255,${160+fl*40|0},0,${fl*0.7})`;
+    X.beginPath();X.arc(cx,bot-H+26,5,0,Math.PI*2);X.fill();
+  }
   // Support beams
   FR(cx-W/2+2,bot-H-4,5,H+4,'#7a5028');FR(cx+W/2-7,bot-H-4,5,H+4,'#7a5028');
   FR(cx-W/2+2,bot-H-4,W-4,5,'#6a4018');
   // Rail tracks
   LN(cx-14,bot-2,cx+14,bot-2,'#707068',2.5);LN(cx-14,bot-8,cx+14,bot-8,'#707068',2.5);
-  // Rail ties
   for(let i=-10;i<=10;i+=7){FR(cx+i-1,bot-9,3,8,'#6a4a18');}
   // Cart (animated rolling)
   const ct=(Date.now()/2000)%1;
@@ -2079,8 +2147,8 @@ function bMine(cx,bot,lv,type){
   X.fillStyle='#282018';X.beginPath();X.arc(cartX-3,bot-6,2.5,0,Math.PI*2);X.fill();
   X.beginPath();X.arc(cartX+3,bot-6,2.5,0,Math.PI*2);X.fill();
   if(type==='coal'){FR(cartX-4,bot-15,8,4,'#181818');}
-  // Dust smoke from mine
-  SMOKE(cx,bot-H-2,2);
+  else if(isDeep){FR(cartX-4,bot-15,8,4,'#8a4020');} // iron ore in cart
+  SMOKE(cx,bot-H-2,isDeep?4:2);
 }
 
 // ── PASAR (market) ──
@@ -3370,8 +3438,14 @@ function updateUI(){
   // Quest button pulse when quests active
   const _tbq=document.getElementById('tb-quest');
   if(_tbq) _tbq.classList.toggle('has-quests',G_activeQuests.length>0);
-  // All secondary resources
-  const _regg=document.getElementById('regg');if(_regg)_regg.textContent=G.res.egg||0;
+  // Secondary resource bar (collapsible)
+  const _rale2=document.getElementById('rale2');if(_rale2)_rale2.textContent=G.res.ale||0;
+  const _rbrd2=document.getElementById('rbrd2');if(_rbrd2)_rbrd2.textContent=G.res.bread||0;
+  const _rclth2=document.getElementById('rclth2');if(_rclth2)_rclth2.textContent=G.res.cloth||0;
+  // Flash secondary res btn if any secondary res > 0
+  const secTotal=(G.res.leather||0)+(G.res.egg||0)+(G.res.honey||0)+(G.res.berry||0)+(G.res.wool||0)+(G.res.milk||0)+(G.res.ale||0)+(G.res.bread||0)+(G.res.cloth||0);
+  const _moreBtn=document.getElementById('res-more-btn');
+  if(_moreBtn&&!_secResOpen) _moreBtn.style.color=secTotal>0?'#f0c040':'#a09060';
   const _rhny=document.getElementById('rhny');if(_rhny)_rhny.textContent=G.res.honey||0;
   const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
   const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
@@ -3491,6 +3565,45 @@ function tick(){
         }
       }
     }
+
+    // ── MINE PRODUCTION — 1 ore per worker per game hour ──
+    for(const b of G.bld){
+      if(b.under_construction) continue;
+      const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
+      if(!workers) continue;
+      if(b.type==='coalmine'){
+        const isDeep=b.lv>=3;
+        if(isDeep){ addR('coal',workers); }
+        else {
+          const nearDep=Object.entries(DEPOSIT_STATE).find(([k,d])=>{
+            const[dc,dr]=k.split(',').map(Number);
+            return d.type==='coal_deposit'&&!d.depleted&&Math.hypot(b.col-dc,b.row-dr)<6;
+          });
+          if(nearDep){
+            addR('coal',workers);
+            nearDep[1].qty=Math.max(0,nearDep[1].qty-workers);
+            if(nearDep[1].qty<=0){nearDep[1].depleted=true;notify('⛏ Coal deposit exhausted!','warn');_worldDirty=true;}
+          } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Coal Mine: no coal deposit nearby!','warn');}
+        }
+      } else if(b.type==='ironmine'){
+        const isDeep=b.lv>=3;
+        if(isDeep){ addR('iron',workers); }
+        else {
+          const nearDep=Object.entries(DEPOSIT_STATE).find(([k,d])=>{
+            const[dc,dr]=k.split(',').map(Number);
+            return d.type==='iron_deposit'&&!d.depleted&&Math.hypot(b.col-dc,b.row-dr)<6;
+          });
+          if(nearDep){
+            addR('iron',workers);
+            nearDep[1].qty=Math.max(0,nearDep[1].qty-workers);
+            if(nearDep[1].qty<=0){nearDep[1].depleted=true;notify('⛏ Iron deposit exhausted!','warn');_worldDirty=true;}
+          } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Iron Mine: no iron deposit nearby!','warn');}
+        }
+      } else if(b.type==='quarry'){
+        addR('stone',workers);
+      }
+    }
+    updateUI();
   }
   if(G.hr>=24){G.hr=0;G.day++;G.ticks++;if(G.ticks%2===0)doProd();
     if(G.day>90){G.day=1;G.season=(G.season+1)%4;}if(G.day>360){G.day=1;G.yr++;}
@@ -3809,6 +3922,8 @@ function doProd(){
       b._noStockWarn=false;
     }
     for(const[res,amt]of Object.entries(d.pr)){
+      // Mine production handled hourly in tick() — skip here to avoid double-counting
+      if(b.type==='coalmine'||b.type==='ironmine'||b.type==='quarry') continue;
       let fa=amt*b.lv*mul*wMul;
       if(res==='food')fa*=wm;if(res==='wood')fa*=saw;
       addR(res,Math.round(fa));
@@ -3842,6 +3957,12 @@ function doProd(){
   updateSaplings(); // grow saplings every tick
 
   // Construction progress is now handled in tick() every game hour
+
+  // ── FIRST-TIME TIPS ──
+  if(G.day<=3&&G.ticks===2){notify('💡 Tip: Assign jobs to villagers via the WORKERS panel!','ok');}
+  if(G.day===4&&G.ticks%2===0&&!G.bld.some(b=>b.type==='farm')){notify('💡 Tip: Build a 🌾 Farm and assign a Farmer to grow food!','ok');}
+  if(G.day===6&&!G.bld.some(b=>b.type==='house')){notify('💡 Tip: Build 🏠 Houses to increase your population cap!','ok');}
+  if(G.day===8&&!G.bld.some(b=>b.type==='logger')&&(G.res.wood||0)<15){notify('💡 Tip: Build a 🪓 Logger and assign a Lumberjack for steady wood!','ok');}
 
   upPop();updateUI();
 }
@@ -4064,12 +4185,41 @@ function showBldDlg(bld,c,r){
 }
 function doUpgrade(bld,c,r){
   const d=BD[bld.type];
+  const nextLv=bld.lv+1;
   if(bld.lv>=(d.ml||3)){notify('Max level!','warn');closeDialog();return;}
-  const cost={};for(const[k,v]of Object.entries(d.cost))cost[k]=Math.floor(v*1.6*bld.lv);
-  if(!canAff(cost)){notify('Not enough materials!','err');closeDialog();return;}
+
+  // Check special requirements for this level
+  if(d.upReq&&d.upReq[nextLv]){
+    for(const[req,_] of Object.entries(d.upReq[nextLv])){
+      if(!G.bld.some(b=>b.type===req&&!b.under_construction)){
+        notify(`Need a ${BD[req]?.n||req} first!`,'err');return;
+      }
+    }
+  }
+
+  // Use override cost if defined, else default scaling
+  let cost;
+  if(d.upCostOverride&&d.upCostOverride[nextLv]){
+    cost={...d.upCostOverride[nextLv]};
+  } else {
+    cost={};for(const[k,v]of Object.entries(d.cost))cost[k]=Math.floor(v*1.6*bld.lv);
+  }
+
+  if(!canAff(cost)){
+    const missing=Object.entries(cost).filter(([k,v])=>(G.res[k]||0)<v).map(([k,v])=>`${v} ${k}`).join(', ');
+    notify('Need: '+missing,'err');closeDialog();return;
+  }
   pay(cost);bld.lv++;const gb=G.bld.find(x=>x.id===bld.id);if(gb)gb.lv=bld.lv;
   spawnParticles(bld.col*TS+TS/2, bld.row*TS, 'levelup', 16);
-  notify('⬆ '+d.n+' → Lv.'+bld.lv+'!','ok');closeDialog();updateUI();
+
+  // Deep mining unlock message
+  if((bld.type==='coalmine'||bld.type==='ironmine')&&bld.lv===3){
+    notify(`⚒ ${d.n} upgraded to DEEP MINING — unlimited ${bld.type==='coalmine'?'coal':'iron'}!`,'ok');
+  } else {
+    notify('⬆ '+d.n+' → Lv.'+bld.lv+'!','ok');
+  }
+  closeDialog();updateUI();
+  _worldDirty=true;
 }
 function doDemolish(bld,c,r){
   const d=BD[bld.type];
@@ -4312,7 +4462,7 @@ function wanderNPCs(){
               }
             } else if(job==='logger'){              // Find nearest tree in FOREST zone and chop it periodically
               npc._chopTimer=(npc._chopTimer||0)+1;
-              if(npc._chopTimer>=180){ // chop every ~3 seconds
+              if(npc._chopTimer>=90){ // chop every ~3 seconds
                 npc._chopTimer=0;
                 const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
                 let chopped=false;
@@ -4344,9 +4494,8 @@ function wanderNPCs(){
                 }
               }
             } else if(job==='miner'){
-              // Mine nearby rock/coal/iron deposits
               npc._mineTimer=(npc._mineTimer||0)+1;
-              if(npc._mineTimer>=200){
+              if(npc._mineTimer>=60){
                 npc._mineTimer=0;
                 const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
                 for(let dr2=-2;dr2<=2;dr2++){
@@ -4356,10 +4505,25 @@ function wanderNPCs(){
                     if(!MAP[tr]||!MAP[tr][tc])continue;
                     const tile=MAP[tr][tc];
                     if(tile.t===T.STONE_G){
-                      if(tile.decor==='coal_deposit') addR('coal',1+Math.floor(Math.random()*2));
-                      else if(tile.decor==='iron_deposit') addR('iron',1+Math.floor(Math.random()*2));
-                      else addR('stone',2+Math.floor(Math.random()*2));
+                      const key=tc+','+tr;
+                      const dep=DEPOSIT_STATE[key];
+                      // Check if this miner's building is deep mining (Lv.3)
+                      const minerBld=G.bld.find(b=>(b.type==='coalmine'||b.type==='ironmine')&&b._deepMining&&
+                        Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y)<TS*8);
+                      const isDeep=!!minerBld;
+                      if(dep&&dep.depleted&&!isDeep) continue;
+                      if(tile.decor==='coal_deposit'){
+                        addR('coal',1+Math.floor(Math.random()*2));
+                        if(dep&&!isDeep){dep.qty=Math.max(0,dep.qty-2);if(dep.qty<=0){dep.depleted=true;tile.decor='rock';_worldDirty=true;notify('⛏ Coal deposit exhausted!','warn');}}
+                      } else if(tile.decor==='iron_deposit'){
+                        addR('iron',1+Math.floor(Math.random()*2));
+                        if(dep&&!isDeep){dep.qty=Math.max(0,dep.qty-2);if(dep.qty<=0){dep.depleted=true;tile.decor='rock';_worldDirty=true;notify('⛏ Iron deposit exhausted!','warn');}}
+                      } else {
+                        addR('stone',2+Math.floor(Math.random()*2));
+                      }
                       spawnParticles(tc*TS+TS/2, tr*TS+TS/2, 'build', 4);
+                      // Mining animation — npc faces the rock
+                      npc._mineTargetC=tc; npc._mineTargetR=tr;
                       break;
                     }
                   }
@@ -4666,6 +4830,43 @@ function render(){
       if(!MAP[r2]||!MAP[r2][c2])continue;
       const tile=MAP[r2][c2],wx=c2*TS+camX;
       // Draw berry bushes live (so depleted state shows correctly)
+      // Deposit animated cart (drawn live) + proximity label
+      if(tile.decor==='coal_deposit'||tile.decor==='iron_deposit'){
+        const dtype=tile.decor==='coal_deposit'?'coal':'iron';
+        drawDepositOverlay(X,wx,ry,dtype);
+        // Proximity label
+        const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
+        if(pdist<TS*3){
+          const key=c2+','+r2;
+          const dep=DEPOSIT_STATE[key];
+          const isCoal=tile.decor==='coal_deposit';
+          const qty=dep?dep.qty:0;
+          const maxQty=dep?dep.maxQty:100;
+          const pct=maxQty>0?qty/maxQty:1;
+          const richness=pct>0.66?'Rich':pct>0.33?'Moderate':'Low';
+          const richCol=pct>0.66?'#60e040':pct>0.33?'#e0c040':'#e06020';
+          const icon=isCoal?'⚫':'⚙';
+          const name=isCoal?'Coal Deposit':'Iron Deposit';
+          const alpha=Math.max(0,Math.min(1,(TS*3-pdist)/(TS*1.5)));
+          X.globalAlpha=alpha;
+          // Background panel
+          X.fillStyle='rgba(0,0,0,0.8)';
+          X.fillRect(wx,ry-18,TS,32);
+          // Deposit name
+          X.fillStyle=isCoal?'#a0a0d0':'#d09060';
+          X.font='bold 7px "Press Start 2P"';X.textAlign='center';
+          X.fillText(icon+' '+name,wx+TS/2,ry-7);
+          // Quantity bar
+          X.fillStyle='rgba(60,60,60,0.8)';X.fillRect(wx+4,ry+1,TS-8,6);
+          X.fillStyle=richCol;X.fillRect(wx+4,ry+1,Math.round((TS-8)*pct),6);
+          // Richness text
+          X.fillStyle=richCol;X.font='6px monospace';X.textAlign='center';
+          X.fillText(richness+' — '+qty+' ore',wx+TS/2,ry+13);
+          X.globalAlpha=1;
+        }
+      }
+
+      // Berry bush live draw
       if(tile.decor==='berry_bush'){
         const key=c2+','+r2;
         const bs=BERRY_STATE[key];
@@ -6718,6 +6919,7 @@ function buildSaveState(){
     horses:HORSES.map(h=>({...h})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
     saplings:JSON.parse(JSON.stringify(SAPLINGS||{})),
+    depositState:JSON.parse(JSON.stringify(DEPOSIT_STATE||{})),
     landmarks:JSON.parse(JSON.stringify(LANDMARKS||[])),
     fog:FOG.map(row=>[...row]),
     fogEnabled:FOG_ENABLED,
@@ -6761,6 +6963,7 @@ function applySaveState(save){
   HORSES=(save.horses||[]).map(h=>({...h}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
   SAPLINGS=JSON.parse(JSON.stringify(save.saplings||{}));
+  DEPOSIT_STATE=JSON.parse(JSON.stringify(save.depositState||{}));
   if(save.landmarks) LANDMARKS=JSON.parse(JSON.stringify(save.landmarks));
   if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
   if(save.fogEnabled!==undefined) FOG_ENABLED=save.fogEnabled;
@@ -8285,6 +8488,15 @@ function doPlantingWork(npc){
     npc._dx=(best.c*TS+TS/2-npc.x)/50;
     npc._dy=(best.r*TS+TS/2-npc.y)/50;
   }
+}
+
+let _secResOpen=false;
+function toggleSecRes(){
+  _secResOpen=!_secResOpen;
+  const bar2=document.getElementById('resbar2');
+  const btn=document.getElementById('res-more-btn');
+  if(bar2){bar2.style.display=_secResOpen?'flex':'none';}
+  if(btn){btn.textContent=_secResOpen?'▲ less':'▼ more';}
 }
 
 function toggleMusic(){
