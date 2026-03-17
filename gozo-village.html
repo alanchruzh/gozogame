@@ -7824,15 +7824,38 @@ function showLoadGame(){
 }
 
 function titleLoadGame(event){
-  loadGameFromFile(event).then(()=>{
-    // loadGameFromFile calls applySaveState which calls launchGame
-  }).catch(()=>{});
-  // Also set a fallback in case async doesn't fire launch
-  setTimeout(()=>{
-    if(_gameStarted) return;
-    // Check if state was loaded
-    if(G.bld&&G.bld.length>0) launchGame(false);
-  },1200);
+  const file=event.target.files?.[0];
+  if(!file) return;
+  event.target.value='';
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      let parsed;
+      try{ parsed=JSON.parse(e.target.result); }
+      catch{ notify('❌ Not a valid save file.','err'); return; }
+
+      if(parsed._gozo===true){
+        const payload=decodeURIComponent(escape(atob(parsed.d)));
+        const valid=await verifyData(payload,parsed.sig);
+        if(!valid){
+          notify('❌ Save file signature mismatch — may be corrupted.','err');
+          return;
+        }
+        applySaveState(JSON.parse(payload));
+      } else if(parsed.version){
+        applySaveState(parsed);
+      } else {
+        notify('❌ Unrecognized save format.','err'); return;
+      }
+      notify(`📂 Loaded! Y${G.yr} Day ${G.day}`,'ok');
+      if(!_gameStarted) launchGame(false);
+    } catch(err){
+      notify('❌ Load failed: '+err.message,'err');
+      console.error('Load error:',err);
+    }
+  };
+  reader.onerror=()=>notify('❌ Could not read file.','err');
+  reader.readAsText(file);
 }
 
 function startNewGame(){
