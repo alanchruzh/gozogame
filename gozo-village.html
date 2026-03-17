@@ -3961,6 +3961,15 @@ function movePlayer(){
   if(keys.has('arrowright')||keys.has('d'))dx=1;
   if(keys.has('arrowup')||keys.has('w'))dy=-1;
   if(keys.has('arrowdown')||keys.has('s'))dy=1;
+
+  // Click-to-move
+  if(!dx&&!dy&&PL._moveTarget){
+    const tdx=PL._moveTarget.x-PL.x, tdy=PL._moveTarget.y-PL.y;
+    const dist=Math.hypot(tdx,tdy);
+    if(dist<4){ PL._moveTarget=null; }
+    else { dx=tdx/dist; dy=tdy/dist; }
+  } else if(dx||dy){ PL._moveTarget=null; } // cancel click-move if keyboard used
+
   if(dx&&dy){dx*=.707;dy*=.707;}
   const sp=PL.spd,m=2;
   const nx=PL.x+dx*sp,ny=PL.y+dy*sp;
@@ -4752,8 +4761,31 @@ function doDemolish(bld,c,r){
   openDlg('Demolish '+d.n+'?','50% materials returned.',[
     {l:'✓ Yes',cls:'bad',fn:()=>{
       for(const[k,v]of Object.entries(d.cost))addR(k,Math.floor(v*.5));
+      // Capture residents BEFORE removing building
+      const homeless=NPCS.filter(n=>n.houseId===bld.id);
       G.bld=G.bld.filter(x=>x.id!==bld.id);MAP[r][c].bld=null;MAP[r][c].t=T.GRASS;
-      rebuildTile(c,r);notify('🗑 '+d.n+' demolished','warn');closeDialog();updateUI();
+      // Relocate each resident
+      for(const npc of homeless){
+        const availHouse=G.bld.find(b=>{
+          if(b.under_construction) return false;
+          if(b.type!=='house'&&b.type!=='campfire') return false;
+          const cap=b.type==='campfire'?6:(b.lv||1)*2;
+          return NPCS.filter(n=>n.houseId===b.id).length<cap;
+        });
+        if(availHouse){
+          npc.houseId=availHouse.id;
+          npc.x=availHouse.col*TS+TS/2;
+          npc.y=(availHouse.row+1)*TS+TS/2;
+          notify('🏠 '+npc.name+' moved to new home!','ok');
+        } else {
+          npc.houseId=0;
+          notify('😟 '+npc.name+' has no home!','warn');
+        }
+      }
+      delete G.bldWorkers[bld.id];
+      rebuildTile(c,r);
+      notify('🗑 '+d.n+' demolished','warn');
+      closeDialog();upPop();updateUI();
     }},{l:'✗ Cancel',cls:'',fn:closeDialog}]);
 }
 function openDlg(dlgName,msg,btns){
@@ -5337,34 +5369,74 @@ function doRebuildWorld(){
 // ─── DRAW CROP (on field tile) ───
 function drawCrop(field, wx, wy){
   const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
-  const stage=field.growStage; // 1=planted,2=growing,3=ready
+  const stage=field.growStage; // 1=seed,2=sprout,3=growing,4=ready (we now use sub-stages)
   const cx=wx+TS/2, by=wy+TS;
+  const t=Date.now()/1000;
+  // Calculate fine progress within stage using _plantDay
+  const dayOfYear=((G.season||0)*90)+(G.day||1);
+  const plantDay=field._plantDay||dayOfYear;
+  const daysGrown=Math.max(0,dayOfYear-plantDay);
+  const growPct=Math.min(1,daysGrown/60); // 0→1 over 60 days
+
+  const isWheat=crop.e==='🌾';
+  const isFlax=crop.e==='🌺';
+  const cropCol=isWheat?'#7ab020':isFlax?'#a060e0':'#50a030';
+  const ripeCol=isWheat?'#d4a020':isFlax?'#e070c0':'#60c040';
+
+  if(stage===0) return; // bare soil — drawn by FARM_ZONE tile
+
   if(stage===1){
-    // Sprouting — tiny green dots
+    // Seeds / tiny sprouts — just peeking out
     X.fillStyle='#5a8030';
-    for(let i=0;i<4;i++){
-      const px=wx+8+i*(TS/4), py=wy+TS-10;
-      X.beginPath();X.arc(px,py,3,0,Math.PI*2);X.fill();
+    for(let i=0;i<5;i++){
+      const px=wx+6+i*(TS/5), h=3+growPct*4;
+      X.fillRect(px-1,by-4-h,2,h);
+      // Tiny leaf
+      X.fillStyle='#70a040';
+      X.beginPath();X.ellipse(px+2,by-5-h,2,1.5,0.3,0,Math.PI*2);X.fill();
+      X.fillStyle='#5a8030';
     }
   } else if(stage===2){
-    // Growing — short stalks
-    X.strokeStyle='#4a9020';X.lineWidth=2;
-    for(let i=0;i<5;i++){
-      const px=wx+6+i*(TS/5);
-      X.beginPath();X.moveTo(px,by-4);X.lineTo(px,by-18);X.stroke();
-      X.fillStyle='#60b030';X.beginPath();X.ellipse(px,by-20,4,3,0,0,Math.PI*2);X.fill();
+    // Young plants — growing stalks with leaves
+    const maxH=8+growPct*16;
+    X.strokeStyle=cropCol;X.lineWidth=1.5;
+    for(let i=0;i<6;i++){
+      const px=wx+5+i*(TS/6);
+      const h=maxH*(0.7+Math.sin(t*0.5+i)*0.1);
+      const sway=Math.sin(t*0.8+i*0.7)*1.5;
+      X.beginPath();X.moveTo(px,by-4);X.quadraticCurveTo(px+sway,by-4-h*0.5,px+sway*1.5,by-4-h);X.stroke();
+      X.fillStyle=cropCol;X.beginPath();X.ellipse(px+sway*1.5,by-5-h,3,2,0.4,0,Math.PI*2);X.fill();
     }
   } else if(stage===3){
-    // Ready — tall golden stalks
-    const col=crop.e==='🌾'?'#d4a020':(crop.e==='🌿'?'#80b030':'#e070a0');
+    // Mature / ready to harvest — full height with heads
+    const h=26+growPct*6;
+    const col=ripeCol;
     X.strokeStyle=col;X.lineWidth=2;
     for(let i=0;i<6;i++){
       const px=wx+5+i*(TS/6);
-      X.beginPath();X.moveTo(px,by-4);X.lineTo(px+((i%2)*4-2),by-28);X.stroke();
-      X.fillStyle=col;X.beginPath();X.ellipse(px+((i%2)*4-2),by-30,3,5,0.2,0,Math.PI*2);X.fill();
+      const sway=Math.sin(t*0.6+i*0.9)*2;
+      const lean=(i%2)*4-2;
+      // Stalk
+      X.beginPath();X.moveTo(px,by-4);X.quadraticCurveTo(px+sway,by-h*0.5,px+lean+sway,by-h);X.stroke();
+      // Grain head
+      if(isWheat){
+        X.fillStyle=col;
+        for(let g=0;g<4;g++){
+          X.beginPath();X.ellipse(px+lean+sway+(g%2)*2-1,by-h-g*4,2,3,0.1,0,Math.PI*2);X.fill();
+        }
+      } else if(isFlax){
+        X.fillStyle=ripeCol;X.beginPath();X.arc(px+lean+sway,by-h-2,4,0,Math.PI*2);X.fill();
+        X.fillStyle='#f0f0ff';X.beginPath();X.arc(px+lean+sway,by-h-2,2,0,Math.PI*2);X.fill();
+      } else {
+        X.fillStyle=col;X.beginPath();X.ellipse(px+lean+sway,by-h,4,5,0.2,0,Math.PI*2);X.fill();
+      }
     }
-    // Harvest glow
-    X.fillStyle='rgba(255,220,50,0.15)';X.fillRect(wx,wy,TS,TS);
+    // Harvest shimmer
+    const alpha=0.1+Math.sin(t*2)*0.08;
+    X.fillStyle=`rgba(255,220,50,${alpha})`;X.fillRect(wx,wy,TS,TS);
+    // Ready indicator
+    X.font='12px serif';X.textAlign='center';
+    X.fillText('✨',cx,wy+8);
   }
 }
 
@@ -5700,6 +5772,17 @@ function render(){
     // Draw traveling traders
     for(const tr of TRAVELING_TRADERS)if(Math.floor(tr.y/TS)===r2)drawTravelingTrader(tr);
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
+    // Move target ripple
+    if(PL._moveRipple&&Math.floor(PL._moveRipple.y/TS)===r2){
+      const rp=PL._moveRipple;
+      rp.t=(rp.t||0)+1;
+      const rx=rp.x+camX, ry=rp.y+camY;
+      const alpha=Math.max(0,1-rp.t/30);
+      const radius=rp.t*1.5;
+      X.strokeStyle=`rgba(255,220,50,${alpha})`;X.lineWidth=2;
+      X.beginPath();X.arc(rx,ry,radius,0,Math.PI*2);X.stroke();
+      if(rp.t>30) PL._moveRipple=null;
+    }
     // Draw market stalls — one stall per 2x2 tile block
     if(G.marketZones){
       for(const zone of G.marketZones){
@@ -5971,6 +6054,18 @@ function render(){
 }
 
 // ─── CANVAS EVENTS ───
+CV.addEventListener('contextmenu',e=>{
+  e.preventDefault();
+  if(!_gameStarted) return;
+  const rect=CV.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top-HH;
+  const wx=(mx-camX), wy=(my-camY);
+  // Set move target — right click moves player
+  PL._moveTarget={x:wx+TS/2, y:wy+TS/2};
+  // Ripple effect at target
+  PL._moveRipple={x:wx+TS/2,y:wy+TS/2,t:0};
+});
+
 CV.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
   const rect=CV.getBoundingClientRect();
