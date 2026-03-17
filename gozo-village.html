@@ -1053,30 +1053,19 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS,decor=''){
     // Use c/4, r/4 so blobs are 4x bigger than one tile — no tile boundary visible
     const lv=hh(Math.floor(c/4)*4, Math.floor(r/4)*4);
     if(lv>0.3){
-      W.fillStyle=`rgba(70,140,40,${(lv-0.3)*0.12})`;
+      W.fillStyle=`rgba(70,140,40,${(lv-0.3)*0.1})`;
       W.fillRect(sx,sy,tw_,th_);
     }
 
-    // Within-tile detail: small organic blobs, flowers, tufts
-    // These are INSIDE the tile so they don't affect boundaries
-    const b1x=sx+TS*(0.15+v2*0.7), b1y=sy+TS*(0.15+v*0.7);
-    W.fillStyle=`rgba(62,138,36,${0.08+v*0.06})`;
-    W.beginPath();W.ellipse(b1x,b1y,TS*(0.18+v3*0.14),TS*(0.14+v2*0.12),v*Math.PI,0,Math.PI*2);W.fill();
-
-    // Grass tufts
-    if(v>0.3){
-      const gx=sx+(hh(c+1,r+2)*(TS-16))|0, gy=sy+(hh(c+3,r+1)*(TS-12))|0;
-      W.fillStyle='rgba(38,108,18,0.55)';
-      W.fillRect(gx,gy-6,2,6); W.fillRect(gx+6,gy-7,2,7); W.fillRect(gx+12,gy-5,2,5);
+    // Subtle grass tufts (small, no ellipses)
+    if(v>0.5){
+      const gx=sx+(hh(c+1,r+2)*(TS-20))|0, gy=sy+(hh(c+3,r+1)*(TS-16))|0;
+      W.fillStyle='rgba(55,128,28,0.35)';
+      W.fillRect(gx,gy-4,2,4); W.fillRect(gx+5,gy-5,2,5); W.fillRect(gx+10,gy-3,2,3);
     }
-    // Flowers
-    if(v2>0.76){W.fillStyle='rgba(255,255,255,0.8)';W.fillRect(sx+(hh(c*2,r*2)*(TS-8))|0,sy+(hh(c,r*3)*(TS-8))|0,3,2);}
-    if(v3>0.80){W.fillStyle='rgba(255,210,70,0.75)';W.fillRect(sx+(hh(c*4,r)*(TS-7))|0,sy+(hh(c,r*4)*(TS-7))|0,2,2);}
-    // Occasional bare soil
-    if(v<0.10){
-      W.fillStyle='rgba(140,105,52,0.18)';
-      W.beginPath();W.ellipse(sx+TS*(0.38+v2*0.24),sy+TS*(0.42+v*0.24),TS*0.1,TS*0.08,v2,0,Math.PI*2);W.fill();
-    }
+    // Tiny flowers
+    if(v2>0.82){W.fillStyle='rgba(255,255,255,0.7)';W.fillRect(sx+(hh(c*2,r*2)*(TS-10))|0,sy+(hh(c,r*3)*(TS-10))|0,2,2);}
+    if(v3>0.86){W.fillStyle='rgba(255,210,70,0.65)';W.fillRect(sx+(hh(c*4,r)*(TS-9))|0,sy+(hh(c,r*4)*(TS-9))|0,2,2);}
 
   } else if(type===T.FIELD){
     // Farm field - brown soil
@@ -1415,10 +1404,7 @@ function genMap(){
       if(fr<0||fr>=WR||fc<0||fc>=WC)continue;
       if(MAP[fr][fc].t===T.PATH||MAP[fr][fc].t===T.WATER)continue;
       MAP[fr][fc].t=T.FOREST;
-      const fv=R();
-      if(fv>0.05) MAP[fr][fc].decor='tree';       // 95% trees (was 85%)
-      else if(fv>0.02) MAP[fr][fc].decor='berry_bush';
-      else MAP[fr][fc].decor='bush';
+      MAP[fr][fc].decor='tree'; // forest = trees only
     }
   }
 
@@ -1473,52 +1459,41 @@ function genMap(){
   // ── MINERAL DEPOSITS — randomized positions & amounts ──
   // Each deposit type: pick 4-7 random non-center locations
   function placeDeposits(count,decorType,avoidCenter){
-    const minDist=avoidCenter?8:4;
+    const minDist=avoidCenter?10:4;
     let placed=0,attempts=0;
-    while(placed<count&&attempts<300){
+    while(placed<count&&attempts<400){
       attempts++;
-      // After 150 attempts, relax constraints to guarantee placement
-      const relaxed=attempts>150;
+      const relaxed=attempts>200;
       const dc=5+Math.floor(R()*(WC-10));
       const dr=4+Math.floor(R()*(WR-8));
       if(!relaxed&&Math.abs(dc-mc)<minDist&&Math.abs(dr-mr)<minDist)continue;
       if(!MAP[dr]||!MAP[dr][dc])continue;
       if(MAP[dr][dc].t!==T.GRASS||MAP[dr][dc].bld||MAP[dr][dc].decor)continue;
-      // Smaller cluster when relaxed (1x1 guaranteed)
-      const w=relaxed?1:2+Math.floor(R()*2), h=relaxed?1:2+Math.floor(R()*2);
+      // Fixed 3x3 cluster (solid square)
+      const sz=relaxed?2:3;
       let ok=true;
-      for(let ddr=0;ddr<h&&ok;ddr++) for(let ddc=0;ddc<w&&ok;ddc++){
+      for(let ddr=0;ddr<sz&&ok;ddr++) for(let ddc=0;ddc<sz&&ok;ddc++){
         const rr=dr+ddr,cc=dc+ddc;
-        if(!MAP[rr]||!MAP[rr][cc]||MAP[rr][cc].t!==T.GRASS) ok=false;
+        if(!MAP[rr]||!MAP[rr][cc]||MAP[rr][cc].t!==T.GRASS||MAP[rr][cc].bld) ok=false;
       }
       if(!ok)continue;
-      for(let ddr=0;ddr<h;ddr++) for(let ddc=0;ddc<w;ddc++){
+      for(let ddr=0;ddr<sz;ddr++) for(let ddc=0;ddc<sz;ddc++){
         const rr=dr+ddr,cc=dc+ddc;
-        if(MAP[rr]&&MAP[rr][cc]&&MAP[rr][cc].t===T.GRASS){
-          MAP[rr][cc].t=T.STONE_G;
-          MAP[rr][cc].decor=decorType;
-          if(decorType!=='rock'){
-            const maxQty=80+Math.floor(R()*120);
-            DEPOSIT_STATE[cc+','+rr]={type:decorType,qty:maxQty,maxQty,depleted:false};
-          }
+        MAP[rr][cc].t=T.STONE_G;
+        MAP[rr][cc].decor=decorType;
+        if(decorType!=='rock'){
+          const maxQty=120+Math.floor(R()*80);
+          DEPOSIT_STATE[cc+','+rr]={type:decorType,qty:maxQty,maxQty,depleted:false};
         }
       }
       placed++;
     }
     return placed;
   }
-  // Guaranteed minimums — then add random extras
-  const stonePlaced=placeDeposits(1,'rock',true);
-  if(stonePlaced<1) placeDeposits(1,'rock',false); // fallback: no avoidCenter
-  placeDeposits(3+Math.floor(R()*3),'rock',true);  // stone: 3-5 extra
-
-  const coalPlaced=placeDeposits(1,'coal_deposit',true);
-  if(coalPlaced<1) placeDeposits(1,'coal_deposit',false);
-  placeDeposits(2+Math.floor(R()*2),'coal_deposit',true); // coal: 2-3 extra
-
-  const ironPlaced=placeDeposits(1,'iron_deposit',true);
-  if(ironPlaced<1) placeDeposits(1,'iron_deposit',false);
-  placeDeposits(2+Math.floor(R()*2),'iron_deposit',true); // iron: 2-3 extra
+  // 2-3 deposits of each type per map
+  placeDeposits(2+Math.floor(R()*2),'rock',true);
+  placeDeposits(1+Math.floor(R()*2),'coal_deposit',true);
+  placeDeposits(1+Math.floor(R()*2),'iron_deposit',true);
 
   // Border tree line at map edges only (not on grass interior)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
@@ -1557,11 +1532,17 @@ function genMap(){
 
   // ── SPAWN DEER in forest zones ──
   DEER=[];
-  const deerSpawns=[
-    {c:38,r:5},{c:37,r:26},{c:10,r:27},{c:40,r:12},
-  ];
-  for(const ds of deerSpawns){
+  const forestTiles=[];
+  for(let r=2;r<WR-2;r++) for(let c=2;c<WC-2;c++){
+    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.FOREST) forestTiles.push({c,r});
+  }
+  // Spawn 4-6 deer randomly in forest
+  const deerCount=4+Math.floor(R()*3);
+  for(let i=0;i<deerCount&&forestTiles.length;i++){
+    const idx=Math.floor(R()*forestTiles.length);
+    const ds=forestTiles[idx];
     DEER.push({x:ds.c*TS+TS/2,y:ds.r*TS+TS/2,dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,alive:true,respawnT:0});
+    forestTiles.splice(idx,1); // don't reuse same tile
   }
 
   // ── STARTING AREA — just a campfire, no pre-built structures ──
@@ -5136,9 +5117,6 @@ function render(){
   const vw=CV.width,vh=CV.height;
   X.fillStyle='#588236';X.fillRect(0,0,vw,vh); // match grass color
   X.save();X.translate(0,HH);
-  // Stars (behind everything, before world)
-  drawStars();
-  // Screen shake
   applyScreenShake();
   try{
   if(WC_)animateWater();
@@ -5492,12 +5470,7 @@ function render(){
   // ── FOG OF WAR ──
   drawFog();
 
-  // ── DAY/NIGHT LIGHTING ──
-  const dayOverlay=getDayLightOverlay();
-  if(dayOverlay&&_gameStarted){
-    X.fillStyle=dayOverlay;
-    X.fillRect(-camX,-camY,WPX,WPY);
-  }
+  // Day/night overlay disabled — too distracting
 
   // ── SEASON OVERLAY & PARTICLES ──
   const seasonTint=getSeasonOverlay();
