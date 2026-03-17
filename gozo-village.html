@@ -346,7 +346,7 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
   <div class="hdv"></div>
   <button class="tbtn" onclick="openBuyLivestockDlg()" title="Buy Livestock from Trading Post">🐑 LIVESTOCK</button>
   <div class="hdv"></div>
-  <button class="tbtn" onclick="toggleFog()" title="Toggle Fog of War" id="tb-fog">🌫️ FOG</button>
+
   <div class="hdv"></div>
   <button class="tbtn" onclick="saveGameToFile()" title="Save game to file">💾 SAVE</button>
   <button class="tbtn" onclick="document.getElementById('load-file-input').click()" title="Load game from file">📂 LOAD</button>
@@ -897,7 +897,7 @@ let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
-let FOG_ENABLED=true;
+let FOG_ENABLED=false;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
 
 // ─── HASH NOISE ───
@@ -3346,11 +3346,10 @@ function notify(msg,type='ok'){
 
 // ─── UI UPDATE ───
 function updateUI(){
-  document.getElementById('rw').textContent=G.res.wood;
   // Resource updates with color coding for low amounts
-  const _rw_el=document.getElementById('rw');if(_rw_el){_rw_el.textContent=G.res.wood;_rw_el.style.color=G.res.wood<5?'#ff6060':'#c0b080';}
-  document.getElementById('rs').textContent=G.res.stone;
-  document.getElementById('rc').textContent=G.res.coal;
+  const _rw_el=document.getElementById('rw');if(_rw_el){_rw_el.textContent=G.res.wood||0;_rw_el.style.color=(G.res.wood||0)<5?'#ff6060':'#c0b080';}
+  document.getElementById('rs').textContent=G.res.stone||0;
+  document.getElementById('rc').textContent=G.res.coal||0;
   const _ri=document.getElementById('ri');if(_ri)_ri.textContent=G.res.iron||0;
   const _rm=document.getElementById('rm');if(_rm)_rm.textContent=G.res.metal||0;
   const _rf_el=document.getElementById('rf');if(_rf_el){_rf_el.textContent=G.res.food;_rf_el.style.color=G.res.food<5?'#ff6060':G.res.food<15?'#ffaa00':'#c0b080';}
@@ -4870,6 +4869,19 @@ function render(){
       X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(gx,gy+TS+16,TS,12);
       X.fillStyle='#c0c060';X.font='8px monospace';X.textAlign='center';
       X.fillText('Drag to set size',gx+TS/2,gy+TS+26);
+    } else if(G.mode==='walk'&&tile&&tile.bld){
+      // ── WALK MODE: hover over building shows name tooltip ──
+      const gb=G.bld.find(b=>b.id===tile.bld.id);
+      if(gb){
+        const d=BD[gb.type];
+        const label=(d?.e||'🏢')+' '+(d?.n||gb.type)+(gb.under_construction?' 🔨':' Lv.'+gb.lv);
+        const tw2=X.measureText(label).width+12;
+        X.fillStyle='rgba(0,0,0,0.75)';X.fillRect(gx+TS/2-tw2/2,gy-18,tw2,14);
+        X.fillStyle='#f0e060';X.font='bold 9px monospace';X.textAlign='center';
+        X.fillText(label,gx+TS/2,gy-7);
+        // Highlight border
+        X.strokeStyle='rgba(240,200,60,0.6)';X.lineWidth=1.5;X.strokeRect(gx+1,gy+1,TS-2,TS-2);
+      }
     }
   }
 
@@ -7392,7 +7404,7 @@ function revealFog(col,row,radius){
 }
 
 function updateFog(){
-  if(!FOG_ENABLED||!FOG.length||!_gameStarted) return;
+  return; // Fog disabled
   // Dim previously-visible tiles to explored
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
     if(!FOG[r]||FOG[r][c]===undefined) continue;
@@ -7408,28 +7420,47 @@ function updateFog(){
 }
 
 function drawFog(){
-  if(!FOG_ENABLED||!FOG.length||!_gameStarted) return;
+  return; // Fog disabled
   const vw=CV.width, vh=CV.height;
   const sc=Math.max(0,Math.floor(-camX/TS)-1);
   const sr=Math.max(0,Math.floor(-camY/TS)-1);
   const ec=Math.min(WC,sc+Math.ceil(vw/TS)+3);
   const er=Math.min(WR,sr+Math.ceil(vh/TS)+3);
 
+  // Use offscreen canvas for smooth fog
+  if(!drawFog._oc||drawFog._ow!==vw||drawFog._oh!==vh){
+    drawFog._oc=document.createElement('canvas');
+    drawFog._ow=vw; drawFog._oh=vh;
+  }
+  const oc=drawFog._oc;
+  oc.width=vw; oc.height=vh;
+  const ox=oc.getContext('2d');
+
+  // Fill with black
+  ox.fillStyle='rgba(0,0,0,1)';
+  ox.fillRect(0,0,vw,vh);
+
+  // Punch holes for visible/explored tiles
+  ox.globalCompositeOperation='destination-out';
   for(let r=sr;r<er;r++){
     for(let c=sc;c<ec;c++){
-      if(!FOG[r]||FOG[r][c]===undefined) continue;
-      if(FOG[r][c]===2) continue; // fully visible
+      if(!FOG[r]||FOG[r][c]===undefined||FOG[r][c]===0) continue;
       const wx=c*TS+camX, wy=r*TS+camY;
-      if(FOG[r][c]===1){
-        // Explored but not visible — grey shroud
-        X.fillStyle='rgba(0,0,0,0.55)';
-      } else {
-        // Never explored — black
-        X.fillStyle='rgba(0,0,0,0.88)';
-      }
-      X.fillRect(wx,wy,TS+1,TS+1);
+      const cx2=wx+TS/2, cy2=wy+TS/2;
+      const alpha=FOG[r][c]===2?1:0.45;
+      const radius=FOG[r][c]===2?TS*0.82:TS*0.68;
+      const grd=ox.createRadialGradient(cx2,cy2,0,cx2,cy2,radius);
+      grd.addColorStop(0,`rgba(0,0,0,${alpha})`);
+      grd.addColorStop(0.55,`rgba(0,0,0,${alpha*0.9})`);
+      grd.addColorStop(1,'rgba(0,0,0,0)');
+      ox.fillStyle=grd;
+      ox.fillRect(wx-8,wy-8,TS+16,TS+16);
     }
   }
+
+  // Draw fog canvas onto main canvas
+  ox.globalCompositeOperation='source-over';
+  X.drawImage(oc,0,0);
 }
 
 function toggleFog(){
