@@ -803,6 +803,41 @@ function checkPopGrowth(){
       upPop();
     }
   }
+
+  // ── AUTO-ASSIGN: homeless adults move into available houses ──
+  autoAssignHomeless();
+}
+
+function autoAssignHomeless(){
+  // Find all adult NPCs without a proper house
+  const homelessAdults=NPCS.filter(n=>
+    isAdult(n) &&
+    !G.bld.find(b=>b.id===n.houseId&&b.type==='house'&&!b.under_construction)
+  );
+  if(!homelessAdults.length) return;
+
+  // Find houses with available capacity
+  const housesWithSpace=G.bld.filter(b=>{
+    if(b.type!=='house'||b.under_construction) return false;
+    const cap=(b.lv||1)*2;
+    const residents=NPCS.filter(n=>n.houseId===b.id).length;
+    return residents<cap;
+  });
+  if(!housesWithSpace.length) return;
+
+  let assigned=0;
+  for(const npc of homelessAdults){
+    // Find house with most space first (fill houses evenly)
+    const house=housesWithSpace
+      .map(b=>({b,space:(b.lv||1)*2-NPCS.filter(n=>n.houseId===b.id).length}))
+      .filter(x=>x.space>0)
+      .sort((a,b2)=>b2.space-a.space)[0]?.b;
+    if(!house) break;
+    npc.houseId=house.id;
+    assigned++;
+    notify(`🏠 ${npc.name} moved into a house!`,'ok');
+    upPop();
+  }
 }
 const STOREHOUSE_RES=['wood','stone','coal','iron','metal','plank','leather','weapon','armor','shoe','cloak'];
 
@@ -4703,6 +4738,23 @@ function showBldDlg(bld,c,r){
     btns.push({l:'🏡 Backyard'+byInfo,cls:'ok',fn:()=>openByPanel(bld.id)});
     const inRange=nearMarket(bld.id);
     extraInfo+='\n'+(inRange?'✅ Within market range':'❌ Too far from market');
+    // Button to assign homeless into this specific house
+    const _hcap=(bld.lv||1)*2;
+    const _hres=NPCS.filter(n=>n.houseId===bld.id).length;
+    const _homeless=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'&&!b.under_construction));
+    if(_hres<_hcap&&_homeless.length>0){
+      btns.push({l:`👥 Assign Homeless (${_homeless.length} waiting)`,cls:'ok',fn:()=>{
+        const slots=_hcap-NPCS.filter(n=>n.houseId===bld.id).length;
+        let moved=0;
+        for(const npc of _homeless.slice(0,slots)){
+          npc.houseId=bld.id;
+          notify(`🏠 ${npc.name} moved in!`,'ok');
+          moved++;
+        }
+        if(moved===0) notify('No homeless villagers found','warn');
+        upPop(); closeDialog();
+      }});
+    }
     // Show residents
     const residents=NPCS.filter(n=>n.houseId===bld.id);
     const cap=(bld.lv||1)*2;
