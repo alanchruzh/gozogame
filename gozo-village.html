@@ -4018,6 +4018,32 @@ function centerCam(){
 }
 
 // ─── TICK ───
+function correctNPCJobs(){
+  const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
+    coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
+    ironworks:'smelter',bakery:'farmer',malthouse:'farmer',
+    mill:'farmer',sheep_farm:'farmer',weaver_wk:'farmer',orchard:'farmer',
+    blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
+    granary:'farmer',storehouse:'farmer',forest_hut:'planter',
+    food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
+    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
+  for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+    if(!workers) continue;
+    const bld=G.bld.find(b=>b.id===+bldId);
+    if(!bld) continue;
+    const correctJob=jobMap[bld.type];
+    if(!correctJob) continue;
+    for(const name of workers){
+      if(!name) continue;
+      const npc=NPCS.find(n=>n.name===name);
+      if(npc&&npc.job!==correctJob&&npc.job!=='builder'||
+         npc&&npc.job==='builder'&&correctJob!=='builder'){
+        npc.job=correctJob;
+      }
+    }
+  }
+}
+
 function tick(){
   // 24 jam game = 5 menit nyata (300 detik) at 1x speed
   // 60fps × 300s = 18000 frames per hari
@@ -6063,7 +6089,7 @@ CV.addEventListener('contextmenu',e=>{
   // Set move target — right click moves player
   PL._moveTarget={x:wx+TS/2, y:wy+TS/2};
   // Ripple effect at target
-  PL._moveRipple={x:wx+TS/2,y:wy+TS/2,t:0};
+  PL._moveRipple={x:wx, y:wy, t:0};
 });
 
 CV.addEventListener('mousedown',e=>{
@@ -6110,6 +6136,12 @@ CV.addEventListener('mousedown',e=>{
     }
     else if(tile.t===T.MARKET_ZONE) openMarketZoneDlg(c,r);
     else if(tile.t===T.FARM_ZONE) openFarmZoneDlg(c,r);
+    else {
+      // Empty tile — move player here
+      const wx=(mx-camX), wy=(my-camY);
+      PL._moveTarget={x:wx+TS/2, y:wy+TS/2};
+      PL._moveRipple={x:wx+TS/2, y:wy+TS/2, t:0};
+    }
   }
 });
 CV.addEventListener('mousemove',e=>{
@@ -6223,9 +6255,9 @@ function renderBldWorker(bldId, maxW){
           const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
             coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
             ironworks:'smelter',bakery:'farmer',malthouse:'farmer',
-            mill:'farmer',sheep_farm:'farmer',weaver_wk:'builder',orchard:'farmer',
+            mill:'farmer',sheep_farm:'farmer',weaver_wk:'farmer',orchard:'farmer',
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
-            granary:'farmer',storehouse:'builder',forest_hut:'planter',
+            granary:'farmer',storehouse:'farmer',forest_hut:'planter',
             food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
             well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
@@ -7939,6 +7971,27 @@ function applySaveState(save){
   }
   if(save.player){PL.x=save.player.x||PL.x;PL.y=save.player.y||PL.y;PL.dir=save.player.dir||2;}
   _worldDirty=true; WC_=null;
+  correctNPCJobs(); // fix any wrong job assignments from old saves
+  // Re-sync NPC jobs from bldWorkers (fixes jobs assigned with old jobMap)
+  const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
+    coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
+    ironworks:'smelter',bakery:'farmer',malthouse:'farmer',
+    mill:'farmer',sheep_farm:'farmer',weaver_wk:'farmer',orchard:'farmer',
+    blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
+    granary:'farmer',storehouse:'farmer',forest_hut:'planter',
+    food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
+    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
+  for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+    const bld=G.bld.find(b=>b.id===+bldId);
+    if(!bld) continue;
+    const correctJob=jobMap[bld.type];
+    if(!correctJob) continue;
+    for(const name of workers){
+      if(!name) continue;
+      const npc=NPCS.find(n=>n.name===name);
+      if(npc&&npc.job!==correctJob) npc.job=correctJob;
+    }
+  }
   upPop(); updateUI(); centerCam(); buildWorld();
 }
 
@@ -8233,6 +8286,7 @@ function launchGame(doGenMap){
   if(logo) logo.textContent='⚔ '+(G.villageName||'Gozo Village');
 
   resize(); centerCam(); startAutosave();
+  correctNPCJobs();
 
   setTimeout(()=>notify(`🏘 Welcome to ${G.villageName||'your village'}, Chief ${G.chiefName||''}!`,'ok'),700);
   setTimeout(()=>notify(`🌍 World seed: ${WORLD_SEED}`,'ok'),1800);
@@ -9322,58 +9376,64 @@ function updateSaplings(){
 }
 
 function drawSaplings(){
-  // Draw live sapling visuals on top of world canvas
+  const t=Date.now()/1000;
   for(const[key,sap] of Object.entries(SAPLINGS)){
     const[c,r]=key.split(',').map(Number);
     const wx=c*TS+camX, wy=r*TS+camY;
     if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
-    // Don't draw if in fog
     if(FOG_ENABLED&&FOG[r]&&FOG[r][c]===0) continue;
 
     const cx2=wx+TS/2, bot=wy+TS;
     const pct=sap.age/sap.maxAge;
-    const sz=0.15+pct*0.85; // grows from tiny to full size
+    const sway=Math.sin(t*1.2+c*0.7)*1.5; // gentle wind sway
 
-    X.save();
-    X.translate(cx2,bot);X.scale(sz,sz);X.translate(-cx2,-bot);
-
-    // Shadow
-    X.fillStyle=`rgba(0,0,0,${0.08+pct*0.1})`;
-    X.beginPath();X.ellipse(cx2+2,bot-3,12*sz,4*sz,0,0,Math.PI*2);X.fill();
-
-    if(sap.stage===0){
-      // Tiny sprout
-      X.fillStyle='#6a4010';X.fillRect(cx2-1,bot-8,2,8);
-      X.fillStyle='#3a8020';X.beginPath();X.ellipse(cx2,bot-10,4,3,0,0,Math.PI*2);X.fill();
-    } else if(sap.stage===1){
-      // Small sapling
-      X.fillStyle='#7a4a1a';X.fillRect(cx2-2,bot-14,3,14);
-      X.fillStyle='#2a6018';X.beginPath();X.ellipse(cx2,bot-18,8,6,0,0,Math.PI*2);X.fill();
-      X.fillStyle='#3a8020';X.beginPath();X.ellipse(cx2-2,bot-22,6,5,0,0,Math.PI*2);X.fill();
-    } else if(sap.stage===2){
-      // Medium young tree
-      X.fillStyle='#7a4a1a';X.fillRect(cx2-3,bot-22,5,22);
-      X.fillStyle='#1e5010';X.beginPath();X.ellipse(cx2,bot-28,14,10,0,0,Math.PI*2);X.fill();
-      X.fillStyle='#2a7018';X.beginPath();X.ellipse(cx2-2,bot-34,10,8,0,0,Math.PI*2);X.fill();
-      X.fillStyle='#349020';X.beginPath();X.ellipse(cx2,bot-40,7,6,0,0,Math.PI*2);X.fill();
-    } else {
-      // Almost full tree — use normal drawTreeOnCtx
-      X.restore();
+    if(sap.stage>=3){
+      // Almost full tree
       drawTreeOnCtx(X,wx,wy,0.5+pct*0.5);
       continue;
     }
 
-    X.restore();
+    X.save();
 
-    // Growth progress bar
-    const barW=TS-12;
-    X.fillStyle='rgba(0,0,0,0.4)';X.fillRect(wx+6,wy+2,barW,4);
-    X.fillStyle=sap.stage>=2?'#40c040':'#80d040';
-    X.fillRect(wx+6,wy+2,barW*pct,4);
-    // Days remaining
-    const daysLeft=Math.ceil((sap.maxAge-sap.age)*2);
-    X.fillStyle='rgba(255,255,200,0.8)';X.font='6px monospace';X.textAlign='center';
-    X.fillText(daysLeft+'d',cx2,wy+14);
+    // Shadow grows with tree
+    X.fillStyle=`rgba(0,0,0,${0.05+pct*0.1})`;
+    X.beginPath();X.ellipse(cx2+2,bot-3,(4+pct*10),(2+pct*3),0,0,Math.PI*2);X.fill();
+
+    if(sap.stage===0){
+      // Tiny sprout — just peeking out of soil
+      const h=4+pct*6;
+      X.fillStyle='#6a9030';
+      X.fillRect(cx2-1,bot-h,2,h);
+      // Two tiny leaves
+      X.fillStyle='#4a8020';
+      X.beginPath();X.ellipse(cx2-3,bot-h,3,2,-.3,0,Math.PI*2);X.fill();
+      X.beginPath();X.ellipse(cx2+3,bot-h,3,2,.3,0,Math.PI*2);X.fill();
+    } else if(sap.stage===1){
+      // Small sapling — thin trunk, small crown
+      const h=8+pct*8;
+      X.fillStyle='#7a4a1a';
+      X.fillRect(cx2-1+sway*0.3,bot-h,2,h);
+      // Leaves
+      X.fillStyle='#2a6818';
+      X.beginPath();X.ellipse(cx2+sway*0.5,bot-h-5,6,4,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#3a8828';
+      X.beginPath();X.ellipse(cx2-2+sway*0.5,bot-h-8,5,4,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#4a9830';
+      X.beginPath();X.ellipse(cx2+1+sway*0.5,bot-h-11,4,3,0,0,Math.PI*2);X.fill();
+    } else if(sap.stage===2){
+      // Young tree — visible trunk, multi-layer canopy
+      const h=16+pct*10;
+      X.fillStyle='#7a4a1a';
+      X.fillRect(cx2-2+sway*0.2,bot-h,4,h);
+      X.fillStyle='#1e5010';
+      X.beginPath();X.ellipse(cx2+sway*0.5,bot-h-4,11+pct*3,8+pct*2,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#2a7018';
+      X.beginPath();X.ellipse(cx2-2+sway*0.6,bot-h-10,9+pct*2,7+pct*2,0,0,Math.PI*2);X.fill();
+      X.fillStyle='#349020';
+      X.beginPath();X.ellipse(cx2+1+sway*0.7,bot-h-17,6+pct*2,5+pct*2,0,0,Math.PI*2);X.fill();
+    }
+
+    X.restore();
   }
 }
 
