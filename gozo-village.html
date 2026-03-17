@@ -3408,19 +3408,66 @@ function drawNPC(npc){
       }
 
     } else if(job==='smelter'){
-      // Stirring molten metal with a rod
-      const stirAngle = t*2.5;
-      X.save();X.translate(px+4,py-10+bob);
-      FR(-1,-20,2,20,'#808080'); // rod
-      X.fillStyle=`rgba(255,${130+Math.sin(t*4)*30|0},0,0.8)`;
-      X.beginPath();X.ellipse(Math.cos(stirAngle)*5,Math.sin(stirAngle)*3,4,3,0,0,Math.PI*2);X.fill();
-      X.restore();
-      // heat shimmer dots
-      for(let i=0;i<2;i++){
-        X.fillStyle=`rgba(255,180,0,${0.4+Math.sin(t*5+i)*0.2})`;
-        X.beginPath();X.arc(px-4+i*8,py-32+bob+Math.sin(t*3+i)*3,2,0,Math.PI*2);X.fill();
+      const mySmelter=G.bld.find(b=>{
+        if(b.type!=='smelter'||b.under_construction) return false;
+        for(const[id,workers]of Object.entries(G.bldWorkers))
+          if(+id===b.id&&workers&&workers.includes(npc.name)) return true;
+        return false;
+      });
+      const nearSmelter=mySmelter&&Math.hypot(mySmelter.col*TS+TS/2-npc.x,mySmelter.row*TS+TS/2-npc.y)<TS*2.5;
+      if(nearSmelter){
+        const sx2=Math.round(mySmelter.col*TS+TS/2+camX);
+        const sy2=Math.round(mySmelter.row*TS+TS*0.6+camY);
+        const hamPhase=Math.sin(t*5);
+        const hamAngle=-Math.PI*0.9+hamPhase*1.1;
+        X.save();
+        // Furnace glow
+        X.fillStyle=`rgba(255,${80+Math.sin(t*3)*40|0},0,${0.4+Math.sin(t*3)*0.2})`;
+        X.beginPath();X.ellipse(sx2,sy2,20,9,0,0,Math.PI*2);X.fill();
+        // Anvil
+        X.fillStyle='#303030';X.fillRect(sx2-8,sy2-4,16,5);X.fillRect(sx2-5,sy2+1,10,4);
+        // Hot metal piece
+        X.fillStyle=`rgb(255,${100+hamPhase*80|0},0)`;X.fillRect(sx2-6,sy2-6,12,4);
+        // Worker legs
+        X.fillStyle='#2a1a4a';X.fillRect(sx2-5,sy2-22,4,10);X.fillRect(sx2+1,sy2-22,4,10);
+        // Leather apron torso
+        X.fillStyle='#8a4810';X.fillRect(sx2-6,sy2-32,13,11);
+        X.fillStyle='rgba(255,140,0,0.2)';X.fillRect(sx2-6,sy2-32,3,11);
+        // Arm
+        X.fillStyle='#c8885a';X.fillRect(sx2-8,sy2-30,4,7);
+        // Head
+        X.beginPath();X.arc(sx2,sy2-36,6,0,Math.PI*2);X.fill();
+        X.fillStyle='#2a1a08';X.fillRect(sx2-7,sy2-41,14,6);
+        // Eyes (furnace lit)
+        X.fillStyle='rgba(255,160,30,0.8)';X.fillRect(sx2-3,sy2-37,2,2);X.fillRect(sx2+1,sy2-37,2,2);
+        // Hammer swing
+        X.save();X.translate(sx2+7,sy2-27);X.rotate(hamAngle);
+        X.fillStyle='#7a4010';X.fillRect(-1,-22,3,24);
+        X.fillStyle='#606060';X.fillRect(-5,-24,12,7);
+        X.fillStyle='#909090';X.fillRect(-4,-28,10,5);
+        X.restore();
+        // Sparks on impact
+        if(hamPhase>0.3){
+          for(let si=0;si<8;si++){
+            const sa=si*0.8+t*12,sr=3+si*3;
+            X.fillStyle=`rgba(255,${180+si*8|0},0,${1-si*0.12})`;
+            X.beginPath();X.arc(sx2-2+Math.cos(sa)*sr,sy2-5+Math.sin(sa)*2,1.5,0,Math.PI*2);X.fill();
+          }
+          X.fillStyle='rgba(255,220,80,0.35)';X.beginPath();X.ellipse(sx2,sy2-4,10,4,0,0,Math.PI*2);X.fill();
+        }
+        // Name
+        X.fillStyle='rgba(0,0,0,0.65)';X.fillRect(sx2-16,sy2-52,32,10);
+        X.fillStyle='#f0c060';X.font='5px "Press Start 2P"';X.textAlign='center';
+        X.fillText(npc.name.slice(0,8),sx2,sy2-44);
+        X.restore();
+        return;
+      } else {
+        // Walking — carry hammer
+        X.save();X.translate(px+4,py-10+bob);
+        X.fillStyle='#808080';X.fillRect(-1,-20,2,20);
+        X.fillStyle='#606060';X.fillRect(-4,-22,9,6);
+        X.restore();
       }
-
     } else if(job==='builder'){
       // Hammering: up-down with hammer
       const hamAngle = -Math.PI*0.3 + phase*0.6;
@@ -4798,6 +4845,17 @@ function findJobLocation(job,npcIdx){
     return null;
   }
 
+  // Smelter: walk INTO the smelter building center
+  if(job==='smelter'){
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='smelter'&&!b.under_construction);
+        if(b) return{x:b.col*TS+TS/2, y:b.row*TS+TS*0.5};
+      }
+    }
+    return null;
+  }
+
   // For logger: find nearest FOREST tile cluster to work at
   if(job==='logger'){
     // Check if assigned to a logger building
@@ -5154,7 +5212,8 @@ function wanderNPCs(){
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
       // NPC can pass through their own home tile OR assigned stall
       const myStallId=npc.job==='vendor'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&['food_stall','fuel_stall','clothing_stall'].includes(b.type)))?.[0]:null;
-      const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId)||(myStallId&&t.bld.id===+myStallId);
+      const mySmelterId=npc.job==='smelter'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&b.type==='smelter'))?.[0]:null;
+      const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId)||(myStallId&&t.bld.id===+myStallId)||(mySmelterId&&t.bld.id===+mySmelterId);
       const tileOk=tile_&&tile_.t!==T.WATER&&bldOk(tile_)&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
       if(tileOk){npc.x=nx;npc.y=ny;}
       else{
