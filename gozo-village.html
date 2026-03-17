@@ -4628,6 +4628,28 @@ function showBldDlg(bld,c,r){
     btns.push({l:'🏡 Backyard'+byInfo,cls:'ok',fn:()=>openByPanel(bld.id)});
     const inRange=nearMarket(bld.id);
     extraInfo+='\n'+(inRange?'✅ Within market range':'❌ Too far from market');
+    // Show residents
+    const residents=NPCS.filter(n=>n.houseId===bld.id);
+    const cap=(bld.lv||1)*2;
+    extraInfo+=`\n\n👥 Residents (${residents.length}/${cap}):`;
+    if(residents.length===0){
+      extraInfo+='\n  — Empty —';
+    } else {
+      for(const n of residents){
+        const age=Math.floor((n.age||0)/90);
+        const job=JOBS[n.job||'idle']?.n||'Idle';
+        const icon=n.female?'👩':'👨';
+        extraInfo+=`\n  ${icon} ${n.name}, age ${age} — ${job}`;
+      }
+    }
+    // Show backyard production if any
+    if(bld.backyard){
+      const by=BYARD[bld.backyard.type];
+      if(by){
+        const pct=Math.round(((bld.backyard.timer||0)/by.prodTime)*100);
+        extraInfo+=`\n\n${by.e} ${by.n}: ${pct}% ready`;
+      }
+    }
   }
   if(bld.type==='farm'){
     const fieldCount=G.fields.filter(f=>f.farmId===bld.id).length;
@@ -4642,7 +4664,7 @@ function showBldDlg(bld,c,r){
     const maxW=BLD_WORKERS[bld.type];
     btns.push({l:'👷 Workers ('+assigned+'/'+maxW+')',cls:'ok',fn:()=>openBldWorker(bld.id)});
   }
-  if(bld.type!=='house'&&bld.lv<(d.ml||3))btns.push({l:'⬆ Upgrade',cls:'ok',fn:()=>doUpgrade(bld,c,r)});
+  if(bld.lv<(d.ml||3))btns.push({l:'⬆ Upgrade',cls:'ok',fn:()=>doUpgrade(bld,c,r)});
   btns.push({l:'🗑 Demolish',cls:'bad',fn:()=>doDemolish(bld,c,r)});
   btns.push({l:'✖ Close',cls:'',fn:closeDialog});
   openDlg(d.e+' '+d.n+' Lv.'+bld.lv,d.d+(pr?'\n'+pr:'')+extraInfo,btns);
@@ -5292,21 +5314,51 @@ function drawCrop(field, wx, wy){
 }
 
 // ─── DRAW BACKYARD (behind/beside house) ───
-function drawBackyard(type, wx, wy, timer, prodTime){
+function drawBackyard(type, wx, wy, timer, prodTime, offset=1){
   const cx=wx+TS/2, by=wy+TS;
   const prog=prodTime>0?Math.min(1,(timer||0)/prodTime):0;
   const t=Date.now()/1000;
+  const isFront=offset===1;
+  const isBack=offset===2;
+
+  // ── SHARED GROUND & FENCE for all backyards ──
+  // Dirt ground
+  X.fillStyle='#c8b880';X.fillRect(wx,wy,TS,TS);
+  X.fillStyle='rgba(0,0,0,0.05)';
+  for(let i=0;i<TS;i+=8) X.fillRect(wx,wy+i,TS,1);
+  // Fence on sides
+  X.fillStyle='#8a5820';
+  X.fillRect(wx,wy,4,TS); X.fillRect(wx+TS-4,wy,4,TS);
+  // Fence top (back tile only)
+  if(isBack) X.fillRect(wx,wy,TS,4);
+  // Fence bottom (front tile only — at house edge)
+  if(isFront){
+    X.fillRect(wx,wy+TS-4,TS,4);
+    // Gate opening in middle
+    X.fillStyle='#c8b880';X.fillRect(cx-8,wy+TS-4,16,4);
+  }
+  // Fence posts
+  X.fillStyle='#6a4010';
+  for(let px2=wx;px2<wx+TS;px2+=16) X.fillRect(px2,wy,3,4);
+  if(isBack) for(let px2=wx;px2<wx+TS;px2+=16) X.fillRect(px2,wy,3,8);
+
   switch(type){
     case 'chicken':
-      X.fillStyle='#c4843c';X.fillRect(wx+10,wy+TS-22,TS-20,18);
-      X.fillStyle='#a06020';X.fillRect(wx+10,wy+TS-26,TS-20,6);
-      // Animated chickens
-      for(let i=0;i<2;i++){
-        const cx2=wx+14+i*18, cy2=by-10+Math.sin(t*2+i)*2;
+      if(isBack){
+        // Chicken coop building in back tile
+        X.fillStyle='#c4843c';X.fillRect(wx+12,wy+8,TS-24,TS-20);
+        X.fillStyle='#a06020';X.fillRect(wx+12,wy+4,TS-24,6);
+        X.fillStyle='#1a1008';X.fillRect(cx-5,wy+10,10,14); // door
+      }
+      // Chickens wander both tiles
+      for(let i=0;i<(isFront?2:1);i++){
+        const cx2=wx+12+i*20, cy2=(isFront?by-14:wy+TS/2)+Math.sin(t*2+i)*3;
         X.fillStyle='#ffffff';X.beginPath();X.ellipse(cx2,cy2,5,4,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(cx2-2,cy2-2,4,3,0,0,Math.PI*2);X.fill();
         X.fillStyle='#ff4040';X.beginPath();X.arc(cx2+4,cy2-3,2,0,Math.PI*2);X.fill();
         X.fillStyle='#ffaa00';X.beginPath();X.moveTo(cx2+4,cy2-1);X.lineTo(cx2+7,cy2);X.lineTo(cx2+4,cy2+1);X.fill();
       }
+      if(isFront&&prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🥚',cx,wy+10);}
       break;
     case 'goat':
       X.fillStyle='#d4c4a0';X.beginPath();X.ellipse(cx,by-14,14,8,0,0,Math.PI*2);X.fill();
@@ -5556,14 +5608,18 @@ function render(){
         const field=G.fields.find(f=>f.col===c2&&f.row===r2);
         if(field&&field.growStage>0&&field.growStage<4)drawCrop(field,wx,ry);
       }
-      // Backyard — draw on tile directly above house (behind it visually)
-      if(r2+1<WR){
-        const houseTile=MAP[r2+1][c2];
-        if(houseTile?.bld?.type==='house'&&!tile.bld){
-          const gbld=G.bld.find(b=>b.id===houseTile.bld.id);
-          if(gbld?.backyard){
-            const byDef=BYARD[gbld.backyard.type];
-            if(byDef) drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,byDef.prodTime||1);
+      // Backyard — draw on 2 tiles directly above house (behind it visually)
+      // Tile r2 is 1 above house, tile r2-1 is 2 above house
+      for(const offset of [1,2]){
+        if(r2+offset<WR){
+          const houseTile=MAP[r2+offset][c2];
+          if(houseTile?.bld?.type==='house'&&!tile.bld){
+            const gbld=G.bld.find(b=>b.id===houseTile.bld.id);
+            if(gbld?.backyard){
+              const byDef=BYARD[gbld.backyard.type];
+              // offset=1: front half of backyard, offset=2: back half
+              if(byDef) drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,byDef.prodTime||1,offset);
+            }
           }
         }
       }
