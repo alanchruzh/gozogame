@@ -1901,7 +1901,9 @@ function drawBuildingShape(type,lv,cx,bot){
     case 'hospital':   bHospital(cx,bot,lv);break;
     case 'stable':     bStable(cx,bot,lv);break;
     case 'corral':     bCorral(cx,bot,lv);break;
-    case 'sheep_farm': bSheepFarm(cx,bot,lv);break;
+    case 'food_stall':     bStall(cx,bot,lv,'food');break;
+    case 'fuel_stall':     bStall(cx,bot,lv,'fuel');break;
+    case 'clothing_stall': bStall(cx,bot,lv,'clothing');break;
     case 'weaver_wk':  bWeaverWk(cx,bot,lv);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
   }
@@ -2756,6 +2758,66 @@ function bHospital(cx,bot,lv){
   X.font='11px serif';X.textAlign='center';X.fillText('⚕️',cx,bot-54);
 }
 
+function bStall(cx,bot,lv,type){
+  const W=68,H=36,wy=bot-H-4;
+  const colors={
+    food:    {stripe1:'#e03020',stripe2:'#f0f0f0',accent:'#60c020',icon:'🥬'},
+    fuel:    {stripe1:'#303030',stripe2:'#f0c020',accent:'#806010',icon:'🪵'},
+    clothing:{stripe1:'#4040c0',stripe2:'#f0f0f0',accent:'#8060d0',icon:'👘'},
+  };
+  const col=colors[type]||colors.food;
+
+  // ── GROUND / FLOOR ──
+  FR(cx-W/2-4,bot-6,W+8,6,'#c8b890');
+  FR(cx-W/2-4,bot-6,W+8,2,'rgba(255,255,255,0.1)');
+
+  // ── BACK WALL (open stall, no full walls) ──
+  FR(cx-W/2,wy,W,H,'#d4c490');
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.15)');
+  // Side shelves/walls (partial)
+  FR(cx-W/2,wy,8,H,'#b8a870');
+  FR(cx+W/2-8,wy,8,H,'#b8a870');
+
+  // ── COUNTER / TABLE ──
+  const cH=14,cY=bot-6-cH;
+  FR(cx-W/2+2,cY,W-4,cH,'#9a7840');
+  FR(cx-W/2+2,cY,W-4,3,'#b89050');
+  FR(cx-W/2+2,cY+3,W-4,cH-3,'#8a6830');
+  // Goods on counter
+  X.font='12px serif';X.textAlign='center';
+  X.fillText(col.icon,cx-12,cY+11);
+  X.fillText(col.icon,cx+12,cY+11);
+  // Price sign on counter
+  FR(cx-8,cY-8,16,8,'rgba(255,250,200,0.9)');
+  X.fillStyle='#604010';X.font='bold 5px monospace';X.textAlign='center';
+  X.fillText('FOR SALE',cx,cY-2);
+
+  // ── AWNING — striped canopy ──
+  const aW=W+16,aY=wy-4;
+  // Awning frame poles
+  FR(cx-W/2-4,wy,4,H+4,'#8a6820');
+  FR(cx+W/2,wy,4,H+4,'#8a6820');
+  // Awning top beam
+  FR(cx-aW/2,aY,aW,5,'#7a5810');
+  // Striped canopy
+  const stripes=6;
+  for(let i=0;i<stripes;i++){
+    X.fillStyle=i%2===0?col.stripe1:col.stripe2;
+    X.fillRect(Math.round(cx-aW/2+i*(aW/stripes)),aY,Math.ceil(aW/stripes)+1,12);
+  }
+  // Canopy fringe
+  X.fillStyle=col.stripe1;
+  for(let i=0;i<8;i++){
+    X.fillRect(Math.round(cx-aW/2+i*(aW/7)),aY+12,4,5);
+  }
+  // Accent color accent bar
+  FR(cx-aW/2,aY+12,aW,3,col.accent);
+
+  // ── SELLER SPOT INDICATOR (where NPC stands) ──
+  X.fillStyle='rgba(255,255,255,0.15)';
+  X.beginPath();X.arc(cx,bot-10,8,0,Math.PI*2);X.fill();
+}
+
 function bGeneric(cx,bot,lv,d){
   WALL(cx,bot-52,56,52);
   THATCH_ROOF(cx,bot-52,56,24);
@@ -3541,6 +3603,7 @@ const JOBS={
   miner:  {n:'Miner',e:'⛏',prod:{stone:3},  req:'quarry',   mult:null},
   smelter:{n:'Smelter',  e:'🔥',prod:{metal:1},  req:'smelter',  mult:null},
   trader: {n:'Trader', e:'💰',prod:{gold:2},   req:'market',   mult:null},
+  vendor: {n:'Vendor', e:'🛍',prod:{gold:1},   req:null,       mult:null},
   builder:{n:'Builder',  e:'🔨',prod:{wood:1,stone:1},req:null,mult:null},
   fisher: {n:'Fisher',  e:'🎣',prod:{fish:2,food:1}, req:null, mult:null},
   hunter: {n:'Hunter',  e:'🏹',prod:{meat:2,food:1},req:'hunting', mult:null},
@@ -3982,34 +4045,40 @@ function doFarmProd(){
   const season=getSeason();
   const mul=season===3?0.5:season===1?1.3:1.0;
   for(const field of G.fields){
-    // Find owning farm
     const farm=G.bld.find(b=>b.id===field.farmId&&b.type==='farm');
-    // Fields grow even without a farm building — just slower (no worker bonus)
-    const workers=farm?(G.bldWorkers[farm.id]||[]).filter(n=>n).length:1;
+    const farmLv=farm?farm.lv:1;
     const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
-    // Grow stage progression
-    if(field.growStage===0&&season===crop.plant){
-      field.growStage=1; // planted
+    if(crop.plant===-1){ field.growStage=0; continue; } // fallow
+
+    // Progress based on day within year (90 days/season)
+    const dayOfYear=((G.season||0)*90)+(G.day||1);
+
+    if(field.growStage===0){
+      // Auto-plant at start of planting season
+      if(season===crop.plant) field.growStage=1;
     } else if(field.growStage===1){
-      field.growStage=2; // growing
-    } else if(field.growStage===2&&season===crop.harvest){
-      field.growStage=3; // ready to harvest
+      // After 30 days growing → sprouting
+      if(!field._plantDay) field._plantDay=dayOfYear;
+      if(dayOfYear-field._plantDay>=30) field.growStage=2;
+    } else if(field.growStage===2){
+      // After 60 days total → ready
+      if(field._plantDay&&dayOfYear-field._plantDay>=60) field.growStage=3;
     } else if(field.growStage===3){
-      // Harvest
+      // Harvest!
       const fertBonus=1+(field.fertility-50)/200;
       for(const[res,amt]of Object.entries(crop.output)){
-        addR(res,Math.round(amt*fertBonus*mul*farm.lv));
+        addR(res,Math.round(amt*fertBonus*mul*farmLv));
       }
-      field.growStage=4; // harvested
+      field.growStage=4;
+      field._plantDay=0;
       field.fertility=Math.max(20,field.fertility-5+(Math.random()*10|0));
       G.farmStats.totalHarvests++;
-      // Harvest particles!
-      spawnParticles(field.col*TS+TS/2, field.row*TS+TS/2, 'harvest', 10);
-      // Rotate crop
+      spawnParticles(field.col*TS+TS/2,field.row*TS+TS/2,'harvest',10);
       const ri=(CROP_ROTATION.indexOf(field.crop)+1)%CROP_ROTATION.length;
       field.crop=CROP_ROTATION[ri];
     } else if(field.growStage===4){
-      field.growStage=0; // reset for next season
+      // Reset next spring
+      if(season===0) field.growStage=0;
     }
   }
 }
@@ -4637,6 +4706,77 @@ function findJobLocation(job,npcIdx){
     return{x:bestX,y:bestY};
   }
 
+  // Vendor: stand inside their assigned stall
+  if(job==='vendor'){
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&
+          ['food_stall','fuel_stall','clothing_stall'].includes(b.type));
+        // Stand behind counter — slightly back (north) of tile center
+        if(b) return{x:b.col*TS+TS/2, y:b.row*TS+TS*0.35};
+      }
+    }
+    return null;
+  }
+
+  // Miner: walk to nearest ore deposit
+  if(job==='miner'){
+    let mineBld=null;
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&['coalmine','ironmine','quarry'].includes(b.type));
+        if(b){mineBld=b;break;}
+      }
+    }
+    if(!mineBld) return null;
+    const isDeep=mineBld.lv>=3;
+    const originC=mineBld.col, originR=mineBld.row;
+    // Find nearest deposit tile
+    let bestDist=999,bestX=mineBld.col*TS+TS/2,bestY=(mineBld.row+1)*TS+TS/2;
+    const targetDecor=mineBld.type==='coalmine'?'coal_deposit':
+                      mineBld.type==='ironmine'?'iron_deposit':'rock';
+    for(let dr=-8;dr<=8;dr++) for(let dc=-8;dc<=8;dc++){
+      const tr=originR+dr,tc=originC+dc;
+      if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
+      if(!MAP[tr]||!MAP[tr][tc])continue;
+      const tile=MAP[tr][tc];
+      if(tile.t===T.STONE_G){
+        if(isDeep||(tile.decor===targetDecor&&!(DEPOSIT_STATE[tc+','+tr]?.depleted))){
+          const d=Math.abs(dr)+Math.abs(dc);
+          if(d<bestDist){bestDist=d;bestX=tc*TS+TS/2;bestY=tr*TS+TS/2;}
+        }
+      }
+    }
+    return{x:bestX,y:bestY};
+  }
+
+  // Farmer: walk to a random field tile (FARM_ZONE) near their assigned farm
+  if(job==='farmer'){
+    // Find assigned farm building
+    let farmBld=null;
+    for(const[bldId,workers]of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(npc.name)){
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='farm');
+        if(b){farmBld=b;break;}
+      }
+    }
+    // Find a farm zone field nearby
+    const originC=farmBld?farmBld.col:Math.floor(npc.x/TS);
+    const originR=farmBld?farmBld.row:Math.floor(npc.y/TS);
+    const nearFields=G.fields.filter(f=>{
+      const dc=Math.abs(f.col-originC), dr=Math.abs(f.row-originR);
+      return dc<=12&&dr<=12;
+    });
+    if(nearFields.length){
+      // Pick an unripe field to tend
+      const workField=nearFields[Math.floor(Date.now()/3000)%nearFields.length];
+      return{x:workField.col*TS+TS/2, y:workField.row*TS+TS/2};
+    }
+    // Fallback: go to farm building
+    if(farmBld) return{x:farmBld.col*TS+TS/2, y:(farmBld.row+1)*TS+TS/2};
+    return null;
+  }
+
   // For planter: wander near Forest Hut in search of planting spots
   if(job==='planter'){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
@@ -4775,7 +4915,13 @@ function wanderNPCs(){
             npc._wt=(npc._wt||0)+1;
             if(npc._wt>120){npc._wt=0;if(Math.random()<0.4){const tiny=[[-0.3,0],[0.3,0],[0,-0.3],[0,0.3]][Math.random()*4|0];npc._dx=tiny[0];npc._dy=tiny[1];}}
 
-            if(job==='planter'){
+            if(job==='vendor'){
+              // Vendor: stand still at stall, face customers (dir=2, toward player)
+              npc._dx=0; npc._dy=0; npc._working=true;
+              npc.dir=2; // face south (toward market visitors)
+              // Occasionally wave/gesture
+              if(Math.random()<0.001) npc.dir=Math.floor(Math.random()*4);
+            } else if(job==='planter'){
               doPlantingWork(npc);
             } else if(job==='gatherer'){
               // Find and harvest nearby berry bushes
@@ -5001,8 +5147,9 @@ function wanderNPCs(){
       const c=Math.floor(nx/TS),r=Math.floor(ny/TS);
       const canEnterForest=(npc.job==='hunter'||npc.job==='logger');
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
-      // NPC can pass through their own home tile
-      const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId);
+      // NPC can pass through their own home tile OR assigned stall
+      const myStallId=npc.job==='vendor'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&['food_stall','fuel_stall','clothing_stall'].includes(b.type)))?.[0]:null;
+      const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId)||(myStallId&&t.bld.id===+myStallId);
       const tileOk=tile_&&tile_.t!==T.WATER&&bldOk(tile_)&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
       if(tileOk){npc.x=nx;npc.y=ny;}
       else{
@@ -5782,7 +5929,8 @@ function renderBldWorker(bldId, maxW){
             coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
             mill:'farmer',sheep_farm:'farmer',weaver_wk:'builder',
-            granary:'farmer',storehouse:'builder',forest_hut:'planter'};
+            granary:'farmer',storehouse:'builder',forest_hut:'planter',
+            food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
