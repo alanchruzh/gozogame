@@ -590,9 +590,9 @@ const T={GRASS:0,PATH:1,WATER:2,DIRT:3,STONE_G:4,SAND:5,FOREST:6,FIELD:7,MARKET_
 // ── BUILDING DEFS ──
 // Buildings that support assigned workers (type -> max workers)
 const BLD_WORKERS={
-  farm:2, logger:2, quarry:2, coalmine:2, smelter:2,
+  farm:2, logger:2, quarry:2, coalmine:2, ironmine:2, smelter:2,
   market:1, blacksmith:2, hunting:2, sawmill:1, mill:1,
-  granary:2, storehouse:2,
+  granary:2, storehouse:2, forest_hut:2, corral:1, stable:1,
   food_stall:1, fuel_stall:1, clothing_stall:1,
 };
 
@@ -1002,9 +1002,10 @@ function buildWorld(){
       const v=hh(c,r);
       const sx=c*TS, sy=r*TS;
       if(tile.decor==='tree'){
+        if(tile._falling) continue; // being chopped — drawn live with fall animation
         const skipL=c>0&&MAP[r][c-1]&&MAP[r][c-1].decor==='tree';
         const skipU=r>0&&MAP[r-1][c]&&MAP[r-1][c].decor==='tree';
-        if(!skipL||!skipU||v>0.55) drawTreeOnCtx(W,sx,sy,v);
+        if((!skipL||!skipU||v>0.55)&&!tile._falling) drawTreeOnCtx(W,sx,sy,v);
       } else if(tile.decor==='rock'){
         // STONE_G tile texture draws the open pit — no overlay needed
       } else if(tile.decor==='coal_deposit'){
@@ -1886,6 +1887,7 @@ function drawBuildingShape(type,lv,cx,bot){
     case 'sawmill':    bSawmill(cx,bot,lv);break;
     case 'quarry':     bQuarry(cx,bot,lv);break;
     case 'coalmine':   bMine(cx,bot,lv,'coal');break;
+    case 'ironmine':   bMine(cx,bot,lv,'iron');break;
     case 'market':     bMarket(cx,bot,lv);break;
     case 'well':       bWell(cx,bot,lv);break;
     case 'church':     bChurch(cx,bot,lv);break;
@@ -3252,12 +3254,30 @@ function drawNPC(npc){
 
         // Tree falling effect
         if(logState==='tree_falls'&&npc._targetTreeC>=0){
-          const tx=npc._targetTreeC*TS+camX, ty=npc._targetTreeR*TS+camY;
-          const fallAngle=(npc._fallTimer||0)/30*Math.PI*0.5;
-          X.save();X.translate(tx+TS/2,ty+TS);X.rotate(fallAngle);
-          X.fillStyle='#7a4a1a';X.fillRect(-3,-TS*0.8,6,TS*0.8);
-          X.fillStyle='#267818';X.beginPath();X.arc(0,-TS*0.8,18,0,Math.PI*2);X.fill();
+          const tc=npc._targetTreeC, tr2=npc._targetTreeR;
+          if(MAP[tr2]&&MAP[tr2][tc]&&!MAP[tr2][tc]._falling){
+            MAP[tr2][tc]._falling=true;
+            _worldDirty=true;
+          }
+          // Draw falling tree at screen position of target tile
+          const ftx=tc*TS+camX, fty=tr2*TS+camY;
+          const fallAngle=(npc._fallTimer||0)/30*Math.PI*0.6;
+          const v2=((Math.sin(tc*0.317+tr2*0.513)*43758)%1+1)%1;
+          const sz=0.82+v2*0.36;
+          X.save();
+          X.translate(ftx+TS/2, fty+TS-4);
+          X.rotate(fallAngle);
+          X.fillStyle='#7a4a1a';X.fillRect(-3,-TS*0.75,6,TS*0.75);
+          X.fillStyle='#5a3210';X.fillRect(0,-TS*0.75,3,TS*0.75);
+          X.fillStyle='#163c0c';X.beginPath();X.ellipse(0,-TS*0.75-9*sz,20*sz,13*sz,0,0,Math.PI*2);X.fill();
+          X.fillStyle='#1e5c14';X.beginPath();X.ellipse(-3,-TS*0.75-18*sz,17*sz,12*sz,0,0,Math.PI*2);X.fill();
+          X.fillStyle='#267818';X.beginPath();X.ellipse(-9*sz,-TS*0.75-26*sz,13*sz,10*sz,0,0,Math.PI*2);X.fill();
           X.restore();
+        } else if(npc._targetTreeC>=0&&MAP[npc._targetTreeR]&&MAP[npc._targetTreeR][npc._targetTreeC]){
+          if(MAP[npc._targetTreeR][npc._targetTreeC]._falling){
+            MAP[npc._targetTreeR][npc._targetTreeC]._falling=false;
+            _worldDirty=true;
+          }
         }
       } else {
         // Walking with axe on shoulder
@@ -3964,9 +3984,8 @@ function doFarmProd(){
   for(const field of G.fields){
     // Find owning farm
     const farm=G.bld.find(b=>b.id===field.farmId&&b.type==='farm');
-    if(!farm)continue;
-    const workers=(G.bldWorkers[farm.id]||[]).filter(n=>n).length;
-    if(!workers)continue;
+    // Fields grow even without a farm building — just slower (no worker bonus)
+    const workers=farm?(G.bldWorkers[farm.id]||[]).filter(n=>n).length:1;
     const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
     // Grow stage progression
     if(field.growStage===0&&season===crop.plant){
@@ -5322,7 +5341,7 @@ function render(){
           X.fillText('[E] Gather',wx+TS/2,ry+TS+12);
         }
       }
-      if(tile.t===T.FIELD){
+      if(tile.t===T.FIELD||tile.t===T.FARM_ZONE){
         const field=G.fields.find(f=>f.col===c2&&f.row===r2);
         if(field&&field.growStage>0&&field.growStage<4)drawCrop(field,wx,ry);
       }
@@ -5726,7 +5745,7 @@ function renderBldWorker(bldId, maxW){
       const age=Math.floor(npc.age/90);
       slot.innerHTML=`Slot ${i+1}: <b style="color:#f0d060">${npc.name}</b> <span>${age}th — ${JOBS[npc.job||'idle']?.e||'😴'} ${JOBS[npc.job||'idle']?.n||'Idle'}</span>`;
       const removeBtn=document.createElement('button');
-      removeBtn.textContent='✗ Lepas';
+      removeBtn.textContent='✗ Remove';
       removeBtn.style.cssText='padding:2px 6px;background:#200808;border:1px solid #802020;color:#c04040;font-size:9px;cursor:pointer';
       removeBtn.onclick=()=>{
         G.bldWorkers[bldId]=G.bldWorkers[bldId].filter(n=>n!==npcName);
@@ -7641,36 +7660,31 @@ function showLoadGame(){
   const meta=hasAutosave();
   if(meta){
     const d=new Date(meta.savedAt||0);
-    openDlg('📂 LOAD GAME',
-      `Autosave found:\nY${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleString()}\n\nOr load a .gozo file from your computer.`,
-      [
-        {l:'💾 Load Autosave',cls:'ok',fn:()=>{
-          closeDialog();
-          loadAutosave().then(ok=>{
-            if(ok&&!_gameStarted) launchGame(false);
-          }).catch(()=>{});
-        }},
-        {l:'📁 Load File',cls:'',fn:()=>{
-          closeDialog();
-          document.getElementById('title-load-input').click();
-        }},
-        {l:'✖ Cancel',cls:'',fn:closeDialog},
-      ]);
+    const hint=document.getElementById('title-autosave-hint');
+    if(hint){
+      hint.style.display='block';
+      hint.innerHTML=`💾 Autosave: Y${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleDateString()}<br>
+        <button onclick="loadAutosave().then(ok=>{if(ok)launchGame(false);})" style="margin-top:6px;padding:4px 12px;background:#082010;border:1px solid #20a040;color:#40d060;cursor:pointer;font-size:10px">▶ Load Autosave</button>
+        &nbsp;
+        <button onclick="document.getElementById('title-load-input').click()" style="margin-top:6px;padding:4px 12px;background:#080818;border:1px solid #2040a0;color:#4060d0;cursor:pointer;font-size:10px">📁 Load File</button>
+        &nbsp;
+        <button onclick="this.parentElement.style.display='none'" style="margin-top:6px;padding:4px 8px;background:#100808;border:1px solid #602020;color:#a04040;cursor:pointer;font-size:10px">✗</button>`;
+    }
   } else {
     document.getElementById('title-load-input').click();
   }
 }
 
 function titleLoadGame(event){
-  // Reuse existing loadGameFromFile but also start the game
-  loadGameFromFile(event);
-  // loadGameFromFile is async, so we watch for it to apply
-  const orig=applySaveState;
-  // After load, hide title screen
+  loadGameFromFile(event).then(()=>{
+    // loadGameFromFile calls applySaveState which calls launchGame
+  }).catch(()=>{});
+  // Also set a fallback in case async doesn't fire launch
   setTimeout(()=>{
     if(_gameStarted) return;
-    launchGame(false); // launch without genMap (save already has map)
-  },800);
+    // Check if state was loaded
+    if(G.bld&&G.bld.length>0) launchGame(false);
+  },1200);
 }
 
 function startNewGame(){
