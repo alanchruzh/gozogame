@@ -957,11 +957,14 @@ function buildWorld(){
         if(!skipL||!skipU||v>0.55) drawTreeOnCtx(W,sx,sy,v);
       } else if(tile.decor==='rock'){
         drawRockOnCtx(W,sx,sy,v);
+        // Quarry scaffold for stone deposits near quarry buildings
+        const nearQuarry=G.bld.some(b=>b.type==='quarry'&&Math.hypot(b.col-c,b.row-r)<4);
+        if(nearQuarry) drawDepositStatic(W,sx,sy,'stone');
       } else if(tile.decor==='coal_deposit'){
-        drawRockOnCtx(W,sx,sy,v);
+        // drawDepositStatic draws the full coal pit — no need for rock base
         drawDepositStatic(W,sx,sy,'coal');
       } else if(tile.decor==='iron_deposit'){
-        drawRockOnCtx(W,sx,sy,v);
+        // drawDepositStatic draws the full iron pit — no need for rock base
         drawDepositStatic(W,sx,sy,'iron');
       } else if(tile.decor==='bush'){
         drawBushOnCtx(W,sx,sy,v);
@@ -1051,16 +1054,54 @@ function drawTileTexture(W,type,c,r,sx,sy,tw_=TS,th_=TS){
     for(let i=8;i<TS;i+=10){W.beginPath();W.moveTo(sx,sy+i);W.lineTo(sx+TS,sy+i);W.stroke();}
 
   } else if(type===T.STONE_G){
-    // Rocky ground
-    const sg=v*20|0;
-    W.fillStyle=`rgb(${118+sg},${112+sg},${98+sg})`;
-    W.fillRect(sx,sy,tw_,th_);
-    W.fillStyle=`rgba(255,255,255,0.04)`;W.fillRect(sx,sy,TS,TS*0.35);
-    // Mineral streak (diagonal, never horizontal/vertical)
-    W.strokeStyle=`rgba(155,152,138,0.32)`;W.lineWidth=1.5+v*2;
-    W.beginPath();W.moveTo(sx+TS*(0.1+v2*0.2),sy+TS*(0.15+v*0.1));W.lineTo(sx+TS*(0.65+v*0.22),sy+TS*(0.75+v2*0.18));W.stroke();
-    // Lichen
-    if(v>0.55){W.fillStyle=`rgba(80,112,52,${(v-0.55)*0.38})`;W.beginPath();W.ellipse(sx+TS*(0.4+v2*0.3),sy+TS*(0.35+v*0.3),TS*0.16+v*4,TS*0.13+v*3,v*Math.PI,0,Math.PI*2);W.fill();}
+    // ── OPEN PIT QUARRY — top-down view ──
+    // Check neighbors to determine if this is edge or interior of pit
+    const hasStoneN=r>0&&MAP[r-1]&&MAP[r-1][c]&&MAP[r-1][c].t===T.STONE_G;
+    const hasStoneS=r<WR-1&&MAP[r+1]&&MAP[r+1][c]&&MAP[r+1][c].t===T.STONE_G;
+    const hasStoneE=c<WC-1&&MAP[r]&&MAP[r][c+1]&&MAP[r][c+1].t===T.STONE_G;
+    const hasStoneW=c>0&&MAP[r]&&MAP[r][c-1]&&MAP[r][c-1].t===T.STONE_G;
+    const neighborCount=(hasStoneN?1:0)+(hasStoneS?1:0)+(hasStoneE?1:0)+(hasStoneW?1:0);
+    const isInterior=neighborCount>=3;
+    const isDeepCenter=neighborCount===4;
+
+    if(isDeepCenter){
+      // Deep pit floor — very dark
+      W.fillStyle=`rgb(${42+v*8|0},${38+v*6|0},${30+v*5|0})`;
+      W.fillRect(sx,sy,tw_,th_);
+      // Dust/debris on floor
+      W.fillStyle='rgba(80,74,60,0.4)';
+      W.beginPath();W.ellipse(sx+tw_*0.5,sy+th_*0.5,tw_*0.35,th_*0.3,v*2,0,Math.PI*2);W.fill();
+    } else if(isInterior){
+      // Mid-pit — dark rocky floor
+      W.fillStyle=`rgb(${65+v*12|0},${60+v*10|0},${50+v*8|0})`;
+      W.fillRect(sx,sy,tw_,th_);
+      // Rocky texture
+      W.fillStyle='rgba(90,84,68,0.5)';
+      for(let i=0;i<3;i++){
+        const rx=sx+tw_*(0.2+v*(0.3+i*0.2)), ry=sy+th_*(0.15+v2*(0.3+i*0.15));
+        W.beginPath();W.ellipse(rx,ry,tw_*(0.08+v*0.06),th_*(0.06+v2*0.05),(i+v)*1.2,0,Math.PI*2);W.fill();
+      }
+    } else {
+      // Pit wall/rim — lighter stone with depth gradient
+      const rimLight=`rgb(${110+v*18|0},${104+v*16|0},${88+v*12|0})`;
+      const rimDark=`rgb(${78+v*12|0},${72+v*10|0},${60+v*8|0})`;
+      W.fillStyle=rimLight; W.fillRect(sx,sy,tw_,th_);
+      // Darker toward interior
+      if(hasStoneN){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx,sy,tw_,th_*0.45);}
+      if(hasStoneS){W.fillStyle='rgba(0,0,0,0.18)';W.fillRect(sx,sy+th_*0.55,tw_,th_*0.45);}
+      if(hasStoneE){W.fillStyle='rgba(0,0,0,0.18)';W.fillRect(sx+tw_*0.55,sy,tw_*0.45,th_);}
+      if(hasStoneW){W.fillStyle='rgba(0,0,0,0.22)';W.fillRect(sx,sy,tw_*0.45,th_);}
+      // Rocky surface texture
+      W.fillStyle=`rgba(140,134,118,${0.3+v*0.2})`;
+      W.beginPath();W.ellipse(sx+tw_*0.3,sy+th_*0.35,tw_*0.18,th_*0.14,v*1.5,0,Math.PI*2);W.fill();
+      W.fillStyle=`rgba(160,154,138,${0.25+v2*0.15})`;
+      W.beginPath();W.ellipse(sx+tw_*0.65,sy+th_*0.6,tw_*0.14,th_*0.12,-v*1.2,0,Math.PI*2);W.fill();
+      // Stone chunks on rim
+      W.fillStyle=`rgba(90,86,74,0.55)`;
+      W.beginPath();W.ellipse(sx+tw_*(0.2+v2*0.2),sy+th_*(0.6+v*0.2),tw_*0.12,th_*0.09,v*2,0,Math.PI*2);W.fill();
+    }
+    // Slight top highlight on all stone tiles
+    W.fillStyle='rgba(255,255,255,0.03)';W.fillRect(sx,sy,tw_,th_*0.25);
 
   } else if(type===T.SAND){
     const sg=v*14|0;
@@ -1440,52 +1481,93 @@ function drawTreeOnCtx(ctx,wx,wy,v){
 function drawTree(wx,wy,v){ drawTreeOnCtx(X,wx,wy,v); }
 
 // ── DEPOSIT OVERLAY — drawn on top of rock to show mineral type ──
-// Static part baked onto world canvas (pit + scaffold + rails)
+// Static deposit tile rendering — coal/iron open pit style (replaces rock + vein overlay)
 function drawDepositStatic(ctx,sx,sy,type){
   const cx=sx+TS/2|0, bot=sy+TS;
+  const v=((Math.sin(cx*0.317+bot*0.513)*43758)%1+1)%1;
+  const v2=((Math.sin(cx*0.7+bot*1.1)*12345)%1+1)%1;
 
-  // Dark excavated pit
-  ctx.fillStyle='#1a1008';
-  ctx.beginPath();ctx.ellipse(cx,bot-18,28,16,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#2a1a0a';
-  ctx.beginPath();ctx.ellipse(cx,bot-20,24,13,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#1a1005';
-  ctx.beginPath();ctx.ellipse(cx,bot-22,18,10,0,0,Math.PI*2);ctx.fill();
+  // ── PIT FLOOR — color depends on ore type ──
+  const floorCol  =type==='coal'?'#1a1510':type==='iron'?'#2a1808':'#1a1510';
+  const midCol    =type==='coal'?'#252015':type==='iron'?'#361e0a':'#252015';
+  const innerCol  =type==='coal'?'#181210':type==='iron'?'#281404':'#181210';
+  const rimCol    =type==='coal'?'#3a3028':type==='iron'?'#4a2a12':'#3a3028';
+  const rimLight  =type==='coal'?'#504438':type==='iron'?'#6a3c18':'#504438';
 
-  // Ore veins
+  // Outer rim — packed excavated earth
+  ctx.fillStyle=rimLight;
+  ctx.beginPath();ctx.ellipse(cx,bot-16,30,18,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=rimCol;
+  ctx.beginPath();ctx.ellipse(cx+2,bot-18,26,15,0,0,Math.PI*2);ctx.fill();
+
+  // Mid level
+  ctx.fillStyle=midCol;
+  ctx.beginPath();ctx.ellipse(cx+2,bot-20,21,13,0,0,Math.PI*2);ctx.fill();
+
+  // Inner pit
+  ctx.fillStyle=floorCol;
+  ctx.beginPath();ctx.ellipse(cx+2,bot-22,16,10,0,0,Math.PI*2);ctx.fill();
+
+  // Deep center
+  ctx.fillStyle=innerCol;
+  ctx.beginPath();ctx.ellipse(cx+3,bot-24,10,7,0,0,Math.PI*2);ctx.fill();
+
+  // ── ORE VEINS exposed in pit walls ──
   if(type==='coal'){
-    ctx.fillStyle='rgba(10,10,10,0.9)';
-    ctx.beginPath();ctx.ellipse(cx-8,bot-20,8,4,0.4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(cx+6,bot-18,6,3,-0.3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(60,60,80,0.6)';
-    ctx.beginPath();ctx.ellipse(cx-7,bot-21,3,2,0.4,0,Math.PI*2);ctx.fill();
-  } else {
-    ctx.fillStyle='rgba(160,60,15,0.85)';
-    ctx.beginPath();ctx.ellipse(cx-7,bot-20,9,4,0.5,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(200,90,30,0.7)';
-    ctx.beginPath();ctx.ellipse(cx+5,bot-18,7,3,-0.3,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='rgba(230,130,50,0.5)';
-    ctx.beginPath();ctx.ellipse(cx-5,bot-22,4,2,0.2,0,Math.PI*2);ctx.fill();
+    // Glossy black coal seams
+    ctx.fillStyle='rgba(8,8,12,0.95)';
+    ctx.beginPath();ctx.ellipse(cx-9,bot-19,10,4,0.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+7,bot-17,8,3,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-3,bot-23,7,3,0.1,0,Math.PI*2);ctx.fill();
+    // Shiny glint on coal
+    ctx.fillStyle='rgba(80,80,110,0.5)';
+    ctx.beginPath();ctx.ellipse(cx-8,bot-20,3,1.5,0.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+7,bot-18,2,1.5,-0.3,0,Math.PI*2);ctx.fill();
+    // Rubble chunks on rim
+    ctx.fillStyle='#282018';
+    for(let i=0;i<4;i++){
+      const rx=cx-12+i*8+v2*4, ry=bot-12+v*3;
+      ctx.beginPath();ctx.ellipse(rx,ry,3+v*2,2+v2*1.5,i*0.6,0,Math.PI*2);ctx.fill();
+    }
+  } else if(type==='iron'){
+    // Rust-red iron ore streaks
+    ctx.fillStyle='rgba(160,55,15,0.9)';
+    ctx.beginPath();ctx.ellipse(cx-8,bot-19,10,4,0.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+6,bot-17,8,3,-0.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(210,90,25,0.75)';
+    ctx.beginPath();ctx.ellipse(cx-2,bot-22,7,3,0.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(240,140,50,0.5)';
+    ctx.beginPath();ctx.ellipse(cx+4,bot-20,4,2,-0.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-6,bot-18,3,2,0.5,0,Math.PI*2);ctx.fill();
+    // Reddish rock chunks on rim
+    ctx.fillStyle='#5a2808';
+    for(let i=0;i<4;i++){
+      const rx=cx-12+i*8+v2*4, ry=bot-11+v*3;
+      ctx.beginPath();ctx.ellipse(rx,ry,3+v*2,2.5+v2,i*0.5,0,Math.PI*2);ctx.fill();
+    }
+    // Metallic glint
+    ctx.fillStyle='rgba(230,160,80,0.45)';
+    ctx.beginPath();ctx.ellipse(cx-7,bot-20,2,1.5,0.5,0,Math.PI*2);ctx.fill();
   }
 
-  // Scaffold headframe
+  // ── SCAFFOLD HEADFRAME (one per tile group — draw on every tile for simplicity) ──
   ctx.fillStyle='#6a4010';
-  ctx.fillRect(cx-2,sy+4,4,TS-20);
-  ctx.fillRect(cx-14,sy+4,28,4);
+  ctx.fillRect(cx-2,sy+2,4,TS-18);
+  ctx.fillRect(cx-13,sy+2,26,4);
   ctx.strokeStyle='#5a3010';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cx-14,sy+8);ctx.lineTo(cx-2,sy+24);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx+14,sy+8);ctx.lineTo(cx+2,sy+24);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-13,sy+6);ctx.lineTo(cx-2,sy+20);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx+13,sy+6);ctx.lineTo(cx+2,sy+20);ctx.stroke();
 
-  // Rails
-  ctx.strokeStyle='#707060';ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(cx-20,bot-10);ctx.lineTo(cx+20,bot-10);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx-20,bot-6);ctx.lineTo(cx+20,bot-6);ctx.stroke();
+  // ── RAILS ──
+  ctx.strokeStyle='#787060';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(cx-20,bot-9);ctx.lineTo(cx+20,bot-9);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(cx-20,bot-5);ctx.lineTo(cx+20,bot-5);ctx.stroke();
   ctx.fillStyle='#5a3810';
-  for(let i=-16;i<=16;i+=8)ctx.fillRect(cx+i-1,bot-12,3,8);
+  for(let i=-16;i<=16;i+=8)ctx.fillRect(cx+i-1,bot-11,3,7);
 
   // Pulley rope
-  ctx.strokeStyle='rgba(160,120,60,0.6)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(cx,sy+8);ctx.lineTo(cx,bot-18);ctx.stroke();
+  ctx.strokeStyle='rgba(160,120,60,0.55)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(cx,sy+6);ctx.lineTo(cx,bot-20);ctx.stroke();
 }
 
 // Animated part drawn live each frame (cart movement)
@@ -1555,17 +1637,52 @@ function drawBerryBushOnCtx(ctx,wx,wy,v,depleted){
   }
 }
 function drawRockOnCtx(ctx,wx,wy,v){
-  const X2=ctx;
-  const cx=Math.round(wx+TS/2),bot=Math.round(wy+TS);
-  X2.fillStyle='rgba(0,0,0,0.18)';X2.beginPath();X2.ellipse(cx+2,bot-5,18,5,0,0,Math.PI*2);X2.fill();
-  X2.fillStyle='#6e6858';X2.beginPath();X2.ellipse(cx,bot-22,22,18,0,0,Math.PI*2);X2.fill();
-  X2.fillStyle='#8a8472';X2.beginPath();X2.ellipse(cx-3,bot-26,17,14,0,0,Math.PI*2);X2.fill();
-  X2.fillStyle='#a8a298';X2.beginPath();X2.ellipse(cx-5,bot-30,11,9,0,0,Math.PI*2);X2.fill();
-  X2.fillStyle='rgba(210,206,196,0.45)';X2.beginPath();X2.ellipse(cx-8,bot-33,5,4,0,0,Math.PI*2);X2.fill();
-  X2.fillStyle='#787060';X2.beginPath();X2.ellipse(cx+16,bot-13,10,8,-0.3,0,Math.PI*2);X2.fill();
-  X2.fillStyle='#989088';X2.beginPath();X2.ellipse(cx+14,bot-15,8,7,0,0,Math.PI*2);X2.fill();
-  X2.strokeStyle='rgba(0,0,0,0.15)';X2.lineWidth=1;
-  X2.beginPath();X2.ellipse(cx,bot-22,22,18,0,0,Math.PI*2);X2.stroke();
+  const cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
+  const v2=((Math.sin(cx*0.7+bot*0.4)*43758)%1+1)%1;
+
+  // ── QUARRY PIT — sandy excavated ground ──
+  // Outer disturbed earth ring
+  ctx.fillStyle='#a09070';
+  ctx.beginPath();ctx.ellipse(cx,bot-16,30,18,0,0,Math.PI*2);ctx.fill();
+  // Sandy pit floor
+  ctx.fillStyle='#c0b090';
+  ctx.beginPath();ctx.ellipse(cx,bot-18,26,15,0,0,Math.PI*2);ctx.fill();
+  // Inner pit shadow (depth)
+  ctx.fillStyle='#8a7a58';
+  ctx.beginPath();ctx.ellipse(cx+2,bot-20,20,12,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#706040';
+  ctx.beginPath();ctx.ellipse(cx+2,bot-22,15,9,0,0,Math.PI*2);ctx.fill();
+
+  // ── SCATTERED STONE CHUNKS in pit ──
+  const chunks=[
+    {ox:-8,oy:-12,rx:9,ry:7,rot:0.3,c1:'#8a8478',c2:'#aaa098'},
+    {ox:8, oy:-10,rx:8,ry:6,rot:-0.2,c1:'#7e7870',c2:'#9e988e'},
+    {ox:-4,oy:-6, rx:11,ry:8,rot:0.1,c1:'#909080',c2:'#b0a8a0'},
+    {ox:10,oy:-18,rx:6,ry:5,rot:0.5,c1:'#888070',c2:'#a8a090'},
+    {ox:-12,oy:-8,rx:7,ry:5,rot:-0.3,c1:'#8a8278',c2:'#aaa298'},
+  ];
+  for(const ch of chunks){
+    const bx=cx+ch.ox, by=bot+ch.oy;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.2)';
+    ctx.beginPath();ctx.ellipse(bx+2,by+3,ch.rx*0.8,ch.ry*0.4,ch.rot,0,Math.PI*2);ctx.fill();
+    // Main block
+    ctx.fillStyle=ch.c1;
+    ctx.beginPath();ctx.ellipse(bx,by,ch.rx,ch.ry,ch.rot,0,Math.PI*2);ctx.fill();
+    // Highlight face
+    ctx.fillStyle=ch.c2;
+    ctx.beginPath();ctx.ellipse(bx-ch.rx*0.3,by-ch.ry*0.3,ch.rx*0.55,ch.ry*0.5,ch.rot,0,Math.PI*2);ctx.fill();
+    // Crack line
+    ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(bx-3,by-2);ctx.lineTo(bx+4,by+3);ctx.stroke();
+  }
+
+  // ── SMALL RUBBLE scattered around ──
+  ctx.fillStyle='#a09888';
+  const rubble=[[-14,-14],[12,-6],[4,-24],[-6,-20],[14,-16]];
+  for(const[rx,ry]of rubble){
+    ctx.beginPath();ctx.ellipse(cx+rx,bot+ry,3+v2*2,2+v2*1.5,v2*2,0,Math.PI*2);ctx.fill();
+  }
 }
 function drawRock(wx,wy,v){ drawRockOnCtx(X,wx,wy,v); }
 
