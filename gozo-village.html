@@ -591,10 +591,19 @@ const T={GRASS:0,PATH:1,WATER:2,DIRT:3,STONE_G:4,SAND:5,FOREST:6,FIELD:7,MARKET_
 // ── BUILDING DEFS ──
 // Buildings that support assigned workers (type -> max workers)
 const BLD_WORKERS={
+  // Production
   farm:2, logger:2, quarry:2, coalmine:2, ironmine:2, smelter:2,
-  market:1, blacksmith:2, hunting:2, sawmill:1, mill:1,
-  granary:2, storehouse:2, forest_hut:2, corral:1, stable:1,
+  ironworks:2, bakery:2, malthouse:2, sawmill:1, mill:2,
+  sheep_farm:2, weaver_wk:2, orchard:1,
+  // Market & trade
+  market:1, blacksmith:2, hunting:2, tradingpost:1,
   food_stall:1, fuel_stall:1, clothing_stall:1,
+  // Storage
+  granary:2, storehouse:2,
+  // Forestry & livestock
+  forest_hut:2, corral:1, stable:1,
+  // Civic — 1 worker each improves efficiency
+  well:1, church:1, school:1, hospital:1, tavern:1,
 };
 
 // ── MARKET SYSTEM ──
@@ -861,7 +870,10 @@ const BD={
               cost:{wood:20,stone:10}, ml:3, pr:{coal:2}, cat:'work',
               lvDesc:{1:'Surface mining. Uses coal deposits.',2:'Deep shafts. +4 coal/day.',3:'⚒ Deep Mining — UNLIMITED coal!'},
               upCostOverride:{3:{metal:15,stone:25,gold:20}}},
-  smelter:   {n:'Smelter',   e:'🔥',d:'Makes metal.',  cost:{wood:30,stone:25,coal:5},ml:2,pr:{metal:1},cat:'work'},
+  smelter:   {n:'Smelter', e:'🔥',d:'Smelts Iron + Coal → Metal. Needs workers.',
+              cost:{wood:30,stone:25,coal:5},ml:2,
+              chain:{input:{iron:1,coal:1},output:{metal:1},workers:2},
+              cat:'work'},
   well:      {n:'Well',      e:'💧',d:'+health.',       cost:{wood:8,stone:10},  ml:2,         cat:'civic'},
   church:    {n:'Church',    e:'⛪',d:'+happiness.',    cost:{wood:40,stone:30}, ml:2,         cat:'civic'},
   market:    {n:'Market',    e:'🏪',d:'+2 gold/day.',  cost:{wood:30,gold:20},  ml:3,pr:{gold:2},cat:'civic'},
@@ -4061,8 +4073,24 @@ function tick(){
           } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Iron Mine: no iron deposit nearby!','warn');}
         }
       } else if(b.type==='quarry'){
-        // Stone every 4 hrs per worker (slower since unlimited)
         if(G.hr%4===0) addR('stone',workers);
+      } else if(b.type==='smelter'){
+        // Smelter: every 2 hrs, consume iron+coal → metal (per worker)
+        if(G.hr%2===0){
+          const ironHave=G.res.iron||0, coalHave=G.res.coal||0;
+          const canSmelt=Math.min(workers, ironHave, coalHave);
+          if(canSmelt>0){
+            G.res.iron=Math.max(0,ironHave-canSmelt);
+            G.res.coal=Math.max(0,coalHave-canSmelt);
+            addR('metal',canSmelt*b.lv);
+            spawnParticles(b.col*TS+TS/2,b.row*TS,'fire',4);
+          } else if(!b._noOreWarn){
+            b._noOreWarn=true;
+            if(ironHave<1) notify('🔥 Smelter needs Iron Ore!','warn');
+            else if(coalHave<1) notify('🔥 Smelter needs Coal!','warn');
+          }
+          if(canSmelt>0) b._noOreWarn=false;
+        }
       }
     }
     updateUI();
@@ -4399,7 +4427,7 @@ function doProd(){
     }
     for(const[res,amt]of Object.entries(d.pr)){
       // Mine production handled hourly in tick() — skip here to avoid double-counting
-      if(b.type==='coalmine'||b.type==='ironmine'||b.type==='quarry') continue;
+      if(b.type==='coalmine'||b.type==='ironmine'||b.type==='quarry'||b.type==='smelter') continue;
       let fa=amt*b.lv*mul*wMul;
       if(res==='food')fa*=wm;if(res==='wood')fa*=saw;
       addR(res,Math.round(fa));
@@ -6099,10 +6127,12 @@ function renderBldWorker(bldId, maxW){
           // Assign job based on building type
           const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
             coalmine:'miner',ironmine:'miner',smelter:'smelter',market:'trader',
+            ironworks:'smelter',bakery:'farmer',malthouse:'farmer',
+            mill:'farmer',sheep_farm:'farmer',weaver_wk:'builder',orchard:'farmer',
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
-            mill:'farmer',sheep_farm:'farmer',weaver_wk:'builder',
             granary:'farmer',storehouse:'builder',forest_hut:'planter',
-            food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor'};
+            food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
+            well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
