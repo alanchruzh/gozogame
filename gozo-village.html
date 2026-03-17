@@ -995,7 +995,7 @@ let NPCS=[];
 
 // ── NAME POOLS — large unique pools ──
 const MALE_NAMES=['Arthur','Edmund','William','Thomas','Henry','George','Robert','James','Edward','Richard','John','Walter','Alfred','Harold','Roger','Ralph','Hugh','Simon','Gilbert','Geoffrey','Nicholas','Philip','Stephen','Lawrence','Bernard','Frederick','Leonard','Vincent','Duncan','Owen'];
-const FEM_NAMES=['Alice','Emma','Eleanor','Margaret','Catherine','Anne','Elizabeth','Mary','Agnes','Joan','Isabel','Grace','Maud','Edith','Matilda','Beatrice','Cecily','Constance','Dorothy','Elaine','Florence','Gertrude','Hannah','Irene','Judith','Katherine','Laura','Miriam','Nora','Philippa'];
+const FEM_NAMES=['Alice','Emma','Rosalind','Margaret','Catherine','Anne','Elizabeth','Mary','Agnes','Joan','Isabel','Grace','Maud','Edith','Matilda','Beatrice','Cecily','Constance','Dorothy','Elaine','Florence','Gertrude','Hannah','Irene','Judith','Katherine','Laura','Miriam','Nora','Philippa'];
 const BABY_NAMES=['Robin','Lily','Tom','Rose','Jack','Clara','Will','Ada','Sam','Nell','Harry','Flora','Pip','Ivy','Ash','Belle','Cole','Dawn','Eli','Fern','Guy','Hope','Ian','June','Kit','Lark','Max','Nell','Odo','Pearl'];
 
 function uniqueName(female){
@@ -5795,12 +5795,7 @@ function render(){
         const depleted=bs?.depleted||false;
         const v2=hh(c2,r2);
         drawBerryBushOnCtx(X,wx,ry,v2,depleted);
-        // Regrow timer visual
-        if(depleted&&bs?.regrowTick>0){
-          const pct=1-(bs.regrowTick/12);
-          X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(wx+4,ry+4,TS-8,5);
-          X.fillStyle='#40a020';X.fillRect(wx+4,ry+4,Math.round((TS-8)*pct),5);
-        }
+
         // [E] hint when player nearby
         const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
         if(!depleted&&pdist<TS*1.8){
@@ -6288,15 +6283,31 @@ function renderBldWorker(bldId, maxW){
       const blank=document.createElement('option');blank.value='';blank.textContent='Select worker...';sel.appendChild(blank);
       for(const n of NPCS){
         if(!isAdult(n)) continue;
-        if(Object.values(G.bldWorkers).flat().includes(n.name)) continue; // already assigned elsewhere
         if(isHomeBusiness(n.houseId)) continue; // locked to home business
+        // Find if already assigned to another building
+        const prevBldId=Object.entries(G.bldWorkers).find(([bid,workers])=>
+          +bid!==bldId && workers && workers.includes(n.name)
+        )?.[0];
         const opt=document.createElement('option');
         opt.value=n.name;
-        opt.textContent=n.name+' ('+Math.floor(n.age/90)+'th)';
+        if(prevBldId){
+          const prevBld=G.bld.find(b=>b.id===+prevBldId);
+          const prevBldName=BD[prevBld?.type]?.n||'building';
+          opt.textContent=n.name+' ('+Math.floor(n.age/90)+'th) — reassign from '+prevBldName;
+          opt.style.color='#c09040';
+        } else {
+          opt.textContent=n.name+' ('+Math.floor(n.age/90)+'th)';
+        }
         sel.appendChild(opt);
       }
       sel.onchange=()=>{
         if(!sel.value) return;
+        // Auto-unassign from previous building if any
+        for(const[bid,workers] of Object.entries(G.bldWorkers)){
+          if(+bid!==bldId && workers){
+            G.bldWorkers[bid]=workers.filter(w=>w!==sel.value);
+          }
+        }
         G.bldWorkers[bldId]=G.bldWorkers[bldId].filter(n=>n);
         G.bldWorkers[bldId][i]=sel.value;
         // Auto-assign hunter job
@@ -6372,9 +6383,9 @@ function renderByPanel(){
     const costStr=Object.entries(upCost).map(([k,v])=>resIcons[k]+v).join(' ');
     const lvdesc=BD.house.lvDesc?.[nextLv]||'';
     upRow.innerHTML='<div style="font-size:10px;color:#c0a840;margin-bottom:4px">'+lvdesc+'</div>'
-      +'<div style="font-size:11px;color:#e0c060;font-weight:bold">Syarat Upgrade ke Lv.'+nextLv+':</div>'
+      +'<div style="font-size:11px;color:#e0c060;font-weight:bold">Upgrade Requirements to Lv.'+nextLv+':</div>'
       +'<div style="font-size:11px;color:#a09060;margin-top:4px">'+checks.join('  ')+'</div>'
-      +'<div style="font-size:11px;color:#8090a0;margin-top:3px">Biaya: '+costStr+'</div>'
+      +'<div style="font-size:11px;color:#8090a0;margin-top:3px">Cost: '+costStr+'</div>'
       +'<button onclick="tryUpgradeHouse('+bld.id+')" style="margin-top:6px;padding:3px 8px;background:#100a04;border:1px solid #3a2a10;color:#a08050;font-size:10px;cursor:pointer">⬆ Upgrade</button>';
   } else if(bld.lv>=(BD.house.ml||3)){
     upRow.innerHTML='<div style="font-size:11px;color:#60c060">✅ House is at max level!</div>';
@@ -6402,8 +6413,8 @@ function renderByPanel(){
       +'<span style="font-size:22px">'+by.e+'</span>'
       +'<div><div style="font-size:12px;color:#f0d060;font-weight:bold">'+by.n+'</div>'
       +'<div style="font-size:11px;color:#80b060">Production: '+prod+'/day</div>'
-      +'<div style="font-size:10px;color:#808060">Siklus: '+pct+'% ('+nextIn+')</div>'
-      +'<div style="font-size:10px;color:#606050">Total diproduction: '+totalProd+' kali</div>'
+      +'<div style="font-size:10px;color:#808060">Cycle: '+pct+'% ('+nextIn+')</div>'
+      +'<div style="font-size:10px;color:#606050">Total produced: '+totalProd+' times</div>'
       +'<div class="byprog" style="margin-top:3px;width:140px"><div class="byprog-bar" style="width:'+pct+'%"></div></div>'
       +'</div><button onclick="removeByard()" style="margin-left:8px;padding:3px 7px;background:#200808;border:1px solid #802020;color:#c04040;font-size:10px;cursor:pointer">🗑 Demolish</button></div>';
   } else {
@@ -6454,7 +6465,7 @@ function renderByPanel(){
       row.innerHTML='<div class="byicon">'+by.e+'</div>'
         +'<div class="byinfo"><div class="byname">'+by.n+'</div>'
         +'<div class="bydesc" style="font-size:10px">'+by.desc+'</div>'
-        +'<div class="bycost" style="font-size:9px">Biaya: '+cost+' | Hasil: '+prod2+'/day</div></div>'
+        +'<div class="bycost" style="font-size:9px">Cost: '+cost+' | Output: '+prod2+'/day</div></div>'
         +'<div style="flex-shrink:0;min-width:80px;text-align:right">'+btn+'</div>';
       list.appendChild(row);
     }
@@ -7392,7 +7403,7 @@ function openMarketZoneDlg(c,r){
 
   const btns=[];
   if(zone.stalls.length===0){
-    btns.push({l:'⏳ Belum ada pedagang — assign job Trader!',cls:'',fn:()=>{}});
+    btns.push({l:'⏳ No trader assigned — assign job Trader!',cls:'',fn:()=>{}});
   }
   for(const s of zone.stalls){
     const tag=s._isVillager?'👤 Villager':'🧑 Traveler';
