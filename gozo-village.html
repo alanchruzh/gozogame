@@ -4831,21 +4831,31 @@ function wanderNPCs(){
                 if(!MAP[npc._targetTreeR]||!MAP[npc._targetTreeR][npc._targetTreeC]||
                    MAP[npc._targetTreeR][npc._targetTreeC].decor!=='tree'){
                   npc._logState='find_tree'; npc._dx=0; npc._dy=0;
-                } else if(dist<TS*0.9){
-                  // Arrived — start chopping
+                } else if(dist<TS*1.5){
+                  // Close enough — start chopping
                   npc._dx=0; npc._dy=0;
                   npc._logState='chopping';
                   npc._chopTimer=0;
                   npc._chopHits=0;
-                  // Face the tree
                   if(Math.abs(dx)>Math.abs(dy)) npc.dir=dx>0?1:3;
                   else npc.dir=dy>0?2:0;
                 } else {
-                  // Keep walking
                   const spd=0.9*G.spd;
                   npc._dx=(dx/dist)*spd; npc._dy=(dy/dist)*spd;
                   if(Math.abs(dx)>Math.abs(dy)) npc.dir=dx>0?1:3;
                   else npc.dir=dy>0?2:0;
+                  // Stuck detection — if not moving for 60 frames, find new tree
+                  npc._stuckCheck=(npc._stuckCheck||0)+1;
+                  const prevX=npc._prevX||npc.x, prevY=npc._prevY||npc.y;
+                  if(npc._stuckCheck>=60){
+                    npc._stuckCheck=0;
+                    if(Math.hypot(npc.x-prevX,npc.y-prevY)<2){
+                      // Really stuck — find new tree or expand zone
+                      npc._logZoneEmpty=true;
+                      npc._logState='find_tree';
+                    }
+                    npc._prevX=npc.x; npc._prevY=npc.y;
+                  }
                 }
 
               } else if(logState==='chopping'){
@@ -4986,9 +4996,15 @@ function wanderNPCs(){
         const t3ok=t3&&t3.t!==T.WATER&&bldOk(t3)&&(canEnterForest||(t3.t!==T.FOREST&&!(t3.decor==='tree')));
         if(t3ok)npc.y+=npc._dy;
         if(!t2ok&&!t3ok){
-          // Stuck — teleport slightly outside home tile to unstick
-          const hb=G.bld.find(b=>b.id===npc.houseId);
-          if(hb){npc.x=hb.col*TS+TS/2;npc.y=(hb.row+1)*TS+TS/2;}
+          if(npc.job==='logger'||npc.job==='hunter'){
+            // Jitter slightly to get unstuck from tree collision
+            npc.x+=((Math.random()-0.5)*4);
+            npc.y+=((Math.random()-0.5)*4);
+          } else {
+            // Teleport slightly outside home tile to unstick
+            const hb=G.bld.find(b=>b.id===npc.houseId);
+            if(hb){npc.x=hb.col*TS+TS/2;npc.y=(hb.row+1)*TS+TS/2;}
+          }
           npc._dx=0;npc._dy=0;
         }
       }
