@@ -275,8 +275,10 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Wood — gather from forests or Logger">🪵<b id="rw">0</b></div>
     <div class="res" title="Stone — mine from Quarry">🪨<b id="rs">0</b></div>
     <div class="res" title="Coal — mine from Coal Mine">⚫<b id="rc">0</b></div>
+    <div class="res" title="Iron Ore — mine from Iron Mine">🪙<b id="ri">0</b></div>
     <div class="res" title="Metal — smelt iron at Smelter">⚙<b id="rm">0</b></div>
-    <div class="res" title="Food — grow at Farm or gather berries" style="margin-left:6px">🌾<b id="rf">0</b></div>
+    <div class="res" title="Food — grow at Farm" style="margin-left:6px">🌾<b id="rf">0</b></div>
+    <div class="res" title="Berries — gather from bushes, counts as food">🍇<b id="rberry">0</b></div>
     <div class="res" title="Meat — hunters bring from deer">🥩<b id="rmt">0</b></div>
     <div class="res" title="Gold — tax income from houses" style="margin-left:6px">💰<b id="rg">0</b></div>
     <div class="res" title="Village Health — improved by Hospital & Well" style="margin-left:6px">❤️<b id="rhlt">70</b></div>
@@ -286,7 +288,6 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Leather — tannery production">🧴<b id="rlth">0</b></div>
     <div class="res" title="Eggs — from chicken backyard">🥚<b id="regg">0</b></div>
     <div class="res" title="Honey — from apiary backyard">🍯<b id="rhny">0</b></div>
-    <div class="res" title="Berries — gather from wild bushes [E]">🍇<b id="rberry">0</b></div>
     <div class="res" title="Wool — from sheep pen or sheep farm">🐑<b id="rwool">0</b></div>
     <div class="res" title="Milk — from cow shed backyard">🥛<b id="rmilk">0</b></div>
     <div class="res" title="Fish — caught by Fishers at lakes">🐟<b id="rfish">0</b></div>
@@ -3817,7 +3818,7 @@ function updateUI(){
   const _rw_el=document.getElementById('rw');if(_rw_el){_rw_el.textContent=G.res.wood||0;_rw_el.style.color=(G.res.wood||0)<5?'#ff6060':'#c0b080';}
   document.getElementById('rs').textContent=G.res.stone||0;
   document.getElementById('rc').textContent=G.res.coal||0;
-  const _ri=document.getElementById('ri');if(_ri)_ri.textContent=G.res.iron||0;
+  const _ri=document.getElementById('ri');if(_ri){_ri.textContent=G.res.iron||0;_ri.style.color=(G.res.iron||0)>0?'#d08040':'#c0b080';}
   const _rm=document.getElementById('rm');if(_rm)_rm.textContent=G.res.metal||0;
   const _rf_el=document.getElementById('rf');if(_rf_el){_rf_el.textContent=G.res.food;_rf_el.style.color=G.res.food<5?'#ff6060':G.res.food<15?'#ffaa00':'#c0b080';}
   const _rmt=document.getElementById('rmt');if(_rmt)_rmt.textContent=G.res.meat||0;
@@ -3849,7 +3850,7 @@ function updateUI(){
   const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
   const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
   const _rfish=document.getElementById('rfish');if(_rfish)_rfish.textContent=G.res.fish||0;
-  const _rberry2=document.getElementById('rberry');if(_rberry2)_rberry2.textContent=G.res.berry||0;
+  const _rberry2=document.getElementById('rberry');if(_rberry2){_rberry2.textContent=G.res.berry||0;_rberry2.style.color=(G.res.berry||0)>0?'#a040c0':'#c0b080';}
   // Health & hospital
   const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
   // Regional Wealth & Treasury HUD
@@ -4134,13 +4135,17 @@ function doProd(){
   // Campfire/homeless settlers also need food (0.3 per person per tick)
   const homelessNPCs=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'));
   foodNeed+=Math.ceil(homelessNPCs.length*0.3);
-  // Fish also counts as food — use fish first if food is low
-  const totalFood=(G.res.food||0)+(G.res.fish||0);
+  // Fish + berry also count as food — use in order: berry, fish, then food
+  const totalFood=(G.res.food||0)+(G.res.fish||0)+(G.res.berry||0);
   if(totalFood>=foodNeed){
-    // Consume fish first, then food
-    const fishUse=Math.min(G.res.fish||0,foodNeed);
+    // Consume berry first, then fish, then food
+    const berryUse=Math.min(G.res.berry||0, foodNeed);
+    G.res.berry=Math.max(0,(G.res.berry||0)-berryUse);
+    const remaining1=foodNeed-berryUse;
+    const fishUse=Math.min(G.res.fish||0, remaining1);
     G.res.fish=Math.max(0,(G.res.fish||0)-fishUse);
-    G.res.food=Math.max(0,(G.res.food||0)-(foodNeed-fishUse));
+    const remaining2=remaining1-fishUse;
+    G.res.food=Math.max(0,(G.res.food||0)-remaining2);
   } else {G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
   if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal-=coalNeed;else G.happy=Math.max(10,G.happy-3);}
   if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth-=clothNeed;else{G.happy=Math.max(10,G.happy-3);notify('👘 Need clothing!','warn');}}
@@ -5492,12 +5497,15 @@ function render(){
         const field=G.fields.find(f=>f.col===c2&&f.row===r2);
         if(field&&field.growStage>0&&field.growStage<4)drawCrop(field,wx,ry);
       }
-      // Backyard behind house
-      if(r2+2<WR){
-        const belowTile=MAP[r2+2][c2];
-        if(belowTile.bld?.type==='house'&&!tile.bld){
-          const gbld=G.bld.find(b=>b.id===belowTile.bld.id);
-          if(gbld?.backyard){const by=BYARD[gbld.backyard.type];if(by)drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,by.prodTime||1);}
+      // Backyard — draw on tile directly above house (behind it visually)
+      if(r2+1<WR){
+        const houseTile=MAP[r2+1][c2];
+        if(houseTile?.bld?.type==='house'&&!tile.bld){
+          const gbld=G.bld.find(b=>b.id===houseTile.bld.id);
+          if(gbld?.backyard){
+            const byDef=BYARD[gbld.backyard.type];
+            if(byDef) drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,byDef.prodTime||1);
+          }
         }
       }
       if(tile.bld){
@@ -7750,12 +7758,10 @@ async function loadAutosave(){
     const parsed=JSON.parse(raw);
     if(parsed._gozo===true){
       const payload=decodeURIComponent(escape(atob(parsed.d)));
-      const valid=await verifyData(payload,parsed.sig);
-      if(!valid){
-        notify('⚠ Autosave corrupted/tampered — discarded.','err');
-        localStorage.removeItem(AUTOSAVE_KEY);
-        return false;
-      }
+      try{
+        const valid=await verifyData(payload,parsed.sig);
+        if(!valid) notify('⚠ Autosave signature mismatch — loading anyway.','warn');
+      } catch(e){ /* ignore sig error */ }
       applySaveState(JSON.parse(payload));
     } else {
       applySaveState(parsed); // legacy
@@ -7836,11 +7842,11 @@ function titleLoadGame(event){
 
       if(parsed._gozo===true){
         const payload=decodeURIComponent(escape(atob(parsed.d)));
-        const valid=await verifyData(payload,parsed.sig);
-        if(!valid){
-          notify('❌ Save file signature mismatch — may be corrupted.','err');
-          return;
-        }
+        // Verify signature — warn but still allow load
+        try{
+          const valid=await verifyData(payload,parsed.sig);
+          if(!valid) notify('⚠ Save signature mismatch — loading anyway.','warn');
+        } catch(sigErr){ notify('⚠ Could not verify signature — loading anyway.','warn'); }
         applySaveState(JSON.parse(payload));
       } else if(parsed.version){
         applySaveState(parsed);
