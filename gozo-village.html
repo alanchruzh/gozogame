@@ -507,6 +507,22 @@ const CV=document.getElementById('c'),X=CV.getContext('2d');
 const MMCV=document.getElementById('mmc'); // minimap canvas
 X.imageSmoothingEnabled=false;
 
+// ── SAFETY PATCH: prevent negative radius errors in arc/ellipse ──
+(function(){
+  const proto=CanvasRenderingContext2D.prototype;
+  const _arc=proto.arc;
+  const _ellipse=proto.ellipse;
+  proto.arc=function(x,y,r,sa,ea,cc){
+    if(!isFinite(r)||r<0) r=0.001;
+    return _arc.call(this,x,y,r,sa,ea,cc);
+  };
+  proto.ellipse=function(x,y,rx,ry,rot,sa,ea,cc){
+    if(!isFinite(rx)||rx<0) rx=0.001;
+    if(!isFinite(ry)||ry<0) ry=0.001;
+    return _ellipse.call(this,x,y,rx,ry,rot,sa,ea,cc);
+  };
+})();
+
 // World constants
 const TS=64;          // tile size px
 const WC=48,WR=36;    // world cols, rows
@@ -2230,7 +2246,7 @@ function bSmelter(cx,bot,lv){
   for(let i=0;i<3;i++){
     const ht=(Date.now()/300+i*0.7)%1;
     X.fillStyle=`rgba(255,200,50,${0.6*(1-ht)})`;
-    X.beginPath();X.arc(cx-6+i*6,bot-H+4-ht*20,2.5-ht*2,0,Math.PI*2);X.fill();
+    X.beginPath();X.arc(cx-6+i*6,bot-H+4-ht*20,Math.max(0.1,2.5-ht*2),0,Math.PI*2);X.fill();
   }
   THATCH_ROOF(cx,bot-H,W,20,'#6a3808','#4a2806');
 }
@@ -2878,8 +2894,10 @@ function drawNPC(npc){
           X.beginPath();X.ellipse(px+16+Math.cos(ang)*dist2,py-6+bob+Math.sin(ang)*dist2*0.5,3,2,ang,0,Math.PI*2);X.fill();
         }
         // Thud effect
-        X.strokeStyle='rgba(150,100,20,0.4)';X.lineWidth=2;
-        X.beginPath();X.arc(px+16,py-4+bob,10*(phase-0.6)*3,0,Math.PI*2);X.stroke();
+        if(phase>0.6){
+          X.strokeStyle='rgba(150,100,20,0.4)';X.lineWidth=2;
+          X.beginPath();X.arc(px+16,py-4+bob,Math.max(0.1,10*(phase-0.6)*3),0,Math.PI*2);X.stroke();
+        }
       }
 
     } else if(job==='fisher'){
@@ -2898,7 +2916,7 @@ function drawNPC(npc){
       // ripple rings on water
       const rScale=(t*2)%1;
       X.strokeStyle=`rgba(100,180,255,${0.5-rScale*0.5})`;X.lineWidth=1;
-      X.beginPath();X.ellipse(lineEnd.x,lineEnd.y+1,8*rScale,3*rScale,0,0,Math.PI*2);X.stroke();
+      X.beginPath();X.ellipse(lineEnd.x,lineEnd.y+1,Math.max(0.1,8*rScale),Math.max(0.1,3*rScale),0,0,Math.PI*2);X.stroke();
 
     } else if(job==='miner'){
       // Pickaxe: heavy overhead swing
@@ -3864,7 +3882,12 @@ function swBPTab(cat, el){
   if(!scroll)return;
   scroll.innerHTML='';
   // Map tab names to BD categories
-  const catMap={house:['house','storage','granary','storehouse'],food:['farm','orchard','mill','granary','malthouse','bakery'],work:['logger','quarry','coalmine','ironmine','smelter','sawmill','ironworks','blacksmith','hunting'],civic:['campfire','well','church','market','tradingpost','food_stall','fuel_stall','clothing_stall']};
+  const catMap={
+    house:['house','storage','granary','storehouse'],
+    food:['farm','orchard','mill','granary','malthouse','bakery','sheep_farm','weaver_wk'],
+    work:['logger','quarry','coalmine','ironmine','smelter','sawmill','ironworks','blacksmith','hunting','forest_hut','corral'],
+    civic:['campfire','well','church','market','tradingpost','tavern','school','hospital','stable','food_stall','fuel_stall','clothing_stall'],
+  };
   const items=catMap[cat]||[];
   for(const key of items){
     const d=BD[key];if(!d)continue;
@@ -4882,7 +4905,7 @@ function render(){
   if(G_activeDisaster?.id==='fire'){
     for(const b of G.bld){
       if(!b.on_fire)continue;
-      const bx=b.col*TS+camX, by=b.row*TS+camY+HH;
+      const bx=b.col*TS+camX, by=b.row*TS+camY;
       const ft=Date.now()/200;
       for(let fi=0;fi<5;fi++){
         const fx=bx+TS/2+Math.sin(ft+fi*1.3)*12;
@@ -5453,7 +5476,10 @@ const keys=new Set();
 window.addEventListener('keydown',e=>{
   keys.add(e.key.toLowerCase());
   if(e.ctrlKey&&e.key.toLowerCase()==='s'){e.preventDefault();saveGameToFile();return;}
-  if(e.key.toLowerCase()==='b'){G.mode=G.mode==='build'?'walk':'build';buildType=null;updateModeUI();}
+  if(e.key.toLowerCase()==='b'&&_gameStarted){
+    if(G.mode==='build'){G.mode='walk';buildType=null;updateModeUI();document.getElementById('buildpanel')?.classList.remove('show');}
+    else{toggleBuildPanel();}
+  }
   if(e.key.toLowerCase()==='r'&&G.mode==='build'&&buildType){
     buildRotation=(buildRotation+1)%4;
     const dirs=['Front','Right','Back','Left'];
@@ -7258,7 +7284,7 @@ function drawSeasonParticles(){
     for(let i=0;i<12;i++){
       const sx=(Math.sin(t*0.3+i*2.1)*0.5+0.5)*CV.width;
       const sy=((t*18+i*47)%CV.height);
-      const sz=1+Math.sin(t+i)*0.5;
+      const sz=Math.max(0.1, 1+Math.sin(t+i)*0.5);
       X.fillStyle='rgba(220,235,255,0.7)';
       X.beginPath();X.arc(sx,sy,sz,0,Math.PI*2);X.fill();
     }
@@ -7322,7 +7348,7 @@ function drawFog(){
     for(let c=sc;c<ec;c++){
       if(!FOG[r]||FOG[r][c]===undefined) continue;
       if(FOG[r][c]===2) continue; // fully visible
-      const wx=c*TS+camX, wy=r*TS+camY+HH;
+      const wx=c*TS+camX, wy=r*TS+camY;
       if(FOG[r][c]===1){
         // Explored but not visible — grey shroud
         X.fillStyle='rgba(0,0,0,0.55)';
@@ -7376,7 +7402,7 @@ function showLandmarkDiscovery(lm){
 
 function drawLandmarks(){
   for(const lm of LANDMARKS){
-    const wx=lm.col*TS+camX, wy=lm.row*TS+camY+HH;
+    const wx=lm.col*TS+camX, wy=lm.row*TS+camY;
     // Don't draw in fog
     if(FOG_ENABLED&&FOG.length&&FOG[lm.row]&&FOG[lm.row][lm.col]===0) continue;
     if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
@@ -7898,17 +7924,19 @@ function updateParticles(){
 function drawParticles(){
   if(!_particles.length) return;
   for(const p of _particles){
-    const px=p.x+camX, py=p.y+camY+HH;
+    const px=p.x+camX, py=p.y+camY;
     if(px<-20||px>CV.width+20||py<-20||py>CV.height+20) continue;
     const alpha=p.life/p.maxLife;
-    X.globalAlpha=alpha;
+    if(alpha<=0.01) continue; // skip nearly invisible particles
     X.fillStyle=p.color;
     if(p.type==='wool'){
-      X.beginPath();X.ellipse(px,py,p.size,p.size*0.7,Math.random(),0,Math.PI*2);X.fill();
+      const r=Math.max(0.1,p.size*alpha);
+      X.beginPath();X.ellipse(px,py,r,r*0.7,Math.random(),0,Math.PI*2);X.fill();
     } else if(p.type==='fire'){
-      X.beginPath();X.moveTo(px,py-p.size);X.quadraticCurveTo(px+p.size*0.5,py,px,py+p.size*0.5);X.quadraticCurveTo(px-p.size*0.5,py,px,py-p.size);X.fill();
+      const sz=Math.max(0.1,p.size);
+      X.beginPath();X.moveTo(px,py-sz);X.quadraticCurveTo(px+sz*0.5,py,px,py+sz*0.5);X.quadraticCurveTo(px-sz*0.5,py,px,py-sz);X.fill();
     } else {
-      X.beginPath();X.arc(px,py,p.size*alpha,0,Math.PI*2);X.fill();
+      X.beginPath();X.arc(px,py,Math.max(0.1,p.size*alpha),0,Math.PI*2);X.fill();
     }
   }
   X.globalAlpha=1;
@@ -7953,7 +7981,7 @@ function drawStars(){
     const sy=rng2()*(CV.height*0.5);
     const twinkle=0.5+Math.sin(Date.now()/1000+i*1.3)*0.5;
     X.fillStyle=`rgba(255,255,240,${twinkle})`;
-    X.beginPath();X.arc(sx,sy+HH,0.8+rng2()*1.2,0,Math.PI*2);X.fill();
+    X.beginPath();X.arc(sx,sy,0.8+rng2()*1.2,0,Math.PI*2);X.fill();
   }
   X.globalAlpha=1;
 }
@@ -8056,7 +8084,7 @@ function drawSaplings(){
   // Draw live sapling visuals on top of world canvas
   for(const[key,sap] of Object.entries(SAPLINGS)){
     const[c,r]=key.split(',').map(Number);
-    const wx=c*TS+camX, wy=r*TS+camY+HH;
+    const wx=c*TS+camX, wy=r*TS+camY;
     if(wx<-TS||wx>CV.width+TS||wy<-TS||wy>CV.height+TS) continue;
     // Don't draw if in fog
     if(FOG_ENABLED&&FOG[r]&&FOG[r][c]===0) continue;
