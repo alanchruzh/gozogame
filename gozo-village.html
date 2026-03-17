@@ -2267,6 +2267,150 @@ function bHouseLv3(cx,bot){
   X.beginPath();X.arc(tx+tW/2,twy+19,6,0,Math.PI*2);X.fill();
 }
 
+function bFarm(cx,bot,lv){
+  const W=72+lv*6,H=44+lv*4,wy=bot-H-8;
+  // Barn base
+  FR(cx-W/2,wy,W,H,'#c87830');
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.15)');
+  FR(cx+W/2-4,wy,4,H,'rgba(0,0,0,0.1)');
+  // Horizontal wood planks
+  X.fillStyle='rgba(0,0,0,0.08)';
+  for(let i=8;i<H;i+=8) X.fillRect(cx-W/2+1,wy+i,W-2,1);
+  // Vertical posts
+  FR(cx-W/2,wy,5,H,'#a06020'); FR(cx+W/2-5,wy,5,H,'#a06020');
+  if(lv>=2) FR(cx-3,wy,6,H,'#a06020');
+  // Door (large barn door)
+  const dw=lv>=2?28:20, dh=H-4, dx=cx-dw/2, dy=wy+4;
+  FR(dx-2,dy-2,dw+4,dh+2,'#7a4810');
+  FR(dx,dy,dw/2-1,dh,'#8a5020'); FR(dx+dw/2+1,dy,dw/2-1,dh,'#804818');
+  LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.2)',1.5);
+  FR(dx+3,dy+4,dw/2-6,dh*0.4,'rgba(0,0,0,0.1)');
+  // Windows lv2+
+  if(lv>=2){
+    for(let s=-1;s<=1;s+=2){
+      const wx=cx+s*(W/2-16),wy1=wy+8;
+      FR(wx-1,wy1-1,12,10,'#c08840'); FR(wx,wy1,11,9,'#2a3a18');
+      FR(wx+1,wy1+1,9,7,'#4a6830'); FR(wx+1,wy1+1,4,3,'rgba(255,255,255,0.3)');
+    }
+  }
+  // Roof — barn style (gambrel)
+  const rW=W+12, rH=22+lv*3;
+  X.fillStyle='#6a3808';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx-rW/4,wy-rH*0.55);X.closePath();X.fill();
+  X.fillStyle='#7a4010';
+  X.beginPath();X.moveTo(cx-rW/4,wy-rH*0.55);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+  X.fillStyle='#5a2808';
+  X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx+rW/4-2,wy-rH*0.55);X.closePath();X.fill();
+  // Hay bales outside
+  for(let i=0;i<lv;i++){FR(cx-W/2-14+i*2,bot-14,12,14,'#d4a820');FR(cx-W/2-14+i*2,bot-14,12,3,'#c09010');}
+}
+
+function bOrchard(cx,bot,lv){
+  const W=64,H=36,wy=bot-H-6;
+  FR(cx-W/2,wy,W,H,'#d4b870');
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.12)');
+  // Fence posts
+  for(let i=0;i<=4;i++) FR(cx-W/2+i*(W/4),wy+2,4,H-2,'#a07030');
+  // Fruit trees in orchard
+  const treePos=lv>=2?[-24,-8,8,24]:[-18,0,18];
+  for(const tx of treePos){
+    const ty=wy+H-28;
+    FR(cx+tx-2,ty+12,4,14,'#7a4820');
+    X.fillStyle='#1a6010';X.beginPath();X.arc(cx+tx,ty,12,0,Math.PI*2);X.fill();
+    X.fillStyle='#256818';X.beginPath();X.arc(cx+tx-3,ty-3,9,0,Math.PI*2);X.fill();
+    // Fruit
+    X.fillStyle='#e03820';
+    for(let fi=0;fi<3;fi++) X.beginPath(),X.arc(cx+tx-6+fi*6,ty+4,3,0,Math.PI*2),X.fill();
+  }
+  FR(cx-3,wy,6,H,'rgba(0,0,0,0.08)');
+}
+
+function bLogger(cx,bot,lv){
+  const W=68+lv*4,H=46+lv*3,wy=bot-H-6;
+  // Log cabin walls
+  FR(cx-W/2,wy,W,H,'#8a5020');
+  // Log layers
+  X.fillStyle='#7a4018';
+  for(let i=0;i<H;i+=7) X.fillRect(cx-W/2,wy+i,W,1);
+  X.fillStyle='rgba(255,255,255,0.06)';
+  for(let i=0;i<H;i+=7) X.fillRect(cx-W/2,wy+i+1,W,2);
+  // Corner notches
+  FR(cx-W/2,wy,8,H,'#6a3810'); FR(cx+W/2-8,wy,8,H,'#6a3810');
+  // Window
+  const wx=cx-12,wy1=wy+10;
+  FR(wx-2,wy1-2,22,16,'#c09050'); FR(wx,wy1,20,14,'#1a2818');
+  FR(wx+1,wy1+1,18,12,'#2a4828'); FR(wx+1,wy1+1,8,4,'rgba(255,255,255,0.25)');
+  // Door
+  FR(cx-9,wy+H-26,18,26,'#6a3808'); FR(cx-9,wy+H-26,18,4,'#5a2808');
+  FR(cx-7,wy+H-22,7,10,'rgba(0,0,0,0.12)'); FR(cx+1,wy+H-22,7,10,'rgba(0,0,0,0.09)');
+  FR(cx+5,wy+H-14,3,5,'#d4a820');
+  // Axe leaning outside
+  FR(cx+W/2-10,bot-30,4,26,'#8a5020');
+  X.fillStyle='#808080';X.beginPath();X.moveTo(cx+W/2-10,bot-30);X.lineTo(cx+W/2-2,bot-22);X.lineTo(cx+W/2-6,bot-18);X.closePath();X.fill();
+  // Roof
+  const rW=W+14,rH=24+lv*2;
+  X.fillStyle='#5a3810';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+  X.fillStyle='#4a2808';
+  X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-3,wy);X.closePath();X.fill();
+  for(let i=1;i<5;i++){const t=i/5;X.strokeStyle=`rgba(0,0,0,${0.12+i*0.02})`;X.lineWidth=1.5;X.beginPath();X.moveTo(cx-rW/2*t,wy-rH*t);X.lineTo(cx+rW/2*t,wy-rH*t);X.stroke();}
+  // Log pile
+  FR(cx-W/2-16,bot-16,14,16,'#8a5020');
+  for(let i=0;i<4;i++) FR(cx-W/2-15,bot-16-i*5,12,4,'#7a4018');
+}
+
+function bSawmill(cx,bot,lv){
+  const W=74+lv*4,H=50,wy=bot-H-6;
+  FR(cx-W/2,wy,W,H,'#c09050');
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let i=8;i<H;i+=8) X.fillRect(cx-W/2+1,wy+i,W-2,1);
+  // Big saw blade
+  const bx=cx+W/2-20,by=bot-22;
+  X.fillStyle='#888080';X.beginPath();X.arc(bx,by,14,0,Math.PI*2);X.fill();
+  X.fillStyle='#606058';X.beginPath();X.arc(bx,by,10,0,Math.PI*2);X.fill();
+  X.fillStyle='#a0a098';
+  for(let a=0;a<Math.PI*2;a+=Math.PI/6){
+    X.beginPath();X.moveTo(bx+Math.cos(a)*10,by+Math.sin(a)*10);
+    X.lineTo(bx+Math.cos(a+0.2)*14,by+Math.sin(a+0.2)*14);
+    X.lineTo(bx+Math.cos(a+0.4)*10,by+Math.sin(a+0.4)*10);
+    X.closePath();X.fill();
+  }
+  X.fillStyle='#404040';X.beginPath();X.arc(bx,by,3,0,Math.PI*2);X.fill();
+  // Log on table
+  FR(cx-W/2+8,bot-28,W/2-5,10,'#9a6030');
+  for(let i=2;i<W/2-7;i+=6) FR(cx-W/2+8+i,bot-29,4,11,'#8a5020');
+  // Door + window
+  FR(cx-8,wy+H-28,16,28,'#8a5020'); FR(cx-8,wy+H-28,16,4,'#7a4018');
+  FR(cx-W/2+10,wy+8,16,13,'#c09050'); FR(cx-W/2+11,wy+9,14,11,'#1a2818'); FR(cx-W/2+12,wy+10,6,4,'rgba(255,255,255,0.25)');
+  // Roof
+  const rW=W+12,rH=22;
+  X.fillStyle='#7a4020';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-8,wy-rH);X.lineTo(cx-rW/2+8,wy-rH);X.closePath();X.fill();
+  X.fillStyle='#5a3010';
+  X.beginPath();X.moveTo(cx+rW/2,wy);X.lineTo(cx+rW/2-8,wy-rH);X.lineTo(cx+rW/2-8,wy-rH+2);X.closePath();X.fill();
+  for(let i=1;i<5;i++){const t=i/5;const off=8*t;X.strokeStyle=`rgba(0,0,0,0.12)`;X.lineWidth=1.5;X.beginPath();X.moveTo(cx-rW/2+off,wy-rH*t);X.lineTo(cx+rW/2-off,wy-rH*t);X.stroke();}
+}
+
+function bQuarry(cx,bot,lv){
+  const W=70+lv*5,H=44,wy=bot-H-6;
+  FR(cx-W/2,wy,W,H,'#9a9080');
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let i=8;i<H;i+=8) for(let j=0;j<W;j+=14) X.fillRect(cx-W/2+j+(i%2===0?0:7),wy+i,13,7);
+  FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.08)');
+  // Tool shed door
+  FR(cx-9,wy+H-26,18,26,'#6a5030'); FR(cx-9,wy+H-26,18,4,'#5a4020');
+  FR(cx+5,wy+H-16,3,5,'#c09020');
+  // Pickaxe on wall
+  FR(cx-W/2+12,wy+10,3,22,'#7a5020');
+  X.fillStyle='#708070';X.beginPath();X.moveTo(cx-W/2+12,wy+10);X.lineTo(cx-W/2+22,wy+14);X.lineTo(cx-W/2+16,wy+18);X.closePath();X.fill();
+  // Stone pile
+  for(let i=0;i<4;i++){X.fillStyle=`rgb(${130+i*8},${124+i*6},${108+i*5})`;X.beginPath();X.ellipse(cx+W/2-20+i*4,bot-8-i*3,8-i,5-i*0.5,0,0,Math.PI*2);X.fill();}
+  // Flat roof with parapet
+  FR(cx-W/2-3,wy-6,W+6,8,'#8a8070');
+  FR(cx-W/2-3,wy-6,W+6,3,'rgba(255,255,255,0.08)');
+  for(let i=0;i<6;i++) FR(cx-W/2+i*(W/5),wy-12,10,8,'#9a9080');
+}
+
 function bMine(cx,bot,lv,type){
   const col=type==='coal'?'#282020':'#3c2c2c';
   const isDeep=lv>=3;
