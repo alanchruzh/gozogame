@@ -957,9 +957,8 @@ let DECORS=[];  // {type,x,y,v} trees, rocks etc
 let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
-let _depositNotified=new Set();
 let TRAVELING_TRADERS=[]; // [{x,y,vx,vy,dir,fr,ft,name,goods,state,targetX,targetY,stall}]
-let ROAD_ENTRY={c:0,r:0}; // where main road meets map edge // tracks which deposits player has been notified about
+let _depositNotified=new Set(); // tracks which deposits player has been notified about
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
 let LANDMARKS=[];    // [{col,row,type,label,discovered}]
@@ -1527,11 +1526,17 @@ function genMap(){
   }
   // Spawn 4-6 deer randomly in forest
   const deerCount=4+Math.floor(R()*3);
-  for(let i=0;i<deerCount&&forestTiles.length;i++){
-    const idx=Math.floor(R()*forestTiles.length);
+  for(let i=0;i<deerCount&&forestTiles.length>0;i++){
+    const idx=Math.floor(R()*forestTiles.length)%forestTiles.length;
     const ds=forestTiles[idx];
+    if(!ds) continue;
     DEER.push({x:ds.c*TS+TS/2,y:ds.r*TS+TS/2,dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,alive:true,respawnT:0});
-    forestTiles.splice(idx,1); // don't reuse same tile
+    forestTiles.splice(idx,1);
+  }
+  // Fallback: if no forest yet, spawn deer near map edges
+  if(!DEER.length){
+    for(let i=0;i<4;i++)
+      DEER.push({x:(8+i*8)*TS+TS/2,y:4*TS+TS/2,dir:2,fr:0,ft:0,vx:0,vy:0,wt:0,alive:true,respawnT:0});
   }
 
   // ── STARTING AREA — just a campfire, no pre-built structures ──
@@ -1552,7 +1557,6 @@ function genMap(){
   }
   // ── MAIN ROAD — connects to other villages ──
   const roadCol=mc;
-  ROAD_ENTRY={c:roadCol,r:WR-1};
   // South road: bottom edge to village center
   for(let r=WR-1;r>=mr;r--){
     if(!MAP[r]||!MAP[r][roadCol])continue;
@@ -3219,20 +3223,54 @@ function drawNPC(npc){
       if(phase>0.75){X.fillStyle='rgba(100,160,255,0.8)';X.beginPath();X.arc(px+14,py-30,2.5,0,Math.PI*2);X.fill();}
 
     } else if(job==='logger'){
-      // Axe: big chopping swing — drawn big and obvious
-      const axeAngle = -Math.PI*0.7 + phase*1.1;
-      X.save();X.translate(px+10, py-22+bob);X.rotate(axeAngle);
-      // Handle
-      X.strokeStyle='#6a3810';X.lineWidth=4;
-      X.beginPath();X.moveTo(0,0);X.lineTo(0,-28);X.stroke();
-      // Axe head
-      X.fillStyle='#909090';
-      X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.fill();
-      X.fillStyle='#c0c0c0';
-      X.beginPath();X.moveTo(-2,-28);X.lineTo(6,-33);X.lineTo(6,-24);X.closePath();X.fill();
-      X.strokeStyle='rgba(0,0,0,0.3)';X.lineWidth=1;
-      X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.stroke();
-      X.restore();
+      const logState=npc._logState||'find_tree';
+      const isChopping=logState==='chopping'||logState==='tree_falls';
+
+      if(isChopping){
+        // Swing axe animation
+        const swingPhase=logState==='chopping'?
+          Math.sin((npc._chopTimer||0)*0.4)*0.6 : // regular chop swing
+          Math.sin((npc._fallTimer||0)*0.3)*0.3;  // settle after fell
+        const axeAngle=-Math.PI*0.5+swingPhase;
+        X.save();X.translate(px+10,py-20+bob);X.rotate(axeAngle);
+        X.strokeStyle='#6a3810';X.lineWidth=4;
+        X.beginPath();X.moveTo(0,0);X.lineTo(0,-28);X.stroke();
+        X.fillStyle='#909090';
+        X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.fill();
+        X.fillStyle='#c8c8c8';
+        X.beginPath();X.moveTo(-2,-28);X.lineTo(6,-33);X.lineTo(6,-24);X.closePath();X.fill();
+        X.restore();
+
+        // Show progress bar above NPC while chopping
+        if(logState==='chopping'&&npc._chopHits>0){
+          const pct=(npc._chopHits||0)/8;
+          X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(px-14,py-52,28,5);
+          X.fillStyle=pct<0.5?'#e0d020':'#20c040';X.fillRect(px-14,py-52,Math.round(28*pct),5);
+          X.fillStyle='#fff';X.font='5px monospace';X.textAlign='center';
+          X.fillText('⛏',px,py-46);
+        }
+
+        // Tree falling effect
+        if(logState==='tree_falls'&&npc._targetTreeC>=0){
+          const tx=npc._targetTreeC*TS+camX, ty=npc._targetTreeR*TS+camY;
+          const fallAngle=(npc._fallTimer||0)/30*Math.PI*0.5;
+          X.save();X.translate(tx+TS/2,ty+TS);X.rotate(fallAngle);
+          X.fillStyle='#7a4a1a';X.fillRect(-3,-TS*0.8,6,TS*0.8);
+          X.fillStyle='#267818';X.beginPath();X.arc(0,-TS*0.8,18,0,Math.PI*2);X.fill();
+          X.restore();
+        }
+      } else {
+        // Walking with axe on shoulder
+        const axeAngle=-Math.PI*0.7+phase*0.3;
+        X.save();X.translate(px+10,py-22+bob);X.rotate(axeAngle);
+        X.strokeStyle='#6a3810';X.lineWidth=4;
+        X.beginPath();X.moveTo(0,0);X.lineTo(0,-28);X.stroke();
+        X.fillStyle='#909090';
+        X.beginPath();X.moveTo(-2,-28);X.lineTo(14,-34);X.lineTo(12,-20);X.closePath();X.fill();
+        X.fillStyle='#c0c0c0';
+        X.beginPath();X.moveTo(-2,-28);X.lineTo(6,-33);X.lineTo(6,-24);X.closePath();X.fill();
+        X.restore();
+      }
       // Wood chip burst on impact
       if(phase>0.6){
         X.fillStyle='#c8801a';
@@ -4755,36 +4793,101 @@ function wanderNPCs(){
                 }
               }
             } else if(job==='logger'){
-              npc._chopTimer=(npc._chopTimer||0)+1;
-              if(npc._chopTimer>=90){
-                npc._chopTimer=0;
+              // ── LOGGER STATE MACHINE ──
+              // States: 'find_tree' → 'walk_to_tree' → 'chopping' → 'tree_falls' → 'find_tree'
+              const logState = npc._logState || 'find_tree';
+
+              if(logState==='find_tree'){
+                // Find nearest tree in work zone
                 const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
-                let chopped=false;
-                const zr=npc._logZone?.cy||nr2, zc=npc._logZone?.cx||nc2, zRadius=npc._logZone?.r||4;
-                // Search within assigned work zone only
-                for(let dr2=-zRadius;dr2<=zRadius&&!chopped;dr2++){
-                  for(let dc2=-zRadius;dc2<=zRadius&&!chopped;dc2++){
+                const zr=npc._logZone?.cy||nr2, zc=npc._logZone?.cx||nc2, zRadius=npc._logZone?.r||5;
+                let bestDist=999, bestC=-1, bestR=-1;
+                for(let dr2=-zRadius;dr2<=zRadius;dr2++){
+                  for(let dc2=-zRadius;dc2<=zRadius;dc2++){
                     const tr=nr2+dr2, tc=nc2+dc2;
-                    if(Math.abs(tr-zr)>zRadius||Math.abs(tc-zc)>zRadius)continue;
                     if(tr<0||tr>=WR||tc<0||tc>=WC)continue;
                     if(!MAP[tr]||!MAP[tr][tc])continue;
-                    const tile=MAP[tr][tc];
-                    if(tile.decor==='tree'&&tile.t===T.FOREST){
-                      tile.decor=null; tile.t=T.GRASS;
-                      addR('wood',2+Math.floor(Math.random()*3));
-                      spawnParticles(tc*TS+TS/2,tr*TS+TS/2,'build',6);
-                      _worldDirty=true; chopped=true;
-                      npc._dx=(tc*TS+TS/2-npc.x)*0.05;
-                      npc._dy=(tr*TS+TS/2-npc.y)*0.05;
+                    if(MAP[tr][tc].decor==='tree'&&MAP[tr][tc].t===T.FOREST){
+                      const d=Math.abs(dr2)+Math.abs(dc2);
+                      if(d<bestDist){bestDist=d;bestC=tc;bestR=tr;}
                     }
                   }
                 }
-                if(!chopped){
-                  // Zone depleted — find new zone next tick
-                  npc._logZoneEmpty=true;
-                  // Wander back toward logger building
-                  npc._dx=(zc*TS+TS/2-npc.x)*0.02;
-                  npc._dy=(zr*TS+TS/2-npc.y)*0.02;
+                if(bestC>=0){
+                  npc._targetTreeC=bestC; npc._targetTreeR=bestR;
+                  npc._logState='walk_to_tree';
+                  npc._chopHits=0; // hits needed = 1 game hour worth
+                } else {
+                  npc._logZoneEmpty=true; npc._logState='find_tree';
+                  npc._dx=0; npc._dy=0;
+                }
+
+              } else if(logState==='walk_to_tree'){
+                // Walk toward target tree
+                const tx=npc._targetTreeC*TS+TS/2, ty=npc._targetTreeR*TS+TS/2;
+                const dx=tx-npc.x, dy=ty-npc.y;
+                const dist=Math.hypot(dx,dy);
+                // Verify tree still exists
+                if(!MAP[npc._targetTreeR]||!MAP[npc._targetTreeR][npc._targetTreeC]||
+                   MAP[npc._targetTreeR][npc._targetTreeC].decor!=='tree'){
+                  npc._logState='find_tree'; npc._dx=0; npc._dy=0;
+                } else if(dist<TS*0.9){
+                  // Arrived — start chopping
+                  npc._dx=0; npc._dy=0;
+                  npc._logState='chopping';
+                  npc._chopTimer=0;
+                  npc._chopHits=0;
+                  // Face the tree
+                  if(Math.abs(dx)>Math.abs(dy)) npc.dir=dx>0?1:3;
+                  else npc.dir=dy>0?2:0;
+                } else {
+                  // Keep walking
+                  const spd=0.9*G.spd;
+                  npc._dx=(dx/dist)*spd; npc._dy=(dy/dist)*spd;
+                  if(Math.abs(dx)>Math.abs(dy)) npc.dir=dx>0?1:3;
+                  else npc.dir=dy>0?2:0;
+                }
+
+              } else if(logState==='chopping'){
+                npc._dx=0; npc._dy=0;
+                npc._chopTimer=(npc._chopTimer||0)+1;
+
+                // 1 game hour = G.spd * 60fps * 60s / 24hrs ~= 150 frames per game-hour at 1x
+                // We want chopping to take 1 game hour = ~150 ticks at 1x
+                const hitsNeeded=8; // 8 hits to fell tree
+                const ticksPerHit=Math.max(10, Math.round(150/(hitsNeeded*G.spd)));
+
+                if(npc._chopTimer>=ticksPerHit){
+                  npc._chopTimer=0;
+                  npc._chopHits=(npc._chopHits||0)+1;
+                  // Spawn wood chips particles
+                  const tx2=npc._targetTreeC*TS+TS/2, ty2=npc._targetTreeR*TS+TS/2;
+                  spawnParticles(tx2,ty2,'build',3);
+                  // Verify tree still there
+                  if(!MAP[npc._targetTreeR]||!MAP[npc._targetTreeR][npc._targetTreeC]||
+                     MAP[npc._targetTreeR][npc._targetTreeC].decor!=='tree'){
+                    npc._logState='find_tree';
+                  } else if(npc._chopHits>=hitsNeeded){
+                    // Tree felled!
+                    npc._logState='tree_falls';
+                    npc._fallTimer=0;
+                  }
+                }
+
+              } else if(logState==='tree_falls'){
+                npc._dx=0; npc._dy=0;
+                npc._fallTimer=(npc._fallTimer||0)+1;
+                if(npc._fallTimer>=30){
+                  // Actually remove tree and give wood
+                  const tc=npc._targetTreeC, tr=npc._targetTreeR;
+                  if(MAP[tr]&&MAP[tr][tc]&&MAP[tr][tc].decor==='tree'){
+                    MAP[tr][tc].decor=null; MAP[tr][tc].t=T.GRASS;
+                    addR('wood',4); // exactly 4 wood per tree
+                    spawnParticles(tc*TS+TS/2,tr*TS+TS/2,'build',10);
+                    _worldDirty=true;
+                  }
+                  npc._logState='find_tree';
+                  npc._fallTimer=0; npc._chopHits=0;
                 }
               }
             } else if(job==='miner'){
@@ -6799,8 +6902,8 @@ function doTraderSpawn(){
 
   // Spawn at road entry (south or west edge)
   const fromSouth=Math.random()<0.6;
-  const spawnX=fromSouth?(ROAD_ENTRY.c*TS+TS/2):(0);
-  const spawnY=fromSouth?((WR-1)*TS+TS/2):(ROAD_ENTRY.r*TS+TS/2); // use mr for west
+  const spawnX=fromSouth?(MAIN_ROAD_ENTRY.col*TS+TS/2):(0);
+  const spawnY=fromSouth?((WR-1)*TS+TS/2):(MAIN_ROAD_ENTRY.row*TS+TS/2);
 
   // Target: nearest market zone
   const zone=G.marketZones[0];
