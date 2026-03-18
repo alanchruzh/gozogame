@@ -555,6 +555,8 @@ const G={
     plank:0, metal:0, leather:0,
     // Goods — none yet
     cloth:0, shoe:0, cloak:0, weapon:0, armor:0, beer:0,
+    // Natural resources
+    fish:0, wool:0, milk:0,
     // Economy — small starting purse
     gold:20, wealth:0,
     // Regional Wealth & Treasury (new economy system)
@@ -3941,11 +3943,14 @@ function hasStorageWorker(resType){
 
 // ─── NOTIFY ───
 function notify(msg,type='ok'){
+  const c=document.getElementById('notifs');
+  if(!c) return;
+  // Limit max visible notifications to avoid flooding
+  if(c.children.length>=8) c.firstChild?.remove();
   const n=document.createElement('div');
   n.className='ntf '+(type==='err'?'err':type==='warn'?'warn':'ok');
   n.textContent=msg;
-  const c=document.getElementById('notifs');
-  if(c){c.appendChild(n);setTimeout(()=>n.remove(),3200);}
+  c.appendChild(n);setTimeout(()=>n.remove(),3200);
 }
 
 // ─── UI UPDATE ───
@@ -4090,7 +4095,7 @@ function correctNPCJobs(){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
+    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     if(!workers) continue;
     const bld=G.bld.find(b=>b.id===+bldId);
@@ -4212,7 +4217,7 @@ function tryPlaceField(c,r){
   // Find nearest farm building to assign to
   let nearFarm=null, nearDist=999;
   for(const b of G.bld){
-    if(b.type!=='farm')continue;
+    if(b.type!=='farm'||b.under_construction)continue;
     const dx=b.col-c, dy=b.row-r;
     const d=Math.sqrt(dx*dx+dy*dy);
     if(d<nearDist){nearDist=d;nearFarm=b;}
@@ -4386,30 +4391,6 @@ function doProd(){
     addR('wool', output);
     addR('meat', Math.round(output*0.3));
     if(Math.random()<0.05) notify('🐑 Sheep farm produced '+output+' wool!','ok');
-  }
-
-  // ── WEAVER WORKSHOP — wool → cloth ──
-  for(const b of G.bld.filter(b=>b.type==='weaver_wk'&&!b.under_construction)){
-    const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
-    if(!workers) continue;
-    const woolNeed=2*workers;
-    if((G.res.wool||0)>=woolNeed){
-      G.res.wool=Math.max(0,(G.res.wool||0)-woolNeed);
-      const cloth=Math.round(workers*b.lv);
-      addR('cloth', cloth);
-    } else {
-      if(Math.random()<0.02) notify('🧶 Weaver needs wool!','warn');
-    }
-  }
-
-  // ── TAVERN — happiness bonus, consumes ale ──
-  for(const b of G.bld.filter(t=>t.type==='tavern'&&!t.under_construction)){
-    if((G.res.ale||0)>=1){
-      G.res.ale--;
-      G.happy=Math.min(100,G.happy+3);
-    } else {
-      G.happy=Math.max(0,G.happy-1); // unhappy if no ale
-    }
   }
 
   // ── SCHOOL — children reach adulthood faster (every tick) ──
@@ -4772,6 +4753,7 @@ function tryPlaceBuilding(c,r){
 function showBldDlg(bld,c,r){
   const d=BD[bld.type]||{n:bld.type,cost:{},ml:1};
   if(!d){return;} // unknown building type
+  const _knownType=!!BD[bld.type]; // only show upgrade/demolish for known types
   // Show construction status if still building
   if(bld.under_construction){
     const total=bld.build_ticks_total||1;
@@ -4862,8 +4844,8 @@ function showBldDlg(bld,c,r){
     const maxW=BLD_WORKERS[bld.type];
     btns.push({l:'👷 Workers ('+assigned+'/'+maxW+')',cls:'ok',fn:()=>openBldWorker(bld.id)});
   }
-  if(bld.lv<(d.ml||3))btns.push({l:'⬆ Upgrade',cls:'ok',fn:()=>doUpgrade(bld,c,r)});
-  btns.push({l:'🗑 Demolish',cls:'bad',fn:()=>doDemolish(bld,c,r)});
+  if(_knownType&&bld.lv<(d.ml||3))btns.push({l:'⬆ Upgrade',cls:'ok',fn:()=>doUpgrade(bld,c,r)});
+  if(_knownType)btns.push({l:'🗑 Demolish',cls:'bad',fn:()=>doDemolish(bld,c,r)});
   btns.push({l:'✖ Close',cls:'',fn:closeDialog});
   openDlg(d.e+' '+d.n+' Lv.'+bld.lv,d.d+(pr?'\n'+pr:'')+extraInfo,btns);
 }
@@ -6431,7 +6413,7 @@ function renderBldWorker(bldId, maxW){
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
             granary:'farmer',storehouse:'farmer',forest_hut:'planter',
             food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-            well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
+            well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
@@ -6856,7 +6838,14 @@ window.addEventListener('keydown',e=>{
     const dirs=['Front','Right','Back','Left'];
     notify('🔄 Facing: '+dirs[buildRotation],'ok');
   }
-  if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();closeTradePanel();closeWorkerPanel();closeQuestPanel();updateModeUI();}
+  if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();closeTradePanel();closeWorkerPanel();closeQuestPanel();
+    // Close economy panel if open
+    if(economyPanelOpen){economyPanelOpen=false;const _ep=document.getElementById('economypanel');if(_ep)_ep.style.display='none';}
+    // Close trade panel if open
+    if(tradePanelOpen) closeTradePanel();
+    // Close shop panel if open
+    if(shopOpen){shopOpen=false;const _sp=document.getElementById('shoppanel');if(_sp)_sp.style.display='none';}
+    updateModeUI();}
   if(e.key.toLowerCase()==='e'&&_gameStarted&&!G.paused) doInteract();
   if(e.key.toLowerCase()==='f') toggleFertilityMap();
   if(e.key===' ')e.preventDefault();
@@ -7590,7 +7579,7 @@ function openFarmZoneDlg(c,r){
 }
 
 // ── TRADER SPAWNING — called from doProd ──
-const TRADER_NAMES=['Ahmad','Bagas','Candra','Dimas','Eko','Fajar','Gilang','Hadi','Ivan','Jono'];
+const TRADER_NAMES=['Edmund','Aldric','Thomas','Walter','Gilbert','Roger','Hugh','Simon','Geoffrey','Philip'];
 const TRADER_GOODS=[
   {res:'food',  label:'Fresh Produce',icon:'🥬',qty:10,price:3},
   {res:'fish',  label:'Fresh Fish',   icon:'🐟',qty:8, price:4},
@@ -7771,7 +7760,7 @@ function swTradeTab(tab, el){
 
 function renderTradePanel(){
   const hasTP=G.bld.some(b=>b.type==='tradingpost'&&!b.under_construction);
-  const tpWorkers=G.bld.filter(b=>b.type==='tradingpost').reduce((s,b)=>{
+  const tpWorkers=G.bld.filter(b=>b.type==='tradingpost'&&!b.under_construction).reduce((s,b)=>{
     return s+(G.bldWorkers[b.id]||[]).filter(n=>n).length;
   },0);
   const ws=document.getElementById('tp-worker-status');
@@ -8075,7 +8064,7 @@ function processTradeQueue(){
 //  - Autosave    → localStorage every 5 real minutes
 // ═══════════════════════════════════════════════════════
 
-const SAVE_VERSION = 5;
+const SAVE_VERSION = 6;
 let _autosaveTimer = null;
 let _lastAutosave  = null;
 
@@ -8151,7 +8140,8 @@ function buildSaveState(){
 // ── APPLY SAVE STATE ──
 function applySaveState(save){
   if(!save||!save.version) throw new Error('Invalid save file');
-  if(save.version>SAVE_VERSION) notify('⚠ Save from a newer version.','warn');
+  if(save.version>SAVE_VERSION) notify('⚠ Save from a newer version — some features may not work.','warn');
+  if(save.version<SAVE_VERSION) notify(`📂 Old save (v${save.version}) loaded — some features reset to defaults.`,'warn');
   // Restore world seed so map generates identically
   if(save.worldSeed) WORLD_SEED=save.worldSeed;
   if(save.villageName) G.villageName=save.villageName;
@@ -8160,7 +8150,10 @@ function applySaveState(save){
   if(logo&&G.villageName) logo.textContent='⚔ '+G.villageName;
   G.day=save.day||1; G.hr=save.hr||6; G.mn=save.mn||0;
   G.yr=save.yr||1; G.season=save.season||0; G.ticks=save.ticks||0;
-  Object.assign(G.res,save.res||{});
+  // Only copy known resource keys to avoid phantom resources from old saves
+  const knownRes=Object.keys(G.res);
+  const savedRes=save.res||{};
+  for(const k of knownRes){ if(k in savedRes) G.res[k]=savedRes[k]; }
   G.pop=save.pop||0; G.cap=save.cap||6;
   G.happy=save.happy??80; G.health=save.health??70;
   G.paused=save.paused||false; G.spd=save.spd||1; G.nid=save.nid||1;
@@ -8241,7 +8234,7 @@ function applySaveState(save){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle'};
+    well:'idle',church:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     const bld=G.bld.find(b=>b.id===+bldId);
     if(!bld) continue;
@@ -8325,7 +8318,7 @@ function loadGameFromFile(event){
 }
 
 // ── AUTOSAVE to localStorage (also signed) ──
-const AUTOSAVE_KEY='gozo_autosave_v5';
+const AUTOSAVE_KEY='gozo_autosave_v6';
 const AUTOSAVE_INTERVAL=5*60*1000;
 
 async function autosave(){
@@ -8666,7 +8659,7 @@ function applyDisasterEffect(id){
         const t=targets[Math.floor(Math.random()*targets.length)];
         t.on_fire=true;
         setTimeout(()=>{
-          if(t.on_fire){
+          if(t.on_fire&&G.bld.some(b=>b.id===t.id)){
             // Relocate residents if it's a house
             if(t.type==='house'){
               const homeless=NPCS.filter(n=>n.houseId===t.id);
@@ -9673,7 +9666,7 @@ function updateSaplings(){
     delete SAPLINGS[key];
     if(!MAP[r]||!MAP[r][c]) continue;
     const tile=MAP[r][c];
-    if(tile.decor==='sapling'){
+    if(tile.decor==='sapling'&&!tile.bld){
       tile.t=T.FOREST;
       tile.decor='tree';
       _worldDirty=true;
