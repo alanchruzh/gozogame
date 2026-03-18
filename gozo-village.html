@@ -727,7 +727,9 @@ function workerEff(npcName, bldId){
   const dx=npc.x-(bld.col*TS+TS/2), dy=npc.y-(bld.row*TS+TS/2);
   const dist=Math.sqrt(dx*dx+dy*dy);
   // Full efficiency within 5 tiles, drops to 0.5 at 15 tiles
-  return Math.max(0.5, 1-(dist/(TS*15))*0.5);
+  const distEff=Math.max(0.5, 1-(dist/(TS*15))*0.5);
+  // Sick workers are 50% less effective
+  return npc.sick ? distEff*0.5 : distEff;
 }
 
 // Get total workforce efficiency for a building
@@ -835,9 +837,10 @@ function autoAssignHomeless(){
     if(!house) break;
     npc.houseId=house.id;
     assigned++;
-    notify(`🏠 ${npc.name} moved into a house!`,'ok');
     upPop();
   }
+  if(assigned===1) notify(`🏠 ${homelessAdults[0].name} moved into a house!`,'ok');
+  else if(assigned>1) notify(`🏠 ${assigned} villagers moved into houses!`,'ok');
 }
 const STOREHOUSE_RES=['wood','stone','coal','iron','metal','plank','leather','weapon','armor','shoe','cloak'];
 
@@ -918,11 +921,11 @@ const BD={
               lvDesc:{1:'1 planter, plants 1 tree/day.',2:'2 planters, plants 2 trees/day.'}},
   // ── SOCIAL BUILDINGS ──
   tavern:    {n:'Tavern',    e:'🍺',d:'+Happiness. Needs ale.',  cost:{wood:35,stone:20,gold:20}, ml:2, cat:'civic',
-              pr:{happiness:5}, needs:{ale:1}, lvDesc:{1:'Simple inn.',2:'Popular pub.'}},
+              lvDesc:{1:'Simple inn.',2:'Popular pub.'}},
   school:    {n:'School',   e:'📚',d:'Children grow faster.',   cost:{wood:30,stone:25,gold:15}, ml:2, cat:'civic',
               pr:{}, lvDesc:{1:'Basic school.',2:'Academy.'}},
   hospital:  {n:'Hospital', e:'⚕️',d:'+Health. Cures sickness.',cost:{wood:40,stone:35,gold:30}, ml:3, cat:'civic',
-              pr:{health:3}, lvDesc:{1:'Healer hut.',2:'Full hospital.'}},
+              lvDesc:{1:'Healer hut.',2:'Full hospital.'}},
   stable:    {n:'Stable',   e:'🐴',d:'House horses for trade caravan speed.', cost:{wood:30,stone:10,gold:15}, ml:2, cat:'civic',
               lvDesc:{1:'1 horse slot.',2:'3 horse slots.'}},
   corral:    {n:'Corral',   e:'🐃',d:'House buffalo to speed up material transport.', cost:{wood:25,stone:10}, ml:2, cat:'work',
@@ -930,7 +933,7 @@ const BD={
   sheep_farm:{n:'Sheep Farm',e:'🐑',d:'Dedicated sheep farm. Produces wool & meat.', cost:{wood:35,stone:15}, ml:2, cat:'food',
               pr:{wool:2,meat:1}, lvDesc:{1:'Small flock.',2:'Large flock.'}},
   weaver_wk: {n:'Weaver Workshop',e:'🧶',d:'Turns wool into cloth. Needs workers.', cost:{wood:25,stone:10}, ml:2, cat:'work',
-              pr:{cloth:1}, needs:{wool:2}, lvDesc:{1:'1 loom.',2:'3 looms.'}},
+              chain:{input:{wool:2},output:{cloth:1},workers:2}, lvDesc:{1:'1 loom.',2:'3 looms.'}},
   // ── STALLS (prerequisite for house upgrade) ──
   food_stall:    {n:'Food Stall',    e:'🥘',d:'Sell food goods.',  cost:{wood:20,stone:5},  ml:1, cat:'civic'},
   fuel_stall:    {n:'Fuel Stall',    e:'🪵',d:'Sell fuel/coal.',   cost:{wood:15,stone:5},  ml:1, cat:'civic'},
@@ -2098,7 +2101,8 @@ function bCampfire(cx,bot,lv){
   X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-24,bot-52,48,11);
   X.fillStyle='#f0a030';X.font='bold 7px monospace';X.textAlign='center';X.fillText('CAMPFIRE',cx,bot-43);
   // Capacity indicator
-  const campers=NPCS.filter(n=>n.houseId==='campfire').length;
+  const campfireBld=G.bld.find(b=>b.type==='campfire');
+  const campers=campfireBld?NPCS.filter(n=>n.houseId===campfireBld.id).length:0;
   X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-16,bot-42,32,10);
   X.fillStyle='#f0d060';X.font='7px monospace';X.textAlign='center';X.fillText(`${campers}/6`,cx,bot-34);
 }
@@ -3039,11 +3043,13 @@ function updateDeer(){
   for(const deer of DEER){
     if(!deer.alive){
       if(now>deer.respawnT){
-        // respawn in a forest zone
-        const zones=[[3,3,8,10],[36,2,10,14],[34,22,12,12],[8,24,8,10]];
+        // respawn in a forest zone (clamped to map bounds)
+        const zones=[[3,3,8,10],[Math.floor(WC*0.6),2,10,14],[Math.floor(WC*0.6),Math.floor(WR*0.6),12,12],[8,Math.floor(WR*0.6),8,10]];
         const z=zones[Math.floor(Math.random()*zones.length)];
-        deer.x=(z[0]+Math.random()*z[2])*TS;
-        deer.y=(z[1]+Math.random()*z[3])*TS;
+        const rc=Math.min(z[0]+Math.floor(Math.random()*z[2]), WC-2);
+        const rr=Math.min(z[1]+Math.floor(Math.random()*z[3]), WR-2);
+        deer.x=Math.max(TS, rc*TS);
+        deer.y=Math.max(TS, rr*TS);
         deer.alive=true; deer.vx=0; deer.vy=0;
       }
       continue;
@@ -3620,7 +3626,7 @@ function drawNPC(npc){
   let carryIcon='';
   if(!isChild&&!isPreg){
     for(const[bid,workers]of Object.entries(G.bldWorkers)){
-      if(workers.includes(npc.name)){
+      if(workers&&workers.includes(npc.name)){
         const b=G.bld.find(b2=>b2.id===+bid);
         if(b?.type==='granary') carryIcon='🍞';
         else if(b?.type==='storehouse') carryIcon='📦';
@@ -3833,7 +3839,7 @@ function renderWorkerPanel(){
       // Find current assignment
       let assignedTo='';
       for(const[bid,workers]of Object.entries(G.bldWorkers)){
-        if(workers.includes(npc.name)){
+        if(workers&&workers.includes(npc.name)){
           const b=G.bld.find(b2=>b2.id===+bid);
           if(b) assignedTo=` → ${BD[b.type]?.e||'?'} ${BD[b.type]?.n||b.type}`;
         }
@@ -3865,7 +3871,7 @@ function renderWorkerPanel(){
           // Efficiency indicator if assigned to building
           let effTxt='';
           for(const[bid,workers]of Object.entries(G.bldWorkers)){
-            if(workers.includes(npc.name)){
+            if(workers&&workers.includes(npc.name)){
               const eff=Math.round(workerEff(npc.name,+bid)*100);
               const col=eff>=80?'#60c040':eff>=50?'#c0a020':'#c04020';
               effTxt=`<span style="color:${col};font-size:9px">${eff}%⚡</span>`;
@@ -3904,7 +3910,7 @@ function renderWorkerPanel(){
 
 
 function canAff(cost){ for(const[k,v]of Object.entries(cost)) if((G.res[k]||0)<v) return false; return true; }
-function pay(cost){ for(const[k,v]of Object.entries(cost)) G.res[k]=(G.res[k]||0)-v; updateUI(); }
+function pay(cost){ for(const[k,v]of Object.entries(cost)) G.res[k]=Math.max(0,(G.res[k]||0)-v); updateUI(); }
 function addR(res,amt){
   if(!amt||amt<=0)return;
   if(!(res in G.res))G.res[res]=0;
@@ -4318,10 +4324,16 @@ function doProd(){
     G.res.fish=Math.max(0,(G.res.fish||0)-fishUse);
     const remaining2=remaining1-fishUse;
     G.res.food=Math.max(0,(G.res.food||0)-remaining2);
-  } else {G.happy=Math.max(10,G.happy-5);notify('😟 Villagers are starving!','warn');}
-  if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal-=coalNeed;else G.happy=Math.max(10,G.happy-3);}
-  if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth-=clothNeed;else{G.happy=Math.max(10,G.happy-3);notify('👘 Need clothing!','warn');}}
-  if(beerNeed>0&&(G.res.beer||0)>=beerNeed){G.res.beer-=beerNeed;G.happy=Math.min(100,G.happy+1);}
+  } else {
+    G.happy=Math.max(10,G.happy-5);
+    if(!G._lastStarvWarn||G.day-G._lastStarvWarn>=5){
+      notify('😟 Villagers are starving!','warn');
+      G._lastStarvWarn=G.day;
+    }
+  }
+  if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal=Math.max(0,(G.res.coal||0)-coalNeed);else G.happy=Math.max(10,G.happy-3);}
+  if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth=Math.max(0,(G.res.cloth||0)-clothNeed);else{G.happy=Math.max(10,G.happy-3);if(!G._lastClothWarn||G.day-G._lastClothWarn>=5){notify('👘 Need clothing!','warn');G._lastClothWarn=G.day;}}}
+  if(beerNeed>0&&(G.res.beer||0)>=beerNeed){G.res.beer=Math.max(0,(G.res.beer||0)-beerNeed);G.happy=Math.min(100,G.happy+1);}
 
   // Tax — split between Regional Wealth (city) and Treasury (lord)
   let taxTotal=0;
@@ -4371,7 +4383,7 @@ function doProd(){
     if(!workers) continue;
     const woolNeed=2*workers;
     if((G.res.wool||0)>=woolNeed){
-      G.res.wool-=woolNeed;
+      G.res.wool=Math.max(0,(G.res.wool||0)-woolNeed);
       const cloth=Math.round(workers*b.lv);
       addR('cloth', cloth);
     } else {
@@ -4407,6 +4419,32 @@ function doProd(){
       cured.sick=false;
       notify(`⚕️ ${cured.name} was cured at the hospital!`,'ok');
     }
+  }
+
+  // ── WELL — health bonus ──
+  const wellCount=G.bld.filter(b=>b.type==='well'&&!b.under_construction).length;
+  if(wellCount>0) G.health=Math.min(100,G.health+wellCount);
+
+  // ── CHURCH — happiness bonus ──
+  const churchCount=G.bld.filter(b=>b.type==='church'&&!b.under_construction).length;
+  if(churchCount>0) G.happy=Math.min(100,G.happy+churchCount);
+
+  // ── TAVERN — consumes ale, gives happiness ──
+  for(const b of G.bld.filter(t=>t.type==='tavern'&&!t.under_construction)){
+    const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
+    if(!workers) continue;
+    if((G.res.ale||0)>=1||(G.res.beer||0)>=1){
+      if((G.res.ale||0)>=1) G.res.ale=Math.max(0,(G.res.ale||0)-1);
+      else G.res.beer=Math.max(0,(G.res.beer||0)-1);
+      G.happy=Math.min(100,G.happy+(b.lv||1)*2);
+    } else {
+      if(!b._noAleWarn){ b._noAleWarn=true; notify('🍺 Tavern has no ale! Villagers unhappy.','warn'); }
+      G.happy=Math.max(0,G.happy-2);
+    }
+  }
+  // Reset tavern warn when ale restocked
+  for(const b of G.bld.filter(t=>t.type==='tavern')){
+    if(b._noAleWarn&&((G.res.ale||0)>0||(G.res.beer||0)>0)) b._noAleWarn=false;
   }
 
   // Goods production bonus → Regional Wealth (shoes, ale, leather, cloak, weapon)
@@ -4669,7 +4707,7 @@ function tryPlaceRoad(c,r){
   if(!MAP[r]||!MAP[r][c])return;
   const tile=MAP[r][c];
   if(tile.t===T.PATH){tile.t=T.GRASS;rebuildTile(c,r);}
-  if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
+  else if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
   else if(tile.t!==T.WATER&&!tile.bld&&tile.decor!=='tree'&&tile.decor!=='bush'){
     tile.t=T.PATH;rebuildTile(c,r);
   }
@@ -4678,7 +4716,7 @@ function tryEraseRoad(c,r){
   if(!MAP[r]||!MAP[r][c])return;
   const tile=MAP[r][c];
   if(tile.t===T.PATH){tile.t=T.GRASS;rebuildTile(c,r);}
-  if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
+  else if(tile.t===T.FIELD){removeField(c,r);rebuildTile(c,r);}
 }
 
 function rebuildTile(c,r){_worldDirty=true;}
@@ -4689,7 +4727,13 @@ function tryPlaceBuilding(c,r){
   const d=BD[buildType];if(!d)return;
   if(!MAP[r]||!MAP[r][c]){notify('Cannot build here!','err');return;}
   const tile=MAP[r][c];
-  if(tile.t===T.WATER||tile.bld||tile.decor){notify('Cannot build here!','err');return;}
+  if(tile.t===T.WATER||tile.bld||(tile.decor&&tile.decor!=='sapling')){notify('Cannot build here!','err');return;}
+  // Remove sapling if building on it
+  if(tile.decor==='sapling'){
+    const key=c+','+r;
+    delete SAPLINGS[key];
+    tile.decor=null;
+  }
   // Check if any adjacent tile has an under_construction building blocking
   const gbld=tile.bld?G.bld.find(b=>b.id===tile.bld?.id):null;
   if(gbld?.under_construction){notify('Already building here!','err');return;}
@@ -4918,7 +4962,7 @@ function findJobLocation(job,npcIdx){
   }
   if(job==='hunter'){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
-      if(workers.includes(npc.name)){
+      if(workers&&workers.includes(npc.name)){
         const bld=G.bld.find(b=>b.id===+bldId&&b.type==='hunting');
         if(bld)return{x:bld.col*TS+TS/2,y:(bld.row+1)*TS+TS/2};
       }
@@ -5723,7 +5767,7 @@ function render(){
     X.fillStyle='#0a0603';X.fillRect(0,0,CV.width,CV.height);
     return;
   }
-  // Reset transform sepenuhnya setiap frame agar tidak terakumulasi
+  // Fully reset transform every frame to prevent accumulation
   X.setTransform(1,0,0,1,0,0);
   doRebuildWorld();
   const vw=CV.width,vh=CV.height;
@@ -6158,6 +6202,7 @@ CV.addEventListener('contextmenu',e=>{
 
 CV.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
+  if(!_gameStarted||!MAP||!MAP.length)return;
   const rect=CV.getBoundingClientRect();
   const mx=e.clientX-rect.left,my=e.clientY-rect.top-HH;
   const c=Math.floor((mx-camX)/TS),r=Math.floor((my-camY)/TS);
@@ -6173,10 +6218,16 @@ CV.addEventListener('mousedown',e=>{
     const tile=MAP[r][c];
     if(tile.bld){const gb=G.bld.find(b=>b.id===tile.bld.id);if(gb)showBldDlg(gb,c,r);}
     else if(tile.decor==='berry_bush'||tile.decor==='bush'){
-      tile.decor=null;
-      delete BERRY_STATE[c+','+r];
-      _worldDirty=true;
-      notify('🌿 Bush cleared.','ok');
+      openDlg('🌿 Clear Bush?','Remove this bush? No materials returned.',[
+        {l:'✂ Clear',cls:'bad',fn:()=>{
+          tile.decor=null;
+          delete BERRY_STATE[c+','+r];
+          _worldDirty=true;
+          notify('🌿 Bush cleared.','ok');
+          closeDialog();
+        }},
+        {l:'✖ Cancel',cls:'',fn:closeDialog},
+      ]);
     }
     else if(tile.t===T.FARM_ZONE||tile.t===T.MARKET_ZONE) removeZoneTile(c,r);
   } else {
@@ -6235,6 +6286,7 @@ CV.addEventListener('mouseleave',()=>{isDragging=false;dragMode='';zoneDragStart
 // Touch support
 CV.addEventListener('touchstart',e=>{
   e.preventDefault();
+  if(!_gameStarted||!MAP||!MAP.length)return;
   const t=e.touches[0];const rect=CV.getBoundingClientRect();
   const mx=t.clientX-rect.left,my=t.clientY-rect.top-HH;
   const c=Math.floor((mx-camX)/TS),r=Math.floor((my-camY)/TS);
@@ -6758,7 +6810,7 @@ window.addEventListener('keydown',e=>{
     notify('🔄 Facing: '+dirs[buildRotation],'ok');
   }
   if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();closeTradePanel();closeWorkerPanel();closeQuestPanel();updateModeUI();}
-  if(e.key.toLowerCase()==='e') doInteract();
+  if(e.key.toLowerCase()==='e'&&_gameStarted&&!G.paused) doInteract();
   if(e.key.toLowerCase()==='f') toggleFertilityMap();
   if(e.key===' ')e.preventDefault();
 });
@@ -6828,6 +6880,7 @@ function playNote(freq, startTime, duration, vol=0.18, type='sine', pan=0){
 
 // Marimba / gamelan hit — fast attack, slow decay
 function playMarimba(freq, t, vol=0.22, pan=0){
+  if(!audioCtx||!masterGain) return;
   const osc=audioCtx.createOscillator();
   const osc2=audioCtx.createOscillator();
   const gain=audioCtx.createGain();
@@ -6846,8 +6899,9 @@ function playMarimba(freq, t, vol=0.22, pan=0){
   musicNodes.push(osc,osc2);
 }
 
-// Soft drum / kendang hit
+// Soft drum hit
 function playDrum(t, freq=120, vol=0.18, decay=0.12){
+  if(!audioCtx||!masterGain) return;
   const osc=audioCtx.createOscillator();
   const gain=audioCtx.createGain();
   osc.type='sine';
@@ -6860,8 +6914,9 @@ function playDrum(t, freq=120, vol=0.18, decay=0.12){
   musicNodes.push(osc);
 }
 
-// Noise shaker / castanet
+// Noise shaker / percussion
 function playShaker(t, vol=0.04){
+  if(!audioCtx||!masterGain) return;
   const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.05,audioCtx.sampleRate);
   const d=buf.getChannelData(0);
   for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
@@ -6914,7 +6969,7 @@ function scheduleMusic(){
   const mFreq=PENTA[pat[patIdx]];
   const mDur=beat*(patIdx%4===0?0.9:0.45);
   playNote(mFreq, now, mDur, 0.15, 'sine', -0.2);
-  // Harmony (oktaf atas, lebih pelan)
+  // Harmony (upper octave, softer)
   if(patIdx%2===0) playNote(mFreq*2, now, mDur*0.8, 0.06, 'sine', 0.3);
 
   // ── GAMELAN/MARIMBA bassline ──
@@ -7311,7 +7366,7 @@ function rwExport(res){
   if(have<info.min){
     notify(`Need at least ${info.min} ${info.label} to export!`,'err'); return;
   }
-  G.res[res]=have-info.min;
+  G.res[res]=Math.max(0,have-info.min);
   const earned=info.min*info.rwPer;
   G.res.regional_wealth=(G.res.regional_wealth||0)+earned;
   rwLog(`📤 Exported ${info.min}× ${info.label}: +${earned} RW`);
@@ -7326,7 +7381,7 @@ function rwImport(res){
   if(rw<info.rwCost){
     notify(`Need ${info.rwCost} Regional Wealth (have ${Math.floor(rw)})!`,'err'); return;
   }
-  G.res.regional_wealth=rw-info.rwCost;
+  G.res.regional_wealth=Math.max(0,rw-info.rwCost);
   addR(res,info.qty);
   rwLog(`📥 Imported ${info.qty}× ${info.label}: -${info.rwCost} RW`);
   notify(`📥 Imported ${info.qty}× ${info.icon}${info.label} (-${info.rwCost} 🏛 RW)`,'ok');
@@ -7395,9 +7450,21 @@ function removeZoneTile(c,r){
     removeField(c,r);
     tile.t=T.GRASS;
     _worldDirty=true;
+    // Remove farm zone record if all its tiles are gone
+    G.farmZones=G.farmZones.filter(z=>{
+      const stillHasTiles=G.fields.some(f=>f.col>=z.col&&f.col<z.col+z.w&&f.row>=z.row&&f.row<z.row+z.h);
+      return stillHasTiles;
+    });
   } else if(tile.t===T.MARKET_ZONE){
     tile.t=T.GRASS;
     _worldDirty=true;
+    // Clean up market zone record if it no longer has any zone tiles
+    G.marketZones=G.marketZones.filter(z=>{
+      for(let rr=z.row;rr<z.row+z.h;rr++)
+        for(let cc=z.col;cc<z.col+z.w;cc++)
+          if(MAP[rr]&&MAP[rr][cc]&&MAP[rr][cc].t===T.MARKET_ZONE) return true;
+      return false;
+    });
   }
   rebuildTile(c,r);
 }
@@ -7753,7 +7820,7 @@ function getTradePrice(res, dir){
     else if(have<5) price=Math.max(1,Math.round(price*0.8)); // desperate, cheaper to import
   }
   // Route bonus
-  for(const[rid,route]of Object.entries(G.tradeRoutes)){
+  for(const[rid,route]of Object.entries(G.tradeRoutes||{})){
     const rd=ROUTE_DEFS[rid];
     if(rd?.goods.includes(res)&&route.active){
       price=Math.round(price*(route.priceModifier||1.0));
@@ -7771,7 +7838,7 @@ function renderTradeExport(div){
     const price=getTradePrice(res,'export');
     const canExport=have>=g.minQty;
     // Check if route covers this good
-    const routeActive=Object.entries(G.tradeRoutes).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
+    const routeActive=Object.entries(G.tradeRoutes||{}).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
     const row=document.createElement('div');
     row.style.cssText=`display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #0a1808;background:${canExport?'rgba(10,30,5,.4)':'rgba(5,10,3,.3)'}`;
     const demoBadge=g.earlyGame?'<span style="font-size:9px;color:#a0c060">EARLY</span>':g.midGame?'<span style="font-size:9px;color:#c0a020">MID</span>':g.lateGame?'<span style="font-size:9px;color:#e06020">LATE</span>':'';
@@ -7800,7 +7867,7 @@ function renderTradeImport(div){
     const price=getTradePrice(res,'import');
     const totalCost=price*g.minQty;
     const canImport=(G.res.gold||0)>=totalCost;
-    const routeActive=Object.entries(G.tradeRoutes).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
+    const routeActive=Object.entries(G.tradeRoutes||{}).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
     const row=document.createElement('div');
     row.style.cssText=`display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid #080c14;background:${canImport?'rgba(5,10,25,.4)':'rgba(3,6,12,.3)'}`;
     row.innerHTML=`
@@ -7878,17 +7945,17 @@ function doExportNow(res){
   // Check worker
   const tpWorkers=G.bld.filter(b=>b.type==='tradingpost').reduce((s,b)=>s+(G.bldWorkers[b.id]||[]).filter(n=>n).length,0);
   if(tpWorkers===0){notify('Assign a worker to Trading Post first!','warn');return;}
-  G.res[res]=have-g.minQty;
+  G.res[res]=Math.max(0,have-g.minQty);
   const price=getTradePrice(res,'export');
   const value=g.minQty*price;
   const ticks=Math.max(2, 4-Math.floor(tpWorkers/2)); // more workers = faster
-  const routeActive=Object.entries(G.tradeRoutes).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
+  const routeActive=Object.entries(G.tradeRoutes||{}).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
   const finalTicks=routeActive?Math.max(1,ticks-1):ticks;
   const name=TRADER_NPC_NAMES[Math.floor(Math.random()*TRADER_NPC_NAMES.length)];
   if(!G.tradeQueue) G.tradeQueue=[];
   G.tradeQueue.push({res,qty:g.minQty,dir:'export',value,traderName:name,ticksLeft:finalTicks,totalTicks:finalTicks});
   // Update route volume
-  for(const[rid,route]of Object.entries(G.tradeRoutes)){
+  for(const[rid,route]of Object.entries(G.tradeRoutes||{})){
     if(ROUTE_DEFS[rid]?.goods.includes(res)&&route.active) route.totalVolume=(route.totalVolume||0)+g.minQty;
   }
   notify(`📤 ${name} dispatched with ${g.minQty}× ${g.e}${g.label} (~${finalTicks*2} days, +${value}g)`,'ok');
@@ -7908,7 +7975,7 @@ function doImportNow(res){
   if((G.res.gold||0)<totalCost){notify(`Need ${totalCost} gold (have ${G.res.gold||0})!`,'err');return;}
   G.res.gold=Math.max(0,(G.res.gold||0)-totalCost);
   const ticks=4;
-  const routeActive=Object.entries(G.tradeRoutes).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
+  const routeActive=Object.entries(G.tradeRoutes||{}).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
   const finalTicks=routeActive?Math.max(1,ticks-1):ticks;
   const name=TRADER_NPC_NAMES[Math.floor(Math.random()*TRADER_NPC_NAMES.length)];
   if(!G.tradeQueue) G.tradeQueue=[];
@@ -8049,6 +8116,7 @@ function applySaveState(save){
   G.pop=save.pop||0; G.cap=save.cap||6;
   G.happy=save.happy??80; G.health=save.health??70;
   G.paused=save.paused||false; G.spd=save.spd||1; G.nid=save.nid||1;
+  G._lastStarvWarn=null; G._lastClothWarn=null;
   const _spdSel=document.getElementById('spd');
   if(_spdSel) _spdSel.value=String(G.spd);
   G.bld=(save.bld||[]).map(b=>({...b}));
@@ -8088,6 +8156,24 @@ function applySaveState(save){
       MAP[td.r][td.c]={t:td.t,bld:td.bld||null,decor:td.decor||null};
   }
   if(save.player){PL.x=save.player.x||PL.x;PL.y=save.player.y||PL.y;PL.dir=save.player.dir||2;}
+  // Reset transient tile flags that don't survive save/load
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(MAP[r]&&MAP[r][c]) MAP[r][c]._falling=false;
+  }
+  // Reset deer - respawnT is epoch-based, reset dead ones to respawn soon after load
+  for(const d of DEER){
+    if(!d.alive) d.respawnT=Date.now()+5000+Math.random()*10000;
+  }
+  for(const npc of NPCS){
+    npc._dx=0; npc._dy=0; npc._working=false;
+    npc._logState='find_tree'; npc._targetTreeC=undefined; npc._targetTreeR=undefined;
+    npc._chopHits=0; npc._fallTimer=0; npc._mineTimer=0; npc._plantTimer=0;
+    npc._logZoneEmpty=false; npc._wt=0; npc._ft=0; npc._fr=0;
+  }
+  // Reset building transient flags
+  for(const b of G.bld){
+    b._noDepWarn=false; b._noStockWarn=false; b._chainBlocked=false;
+  }
   _worldDirty=true; WC_=null;
   correctNPCJobs(); // fix any wrong job assignments from old saves
   // Re-sync NPC jobs from bldWorkers (fixes jobs assigned with old jobMap)
@@ -8364,7 +8450,8 @@ function launchGame(doGenMap){
   setTimeout(()=>{
     if(!musicOn){
       initAudio();
-      if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
+      if(!audioCtx||!masterGain) return; // audio init failed, skip
+      if(audioCtx.state==='suspended') audioCtx.resume();
       musicOn=true;
       const btn=document.getElementById('tb-music');
       if(btn){btn.textContent='🔇';btn.classList.add('on');}
@@ -9710,6 +9797,7 @@ function drawTravelingTrader(tr){
 
 function toggleMusic(){
   initAudio();
+  if(!audioCtx||!masterGain) return; // audio not available
   if(audioCtx.state==='suspended') audioCtx.resume();
   musicOn=!musicOn;
   const btn=document.getElementById('tb-music');
