@@ -580,6 +580,7 @@ let _gameStarted=false; // set true when game launches from title screen
 let _screenShake=0;  // frames remaining of shake
 let _particles=[];   // [{x,y,vx,vy,life,maxLife,color,size,type}]
 let _showFertility=false;
+let _minimapFrame=0;
 let _worldDirty=true;
 let isDragging=false,dragMode='';
 let _byHouseId=null;
@@ -931,7 +932,7 @@ const BD={
   corral:    {n:'Corral',   e:'🐃',d:'House buffalo to speed up material transport.', cost:{wood:25,stone:10}, ml:2, cat:'work',
               lvDesc:{1:'1 buffalo slot.',2:'3 buffalo slots.'}},
   sheep_farm:{n:'Sheep Farm',e:'🐑',d:'Dedicated sheep farm. Produces wool & meat.', cost:{wood:35,stone:15}, ml:2, cat:'food',
-              pr:{wool:2,meat:1}, lvDesc:{1:'Small flock.',2:'Large flock.'}},
+              lvDesc:{1:'Small flock.',2:'Large flock.'}},
   weaver_wk: {n:'Weaver Workshop',e:'🧶',d:'Turns wool into cloth. Needs workers.', cost:{wood:25,stone:10}, ml:2, cat:'work',
               chain:{input:{wool:2},output:{cloth:1},workers:2}, lvDesc:{1:'1 loom.',2:'3 looms.'}},
   // ── STALLS (prerequisite for house upgrade) ──
@@ -3738,12 +3739,12 @@ function jobOutput(jobId){
   if(!j||!Object.keys(j.prod).length)return{prod:{},active:false,missing:null};
   // check required building
   if(j.req){
-    const has=G.bld.some(b=>b.type===j.req);
+    const has=G.bld.some(b=>b.type===j.req&&!b.under_construction);
     if(!has)return{prod:{},active:false,missing:BD[j.req]?.n||j.req};
   }
   // compute output with multiplier
   const mul=G.season===3?.65:G.season===1?1.15:1;
-  const hasMult=j.mult&&G.bld.some(b=>b.type===j.mult);
+  const hasMult=j.mult&&G.bld.some(b=>b.type===j.mult&&!b.under_construction);
   const prod={};
   for(const[r,v]of Object.entries(j.prod))prod[r]=Math.round(v*mul*(hasMult?1.5:1));
   return{prod,active:true,missing:null};
@@ -4304,8 +4305,8 @@ function openTradePanel(bldId){
 // ─── PRODUCTION ───
 function doProd(){
   const mul=G.season===3?0.7:G.season===1?1.2:1;
-  const wm=G.bld.some(b=>b.type==='mill')?1.5:1;
-  const saw=G.bld.some(b=>b.type==='sawmill')?1.5:1;
+  const wm=G.bld.some(b=>b.type==='mill'&&!b.under_construction)?1.5:1;
+  const saw=G.bld.some(b=>b.type==='sawmill'&&!b.under_construction)?1.5:1;
 
   // House needs consumption
   let foodNeed=0,coalNeed=0,clothNeed=0,beerNeed=0;
@@ -4516,7 +4517,7 @@ function doProd(){
 
   // Chain production (bakery, malthouse, ironworks)
   for(const b of G.bld){
-    const d=BD[b.type];if(!d.chain)continue;
+    const d=BD[b.type];if(!d||!d.chain)continue;
     if(b.under_construction) continue; // not ready yet
     const maxW=BLD_WORKERS[b.type]||d.chain.workers||2;
     const workerNames=(G.bldWorkers[b.id]||[]).filter(n=>n);
@@ -4533,7 +4534,7 @@ function doProd(){
 
   // Simple production
   for(const b of G.bld){
-    const d=BD[b.type];if(!d.pr)continue;
+    const d=BD[b.type];if(!d||!d.pr)continue;
     if(b.under_construction) continue; // not ready yet
     const maxW=BLD_WORKERS[b.type]||0;
     const workerNames=maxW>0?(G.bldWorkers[b.id]||[]).filter(n=>n):[];
@@ -4665,6 +4666,7 @@ function swBPTab(cat, el){
 
 function togglePause(){
   G.paused=!G.paused;
+  if(G.paused) keys.clear(); // prevent ghost movement on resume
   const btn=document.getElementById('tb-pause');
   if(btn)btn.textContent=G.paused?'▶':'⏸';
   notify(G.paused?'⏸ Paused':'▶ Resumed', 'ok');
@@ -4972,7 +4974,7 @@ function findJobLocation(job,npcIdx){
   if(job==='hunter'){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
-        const bld=G.bld.find(b=>b.id===+bldId&&b.type==='hunting');
+        const bld=G.bld.find(b=>b.id===+bldId&&b.type==='hunting'&&!b.under_construction);
         if(bld)return{x:bld.col*TS+TS/2,y:(bld.row+1)*TS+TS/2};
       }
     }
@@ -5002,7 +5004,7 @@ function findJobLocation(job,npcIdx){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
         const b=G.bld.find(b=>b.id===+bldId&&
-          ['food_stall','fuel_stall','clothing_stall'].includes(b.type));
+          ['food_stall','fuel_stall','clothing_stall'].includes(b.type)&&!b.under_construction);
         // Stand behind counter — slightly back (north) of tile center
         if(b) return{x:b.col*TS+TS/2, y:b.row*TS+TS*0.35};
       }
@@ -5015,7 +5017,7 @@ function findJobLocation(job,npcIdx){
     let mineBld=null;
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
-        const b=G.bld.find(b=>b.id===+bldId&&['coalmine','ironmine','quarry'].includes(b.type));
+        const b=G.bld.find(b=>b.id===+bldId&&['coalmine','ironmine','quarry'].includes(b.type)&&!b.under_construction);
         if(b){mineBld=b;break;}
       }
     }
@@ -5047,7 +5049,7 @@ function findJobLocation(job,npcIdx){
     let farmBld=null;
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
-        const b=G.bld.find(b=>b.id===+bldId&&b.type==='farm');
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='farm'&&!b.under_construction);
         if(b){farmBld=b;break;}
       }
     }
@@ -5072,7 +5074,7 @@ function findJobLocation(job,npcIdx){
   if(job==='planter'){
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
-        const b=G.bld.find(b=>b.id===+bldId&&b.type==='forest_hut');
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='forest_hut'&&!b.under_construction);
         if(b){
           // Find nearest grass tile adjacent to forest (good planting spot)
           const oc=b.col, or2=b.row;
@@ -5116,7 +5118,7 @@ function findJobLocation(job,npcIdx){
     let loggerBld=null;
     for(const[bldId,workers]of Object.entries(G.bldWorkers)){
       if(workers&&workers.includes(npc.name)){
-        const b=G.bld.find(b=>b.id===+bldId&&b.type==='logger');
+        const b=G.bld.find(b=>b.id===+bldId&&b.type==='logger'&&!b.under_construction);
         if(b){loggerBld=b;break;}
       }
     }
@@ -5240,6 +5242,25 @@ function wanderNPCs(){
               if(Math.random()<0.001) npc.dir=Math.floor(Math.random()*4);
             } else if(job==='planter'){
               doPlantingWork(npc);
+            } else if(job==='fisher'){
+              // Fisher: catch fish periodically when near water
+              npc._fishTimer=(npc._fishTimer||0)+1;
+              if(npc._fishTimer>=300){ // catch every ~5 seconds
+                npc._fishTimer=0;
+                const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+                let nearWater=false;
+                for(let dr=-2;dr<=2&&!nearWater;dr++) for(let dc=-2;dc<=2&&!nearWater;dc++){
+                  const tr=nr2+dr,tc=nc2+dc;
+                  if(tr>=0&&tr<WR&&tc>=0&&tc<WC&&MAP[tr]&&MAP[tr][tc]&&MAP[tr][tc].t===T.WATER) nearWater=true;
+                }
+                if(nearWater){
+                  const caught=1+Math.floor(Math.random()*2);
+                  addR('fish',caught);
+                  addR('food',caught);
+                  if(Math.random()<0.3) notify(`🎣 ${npc.name} caught ${caught} fish!`,'ok');
+                  updateUI();
+                }
+              }
             } else if(job==='gatherer'){
               // Find and harvest nearby berry bushes
               npc._gatherTimer=(npc._gatherTimer||0)+1;
@@ -6096,8 +6117,8 @@ function render(){
     }
   }
 
-  // Minimap
-  if(MMCV){
+  // Minimap — throttled (render every 30 frames or when world changes)
+  if(MMCV&&((_minimapFrame=((_minimapFrame||0)+1))%30===0||_worldDirty)){
     const mctx=MMCV.getContext('2d');
     const mw=MMCV.width,mh=MMCV.height,tw=mw/WC,th=mh/WR;
     mctx.fillStyle='#1a2e10';mctx.fillRect(0,0,mw,mh);
@@ -6567,6 +6588,8 @@ function setByard(type){
   // Confirm if replacing existing backyard
   if(bld.backyard&&bld.backyard.type!==type){
     const old=BYARD[bld.backyard.type];
+    if(!old){bld.backyard=null;} // stale backyard type, clear it silently
+    else{
     openDlg('Replace Backyard?',
       'Backyard '+old.e+' '+old.n+' will be removed (no materials returned).',
       [{l:'✓ Yes, replace',cls:'ok',fn:()=>{
@@ -6577,6 +6600,8 @@ function setByard(type){
         renderByPanel();updateUI();closeDialog();
       }},{l:'✗ Cancel',cls:'',fn:closeDialog}]
     );
+    return;
+    }
     return;
   }
   pay(by.cost);
@@ -6647,8 +6672,9 @@ function updateMarket(){
 
   for(const stallType of ['food_stall','fuel_stall','clothing_stall']){
     const def=STALL_DEFS[stallType];
+    if(!def) continue;
     // Find stall buildings with workers
-    const stalls=G.bld.filter(b=>b.type===stallType);
+    const stalls=G.bld.filter(b=>b.type===stallType&&!b.under_construction);
     for(const stall of stalls){
       const workers=(G.bldWorkers[stall.id]||[]).filter(n=>n);
       if(!workers.length) continue;
@@ -6664,7 +6690,7 @@ function updateMarket(){
         const avail=G.res[res]||0;
         if(avail>0){
           const take=Math.min(avail, 5*workers.length);
-          G.res[res]=avail-take;
+          G.res[res]=Math.max(0,avail-take);
           drawn+=take;
           // Count variety for food and clothing
           if(need==='food'&&res!=='food') G.market.food.variety++;
@@ -6687,7 +6713,7 @@ function updateMarket(){
     // Food from market
     const foodNeed=lvl*residents;
     if(inRange&&G.market.food.stock>=foodNeed){
-      G.market.food.stock-=foodNeed;
+      G.market.food.stock=Math.max(0,(G.market.food.stock||0)-foodNeed);
       house._mktFood=true;
       // Variety bonus to happiness
       if(G.market.food.variety>=3) G.happy=Math.min(100,G.happy+1);
@@ -6699,7 +6725,7 @@ function updateMarket(){
     // Fuel from market
     const fuelNeed=lvl;
     if(inRange&&G.market.fuel.stock>=fuelNeed){
-      G.market.fuel.stock-=fuelNeed;
+      G.market.fuel.stock=Math.max(0,(G.market.fuel.stock||0)-fuelNeed);
       house._mktFuel=true;
     } else {
       house._mktFuel=false;
@@ -6710,7 +6736,7 @@ function updateMarket(){
     if(lvl>=2){
       const clothNeed=residents;
       if(inRange&&G.market.clothing.stock>=clothNeed){
-        G.market.clothing.stock-=clothNeed;
+        G.market.clothing.stock=Math.max(0,(G.market.clothing.stock||0)-clothNeed);
         house._mktCloth=true;
         if(G.market.clothing.variety>=2) G.happy=Math.min(100,G.happy+1);
       } else {
@@ -6824,6 +6850,7 @@ window.addEventListener('keydown',e=>{
   if(e.key===' ')e.preventDefault();
 });
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur',()=>keys.clear()); // clear all keys when window loses focus
 
 function loop(now){
   const dt=Math.min(now-lastT,50);lastT=now;
@@ -8179,10 +8206,15 @@ function applySaveState(save){
     npc._logState='find_tree'; npc._targetTreeC=undefined; npc._targetTreeR=undefined;
     npc._chopHits=0; npc._fallTimer=0; npc._mineTimer=0; npc._plantTimer=0;
     npc._logZoneEmpty=false; npc._wt=0; npc._ft=0; npc._fr=0;
+    npc._gatherTimer=0; npc._fishTimer=0; npc._huntTimer=0;
+    npc._logZone=null; npc._chopTimer=0; npc._stuckCheck=0;
+    npc._prevX=undefined; npc._prevY=undefined;
+    npc._mineTargetC=undefined; npc._mineTargetR=undefined;
   }
   // Reset building transient flags
   for(const b of G.bld){
     b._noDepWarn=false; b._noStockWarn=false; b._chainBlocked=false;
+    b._noOreWarn=false; b._noAleWarn=false;
   }
   _worldDirty=true; WC_=null;
   correctNPCJobs(); // fix any wrong job assignments from old saves
@@ -9027,6 +9059,8 @@ function updateBuffalo(){
       if(dist>4){
         buf.vx=(dx/dist)*spd; buf.vy=(dy/dist)*spd;
         buf.x+=buf.vx; buf.y+=buf.vy;
+        buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
+        buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
         if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
         if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
         buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
@@ -9083,6 +9117,8 @@ function updateBuffalo(){
       }
       if(buf.vx||buf.vy){
         buf.x+=buf.vx;buf.y+=buf.vy;
+        buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
+        buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
         buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
         if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
         if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
@@ -9233,6 +9269,8 @@ function updateHorses(){
       if(dist>4){
         h.vx=(dx/dist)*spd;h.vy=(dy/dist)*spd;
         h.x+=h.vx;h.y+=h.vy;
+        h.x=Math.max(TS,Math.min(h.x,(WC-1)*TS));
+        h.y=Math.max(TS,Math.min(h.y,(WR-1)*TS));
         h.ft=(h.ft||0)+1;if(h.ft>5){h.ft=0;h.fr=(h.fr||0)+1;}
         if(h.vx<-0.2)h.dir=3;else if(h.vx>0.2)h.dir=1;
         if(h.vy<-0.2)h.dir=0;else if(h.vy>0.2)h.dir=2;
