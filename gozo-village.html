@@ -784,7 +784,7 @@ function checkPopGrowth(){
         age:ADULT_DAYS+Math.floor(Math.random()*720),familyId:newFamilyId,pregnant:0,houseId:house.id});
       FAMILIES.push({id:newFamilyId,houseId:house.id,husbandName:mName,wifeName:fName});
       notify(`🏠 New family moved in! ${mName} & ${fName}`,'ok');
-    } else if(residents.length===1&&!residents[0].female){
+    } else if(residents.length===1&&!residents[0].female&&isAdult(residents[0])){
       // Single man — a woman moves in
       const fName=uniqueName(true);
       NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,72%)`,job:null,female:true,
@@ -2110,9 +2110,9 @@ function bCampfire(cx,bot,lv){
   // "Campfire" label
   X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-24,bot-52,48,11);
   X.fillStyle='#f0a030';X.font='bold 7px monospace';X.textAlign='center';X.fillText('CAMPFIRE',cx,bot-43);
-  // Capacity indicator
-  const campfireBld=G.bld.find(b=>b.type==='campfire');
-  const campers=campfireBld?NPCS.filter(n=>n.houseId===campfireBld.id).length:0;
+  // Capacity indicator — count NPCs whose houseId matches any campfire
+  const campfireIds=new Set(G.bld.filter(b=>b.type==='campfire').map(b=>b.id));
+  const campers=NPCS.filter(n=>campfireIds.has(n.houseId)).length;
   X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-16,bot-42,32,10);
   X.fillStyle='#f0d060';X.font='7px monospace';X.textAlign='center';X.fillText(`${campers}/6`,cx,bot-34);
 }
@@ -3930,12 +3930,13 @@ function hasStorageWorker(resType){
   // Check if granary or storehouse has a worker assigned for given resource type
   const isFood=GRANARY_RES.includes(resType);
   const storageType=isFood?'granary':'storehouse';
-  const stores=G.bld.filter(b=>b.type===storageType);
+  const stores=G.bld.filter(b=>b.type===storageType&&!b.under_construction);
+  if(!stores.length) return true; // no storage building present — allow production anyway
   for(const s of stores){
     const workers=(G.bldWorkers[s.id]||[]).filter(n=>n);
     if(workers.length>0)return true;
   }
-  return true; // fallback: allow production if no storage building present
+  return false; // storage buildings exist but none have workers
 }
 
 // ─── NOTIFY ───
@@ -4128,7 +4129,7 @@ function tick(){
         if(bld.build_ticks_left<=0){
           bld.under_construction=false;
           delete bld.build_ticks_left; delete bld.build_ticks_total;
-          notify('✅ '+BD[bld.type].n+' construction complete!','ok');
+          notify('✅ '+(BD[bld.type]?.n||bld.type)+' construction complete!','ok');
           spawnParticles(bld.col*TS+TS/2,bld.row*TS,'build',14);
           rebuildTile(bld.col,bld.row);
           updateUI();
@@ -4231,7 +4232,7 @@ function doFarmProd(){
   const season=getSeason();
   const mul=season===3?0.5:season===1?1.3:1.0;
   for(const field of G.fields){
-    const farm=G.bld.find(b=>b.id===field.farmId&&b.type==='farm');
+    const farm=G.bld.find(b=>b.id===field.farmId&&b.type==='farm'&&!b.under_construction);
     const farmLv=farm?farm.lv:1;
     const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
     if(crop.plant===-1){ field.growStage=0; continue; } // fallow
@@ -4321,7 +4322,7 @@ function doProd(){
     beerNeed+=Math.ceil((needs.beer||0)*residents);
   }
   // Campfire/homeless settlers also need food (0.3 per person per tick)
-  const homelessNPCs=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'));
+  const homelessNPCs=NPCS.filter(n=>isAdult(n)&&!G.bld.find(b=>b.id===n.houseId&&b.type==='house'&&!b.under_construction));
   foodNeed+=Math.ceil(homelessNPCs.length*0.3);
   // Fish + berry also count as food — use in order: berry, fish, then food
   const totalFood=(G.res.food||0)+(G.res.fish||0)+(G.res.berry||0);
@@ -4348,7 +4349,7 @@ function doProd(){
   // Tax — split between Regional Wealth (city) and Treasury (lord)
   let taxTotal=0;
   for(const b of G.bld){
-    if(b.type!=='house')continue;
+    if(b.type!=='house'||b.under_construction)continue;
     const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
     taxTotal+=(BD.house.tax[b.lv]||1)*(workers>0?1:0.5);
   }
@@ -4676,8 +4677,8 @@ function showNPCDlg(npc){
   const ageYears=Math.floor(npc.age/90);
   const job=JOBS[npc.job||'idle']?.n||'Idle';
   const jobE=JOBS[npc.job||'idle']?.e||'😴';
-  const house=G.bld.find(b=>b.id===npc.houseId);
-  const houseInfo=house?`${BD[house.type]?.n||'House'} Lv.${house.lv}`:'Sleeping at campfire';
+  const house=G.bld.find(b=>b.id===npc.houseId&&(b.type==='house'||b.type==='campfire'));
+  const houseInfo=house?(house.under_construction?'🔨 House under construction':`${BD[house.type]?.n||'House'} Lv.${house.lv}`):'Sleeping at campfire';
   const pregInfo=npc.pregnant>0?` | 🤰 ${Math.floor(npc.pregnant/PREG_DAYS*100)}% pregnant`:'';
   const sickInfo=npc.sick?' | 🤒 Sick':'';
   const moodE=(npc.mood||G.happy)>=70?'😊':(npc.mood||G.happy)>=40?'😐':'😞';
@@ -4769,7 +4770,8 @@ function tryPlaceBuilding(c,r){
 }
 
 function showBldDlg(bld,c,r){
-  const d=BD[bld.type];
+  const d=BD[bld.type]||{n:bld.type,cost:{},ml:1};
+  if(!d){return;} // unknown building type
   // Show construction status if still building
   if(bld.under_construction){
     const total=bld.build_ticks_total||1;
@@ -4787,7 +4789,7 @@ function showBldDlg(bld,c,r){
   const btns=[];
   let extraInfo='';
   if(BD[bld.type]?.chain){
-    const ch=BD[bld.type].chain;
+    const ch=BD[bld.type]?.chain;
     const inputs=Object.entries(ch.input||{}).map(([k,v])=>k+':'+(G.res[k]||0)+'/'+v).join(', ');
     const outputs=Object.keys(ch.output||{}).join(', ');
     extraInfo+=bld._chainBlocked?'\n⛔ BLOCKED — insufficient input: '+inputs:'\n✅ Running: '+inputs+' → '+outputs;
@@ -4867,6 +4869,7 @@ function showBldDlg(bld,c,r){
 }
 function doUpgrade(bld,c,r){
   const d=BD[bld.type];
+  if(!d){notify('Unknown building type!','err');return;}
   const nextLv=bld.lv+1;
   if(bld.lv>=(d.ml||3)){notify('Max level!','warn');closeDialog();return;}
 
@@ -4904,7 +4907,7 @@ function doUpgrade(bld,c,r){
   _worldDirty=true;
 }
 function doDemolish(bld,c,r){
-  const d=BD[bld.type];
+  const d=BD[bld.type]||{n:bld.type,cost:{}};
   openDlg('Demolish '+d.n+'?','50% materials returned.',[
     {l:'✓ Yes',cls:'bad',fn:()=>{
       for(const[k,v]of Object.entries(d.cost))addR(k,Math.floor(v*.5));
@@ -4930,6 +4933,11 @@ function doDemolish(bld,c,r){
         }
       }
       delete G.bldWorkers[bld.id];
+      // Clean up fields orphaned from demolished farm
+      if(bld.type==='farm'){
+        G.fields=G.fields.filter(f=>f.farmId!==bld.id);
+        _worldDirty=true;
+      }
       rebuildTile(c,r);
       notify('🗑 '+d.n+' demolished','warn');
       closeDialog();closeBldWorker();closeByPanel();closeTradePanel();upPop();updateUI();
@@ -5486,8 +5494,8 @@ function wanderNPCs(){
       const canEnterForest=(npc.job==='hunter'||npc.job==='logger'||npc.job==='planter');
       const tile_=c>=0&&c<WC&&r>=0&&r<WR?MAP[r][c]:null;
       // NPC can pass through their own home tile OR assigned stall
-      const myStallId=npc.job==='vendor'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&['food_stall','fuel_stall','clothing_stall'].includes(b.type)))?.[0]:null;
-      const mySmelterId=npc.job==='smelter'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&b.type==='smelter'))?.[0]:null;
+      const myStallId=npc.job==='vendor'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&['food_stall','fuel_stall','clothing_stall'].includes(b.type)&&!b.under_construction))?.[0]:null;
+      const mySmelterId=npc.job==='smelter'?Object.entries(G.bldWorkers).find(([id,w])=>w&&w.includes(npc.name)&&G.bld.find(b=>b.id===+id&&b.type==='smelter'&&!b.under_construction))?.[0]:null;
       const bldOk=t=>!t.bld||(npc.houseId&&t.bld.id===npc.houseId)||(myStallId&&t.bld.id===+myStallId)||(mySmelterId&&t.bld.id===+mySmelterId);
       const tileOk=tile_&&tile_.t!==T.WATER&&bldOk(tile_)&&(canEnterForest||(tile_.t!==T.FOREST&&!(tile_.decor==='tree'||tile_.decor==='rock')));
       if(tileOk){npc.x=nx;npc.y=ny;}
@@ -5507,7 +5515,7 @@ function wanderNPCs(){
             npc.y+=((Math.random()-0.5)*4);
           } else {
             // Teleport slightly outside home tile to unstick
-            const hb=G.bld.find(b=>b.id===npc.houseId);
+            const hb=G.bld.find(b=>b.id===npc.houseId&&!b.under_construction);
             if(hb){npc.x=hb.col*TS+TS/2;npc.y=(hb.row+1)*TS+TS/2;}
           }
           npc._dx=0;npc._dy=0;
@@ -6332,7 +6340,7 @@ function openBldWorker(bldId){
   if(!bld) return;
   const maxW=BLD_WORKERS[bld.type]||0;
   if(!maxW) return;
-  const d=BD[bld.type];
+  const d=BD[bld.type]||{e:'🏢',n:bld.type};
   document.getElementById('bldworker-name').textContent=(d.e||'🏢')+' '+d.n+' — Workers';
   document.getElementById('bldworker-info').textContent=
     `Capacity: ${maxW} workers | Location: (${bld.col},${bld.row}) | Lv.${bld.lv}`;
@@ -6477,7 +6485,7 @@ function renderByPanel(){
   const upReq=BD.house.upReq?.[nextLv];
   if(upReq&&bld.lv<(BD.house.ml||3)){
     const checks=Object.entries(upReq).map(([k,v])=>{
-      const has=G.bld.some(b=>b.type===k);
+      const has=G.bld.some(b=>b.type===k&&!b.under_construction);
       return `${has?'✅':'❌'} ${BD[k]?.n||k}`;
     });
     const upCost=BD.house.upCost?.[nextLv]||{};
@@ -6502,6 +6510,8 @@ function renderByPanel(){
   activeRow.style.cssText='padding:8px 10px;';
   if(bld.backyard){
     const by=BYARD[bld.backyard.type];
+    if(!by){bld.backyard=null;} // stale type, clear silently
+    else{
     const prod=Object.entries(by.prod).map(([k,v])=>resIcons[k]+'+'+v).join(' ');
     // Progress within current production cycle (timer resets after each cycle)
     const rawTimer=bld.backyard.timer||0;
@@ -6518,6 +6528,7 @@ function renderByPanel(){
       +'<div style="font-size:10px;color:#606050">Total produced: '+totalProd+' times</div>'
       +'<div class="byprog" style="margin-top:3px;width:140px"><div class="byprog-bar" style="width:'+pct+'%"></div></div>'
       +'</div><button onclick="removeByard()" style="margin-left:8px;padding:3px 7px;background:#200808;border:1px solid #802020;color:#c04040;font-size:10px;cursor:pointer">🗑 Demolish</button></div>';
+    }
   } else {
     activeRow.innerHTML='<div style="font-size:11px;color:#806040">None yet — select from the list below</div>';
   }
@@ -6620,6 +6631,7 @@ function removeByard(){
   const bld=G.bld.find(b=>b.id===_byHouseId);
   if(!bld||!bld.backyard) return;
   const by=BYARD[bld.backyard.type];
+  if(!by){bld.backyard=null;renderByPanel();return;} // stale type
   openDlg('Demolish '+by.n+'?','No materials returned.',
     [{l:'✓ Yes',cls:'bad',fn:()=>{
       bld.backyard=null;
@@ -6637,7 +6649,7 @@ function tryUpgradeHouse(bldId){
   const upReq=BD.house.upReq?.[nextLv]||{};
   // Check building requirements
   for(const[k]of Object.entries(upReq)){
-    if(!G.bld.some(b=>b.type===k)){
+    if(!G.bld.some(b=>b.type===k&&!b.under_construction)){
       notify('Need '+(BD[k]?.n||k)+' in village first!','err'); return;
     }
   }
@@ -6655,7 +6667,7 @@ function tryUpgradeHouse(bldId){
   const materialCost={...upgCost};delete materialCost.regional_wealth;
   if(!canAff(materialCost)){ notify('Not enough materials: '+Object.entries(materialCost).map(([k,v])=>k+':'+v).join(', '),'err'); return; }
   pay(materialCost);
-  G.res.regional_wealth=(G.res.regional_wealth||0)-rwNeeded;
+  G.res.regional_wealth=Math.max(0,(G.res.regional_wealth||0)-rwNeeded);
   rwLog(`🏠 House Lv.${nextLv} upgrade: -${rwNeeded} RW`);
   bld.lv=nextLv;
   notify('🏠 House Lv.'+nextLv+'! '+BD.house.lvDesc[nextLv],'ok');
@@ -6763,7 +6775,7 @@ function updateMarket(){
 function doByardProd(){
   const mul=G.season===3?.7:G.season===1?1.2:1;
   for(const bld of G.bld){
-    if(bld.type!=='house'||!bld.backyard) continue;
+    if(bld.type!=='house'||bld.under_construction||!bld.backyard) continue;
     const by=BYARD[bld.backyard.type];
     if(!by) continue;
 
@@ -7322,7 +7334,7 @@ function renderEconomyPanel(){
   // Sources breakdown
   const houses=G.bld.filter(b=>b.type==='house');
   const hTax=houses.reduce((s,b)=>s+(BD.house.tax[b.lv]||1),0);
-  const tradeTP=G.bld.filter(b=>b.type==='tradingpost').length;
+  const tradeTP=G.bld.filter(b=>b.type==='tradingpost'&&!b.under_construction).length;
   const rwSrc=document.getElementById('ep-rw-sources');
   if(rwSrc) rwSrc.innerHTML=
     `🏠 House tax: ~${Math.round(hTax*0.6)}/cycle<br>`+
@@ -7979,7 +7991,7 @@ function doExportNow(res){
   const have=G.res[res]||0;
   if(have<g.minQty){notify(`Need ${g.minQty} ${g.label} to export!`,'err');return;}
   // Check worker
-  const tpWorkers=G.bld.filter(b=>b.type==='tradingpost').reduce((s,b)=>s+(G.bldWorkers[b.id]||[]).filter(n=>n).length,0);
+  const tpWorkers=G.bld.filter(b=>b.type==='tradingpost'&&!b.under_construction).reduce((s,b)=>s+(G.bldWorkers[b.id]||[]).filter(n=>n).length,0);
   if(tpWorkers===0){notify('Assign a worker to Trading Post first!','warn');return;}
   G.res[res]=Math.max(0,have-g.minQty);
   const price=getTradePrice(res,'export');
@@ -8162,6 +8174,8 @@ function applySaveState(save){
   G.fields=(save.fields||[]).map(f=>({...f}));
   G.farmStats=save.farmStats||{totalHarvests:0,failedHarvests:0};
   G.marketZones=JSON.parse(JSON.stringify(save.marketZones||[]));
+  // Ensure each zone has stalls array (old saves may not)
+  for(const z of G.marketZones){ if(!z.stalls) z.stalls=[]; }
   G.farmZones=JSON.parse(JSON.stringify(save.farmZones||[]));
   G.tradeRoutes=JSON.parse(JSON.stringify(save.tradeRoutes||{}));
   G.tradeQueue=JSON.parse(JSON.stringify(save.tradeQueue||[]));
@@ -8215,6 +8229,7 @@ function applySaveState(save){
   for(const b of G.bld){
     b._noDepWarn=false; b._noStockWarn=false; b._chainBlocked=false;
     b._noOreWarn=false; b._noAleWarn=false;
+    if(b.backyard){ b.backyard._reqWarn=false; b.backyard._hungryWarn=false; }
   }
   _worldDirty=true; WC_=null;
   correctNPCJobs(); // fix any wrong job assignments from old saves
@@ -8626,8 +8641,9 @@ let G_activeQuests=[];
 // Called from doProd every ~10 days
 function checkRandomEvent(){
   if(G_activeDisaster) return; // one disaster at a time
-  if(G.day<20) return; // grace period at start
-  const chance=0.04+(G.day/1000); // increases over time
+  if(G.day<20&&G.yr<=1&&G.season===0) return; // grace period at start of game only
+  const totalDays=((G.yr-1)*360)+(G.season*90)+G.day;
+  const chance=0.04+(totalDays/1000); // increases over time
   if(Math.random()>chance) return;
   const d=DISASTERS[Math.floor(Math.random()*DISASTERS.length)];
   triggerDisaster(d);
@@ -8852,7 +8868,7 @@ function updateNPCStats(){
       if(G.res.food>20&&Math.random()<0.1) npc.sick=false; // recover if fed
     }
     // Individual mood based on house level and food
-    const housed=G.bld.find(b=>b.id===npc.houseId&&b.type==='house');
+    const housed=G.bld.find(b=>b.id===npc.houseId&&b.type==='house'&&!b.under_construction);
     npc.mood=housed?Math.min(100,(G.happy+10)):Math.max(0,G.happy-20);
   }
   // Remove dead NPCs
@@ -8869,6 +8885,10 @@ function updateNPCStats(){
     for(const fam of FAMILIES){
       if(fam.husbandName===dead.name) fam.husbandName=null;
       if(fam.wifeName===dead.name) fam.wifeName=null;
+    }
+    // Clean up empty FAMILIES entries
+    for(let fi=FAMILIES.length-1;fi>=0;fi--){
+      if(!FAMILIES[fi].husbandName&&!FAMILIES[fi].wifeName) FAMILIES.splice(fi,1);
     }
     G.happy=Math.max(10,G.happy-5);
   }
@@ -8887,7 +8907,7 @@ function getSeasonOverlay(){
 }
 
 function drawSeasonParticles(){
-  if(!_gameStarted||!G.season) return;
+  if(!_gameStarted||G.season===undefined) return;
   const t=Date.now()/1000;
   if(G.season===3){ // winter snow
     for(let i=0;i<12;i++){
