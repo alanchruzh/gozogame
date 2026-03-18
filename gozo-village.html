@@ -1305,13 +1305,21 @@ function getBaseColor(type,g){
 }
 
 // animated water — only repaints water tiles
+let _waterTilesCache=null;
+function getWaterTiles(){
+  if(_waterTilesCache) return _waterTilesCache;
+  _waterTilesCache=[];
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.WATER) _waterTilesCache.push({r,c});
+  }
+  return _waterTilesCache;
+}
+
 function animateWater(){
   if(!WC_)return;
   const W=WC_.getContext('2d');
   const t=Date.now()/1000;
-  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
-    if(!MAP[r]||!MAP[r][c])continue;
-    if(MAP[r][c].t!==T.WATER)continue;
+  for(const{r,c} of getWaterTiles()){
     const v=sh(c,r),g=v*10|0,sx=c*TS,sy=r*TS;
     // Deeper, calmer lake water color (less blue-grey than river)
     const w=Math.sin(t*0.6+c*0.4+r*0.3)*0.5;
@@ -1388,6 +1396,7 @@ function genMap(){
   _depositNotified=new Set();
   TRAVELING_TRADERS=[];
   _waterSpots=null; // reset so fisher recalculates lake spots
+  _waterTilesCache=null; // reset water animation cache
   G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
@@ -4183,7 +4192,7 @@ function tick(){
     updateUI();
   }
   if(G.hr>=24){G.hr=0;G.day++;G.ticks++;if(G.ticks%2===0)doProd();
-    if(G.day>90){G.day=1;G.season=(G.season+1)%4;}if(G.day>360){G.day=1;G.yr++;}
+    if(G.day>90){G.day=1;G.season=(G.season+1)%4;if(G.season===0)G.yr++;}
   }
   const _tl=document.getElementById('timelbl');if(_tl)_tl.textContent='Day '+G.day;
   const _tl2=document.getElementById('timelbl2');if(_tl2)_tl2.textContent=String(G.hr).padStart(2,'0')+':'+String(Math.floor(G.mn)).padStart(2,'0');
@@ -5388,7 +5397,7 @@ function wanderNPCs(){
                       const key=tc+','+tr;
                       const dep=DEPOSIT_STATE[key];
                       // Check if this miner's building is deep mining (Lv.3)
-                      const minerBld=G.bld.find(b=>(b.type==='coalmine'||b.type==='ironmine')&&b._deepMining&&
+                      const minerBld=G.bld.find(b=>(b.type==='coalmine'||b.type==='ironmine')&&b.lv>=3&&
                         Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y)<TS*8);
                       const isDeep=!!minerBld;
                       if(dep&&dep.depleted&&!isDeep) continue;
@@ -8149,6 +8158,7 @@ function applySaveState(save){
   G_disasterTimer=save.disasterTimer||0;
   // Fix 4: Reset water spots cache so fisher recalculates positions
   _waterSpots=null;
+  _waterTilesCache=null; // reset water animation cache
   if(save.mainRoadEntry) MAIN_ROAD_ENTRY={...save.mainRoadEntry};
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
   for(const td of (save.mapData||[])){
@@ -8443,6 +8453,7 @@ function startNewGame(){
 }
 
 function launchGame(doGenMap){
+  if(_gameStarted&&doGenMap) return; // prevent double-launch on fast clicks
   _gameStarted=true;
   G.paused=false;
 
@@ -8706,7 +8717,7 @@ const QUEST_POOL=[
   {id:'q_house3',  title:'Build 3 Houses',     desc:'House 3 families.',           check:()=>G.bld.filter(b=>b.type==='house'&&!b.under_construction).length>=3, reward:{gold:30,wood:20}, icon:'🏠'},
   {id:'q_pop10',   title:'Grow to 10 People',  desc:'Reach 10 villagers.',         check:()=>NPCS.length>=10,       reward:{gold:50,regional_wealth:30}, icon:'👥'},
   {id:'q_farm',    title:'First Harvest',      desc:'Harvest 30 food from farms.', check:()=>(G.farmStats?.totalHarvests||0)>=5, reward:{gold:15,food:30}, icon:'🚜'},
-  {id:'q_road',    title:'Road Builder',       desc:'Place 10 road tiles.',        check:()=>G.bld.filter(b=>b.type==='road').length>=10||[...Array(WR)].reduce((s,_,r)=>[...Array(WC)].reduce((ss,__,c)=>ss+(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.PATH?1:0),s),0)>=10, reward:{stone:20,gold:10}, icon:'🛣️'},
+  {id:'q_road',    title:'Road Builder',       desc:'Place 10 road tiles.',        check:()=>{let n=0;for(let r=0;r<WR;r++){for(let c=0;c<WC;c++){if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.PATH){if(++n>=10)return true;}}}return false;}, reward:{stone:20,gold:10}, icon:'🛣️'},
   {id:'q_iron',    title:'Iron Age',           desc:'Smelt 20 metal.',             check:()=>(G.res.metal||0)>=20, reward:{gold:40,regional_wealth:20}, icon:'⚙️'},
   {id:'q_trade',   title:'Open Trade Route',   desc:'Open your first trade route.',check:()=>Object.values(G.tradeRoutes||{}).some(r=>r.active), reward:{gold:60,regional_wealth:40}, icon:'🚢'},
   {id:'q_happy',   title:'Happy Village',      desc:'Reach 80% happiness.',        check:()=>G.happy>=80,           reward:{food:50,gold:25}, icon:'😊'},
@@ -9167,6 +9178,14 @@ function spawnHorse(){
 }
 
 function updateHorses(){
+  // Before filtering, unassign trade queue entries from horses about to be removed
+  const removedHorses=HORSES.filter(h=>!G.bld.some(b=>b.id===h.ownerId&&b.type==='stable'));
+  for(const h of removedHorses){
+    if(h.traderName&&G.tradeQueue){
+      const q=G.tradeQueue.find(q=>q.traderName===h.traderName);
+      if(q) q.horseAssigned=false;
+    }
+  }
   HORSES=HORSES.filter(h=>G.bld.some(b=>b.id===h.ownerId&&b.type==='stable'));
 
   // Assign idle horses to active trade caravans to speed them up
