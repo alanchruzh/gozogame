@@ -715,7 +715,7 @@ function getFamilyByHouse(houseId){
 function isHomeBusiness(houseId){
   const house=G.bld.find(b=>b.id===houseId);
   if(!house||!house.backyard) return false;
-  const craftTypes=['smithy','tannery','shoemaker','tailor','brewery','armor'];
+  const craftTypes=['smithy','tannery','shoemaker','tailor','brewery','armor','weaver'];
   return craftTypes.includes(house.backyard.type);
 }
 
@@ -769,7 +769,7 @@ function checkPopGrowth(){
   if(availHouses.length && Math.random()<0.08){
     const house=availHouses[Math.floor(Math.random()*availHouses.length)];
     const residents=NPCS.filter(n=>n.houseId===house.id);
-    const newFamilyId=Math.max(...FAMILIES.map(f=>f.id),-1)+1;
+    const newFamilyId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
     const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
 
     if(residents.length===0){
@@ -2498,7 +2498,7 @@ function bMine(cx,bot,lv,type){
   SMOKE(cx,bot-H-2,isDeep?4:2);
 }
 
-// ── PASAR (market) ──
+// ── MARKET (stalls) ──
 function bMarket(cx,bot,lv){
   const W=78,H=52;
   WALL(cx,bot-H,W,H,'#d09840');
@@ -3106,41 +3106,41 @@ function drawPlayer(){
   const moving=PL.vx!==0||PL.vy!==0, f=PL.fr, dir=PL.dir;
   const bob=moving&&f%2===0?-1:0, lg=moving?(f%4<2?3:-3):0;
 
-  // Kepala desa: blangkon (topi batik Jawa), jas beludru gelap, selendang/sabuk emas, sarung batik
-  const skin='#d4955a';       // kulit sawo matang
+  // Village chief: traditional hat, dark velvet coat, gold sash, batik robe
+  const skin='#d4955a';       // warm skin tone
   const hair='#1a1010';
-  const jas='#2a1a4a';        // jas beludru ungu gelap
-  const jasLight='#3a2a5a';   // highlight jas
-  const sarung='#8b4513';     // sarung batik coklat
+  const jas='#2a1a4a';        // dark velvet coat
+  const jasLight='#3a2a5a';   // coat highlight
+  const sarung='#8b4513';     // batik robe brown
   const sabuk='#c8940a';      // gold belt/sash
-  const sepatu='#1a1010';     // sepatu hitam
+  const sepatu='#1a1010';     // black shoes
 
   // Shadow
   X.fillStyle='rgba(0,0,0,0.22)';X.beginPath();X.ellipse(px,py+5,10,4,0,0,Math.PI*2);X.fill();
 
-  // ── KAKI (sarung batik — lebih lebar di bawah) ──
+  // ── LEGS (batik robe — wider at bottom) ──
   FR(px-6+lg, py-5+bob, 5,8, sarung);
   FR(px-1-lg, py-5+bob, 5,8, sarung);
-  // motif batik garis tipis
+  // batik stripe detail
   X.strokeStyle='rgba(200,160,60,0.4)';X.lineWidth=1;
   LN(px-6+lg,py-3+bob,px-1+lg,py-3+bob,'rgba(200,160,60,0.35)');
   LN(px-1-lg,py-3+bob,px+4-lg,py-3+bob,'rgba(200,160,60,0.35)');
   FR(px-6+lg, py+2+bob, 5,3, sepatu);
   FR(px-1-lg, py+2+bob, 5,3, sepatu);
 
-  // ── BADAN (jas beludru) ──
+  // ── BODY (velvet coat) ──
   FR(px-5, py-16+bob, 10,13, jas);
   FR(px-5, py-16+bob, 10,5, jasLight);  // shoulder highlight
-  // kancing emas di tengah
+  // gold buttons
   FR(px-1, py-15+bob, 2,2, sabuk);
   FR(px-1, py-12+bob, 2,2, sabuk);
   FR(px-1, py-9+bob,  2,2, sabuk);
-  // selendang/sabuk emas diagonal
+  // diagonal gold sash
   FR(px-5, py-11+bob, 4,2, sabuk);
   FR(px-1, py-12+bob, 4,2, sabuk);
   FR(px+3, py-13+bob, 2,2, sabuk);
 
-  // ── LENGAN ──
+  // ── ARMS ──
   if(dir===1){
     FR(px+4,py-16+bob,4,11,jas);FR(px+4,py-6+bob,4,4,skin);
     FR(px-8,py-14+bob,4,8,jas);FR(px-8,py-7+bob,4,4,skin);
@@ -3151,31 +3151,31 @@ function drawPlayer(){
     FR(px-9,py-16+bob,4,10,jas);FR(px+5,py-16+bob,4,10,jas);
     FR(px-9,py-7+bob,4,4,skin);FR(px+5,py-7+bob,4,4,skin);
   }
-  // manset emas
+  // gold cuffs
   FR(px-9,py-9+bob,4,2,sabuk);FR(px+5,py-9+bob,4,2,sabuk);
 
-  // ── KEPALA ──
+  // ── HEAD ──
   FR(px-5, py-27+bob, 10,12, skin);
   if(dir===2){FR(px-3,py-22+bob,2,2,'#1a0808');FR(px+1,py-22+bob,2,2,'#1a0808');}
   // village chief's thin mustache
   if(dir===2){FR(px-3,py-19+bob,6,1,'#2a1808');}
 
-  // ── BLANGKON (topi batik Jawa) ──
+  // ── CHIEF HAT (ornate wrap with gold trim) ──
   const hy=py-28+bob;
-  // dasar blangkon
+  // hat base
   FR(px-6,hy-3,12,5,'#1a1228');
   FR(px-5,hy-7,10,5,'#2a1a40');
-  // motif batik kuning-emas di blangkon
+  // gold trim pattern
   X.fillStyle=sabuk;
   FR(px-5,hy-7,2,5,sabuk);
   FR(px-1,hy-7,2,5,sabuk);
   FR(px+3,hy-7,2,5,sabuk);
-  // tonjolan khas blangkon di belakang/samping
+  // side knot detail
   if(dir!==1){
     FR(px+5,hy-3,4,6,'#2a1a40');
     FR(px+5,hy-4,3,2,sabuk);
   }
-  // brim bawah blangkon
+  // hat brim
   FR(px-7,hy-3,14,3,'#1a1228');
 
   // ── CHIEF'S STAFF (when not moving) ──
@@ -3186,7 +3186,7 @@ function drawPlayer(){
     X.fillStyle='#f0d060';X.beginPath();X.arc(px+10,py-37+bob,3,0,Math.PI*2);X.fill();
   }
 
-  // ── NAMA TAG ──
+  // ── NAME TAG ──
   X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(px-18,py-39+bob,36,10);
   X.fillStyle='#f0e060';X.font='6px "Press Start 2P"';X.textAlign='center';X.fillText((G.chiefName||'GOZO').slice(0,8).toUpperCase(),px,py-31+bob);
 }
@@ -3194,17 +3194,17 @@ function drawPlayer(){
 // ─── NPC ───
 // Village NPC costumes — each NPC gets a unique look based on their index
 const NPC_STYLES=[
-  // Budi — farmer: straw hat, brown shirt, muddy boots
+  // Edmund — farmer: straw hat, brown shirt, muddy boots
   {hat:'straw', shirt:'#8a6030', pants:'#5a4020', shoe:'#3a2010', hair:'#2a1808', female:false},
-  // Sari — farmer wife: head scarf, colorful blouse, sarong
+  // Alice — farmer wife: head scarf, colorful blouse, long skirt
   {hat:'scarf', shirt:'#c04880', pants:'#8a3060', shoe:'#5a2840', hair:'#1a1010', female:true},
-  // Wira — carpenter: cap, vest, work trousers
+  // William — carpenter: cap, vest, work trousers
   {hat:'cap',   shirt:'#4a7030', pants:'#2a4018', shoe:'#201808', hair:'#3a2010', female:false},
-  // Dewi — wife: bun, light blouse, batik skirt
+  // Margaret — wife: bun, light blouse, patterned skirt
   {hat:'bun',   shirt:'#d06820', pants:'#8a4810', shoe:'#5a3010', hair:'#1a1010', female:true},
-  // Hendra — blacksmith: bandana, dark vest, heavy trousers
+  // Thomas — blacksmith: bandana, dark vest, heavy trousers
   {hat:'bandana',shirt:'#404040',pants:'#282828', shoe:'#181818', hair:'#1a1010', female:false},
-  // Ratna — wife: veil, purple blouse, long skirt
+  // Eleanor — wife: veil, purple blouse, long skirt
   {hat:'veil',  shirt:'#702090', pants:'#501060', shoe:'#381040', hair:'#1a1010', female:true},
 ];
 
@@ -3770,6 +3770,18 @@ function toggleWorkerPanel(){
   if(wpOpen)renderWorkerPanel();
 }
 
+function closeWorkerPanel(){
+  wpOpen=false;
+  const wp=document.getElementById('wpanel');
+  if(wp) wp.classList.remove('show');
+}
+
+function closeQuestPanel(){
+  questPanelOpen=false;
+  const qp=document.getElementById('questpanel');
+  if(qp) qp.style.display='none';
+}
+
 function ageStr(days){
   const yr=Math.floor(days/90);
   return yr+'y';
@@ -3927,12 +3939,12 @@ function updateUI(){
   document.getElementById('rc').textContent=G.res.coal||0;
   const _ri=document.getElementById('ri');if(_ri){_ri.textContent=G.res.iron||0;_ri.style.color=(G.res.iron||0)>0?'#d08040':'#c0b080';}
   const _rm=document.getElementById('rm');if(_rm)_rm.textContent=G.res.metal||0;
-  const _rf_el=document.getElementById('rf');if(_rf_el){_rf_el.textContent=G.res.food;_rf_el.style.color=G.res.food<5?'#ff6060':G.res.food<15?'#ffaa00':'#c0b080';}
+  const _rf_el=document.getElementById('rf');if(_rf_el){_rf_el.textContent=G.res.food||0;_rf_el.style.color=(G.res.food||0)<5?'#ff6060':(G.res.food||0)<15?'#ffaa00':'#c0b080';}
   const _rmt=document.getElementById('rmt');if(_rmt)_rmt.textContent=G.res.meat||0;
   const _rbrd=document.getElementById('rbrd');if(_rbrd)_rbrd.textContent=G.res.bread||0;
   const _rale=document.getElementById('rale');if(_rale)_rale.textContent=G.res.ale||0;
   const _rplk=document.getElementById('rplk');if(_rplk)_rplk.textContent=G.res.plank||0;
-  document.getElementById('rg').textContent=G.res.gold;
+  document.getElementById('rg').textContent=G.res.gold||0;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
   const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
   const _eb=document.getElementById('event-banner');
@@ -4071,8 +4083,7 @@ function correctNPCJobs(){
     for(const name of workers){
       if(!name) continue;
       const npc=NPCS.find(n=>n.name===name);
-      if(npc&&npc.job!==correctJob&&npc.job!=='builder'||
-         npc&&npc.job==='builder'&&correctJob!=='builder'){
+      if(npc && npc.job !== correctJob){
         npc.job=correctJob;
       }
     }
@@ -4080,9 +4091,9 @@ function correctNPCJobs(){
 }
 
 function tick(){
-  // 24 jam game = 5 menit nyata (300 detik) at 1x speed
-  // 60fps × 300s = 18000 frames per hari
-  // 24×60=1440 menit / 18000 frames = 0.08 menit per frame
+  // 24 game hours = 5 real minutes (300 seconds) at 1x speed
+  // 60fps × 300s = 18000 frames per day
+  // 24×60=1440 minutes / 18000 frames = 0.08 minutes per frame
   G.mn+=G.spd*0.08;
   if(G.mn>=60){G.mn=0;G.hr++;
     // ── CONSTRUCTION PROGRESS — every game hour ──
@@ -4218,9 +4229,12 @@ function doFarmProd(){
     } else if(field.growStage===1){
       // After 30 days growing → sprouting
       if(!field._plantDay) field._plantDay=dayOfYear;
+      // Reset if dayOfYear wrapped (new year)
+      if(dayOfYear<field._plantDay) field._plantDay=dayOfYear;
       if(dayOfYear-field._plantDay>=30) field.growStage=2;
     } else if(field.growStage===2){
       // After 60 days total → ready
+      if(field._plantDay&&dayOfYear<field._plantDay) field._plantDay=0;
       if(field._plantDay&&dayOfYear-field._plantDay>=60) field.growStage=3;
     } else if(field.growStage===3){
       // Harvest!
@@ -4435,7 +4449,7 @@ function doProd(){
     notify(`👶 ${npcMom.name} gave birth to ${bname}!`,'ok');
   }
   // Pregnancy chance — only for women in real houses with a husband
-  if(G.res.food>10){
+  if((G.res.food||0)>10){
     for(const npc of NPCS){
       if(!npc.female||npc.pregnant||!isAdult(npc))continue;
       // Must be in a real house
@@ -4534,7 +4548,7 @@ function doProd(){
 
   // ── FIRST-TIME TIPS ──
   if(G.day<=3&&G.ticks===2){notify('💡 Tip: Assign jobs to villagers via the WORKERS panel!','ok');}
-  if(G.day===4&&G.ticks%2===0&&!G.bld.some(b=>b.type==='farm')){notify('💡 Tip: Build a 🌾 Farm and assign a Farmer to grow food!','ok');}
+  if(G.day===4&&G.ticks===0&&!G.bld.some(b=>b.type==='farm')){notify('💡 Tip: Build a 🌾 Farm and assign a Farmer to grow food!','ok');}
   if(G.day===6&&!G.bld.some(b=>b.type==='house')){notify('💡 Tip: Build 🏠 Houses to increase your population cap!','ok');}
   if(G.day===8&&!G.bld.some(b=>b.type==='logger')&&(G.res.wood||0)<15){notify('💡 Tip: Build a 🪓 Logger and assign a Lumberjack for steady wood!','ok');}
 
@@ -4831,7 +4845,7 @@ function doUpgrade(bld,c,r){
   } else {
     notify('⬆ '+d.n+' → Lv.'+bld.lv+'!','ok');
   }
-  closeDialog();updateUI();
+  closeDialog();rebuildTile(c,r);updateUI();
   _worldDirty=true;
 }
 function doDemolish(bld,c,r){
@@ -4863,7 +4877,7 @@ function doDemolish(bld,c,r){
       delete G.bldWorkers[bld.id];
       rebuildTile(c,r);
       notify('🗑 '+d.n+' demolished','warn');
-      closeDialog();upPop();updateUI();
+      closeDialog();closeBldWorker();closeByPanel();closeTradePanel();upPop();updateUI();
     }},{l:'✗ Cancel',cls:'',fn:closeDialog}]);
 }
 function openDlg(dlgName,msg,btns){
@@ -5428,6 +5442,9 @@ function wanderNPCs(){
       if(npc._dx<-0.1)npc.dir=3;else if(npc._dx>0.1)npc.dir=1;
       if(npc._dy<-0.1)npc.dir=0;else if(npc._dy>0.1)npc.dir=2;
       npc._ft=(npc._ft||0)+1;if(npc._ft>8){npc._ft=0;npc._fr=(npc._fr||0)+1;}
+      // Clamp to map bounds
+      npc.x=Math.max(TS,Math.min(npc.x,(WC-1)*TS));
+      npc.y=Math.max(TS,Math.min(npc.y,(WR-1)*TS));
     } else {npc._fr=0;npc._ft=0;}
   }
 }
@@ -6309,7 +6326,9 @@ function renderBldWorker(bldId, maxW){
           }
         }
         G.bldWorkers[bldId]=G.bldWorkers[bldId].filter(n=>n);
-        G.bldWorkers[bldId][i]=sel.value;
+        // Use push to avoid sparse array holes
+        if(G.bldWorkers[bldId].length<=i) G.bldWorkers[bldId].push(sel.value);
+        else G.bldWorkers[bldId][i]=sel.value;
         // Auto-assign hunter job
         const n=NPCS.find(np=>np.name===sel.value);
         const bld=G.bld.find(b=>b.id===bldId);
@@ -6643,10 +6662,14 @@ function updateMarket(){
     house._canUpgrade=(house._mktFood&&house._mktFuel);
   }
 
-  // Notify if stocks critically low
-  if(G.market.food.stock<5)    notify('🥘 Food stock at market is almost empty!','warn');
-  if(G.market.fuel.stock<5)    notify('🪵 Fuel stock at market is empty!','warn');
-  if(G.market.clothing.stock<5&&G.bld.some(b=>b.type==='clothing_stall')) notify('👘 Clothing stock is empty!','warn');
+  // Notify if stocks critically low (throttled — max once per 10 days)
+  if(!G.market._lastLowWarn||G.day-G.market._lastLowWarn>=10){
+    let warned=false;
+    if(G.market.food.stock<5)   {notify('🥘 Food stock at market is almost empty!','warn');warned=true;}
+    if(G.market.fuel.stock<5)   {notify('🪵 Fuel stock at market is empty!','warn');warned=true;}
+    if(G.market.clothing.stock<5&&G.bld.some(b=>b.type==='clothing_stall')){notify('👘 Clothing stock is empty!','warn');warned=true;}
+    if(warned) G.market._lastLowWarn=G.day;
+  }
 }
 
 // Backyard production — called from doProd every 2 days
@@ -6686,7 +6709,10 @@ function doByardProd(){
         if((G.res[k]||0)<v){ canProduce=false; break; }
       }
       if(canProduce){
-        for(const[k,v]of Object.entries(by.req||{})) G.res[k]=Math.max(0,(G.res[k]||0)-v);
+        // For livestock, food already consumed above — skip req deduction to avoid double
+        if(!isLivestock){
+          for(const[k,v]of Object.entries(by.req||{})) G.res[k]=Math.max(0,(G.res[k]||0)-v);
+        }
         // Home business: locked adults get efficiency bonus
         const effBonus=isCraft?1.3:1.0;
         for(const[k,v]of Object.entries(by.prod)) addR(k,Math.round(v*mul*effBonus));
@@ -6731,7 +6757,7 @@ window.addEventListener('keydown',e=>{
     const dirs=['Front','Right','Back','Left'];
     notify('🔄 Facing: '+dirs[buildRotation],'ok');
   }
-  if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();updateModeUI();}
+  if(e.key==='Escape'){G.mode='walk';buildType=null;buildRotation=0;closeDialog();closeBldWorker();closeByPanel();closeTradePanel();closeWorkerPanel();closeQuestPanel();updateModeUI();}
   if(e.key.toLowerCase()==='e') doInteract();
   if(e.key.toLowerCase()==='f') toggleFertilityMap();
   if(e.key===' ')e.preventDefault();
@@ -6756,7 +6782,7 @@ function loop(now){
 
 // ═══════════════════════════════════════════════════════
 //  VILLAGE MUSIC — Web Audio API generative
-//  Suasana: gamelan + flute + soft percussion pedesaan
+//  Village ambiance: gamelan + flute + soft rural percussion
 // ═══════════════════════════════════════════════════════
 let audioCtx=null, musicOn=false, musicNodes=[], musicScheduler=null;
 let masterGain=null;
@@ -7384,8 +7410,14 @@ function openMarketZoneDlg(c,r){
 
   const maxStalls=Math.max(1,Math.floor(zone.w*zone.h/4));
 
-  // Warga dengan job Trader otomatis buka lapak
+  // Villagers with Trader job automatically open stalls
   const traderNPCs=NPCS.filter(n=>isAdult(n)&&n.job==='trader');
+  // Remove stalls from villagers who are no longer traders or dead
+  for(const zone2 of (G.marketZones||[])){
+    zone2.stalls=zone2.stalls.filter(s=>
+      !s._isVillager || NPCS.some(n=>n.name===s.traderName&&n.job==='trader'&&isAdult(n))
+    );
+  }
   for(const t of traderNPCs){
     const already=zone.stalls.some(s=>s.traderName===t.name);
     if(!already&&zone.stalls.length<maxStalls){
@@ -7411,7 +7443,7 @@ function openMarketZoneDlg(c,r){
       const _s=s;
       return ()=>{
         if((G.res.gold||0)<_s.price){notify('Not enough gold!','err');return;}
-        G.res.gold-=_s.price; addR(_s.res,1);
+        G.res.gold=Math.max(0,(G.res.gold||0)-_s.price); addR(_s.res,1);
         _s.qty=Math.max(0,_s.qty-1);
         if(_s.qty===0){zone.stalls=zone.stalls.filter(st=>st!==_s);notify(_s.traderName+' sold out!','warn');}
         else notify('✅ Bought '+_s.icon+' '+_s.label+' from '+_s.traderName+'!','ok');
@@ -7423,7 +7455,7 @@ function openMarketZoneDlg(c,r){
   const villagers=zone.stalls.filter(s=>s._isVillager).map(s=>s.traderName).join(', ')||'None';
   const travelers=zone.stalls.filter(s=>!s._isVillager).map(s=>s.traderName).join(', ')||'None';
   btns.push({l:'✖ Close',cls:'',fn:closeDialog});
-  openDlg('🏪 Pasar ('+zone.w+'×'+zone.h+' tiles)',
+  openDlg('🏪 Market Square ('+zone.w+'×'+zone.h+' tiles)',
     'Stalls: '+zone.stalls.length+'/'+maxStalls+' occupied\n'
     +'👤 Your villagers: '+villagers+'\n'
     +'🧑 Traveling traders: '+travelers+'\n'
@@ -7461,7 +7493,7 @@ const TRADER_GOODS=[
 ];
 
 const VILLAGE_NAMES=['Oakfield','Riverdale','Roseton','Millhaven','Peacevale','Bloomwood'];
-const TRAVELING_TRADER_NAMES=['Old Hasan','Widow Sari','Trader Edo','Merchant Tini','Asep','Rina','Budi','Elder Yati'];
+const TRAVELING_TRADER_NAMES=['Old Aldric','Widow Mabel','Trader Oswin','Merchant Edith','Gareth','Isolde','Croft','Elder Wynn'];
 
 function doTraderSpawn(){
   if(!G.marketZones||G.marketZones.length===0) return;
@@ -7597,6 +7629,12 @@ const ROUTE_DEFS={
 let tradePanelOpen=false;
 let _tradeTab='routes';
 
+function closeTradePanel(){
+  tradePanelOpen=false;
+  const panel=document.getElementById('tradepanel');
+  if(panel) panel.style.display='none';
+}
+
 function toggleTradePanel(forceOpen){
   if(forceOpen===true) tradePanelOpen=true;
   else tradePanelOpen=!tradePanelOpen;
@@ -7675,7 +7713,7 @@ function renderTradeRoutes(div){
 function openRoute(id){
   const rd=ROUTE_DEFS[id]; if(!rd) return;
   if((G.res.regional_wealth||0)<rd.cost){notify(`Need ${rd.cost} Regional Wealth!`,'err');return;}
-  G.res.regional_wealth=(G.res.regional_wealth||0)-rd.cost;
+  G.res.regional_wealth=Math.max(0,(G.res.regional_wealth||0)-rd.cost);
   G.tradeRoutes[id]={active:true,level:1,priceModifier:1.0,totalVolume:0};
   rwLog(`🛣️ Opened ${rd.label}: -${rd.cost} RW`);
   notify(`🛣️ Trade route opened: ${rd.label}!`,'ok');
@@ -7686,7 +7724,7 @@ function upgradeRoute(id){
   const rd=ROUTE_DEFS[id]; if(!rd) return;
   const cost=rd.cost*2;
   if((G.res.regional_wealth||0)<cost){notify(`Need ${cost} Regional Wealth!`,'err');return;}
-  G.res.regional_wealth=(G.res.regional_wealth||0)-cost;
+  G.res.regional_wealth=Math.max(0,(G.res.regional_wealth||0)-cost);
   G.tradeRoutes[id].level=(G.tradeRoutes[id].level||1)+1;
   G.tradeRoutes[id].priceModifier=Math.max(0.7,1.0-(G.tradeRoutes[id].level*0.1));
   rwLog(`⬆ Upgraded ${rd.label} to Lv.${G.tradeRoutes[id].level}: -${cost} RW`);
@@ -7868,7 +7906,7 @@ function doImportNow(res){
   const price=getTradePrice(res,'import');
   const totalCost=price*g.minQty;
   if((G.res.gold||0)<totalCost){notify(`Need ${totalCost} gold (have ${G.res.gold||0})!`,'err');return;}
-  G.res.gold=(G.res.gold||0)-totalCost;
+  G.res.gold=Math.max(0,(G.res.gold||0)-totalCost);
   const ticks=4;
   const routeActive=Object.entries(G.tradeRoutes).some(([rid,r])=>r.active&&ROUTE_DEFS[rid]?.goods.includes(res));
   const finalTicks=routeActive?Math.max(1,ticks-1):ticks;
@@ -7986,6 +8024,12 @@ function buildSaveState(){
     mapData,
     player:{x:PL.x,y:PL.y,dir:PL.dir},
     rwLog:[...(RW_LOG||[])],
+    mainRoadEntry:{...MAIN_ROAD_ENTRY},
+    activeQuests:[...G_activeQuests],
+    completedQuests:[...G_completedQuests],
+    questLog:[...G_questLog],
+    activeDisaster:G_activeDisaster?{...G_activeDisaster}:null,
+    disasterTimer:G_disasterTimer||0,
   };
 }
 
@@ -8005,6 +8049,8 @@ function applySaveState(save){
   G.pop=save.pop||0; G.cap=save.cap||6;
   G.happy=save.happy??80; G.health=save.health??70;
   G.paused=save.paused||false; G.spd=save.spd||1; G.nid=save.nid||1;
+  const _spdSel=document.getElementById('spd');
+  if(_spdSel) _spdSel.value=String(G.spd);
   G.bld=(save.bld||[]).map(b=>({...b}));
   G.bldWorkers=JSON.parse(JSON.stringify(save.bldWorkers||{}));
   G.pending=save.pending||{};
@@ -8027,6 +8073,15 @@ function applySaveState(save){
   if(save.fog&&save.fog.length) FOG=save.fog.map(row=>[...row]);
   if(save.fogEnabled!==undefined) FOG_ENABLED=save.fogEnabled;
   if(save.rwLog) RW_LOG.splice(0,RW_LOG.length,...save.rwLog);
+  // Fix 1: Restore quest & disaster state
+  if(save.activeQuests) G_activeQuests=[...save.activeQuests];
+  if(save.completedQuests) G_completedQuests=new Set(save.completedQuests);
+  if(save.questLog) G_questLog=[...save.questLog];
+  G_activeDisaster=save.activeDisaster||null;
+  G_disasterTimer=save.disasterTimer||0;
+  // Fix 4: Reset water spots cache so fisher recalculates positions
+  _waterSpots=null;
+  if(save.mainRoadEntry) MAIN_ROAD_ENTRY={...save.mainRoadEntry};
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
   for(const td of (save.mapData||[])){
     if(td.r>=0&&td.r<WR&&td.c>=0&&td.c<WC)
@@ -8466,13 +8521,30 @@ function applyDisasterEffect(id){
         t.on_fire=true;
         setTimeout(()=>{
           if(t.on_fire){
+            // Relocate residents if it's a house
+            if(t.type==='house'){
+              const homeless=NPCS.filter(n=>n.houseId===t.id);
+              for(const npc of homeless){
+                const availHouse=G.bld.find(b=>{
+                  if(b.under_construction||b.id===t.id) return false;
+                  if(b.type!=='house'&&b.type!=='campfire') return false;
+                  const cap=b.type==='campfire'?6:(b.lv||1)*2;
+                  return NPCS.filter(n=>n.houseId===b.id).length<cap;
+                });
+                npc.houseId=availHouse?availHouse.id:0;
+                if(availHouse) notify(`🏠 ${npc.name} relocated after fire!`,'warn');
+                else notify(`😟 ${npc.name} lost their home in the fire!`,'err');
+              }
+            }
+            // Cleanup bldWorkers
+            delete G.bldWorkers[t.id];
             G.bld=G.bld.filter(b=>b.id!==t.id);
             const tile=MAP[t.row]&&MAP[t.row][t.col];
             if(tile){tile.bld=null;tile.t=T.GRASS;}
-            notify(`🔥 ${t.type} was destroyed by fire!`,'err');
-            _worldDirty=true; updateUI();
+            notify(`🔥 ${BD[t.type]?.n||t.type} was destroyed by fire!`,'err');
+            _worldDirty=true; upPop(); updateUI();
           }
-        }, 30000); // 30 seconds to respond
+        }, 30000);
       }
     } break;
     case 'raid':{
@@ -8657,7 +8729,17 @@ function updateNPCStats(){
   for(const dead of toRemove){
     const deadIdx=NPCS.indexOf(dead);
     if(deadIdx>=0) NPCS.splice(deadIdx,1);
-    // Free house slot
+    // Free building worker slots
+    for(const[bldId,workers] of Object.entries(G.bldWorkers)){
+      if(workers&&workers.includes(dead.name)){
+        G.bldWorkers[bldId]=workers.filter(w=>w!==dead.name);
+      }
+    }
+    // Remove from FAMILIES record if they were a spouse
+    for(const fam of FAMILIES){
+      if(fam.husbandName===dead.name) fam.husbandName=null;
+      if(fam.wifeName===dead.name) fam.wifeName=null;
+    }
     G.happy=Math.max(10,G.happy-5);
   }
   upPop();
@@ -9186,7 +9268,7 @@ function openBuyLivestockDlg(){
       const freeHouse=G.bld.find(b=>b.type==='house'&&!b.under_construction&&!b.backyard&&
         (BD.house.byardSlots[b.lv]==='all'||Array.isArray(BD.house.byardSlots[b.lv])));
       if(!freeHouse){notify('Need a house with free backyard slot!','err');return;}
-      G.res.regional_wealth-=a.cost;
+      G.res.regional_wealth=Math.max(0,(G.res.regional_wealth||0)-a.cost);
       freeHouse.backyard={type:a.type,timer:0,totalProd:0};
       rwLog(`🐑 Bought ${a.name}: -${a.cost} RW → House #${freeHouse.id}`);
       notify(`${a.e} ${a.name} added to House #${freeHouse.id} backyard!`,'ok');
