@@ -282,6 +282,7 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
     <div class="res" title="Meat — hunters bring from deer">🥩<b id="rmt">0</b></div>
     <div class="res" title="Gold — tax income from houses" style="margin-left:6px">💰<b id="rg">0</b></div>
     <div class="res" title="Village Health — improved by Hospital & Well" style="margin-left:6px">❤️<b id="rhlt">70</b></div>
+    <div class="res" title="Village Happiness — keep villagers fed, warm & entertained" style="margin-left:4px">😊<b id="rhappy">80</b></div>
     <div class="res" style="cursor:pointer;color:#a09060;font-size:8px;padding:0 4px" onclick="toggleSecRes()" title="Show/hide more resources" id="res-more-btn">▼ more</div>
   </div>
   <div id="resbar2" style="display:none;position:absolute;top:40px;left:0;right:0;background:rgba(10,6,2,0.97);border-bottom:1px solid #5a3a1a;padding:3px 8px;display:none;flex-wrap:wrap;gap:3px;z-index:99">
@@ -5738,6 +5739,12 @@ function updateUI(){
   const _rberry2=document.getElementById('rberry');if(_rberry2){_rberry2.textContent=G.res.berry||0;_rberry2.style.color=(G.res.berry||0)>0?'#a040c0':'#c0b080';}
   // Health & hospital
   const _health=document.getElementById('rhlt');if(_health)_health.textContent=G.health||0;
+  const _rhappy=document.getElementById('rhappy');
+  if(_rhappy){
+    const hv=G.happy||0;
+    _rhappy.textContent=hv;
+    _rhappy.style.color=hv>=70?'#60e060':hv>=40?'#e0c040':'#e04040';
+  }
   // Regional Wealth & Treasury HUD
   const _trd=document.getElementById('trs-display');if(_trd)_trd.textContent=Math.floor(G.res.treasury||0);
   upPop();
@@ -6173,6 +6180,14 @@ function doProd(){
   if(coalNeed>0){if((G.res.coal||0)>=coalNeed)G.res.coal=Math.max(0,(G.res.coal||0)-coalNeed);else G.happy=Math.max(10,G.happy-3);}
   if(clothNeed>0){if((G.res.cloth||0)>=clothNeed)G.res.cloth=Math.max(0,(G.res.cloth||0)-clothNeed);else{G.happy=Math.max(10,G.happy-3);if(!G._lastClothWarn||G.day-G._lastClothWarn>=5){notify('👘 Need clothing!','warn');G._lastClothWarn=G.day;}}}
   if(beerNeed>0&&(G.res.beer||0)>=beerNeed){G.res.beer=Math.max(0,(G.res.beer||0)-beerNeed);G.happy=Math.min(100,G.happy+1);}
+
+  // Natural happiness recovery — if all needs met, slowly recover toward 80
+  const allNeedsMet = (totalFood>=foodNeed) &&
+    ((G.res.coal||0)>=coalNeed||coalNeed===0) &&
+    ((G.res.cloth||0)>=clothNeed||clothNeed===0);
+  if(allNeedsMet && G.happy<80){
+    G.happy=Math.min(80,G.happy+2); // recover up to 80 naturally
+  }
 
   // Tax — split between Regional Wealth (city) and Treasury (lord)
   let taxTotal=0;
@@ -10665,6 +10680,16 @@ function applySaveState(save){
     b._pendingLivestock=LIVESTOCK_CARTS.some(c=>c.houseId===b.id)?true:undefined;
   }
   _worldDirty=true; WC_=null;
+  // Init missing stone deposit states for old saves
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.STONE_G&&MAP[r][c].decor==='rock'){
+      const key=c+','+r;
+      if(!DEPOSIT_STATE[key]){
+        const qty=200+Math.floor(Math.random()*150);
+        DEPOSIT_STATE[key]={type:'rock',qty,maxQty:qty,depleted:false};
+      }
+    }
+  }
   correctNPCJobs(); // fix any wrong job assignments from old saves
   // Re-sync NPC jobs from bldWorkers (fixes jobs assigned with old jobMap)
   const jobMap={hunting:'hunter',farm:'farmer',logger:'logger',quarry:'miner',
@@ -10856,7 +10881,7 @@ function showLoadGame(){
     if(hint){
       hint.style.display='block';
       hint.innerHTML=`💾 Autosave: Y${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleDateString()}<br>
-        <button onclick="loadAutosave().then(ok=>{if(ok)launchGame(false);})" style="margin-top:6px;padding:4px 12px;background:#082010;border:1px solid #20a040;color:#40d060;cursor:pointer;font-size:10px">▶ Load Autosave</button>
+        <button onclick="loadAutosave().then(ok=>{if(ok){_gameStarted=false;launchGame(false);}})" style="margin-top:6px;padding:4px 12px;background:#082010;border:1px solid #20a040;color:#40d060;cursor:pointer;font-size:10px">▶ Load Autosave</button>
         &nbsp;
         <button onclick="document.getElementById('title-load-input').click()" style="margin-top:6px;padding:4px 12px;background:#080818;border:1px solid #2040a0;color:#4060d0;cursor:pointer;font-size:10px">📁 Load File</button>
         &nbsp;
@@ -10876,29 +10901,31 @@ function titleLoadGame(event){
     try{
       let parsed;
       try{ parsed=JSON.parse(e.target.result); }
-      catch{ notify('❌ Not a valid save file.','err'); return; }
+      catch{ alert('❌ Not a valid save file (.gozo or .json)'); return; }
 
       if(parsed._gozo===true){
         const payload=decodeURIComponent(escape(atob(parsed.d)));
-        // Verify signature — warn but still allow load
         try{
           const valid=await verifyData(payload,parsed.sig);
-          if(!valid) notify('⚠ Save signature mismatch — loading anyway.','warn');
-        } catch(sigErr){ notify('⚠ Could not verify signature — loading anyway.','warn'); }
+          if(!valid) console.warn('Save signature mismatch — loading anyway.');
+        } catch(sigErr){ console.warn('Could not verify signature — loading anyway.'); }
         applySaveState(JSON.parse(payload));
       } else if(parsed.version){
         applySaveState(parsed);
       } else {
-        notify('❌ Unrecognized save format.','err'); return;
+        alert('❌ Unrecognized save format.'); return;
       }
-      notify(`📂 Loaded! Y${G.yr} Day ${G.day}`,'ok');
-      if(!_gameStarted) launchGame(false);
+
+      // Always launch — reset _gameStarted so launchGame doesn't skip
+      _gameStarted=false;
+      launchGame(false);
+      setTimeout(()=>notify(`📂 Save loaded! Y${G.yr} Day ${G.day}`,'ok'),800);
     } catch(err){
-      notify('❌ Load failed: '+err.message,'err');
+      alert('❌ Load failed: '+err.message);
       console.error('Load error:',err);
     }
   };
-  reader.onerror=()=>notify('❌ Could not read file.','err');
+  reader.onerror=()=>alert('❌ Could not read file.');
   reader.readAsText(file);
 }
 
