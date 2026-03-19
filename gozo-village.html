@@ -608,7 +608,7 @@ const BLD_WORKERS={
   // Forestry & livestock
   forest_hut:2, corral:1, stable:1,
   // Civic — 1 worker each improves efficiency
-  well:1, church:1, mosque:1, school:1, hospital:1, tavern:1,
+  well:1, church:1, mosque:1, school:1, hospital:1, tavern:1, village_hall:2,
 };
 
 // ── MARKET SYSTEM ──
@@ -983,6 +983,10 @@ const BD={
   // ── SOCIAL BUILDINGS ──
   tavern:    {n:'Tavern',    e:'🍺',d:'+Happiness. Needs ale.',  cost:{wood:35,stone:20,gold:20}, ml:2, cat:'civic',
               lvDesc:{1:'Simple inn.',2:'Popular pub.'}},
+  village_hall:{n:'Village Hall',e:'🏰',d:'Seat of village government. +Happiness. +Tax income.',
+    cost:{wood:60,stone:50,gold:40}, ml:3, cat:'civic',
+    lvDesc:{1:'Small hall — basic governance.',2:'Grand hall — expanded authority.',3:'Castle Keep — full regional control.'},
+  },
   school:    {n:'School',   e:'📚',d:'Children grow faster.',   cost:{wood:30,stone:25,gold:15}, ml:2, cat:'civic',
               pr:{}, lvDesc:{1:'Basic school.',2:'Academy.'}},
   hospital:  {n:'Hospital', e:'⚕️',d:'+Health. Cures sickness.',cost:{wood:40,stone:35,gold:30}, ml:3, cat:'civic',
@@ -2210,6 +2214,235 @@ function bChurchWithViews(cx,bot,lv,rot){
   X.beginPath();X.moveTo(cx+flip*16,bot-96);X.lineTo(cx+flip*25,bot-112);X.lineTo(cx+flip*34,bot-96);X.fill();
 }
 
+function bVillageHall(cx,bot,lv){
+  // Village Hall / Castle — 4 tiles wide, medieval style
+  const W=252, H=80;
+  const wy=bot-H-4;
+  const t=Date.now()/1000;
+
+  // ── GROUND ──
+  FR(cx-W/2-4,bot-6,W+8,6,'#b0a888');
+  X.fillStyle='rgba(255,255,255,0.08)';
+  for(let i=0;i<W+8;i+=16) X.fillRect(cx-W/2-4+i,bot-6,12,6);
+
+  // ── MAIN BODY — light stone ──
+  FR(cx-W/2,wy,W,H,'#d8d4c8');
+  // Stone block texture
+  X.fillStyle='rgba(0,0,0,0.05)';
+  for(let r=0;r<H;r+=12){
+    const off=((r/12|0)%2===0)?0:18;
+    for(let c=0;c<W;c+=36) X.fillRect(cx-W/2+c+off,wy+r,34,11);
+  }
+  FR(cx-W/2,wy,W,2,'rgba(255,255,255,0.18)');
+  // Shadow on right
+  FR(cx+W/2-5,wy,5,H,'rgba(0,0,0,0.08)');
+
+  // ── BATTLEMENTS / MERLONS across top ──
+  X.fillStyle='#d0ccbe';
+  for(let i=0;i<W;i+=20){
+    FR(cx-W/2+i,wy-14,14,14,'#d8d4c8');
+    FR(cx-W/2+i,wy-14,14,2,'rgba(255,255,255,0.15)');
+  }
+  FR(cx-W/2-2,wy,W+4,4,'#c8c4b8'); // parapet base
+  // Arrow slits in merlons
+  X.fillStyle='#2a2820';
+  for(let i=0;i<W;i+=20) X.fillRect(cx-W/2+i+5,wy-12,4,8);
+
+  // ── 4 CORNER TOWERS ──
+  const towerData=[
+    {x:cx-W/2-8, h:H+28, capColor:'#c84820'},
+    {x:cx-W/2+52, h:H+16, capColor:'#c84820'},
+    {x:cx+W/2-64, h:H+16, capColor:'#c84820'},
+    {x:cx+W/2-6, h:H+28, capColor:'#c84820'},
+  ];
+  for(const td of towerData){
+    const tW=28, tH=td.h, tX=td.x, tY=wy-tH+H;
+    // Tower body
+    FR(tX,tY,tW,tH,'#ccc8bc');
+    // Stone texture
+    X.fillStyle='rgba(0,0,0,0.06)';
+    for(let r=0;r<tH;r+=12){const off=((r/12|0)%2===0)?0:9;for(let c=0;c<tW;c+=18)X.fillRect(tX+c+off,tY+r,16,11);}
+    // Tower battlements
+    for(let i=0;i<tW;i+=9){
+      FR(tX+i,tY-10,7,10,'#d0ccbc');
+      X.fillStyle='#202018';X.fillRect(tX+i+2,tY-8,3,6);
+    }
+    FR(tX-2,tY,tW+4,4,'#b8b4a8');
+    // Tower windows (arrow slits)
+    for(let r=12;r<tH-10;r+=20){
+      X.fillStyle='#1a1810';X.fillRect(tX+tW/2-2,tY+r,5,10);
+      // Arch top
+      X.beginPath();X.arc(tX+tW/2,tY+r,2.5,Math.PI,0);X.fill();
+    }
+    // Conical roof / cap
+    const capH=lv>=2?22:16;
+    X.fillStyle=td.capColor;
+    X.beginPath();X.moveTo(tX-3,tY-10);X.lineTo(tX+tW/2,tY-10-capH);X.lineTo(tX+tW+3,tY-10);X.closePath();X.fill();
+    X.fillStyle='rgba(255,150,80,0.3)';
+    X.beginPath();X.moveTo(tX+tW/2-4,tY-10);X.lineTo(tX+tW/2,tY-10-capH);X.lineTo(tX+tW/2+4,tY-10);X.closePath();X.fill();
+    // Flag on tall towers
+    if(td.h>H+20){
+      const fpY=tY-10-capH-18;
+      FR(tX+tW/2-1,fpY,2,20,'#888880');
+      // Animated banner
+      const ft2=t*1.5;
+      X.fillStyle=lv>=3?'#d4a020':'#802020';
+      X.beginPath();
+      X.moveTo(tX+tW/2+1,fpY+2);
+      X.lineTo(tX+tW/2+18,fpY+5+Math.sin(ft2)*2);
+      X.lineTo(tX+tW/2+18,fpY+12+Math.sin(ft2+0.5)*2);
+      X.lineTo(tX+tW/2+1,fpY+14);
+      X.closePath();X.fill();
+      // Crown symbol on flag
+      X.fillStyle='rgba(255,255,200,0.6)';X.font='7px serif';X.textAlign='center';
+      X.fillText('♛',tX+tW/2+10,fpY+10+Math.sin(ft2)*1.5);
+    }
+  }
+
+  // ── MAIN GATE (arched entrance) ──
+  const gW=44, gH=H-8, gX=cx-gW/2, gY=wy+8;
+  // Gate arch surround — decorative
+  X.fillStyle='#b0aa98';
+  X.beginPath();X.moveTo(gX-6,gY);X.lineTo(cx,gY-gW*0.55);X.lineTo(gX+gW+6,gY);X.fill();
+  X.fillStyle='#c0baa8';
+  X.beginPath();X.moveTo(gX-4,gY);X.lineTo(cx,gY-gW*0.5);X.lineTo(gX+gW+4,gY);X.fill();
+  // Portcullis / gate (raised or lowered)
+  const gateOpen=lv>=2;
+  if(gateOpen){
+    // Open gate — stone tunnel interior
+    X.fillStyle='#1a1810';
+    X.beginPath();X.moveTo(gX,gY);X.lineTo(cx,gY-gW*0.44);X.lineTo(gX+gW,gY);X.fill();
+    X.fillStyle='#2a2820';X.fillRect(gX,gY,gW,gH);
+    // Portcullis bars visible at top (raised)
+    X.fillStyle='#606050';
+    for(let gi=0;gi<gW;gi+=6) X.fillRect(gX+gi,gY,3,12);
+    X.fillRect(gX,gY+6,gW,2); X.fillRect(gX,gY+10,gW,2);
+  } else {
+    // Closed wooden gate
+    X.fillStyle='#5a3818';X.fillRect(gX,gY,gW/2-1,gH);
+    X.fillStyle='#4a2e10';X.fillRect(cx+1,gY,gW/2-1,gH);
+    // Gate planks
+    X.fillStyle='rgba(0,0,0,0.1)';
+    for(let r2=0;r2<gH;r2+=10){X.fillRect(gX,gY+r2,gW/2-1,1);X.fillRect(cx+1,gY+r2,gW/2-1,1);}
+    // Iron studs
+    X.fillStyle='#808878';
+    for(let r2=5;r2<gH;r2+=14){
+      X.beginPath();X.arc(gX+6,gY+r2,2,0,Math.PI*2);X.fill();
+      X.beginPath();X.arc(gX+gW/2-7,gY+r2,2,0,Math.PI*2);X.fill();
+    }
+    // Gate handles
+    FR(gX+gW/2-5,gY+gH*0.5,3,8,'#a09888');
+    FR(cx+3,gY+gH*0.5,3,8,'#a09888');
+  }
+  // Drawbridge base
+  FR(gX-3,bot-6,gW+6,6,'#a09070');
+  FR(gX-3,bot-6,gW+6,2,'rgba(255,255,255,0.1)');
+
+  // ── WINDOWS (both floors) ──
+  // Ground floor flanking gate
+  for(const wx2 of [gX-36,gX+gW+14]){
+    FR(wx2-2,wy+20,22,28,'#a09888');
+    FR(wx2,wy+22,18,24,'#6888a8');
+    FR(wx2+1,wy+23,16,22,'#78a0c0');
+    X.fillStyle='#a09888';X.beginPath();X.arc(wx2+9,wy+22,11,Math.PI,0);X.fill();
+    X.fillStyle='#6888a8';X.beginPath();X.arc(wx2+9,wy+22,9,Math.PI,0);X.fill();
+    X.fillStyle='rgba(255,255,255,0.3)';X.fillRect(wx2+2,wy+24,5,5);
+    X.fillStyle='#9a8878';X.fillRect(wx2+8,wy+22,2,24); // divider
+    FR(wx2-3,wy+46,24,4,'#b8b0a0'); // sill
+  }
+  // Upper floor windows (smaller)
+  for(const wx2 of [cx-W/2+56,cx-W/2+92,cx+W/2-108,cx+W/2-72]){
+    FR(wx2-1,wy+4,16,18,'#9a9080');
+    FR(wx2,wy+5,14,16,'#6888a8');
+    X.fillStyle='#9a9080';X.beginPath();X.arc(wx2+7,wy+5,8,Math.PI,0);X.fill();
+    X.fillStyle='#6888a8';X.beginPath();X.arc(wx2+7,wy+5,6,Math.PI,0);X.fill();
+    X.fillStyle='rgba(255,255,255,0.25)';X.fillRect(wx2+2,wy+7,4,4);
+    FR(wx2-2,wy+21,18,3,'#a09888');
+  }
+
+  // ── Lv3: Moat hint ──
+  if(lv>=3){
+    X.fillStyle='rgba(40,90,160,0.35)';X.fillRect(cx-W/2-16,bot-6,W+32,6);
+    X.fillStyle='rgba(60,120,200,0.2)';X.fillRect(cx-W/2-16,bot-4,W+32,2);
+  }
+
+  // ── VILLAGE HALL SIGN ──
+  const sgW=90, sgX=cx-sgW/2, sgY=wy+H-22;
+  FR(sgX-2,sgY-2,sgW+4,16,'#1a1810');
+  FR(sgX,sgY,sgW,12,'#2a3828');
+  FR(sgX+1,sgY+1,sgW-2,10,'#344835');
+  X.fillStyle='#f0e8a0';X.font='bold 7px "Press Start 2P"';X.textAlign='center';
+  X.fillText('VILLAGE HALL',cx,sgY+9);
+}
+
+function bVillageHallWithViews(cx,bot,lv,rot){
+  if(rot===0){bVillageHall(cx,bot,lv);return;}
+  if(rot===2){
+    // Back view — plain stone wall with towers visible
+    drawLargeBldBack(cx,bot,lv,'#d8d4c8','#b8b0a0','HALL');
+    // Tower stubs on back corners
+    for(const tx of [cx-W3/2-6,cx+W3/2-22]){
+      FR(tx,bot-88,26,48,'#ccc8bc');
+      X.fillStyle='rgba(0,0,0,0.1)';X.fillRect(tx,bot-88,26,48);
+      // Cap
+      X.fillStyle='#c84820';
+      X.beginPath();X.moveTo(tx-2,bot-88);X.lineTo(tx+13,bot-102);X.lineTo(tx+28,bot-88);X.closePath();X.fill();
+      // Battlements
+      for(let i=0;i<26;i+=9) FR(tx+i,bot-96,7,8,'#d0ccbc');
+    }
+    return;}
+  // Side view — shows tower profile and depth
+  const flip=rot===3?-1:1;
+  const W=64,H=84,wy=bot-H-4;
+  // Foundation
+  FR(cx-W/2-2,bot-6,W+4,6,'#a09888');
+  // Side wall stone
+  FR(cx-W/2,wy,W,H,'#d0ccbe');
+  X.fillStyle='rgba(0,0,0,0.2)';X.fillRect(cx-W/2,wy,W,H);
+  // Stone texture
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let r=0;r<H;r+=12){const off=((r/12|0)%2===0)?0:18;for(let c=0;c<W;c+=36)X.fillRect(cx-W/2+c+off,wy+r,34,11);}
+  // Battlements on top
+  for(let i=0;i<W;i+=12) FR(cx-W/2+i,wy-10,9,10,'#d8d4c8');
+  FR(cx-W/2-2,wy,W+4,4,'#c0bcb0');
+  // Side window (arched)
+  const swx=cx-6, swy=wy+18;
+  FR(swx-2,swy-2,18,22,'#9a9080');
+  FR(swx,swy,14,18,'#6888a8');FR(swx+1,swy+1,12,16,'#78a0c0');
+  X.fillStyle='#9a9080';X.beginPath();X.arc(swx+7,swy,9,Math.PI,0);X.fill();
+  X.fillStyle='#6888a8';X.beginPath();X.arc(swx+7,swy,7,Math.PI,0);X.fill();
+  X.fillStyle='rgba(255,255,255,0.3)';X.fillRect(swx+2,swy+2,4,4);
+  FR(swx-3,swy+20,20,3,'#b0a898');
+  // Arrow slit upper
+  X.fillStyle='#1a1810';X.fillRect(cx-2,wy+4,5,12);X.beginPath();X.arc(cx,wy+4,2.5,Math.PI,0);X.fill();
+  // Perspective depth lines
+  X.strokeStyle='rgba(0,0,0,0.2)';X.lineWidth=2;
+  X.beginPath();X.moveTo(cx-W/2,wy);X.lineTo(cx-W/2-14,wy-10);X.stroke();
+  X.beginPath();X.moveTo(cx+W/2,wy);X.lineTo(cx+W/2+14,wy-10);X.stroke();
+  // Front tower visible on near side
+  const twX=cx+flip*(W/2-4), twY=wy-24;
+  FR(twX-12,twY,24,H+28,'#ccc8bc');
+  X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(twX-12,twY,24,H+28);
+  for(let i=0;i<24;i+=9) FR(twX-12+i,twY-8,7,8,'#d0ccbc');
+  // Tower cap
+  X.fillStyle='#c84820';
+  X.beginPath();X.moveTo(twX-14,twY-8);X.lineTo(twX,twY-24);X.lineTo(twX+14,twY-8);X.closePath();X.fill();
+  // Flag
+  const fpY=twY-28;
+  FR(twX-1,fpY,2,18,'#808880');
+  const ft2=Date.now()/600;
+  X.fillStyle='#802020';
+  X.beginPath();X.moveTo(twX+1,fpY+2);X.lineTo(twX+16,fpY+4+Math.sin(ft2)*2);
+  X.lineTo(twX+16,fpY+11+Math.sin(ft2)*2);X.lineTo(twX+1,fpY+12);X.closePath();X.fill();
+  X.fillStyle='rgba(255,255,200,0.6)';X.font='6px serif';X.textAlign='center';
+  X.fillText('♛',twX+9,fpY+9+Math.sin(ft2));
+  // Side label
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-28,bot-18,56,10);
+  X.fillStyle='rgba(255,255,200,0.7)';X.font='6px monospace';X.textAlign='center';
+  X.fillText(rot===1?'► VILLAGE HALL':'VILLAGE HALL ◄',cx,bot-10);
+}
+const W3=252;
+
 function drawBuildingShape(type,lv,cx,bot,rot=0){
   switch(type){
     case 'campfire':   bCampfire(cx,bot,lv);break;
@@ -2227,6 +2460,7 @@ function drawBuildingShape(type,lv,cx,bot,rot=0){
     case 'well':       bWell(cx,bot,lv);break;
     case 'church':     bChurchWithViews(cx,bot,lv,rot);break;
     case 'mosque':     bMosqueWithViews(cx,bot,lv,rot);break;
+    case 'village_hall':bVillageHallWithViews(cx,bot,lv,rot);break;
     case 'blacksmith': drawWith4Views(bSmith,cx,bot,lv,rot);break;
     case 'mill':       drawWith4Views(bMill,cx,bot,lv,rot);break;
     case 'smelter':    drawWith4Views(bSmelter,cx,bot,lv,rot);break;
@@ -5302,7 +5536,7 @@ function correctNPCJobs(){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
+    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     if(!workers) continue;
     const bld=G.bld.find(b=>b.id===+bldId);
@@ -5891,7 +6125,7 @@ function swBPTab(cat, el){
     house:['house','storage','granary','storehouse'],
     food:['farm','orchard','mill','granary','malthouse','bakery','sheep_farm','weaver_wk'],
     work:['logger','quarry','coalmine','ironmine','smelter','sawmill','ironworks','blacksmith','hunting','forest_hut','corral'],
-    civic:['campfire','street_lamp','well','church','mosque','market','tradingpost','tavern','school','hospital','stable','food_stall','fuel_stall','clothing_stall'],
+    civic:['campfire','street_lamp','well','church','mosque','village_hall','market','tradingpost','tavern','school','hospital','stable','food_stall','fuel_stall','clothing_stall'],
   };
   const items=catMap[cat]||[];
   for(const key of items){
@@ -8007,7 +8241,7 @@ function renderBldWorker(bldId, maxW){
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
             granary:'farmer',storehouse:'farmer',forest_hut:'planter',
             food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-            well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
+            well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
@@ -8519,7 +8753,15 @@ function initAudio(){
   audioCtx=new(window.AudioContext||window.webkitAudioContext)();
   masterGain=audioCtx.createGain();
   masterGain.gain.setValueAtTime(0.0, audioCtx.currentTime);
-  masterGain.connect(audioCtx.destination);
+  // Compressor — makes music louder without clipping
+  const compressor=audioCtx.createDynamicsCompressor();
+  compressor.threshold.value=-18;  // start compressing at -18dB
+  compressor.knee.value=6;
+  compressor.ratio.value=3;        // gentle 3:1 ratio
+  compressor.attack.value=0.003;
+  compressor.release.value=0.25;
+  masterGain.connect(compressor);
+  compressor.connect(audioCtx.destination);
   }catch(e){console.warn('Audio init failed:',e.message);}
 }
 
@@ -8623,7 +8865,7 @@ const MUSIC_TRACKS=[
     harmony:[6,7,9,11,9,7,6,7, 6,4,3,4,6,7,6,4],
     bass:[0,0,2,0, 0,2,0,2, 0,0,2,0, 2,0,0,2],
     drumPat:{ kick:[0,4,8,12], snare:[4,12], hihat:[0,2,4,6,8,10,12,14] },
-    melVol:0.16, ambVol:0.05,
+    melVol:0.38, ambVol:0.12,
     padChord:[4,7,9], padFreqMul:1,
   },
   {
@@ -8633,7 +8875,7 @@ const MUSIC_TRACKS=[
     harmony:[9,11,12,11,9,7,6,7, 9,12,14,12,11,9,12,11],
     bass:[2,0,2,4, 2,0,2,0, 4,2,0,2, 0,2,4,2],
     drumPat:{ kick:[0,6,10], snare:[4,12], hihat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
-    melVol:0.14, ambVol:0.04,
+    melVol:0.34, ambVol:0.10,
     padChord:[6,9,11], padFreqMul:1,
   },
   {
@@ -8643,7 +8885,7 @@ const MUSIC_TRACKS=[
     harmony:[6,4,3,1,3,4,3,1, 0,1,3,1,0,3,0,1],
     bass:[4,0,0,4, 2,0,2,0, 4,0,0,2, 0,4,2,0],
     drumPat:{ kick:[0,8], snare:[4,12], hihat:[0,4,8,12] },
-    melVol:0.12, ambVol:0.06,
+    melVol:0.30, ambVol:0.14,
     padChord:[3,6,9], padFreqMul:0.5,
   },
   {
@@ -8653,7 +8895,7 @@ const MUSIC_TRACKS=[
     harmony:[7,9,7,9,9,7,9,12, 11,9,7,9,11,12,11,9],
     bass:[0,4,0,2, 4,0,4,2, 0,2,4,0, 2,4,2,0],
     drumPat:{ kick:[0,3,8,11], snare:[4,12], hihat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
-    melVol:0.17, ambVol:0.03,
+    melVol:0.40, ambVol:0.09,
     padChord:[4,7,11], padFreqMul:1,
   },
   {
@@ -8663,7 +8905,7 @@ const MUSIC_TRACKS=[
     harmony:[6,4,6,7,9,7,6,4, 7,9,7,6,4,6,7,9],
     bass:[0,0,4,0, 2,0,0,4, 0,2,0,4, 0,0,2,0],
     drumPat:{ kick:[0,12], snare:[8], hihat:[0,4,8,12] },
-    melVol:0.10, ambVol:0.07,
+    melVol:0.26, ambVol:0.16,
     padChord:[1,4,7], padFreqMul:0.5,
   },
 ];
@@ -8682,7 +8924,7 @@ function scheduleMusic(){
     try{
       audioCtx=new(window.AudioContext||window.webkitAudioContext)();
       masterGain=audioCtx.createGain();
-      masterGain.gain.value=0.8;
+      masterGain.gain.value=1.8;
       masterGain.connect(audioCtx.destination);
     }catch(e){ musicScheduler=setTimeout(scheduleMusic,2000); return; }
   }
@@ -8723,14 +8965,14 @@ function scheduleMusic(){
     const bIdx=trk.bass[patIdx];
     if(patIdx%2===0){
       const bFreq=(PENTA[bIdx]||PENTA[0])*0.5;
-      playMarimba(bFreq, now, 0.16, (patIdx%4<2)?-0.5:0.4);
+      playMarimba(bFreq, now, 0.38, (patIdx%4<2)?-0.5:0.4);
     }
 
     // ── DRUMS (per-track pattern) ──
     const dp=trk.drumPat;
-    if(dp.kick.includes(patIdx))   playDrum(now,100,0.22,0.18);
-    if(dp.snare.includes(patIdx))  playDrum(now,260,0.14,0.10);
-    if(dp.hihat.includes(patIdx))  playShaker(now,0.035);
+    if(dp.kick.includes(patIdx))   playDrum(now,100,0.50,0.18);
+    if(dp.snare.includes(patIdx))  playDrum(now,260,0.32,0.10);
+    if(dp.hihat.includes(patIdx))  playShaker(now,0.08);
 
     // ── AMBIENT PAD (every 2 bars) ──
     if(patIdx===0){
@@ -9985,7 +10227,7 @@ function applySaveState(save){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',corral:'idle',stable:'idle'};
+    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     const bld=G.bld.find(b=>b.id===+bldId);
     if(!bld) continue;
@@ -10258,7 +10500,7 @@ function launchGame(doGenMap){
       const btn=document.getElementById('tb-music');
       if(btn){btn.textContent='🔇';btn.classList.add('on');}
       masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
-      masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+2);
+      masterGain.gain.linearRampToValueAtTime(1.8,audioCtx.currentTime+2);
       beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
       _lastMusicBeat=Date.now();
       scheduleMusic();
@@ -11879,7 +12121,7 @@ function toggleMusic(){
     btn.textContent='🔇';
     btn.classList.add('on');
     masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
-    masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+1.5);
+    masterGain.gain.linearRampToValueAtTime(1.8,audioCtx.currentTime+1.5);
     beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
     _lastMusicBeat=Date.now();
     scheduleMusic();
