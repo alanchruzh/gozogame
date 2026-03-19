@@ -7123,6 +7123,22 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur',()=>keys.clear()); // clear all keys when window loses focus
 
+// Resume audio when tab becomes visible again
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&musicOn&&audioCtx){
+    if(audioCtx.state==='suspended'){
+      audioCtx.resume().then(()=>{
+        // If music died while hidden, restart it
+        if(Date.now()-_lastMusicBeat>3000){
+          if(musicScheduler) clearTimeout(musicScheduler);
+          beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
+          scheduleMusic();
+        }
+      }).catch(()=>{});
+    }
+  }
+});
+
 function loop(now){
   const dt=Math.min(now-lastT,50);lastT=now;
   try{
@@ -7247,74 +7263,172 @@ const PENTA=[
   523.25,587.33,659.25,783.99,880.00, // octave 5
 ];
 
-// Melody patterns — looping village motifs
-const MELODY_PATTERNS=[
-  // Motif 1: joyful up-down
-  [4,6,7,9,7,6,4,6, 4,3,1,3,4,6,4,3],
-  // Motif 2: flowing like wind
-  [6,7,9,7,6,4,3,4, 6,9,7,6,4,6,7,6],
-  // Motif 3: melancholic afternoon
-  [9,7,6,4,6,7,6,4, 3,4,6,4,3,1,3,4],
+// ── 5 MUSIC TRACKS — each has unique mood, tempo, melody, drums ──
+const MUSIC_TRACKS=[
+  {
+    // Track 1: "Morning Village" — joyful, light, medium tempo
+    name:'Morning Village', bpm:88,
+    melody:[4,6,7,9,7,6,4,6, 4,3,1,3,4,6,4,3],
+    harmony:[6,7,9,11,9,7,6,7, 6,4,3,4,6,7,6,4],
+    bass:[0,0,2,0, 0,2,0,2, 0,0,2,0, 2,0,0,2],
+    drumPat:{ kick:[0,4,8,12], snare:[4,12], hihat:[0,2,4,6,8,10,12,14] },
+    melVol:0.16, ambVol:0.05,
+    padChord:[4,7,9], padFreqMul:1,
+  },
+  {
+    // Track 2: "Harvest Breeze" — flowing, happy, slightly faster
+    name:'Harvest Breeze', bpm:96,
+    melody:[6,7,9,7,6,4,3,4, 6,9,11,9,7,6,9,7],
+    harmony:[9,11,12,11,9,7,6,7, 9,12,14,12,11,9,12,11],
+    bass:[2,0,2,4, 2,0,2,0, 4,2,0,2, 0,2,4,2],
+    drumPat:{ kick:[0,6,10], snare:[4,12], hihat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
+    melVol:0.14, ambVol:0.04,
+    padChord:[6,9,11], padFreqMul:1,
+  },
+  {
+    // Track 3: "Dusk Lullaby" — slow, melancholic, peaceful evening
+    name:'Dusk Lullaby', bpm:60,
+    melody:[9,7,6,4,6,7,6,4, 3,4,6,4,3,1,3,4],
+    harmony:[6,4,3,1,3,4,3,1, 0,1,3,1,0,3,0,1],
+    bass:[4,0,0,4, 2,0,2,0, 4,0,0,2, 0,4,2,0],
+    drumPat:{ kick:[0,8], snare:[4,12], hihat:[0,4,8,12] },
+    melVol:0.12, ambVol:0.06,
+    padChord:[3,6,9], padFreqMul:0.5,
+  },
+  {
+    // Track 4: "Market Day" — lively, busy, syncopated
+    name:'Market Day', bpm:104,
+    melody:[4,6,4,7,6,4,6,9, 7,6,4,6,7,9,7,6],
+    harmony:[7,9,7,9,9,7,9,12, 11,9,7,9,11,12,11,9],
+    bass:[0,4,0,2, 4,0,4,2, 0,2,4,0, 2,4,2,0],
+    drumPat:{ kick:[0,3,8,11], snare:[4,12], hihat:[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] },
+    melVol:0.17, ambVol:0.03,
+    padChord:[4,7,11], padFreqMul:1,
+  },
+  {
+    // Track 5: "Midnight Ember" — sparse, mysterious, slow
+    name:'Midnight Ember', bpm:52,
+    melody:[3,1,3,4,6,4,3,1, 4,6,4,3,1,3,4,6],
+    harmony:[6,4,6,7,9,7,6,4, 7,9,7,6,4,6,7,9],
+    bass:[0,0,4,0, 2,0,0,4, 0,2,0,4, 0,0,2,0],
+    drumPat:{ kick:[0,12], snare:[8], hihat:[0,4,8,12] },
+    melVol:0.10, ambVol:0.07,
+    padChord:[1,4,7], padFreqMul:0.5,
+  },
 ];
 
-let melodyPattern=0, beatCount=0;
+let currentTrack=0;
+let melodyPattern=0;
+let beatCount=0;
+let _trackBeatCount=0;
+const TRACK_BARS=16;
 
 function scheduleMusic(){
-  if(!audioCtx||!musicOn) return;
-  const now=audioCtx.currentTime;
-  const bpm=80; // slow, relaxed
-  const beat=60/bpm;
-  const bar=beat*4;
+  if(!musicOn) return;
 
-  // Change pattern every 2 bars
-  if(beatCount%8===0) melodyPattern=(melodyPattern+1)%MELODY_PATTERNS.length;
-
-  const pat=MELODY_PATTERNS[melodyPattern];
-  const patIdx=(beatCount%16);
-
-  // ── MELODY (flute-like) ──
-  const mFreq=PENTA[pat[patIdx]];
-  const mDur=beat*(patIdx%4===0?0.9:0.45);
-  playNote(mFreq, now, mDur, 0.15, 'sine', -0.2);
-  // Harmony (upper octave, softer)
-  if(patIdx%2===0) playNote(mFreq*2, now, mDur*0.8, 0.06, 'sine', 0.3);
-
-  // ── GAMELAN/MARIMBA bassline ──
-  if(patIdx%4===0){
-    const bassFreq=PENTA[pat[patIdx]-4>0?pat[patIdx]-4:0]*0.5;
-    playMarimba(bassFreq, now, 0.18, -0.5);
+  // ── ENSURE AudioContext alive ──
+  if(!audioCtx||audioCtx.state==='closed'){
+    try{
+      audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      masterGain=audioCtx.createGain();
+      masterGain.gain.value=0.8;
+      masterGain.connect(audioCtx.destination);
+    }catch(e){ musicScheduler=setTimeout(scheduleMusic,2000); return; }
   }
-  if(patIdx%4===2){
-    const bassFreq=PENTA[Math.max(0,pat[patIdx]-2)]*0.5;
-    playMarimba(bassFreq, now, 0.12, 0.4);
+  if(audioCtx.state==='suspended'){
+    audioCtx.resume().then(scheduleMusic).catch(()=>{
+      musicScheduler=setTimeout(scheduleMusic,500);
+    });
+    return;
   }
 
-  // ── KENDANG (drum pattern) ──
-  // Beat 1 & 3: bass drum
-  if(patIdx%4===0) playDrum(now, 110, 0.20, 0.15);
-  // Beat 2 & 4: snare-like
-  if(patIdx%4===2) playDrum(now, 260, 0.12, 0.08);
-  // Off-beats
-  if(patIdx%2===1) playDrum(now, 180, 0.07, 0.06);
+  try{
+    const trk=MUSIC_TRACKS[currentTrack];
+    const bpm=trk.bpm;
+    const beat=60/bpm;
+    const bar=beat*4;
+    const patIdx=(_trackBeatCount%16);
+    const now=audioCtx.currentTime;
 
-  // ── SHAKER / ANGKLUNG feel ──
-  if(patIdx%2===0) playShaker(now+beat*0.5, 0.05);
-  if(patIdx%4===1) playShaker(now, 0.04);
-
-  // ── AMBIENT pad (strings/kecapi) ──
-  if(patIdx%8===0){
-    const chord=[PENTA[4],PENTA[6],PENTA[9]];
-    for(const f of chord){
-      playNote(f, now, bar*1.8, 0.04, 'sine', (Math.random()-0.5)*0.6);
+    // ── SWITCH TRACK every TRACK_BARS bars (64 beats), pick random different track ──
+    if(_trackBeatCount>0&&_trackBeatCount%(TRACK_BARS*4)===0){
+      let next=currentTrack;
+      while(next===currentTrack) next=Math.floor(Math.random()*MUSIC_TRACKS.length);
+      currentTrack=next;
+      _trackBeatCount=0;
+      notify(`🎵 ${MUSIC_TRACKS[currentTrack].name}`,'ok');
     }
+
+    // ── MELODY ──
+    const mIdx=trk.melody[patIdx];
+    const hIdx=trk.harmony[patIdx];
+    const mFreq=PENTA[mIdx]||PENTA[5];
+    const hFreq=PENTA[hIdx]||PENTA[7];
+    const mDur=beat*(patIdx%4===0?0.88:0.44);
+    playNote(mFreq, now, mDur, trk.melVol, 'sine', -0.25);
+    if(patIdx%2===0) playNote(hFreq, now, mDur*0.75, trk.melVol*0.4, 'sine', 0.35);
+
+    // ── BASSLINE (marimba/gamelan) ──
+    const bIdx=trk.bass[patIdx];
+    if(patIdx%2===0){
+      const bFreq=(PENTA[bIdx]||PENTA[0])*0.5;
+      playMarimba(bFreq, now, 0.16, (patIdx%4<2)?-0.5:0.4);
+    }
+
+    // ── DRUMS (per-track pattern) ──
+    const dp=trk.drumPat;
+    if(dp.kick.includes(patIdx))   playDrum(now,100,0.22,0.18);
+    if(dp.snare.includes(patIdx))  playDrum(now,260,0.14,0.10);
+    if(dp.hihat.includes(patIdx))  playShaker(now,0.035);
+
+    // ── AMBIENT PAD (every 2 bars) ──
+    if(patIdx===0){
+      const chord=trk.padChord;
+      for(const ci of chord){
+        const f=(PENTA[ci]||PENTA[4])*trk.padFreqMul;
+        playNote(f, now, bar*1.9, trk.ambVol, 'sine', (Math.random()-0.5)*0.7);
+      }
+    }
+
+    // ── NODE CLEANUP ──
+    musicNodes=musicNodes.filter(n=>{
+      try{ return n.context&&n.context.state!=='closed'; }catch{ return false; }
+    });
+    if(musicNodes.length>60) musicNodes.splice(0,musicNodes.length-30);
+
+    beatCount++;
+    _trackBeatCount++;
+    _lastMusicBeat=Date.now();
+
+    const delay=Math.max(50,(now+beat-audioCtx.currentTime-0.02)*1000);
+    musicScheduler=setTimeout(scheduleMusic, delay);
+
+  }catch(e){
+    console.warn('Music beat error:',e.message);
+    musicScheduler=setTimeout(scheduleMusic,1500);
   }
+}
 
-  // Cleanup old nodes
-  if(beatCount%16===0) musicNodes=musicNodes.filter(n=>{ try{return n.context.state!=='closed';}catch{return false;} });
+// ── WATCHDOG: fires every 4 seconds, restarts music if it silently died ──
+let _musicWatchdog=null;
+let _lastMusicBeat=Date.now();
 
-  beatCount++;
-  const nextBeat=now+beat;
-  musicScheduler=setTimeout(()=>{if(musicOn)scheduleMusic();}, (beat-0.05)*1000);
+function startMusicWatchdog(){
+  if(_musicWatchdog) clearInterval(_musicWatchdog);
+  _musicWatchdog=setInterval(()=>{
+    if(!musicOn) return;
+    // Resume suspended context
+    if(audioCtx&&audioCtx.state==='suspended'){
+      audioCtx.resume().catch(()=>{});
+    }
+    // If no beat in last 6 seconds — restart
+    if(Date.now()-_lastMusicBeat>6000){
+      console.warn('Music watchdog: silence detected, restarting');
+      if(musicScheduler) clearTimeout(musicScheduler);
+      beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
+      scheduleMusic();
+    }
+  },4000);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -8789,8 +8903,10 @@ function launchGame(doGenMap){
       if(btn){btn.textContent='🔇';btn.classList.add('on');}
       masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
       masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+2);
-      beatCount=0;
+      beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
+      _lastMusicBeat=Date.now();
       scheduleMusic();
+      startMusicWatchdog();
     }
   },800); // slight delay so title screen fades first
 
@@ -10248,14 +10364,17 @@ function toggleMusic(){
     btn.classList.add('on');
     masterGain.gain.setValueAtTime(0,audioCtx.currentTime);
     masterGain.gain.linearRampToValueAtTime(0.8,audioCtx.currentTime+1.5);
-    beatCount=0;
+    beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
+    _lastMusicBeat=Date.now();
     scheduleMusic();
+    startMusicWatchdog();
     notify('🎵 Village music started','ok');
   } else {
     btn.textContent='🎵';
     btn.classList.remove('on');
     masterGain.gain.linearRampToValueAtTime(0,audioCtx.currentTime+1.5);
     clearTimeout(musicScheduler);
+    if(_musicWatchdog){clearInterval(_musicWatchdog);_musicWatchdog=null;}
     notify('🔇 Music stopped','warn');
   }
 }
