@@ -762,102 +762,77 @@ function upPop(){
 
 // Population growth: new family moves in if happy + empty house available
 function checkPopGrowth(){
-  if(G.pop>=G.cap) return; // at capacity
+  // Always recalculate pop first
+  upPop();
+  if(G.pop>=G.cap) return;
   if(G.happy<40) return;
 
-  // ── IMMIGRATION: new family moves into empty/underpopulated house ──
   const availHouses=G.bld.filter(b=>{
     if(b.type!=='house'||b.under_construction) return false;
     const cap=(b.lv||1)*2;
-    // Count settled residents (not immigrants still walking)
-    const residents=NPCS.filter(n=>n.houseId===b.id&&!n._immigrantTarget);
-    // Count immigrants already en-route to this house
+    const residents=NPCS.filter(n=>n.houseId===b.id&&!n._immigrantTarget).length;
     const inbound=NPCS.filter(n=>n._immigrantTarget===b.id).length;
-    return residents.length+inbound<cap;
+    return residents+inbound<cap;
   });
 
-  // Spawn up to 2 immigrants per check if many houses empty (faster fill-up)
+  if(availHouses.length===0){ autoAssignHomeless(); return; }
+
+  // GUARANTEED: always spawn if empty house exists (no random check)
   const maxSpawns=availHouses.length>=3?2:1;
   let spawned=0;
 
-  while(spawned<maxSpawns&&availHouses.length>0){
-    // Pick a random available house
-    const houseIdx=Math.floor(Math.random()*availHouses.length);
-    const house=availHouses[houseIdx];
-    availHouses.splice(houseIdx,1); // don't pick same house twice
-
-    // Re-check still valid (could have been filled by previous iteration)
+  for(let hi=0;hi<availHouses.length&&spawned<maxSpawns;hi++){
+    const house=availHouses[hi];
     const residents=NPCS.filter(n=>n.houseId===house.id&&!n._immigrantTarget);
     const inbound=NPCS.filter(n=>n._immigrantTarget===house.id).length;
     const cap=(house.lv||1)*2;
-    if(residents.length+inbound>=cap) continue;
+    const slotsLeft=cap-residents.length-inbound;
+    if(slotsLeft<=0) continue;
 
-    const newFamilyId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
-    const entryX=MAIN_ROAD_ENTRY.col*TS+TS/2;
-    const entryY=MAIN_ROAD_ENTRY.row*TS+TS/2;
+    const newFamId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
+    const ex=MAIN_ROAD_ENTRY.col*TS+TS/2, ey=MAIN_ROAD_ENTRY.row*TS+TS/2;
     const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
 
-    const spawnImmigrant=(name,female,familyId,houseId)=>{
-      NPCS.push({
-        name,female,familyId,
-        x:entryX+(Math.random()-0.5)*TS,
-        y:entryY+(Math.random()-0.5)*TS,
-        dir:2,col:`hsl(${Math.random()*360},60%,${female?72:65}%)`,
-        job:null,age:ADULT_DAYS+Math.floor(Math.random()*(female?720:900)),
-        pregnant:0,houseId:0,
-        _immigrantTarget:houseId,
-        _immigrantTargetX:hx,_immigrantTargetY:hy,
-      });
-    };
+    const spawn=(name,female,famId,houseId)=>NPCS.push({
+      name,female,familyId:famId,
+      x:ex+(Math.random()-0.5)*24, y:ey+(Math.random()-0.5)*24,
+      dir:2,col:`hsl(${Math.random()*360},60%,${female?72:65}%)`,
+      job:null,age:ADULT_DAYS+Math.floor(Math.random()*(female?720:900)),
+      pregnant:0,houseId:0,
+      _immigrantTarget:houseId,_immigrantTargetX:hx,_immigrantTargetY:hy,
+    });
 
-    const slotsLeft=cap-residents.length-inbound;
     if(residents.length===0&&slotsLeft>=2){
-      // Empty house — send a couple
-      const mName=uniqueName(false), fName=uniqueName(true);
-      spawnImmigrant(mName,false,newFamilyId,house.id);
-      spawnImmigrant(fName,true,newFamilyId,house.id);
-      FAMILIES.push({id:newFamilyId,houseId:house.id,husbandName:mName,wifeName:fName});
-      notify(`🚶 New family heading to the village! ${mName} & ${fName}`,'ok');
-    } else if(residents.length===0&&slotsLeft===1){
-      // Only 1 slot left — send single person
-      const name=uniqueName(Math.random()<0.5);
-      spawnImmigrant(name,Math.random()<0.5,newFamilyId,house.id);
-      notify(`🚶 ${name} is heading to the village!`,'ok');
-    } else if(residents.length===1){
-      // House with 1 resident — send partner
-      const res=residents[0];
-      if(!res.female&&isAdult(res)){
-        const fName=uniqueName(true);
-        spawnImmigrant(fName,true,res.familyId||newFamilyId,house.id);
-        notify(`🚶 ${fName} is heading to join ${res.name}!`,'ok');
-      } else if(res.female&&isAdult(res)){
-        const mName=uniqueName(false);
-        spawnImmigrant(mName,false,res.familyId||newFamilyId,house.id);
-        notify(`🚶 ${mName} is heading to join ${res.name}!`,'ok');
-      }
+      const m=uniqueName(false),f2=uniqueName(true);
+      spawn(m,false,newFamId,house.id); spawn(f2,true,newFamId,house.id);
+      FAMILIES.push({id:newFamId,houseId:house.id,husbandName:m,wifeName:f2});
+      notify(`🚶 ${m} & ${f2} are heading to the village!`,'ok');
+      spawned++;
+    } else if(residents.length===0){
+      const nm=uniqueName(Math.random()<0.5);
+      spawn(nm,Math.random()<0.5,newFamId,house.id);
+      notify(`🚶 ${nm} is heading to the village!`,'ok');
+      spawned++;
+    } else if(residents.length===1&&isAdult(residents[0])){
+      const pf=!residents[0].female, pn=uniqueName(pf);
+      spawn(pn,pf,residents[0].familyId||newFamId,house.id);
+      notify(`🚶 ${pn} is heading to join ${residents[0].name}!`,'ok');
+      spawned++;
     } else if(slotsLeft>0){
-      // Upgraded house with room — send an extra resident
-      const name=uniqueName(Math.random()<0.5);
-      spawnImmigrant(name,Math.random()<0.5,newFamilyId,house.id);
-      notify(`🚶 ${name} is moving to the village!`,'ok');
-    }
-    spawned++;
-  }
-
-  // ── CHILDREN GROWN UP: find new house for adult children ──
-  const adultChildren=NPCS.filter(n=>isAdult(n)&&n.age<ADULT_DAYS+180&&!n._movedOut);
-  for(const child of adultChildren){
-    const emptyHouse=G.bld.find(b=>b.type==='house'&&!b.under_construction&&
-      NPCS.filter(n=>n.houseId===b.id).length===0&&b.id!==child.houseId);
-    if(emptyHouse){
-      child._movedOut=true;
-      child.houseId=emptyHouse.id;
-      notify(`🎉 ${child.name} grew up and moved into their own home!`,'ok');
-      upPop();
+      const nm=uniqueName(Math.random()<0.5);
+      spawn(nm,Math.random()<0.5,newFamId,house.id);
+      notify(`🚶 ${nm} is moving to the village!`,'ok');
+      spawned++;
     }
   }
 
-  // ── AUTO-ASSIGN: homeless adults move into available houses ──
+  // Children grown up
+  const grown=NPCS.filter(n=>isAdult(n)&&n.age<ADULT_DAYS+180&&!n._movedOut);
+  for(const c of grown){
+    const h=G.bld.find(b=>b.type==='house'&&!b.under_construction&&
+      NPCS.filter(n=>n.houseId===b.id).length===0&&b.id!==c.houseId);
+    if(h){c._movedOut=true;c.houseId=h.id;notify(`🎉 ${c.name} moved out!`,'ok');upPop();}
+  }
   autoAssignHomeless();
 }
 
@@ -5641,7 +5616,7 @@ function tick(){
   }
   if(G.hr>=24){G.hr=0;G.day++;G.ticks++;
     if(G.ticks%2===0) doProd(); // production every 2 days
-    else checkPopGrowth(); // population check every day
+    checkPopGrowth(); // population check EVERY day — guaranteed immigrant if empty house
     if(G.day>90){G.day=1;G.season=(G.season+1)%4;if(G.season===0)G.yr++;}
   }
   const _tl=document.getElementById('timelbl');if(_tl)_tl.textContent='Day '+G.day;
