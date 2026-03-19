@@ -10581,9 +10581,10 @@ function buildSaveState(){
 
 // ── APPLY SAVE STATE ──
 function applySaveState(save){
-  if(!save||!save.version) throw new Error('Invalid save file');
-  if(save.version>SAVE_VERSION) notify('⚠ Save from a newer version — some features may not work.','warn');
-  if(save.version<SAVE_VERSION) notify(`📂 Old save (v${save.version}) loaded — some features reset to defaults.`,'warn');
+  if(!save||!save.version){ console.warn('applySaveState: missing version'); return; }
+  // Version mismatch warnings — shown after game starts
+  if(save.version<SAVE_VERSION) console.log('Old save v'+save.version+' loaded');
+  if(save.version>SAVE_VERSION) console.warn('Save from newer version');
   // Restore world seed so map generates identically
   if(save.worldSeed) WORLD_SEED=save.worldSeed;
   if(save.villageName) G.villageName=save.villageName;
@@ -10638,7 +10639,13 @@ function applySaveState(save){
   _waterSpots=null;
   _waterTilesCache=null; // reset water animation cache
   if(save.mainRoadEntry) MAIN_ROAD_ENTRY={...save.mainRoadEntry};
-  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
+  // Initialize MAP rows first (MAP may be empty if game never started)
+  if(!MAP.length||MAP.length<WR){
+    MAP=[];
+    for(let r=0;r<WR;r++){MAP[r]=[];for(let c=0;c<WC;c++)MAP[r][c]={t:T.GRASS,bld:null,decor:null};}
+  } else {
+    for(let r=0;r<WR;r++) for(let c=0;c<WC;c++) MAP[r][c]={t:T.GRASS,bld:null,decor:null};
+  }
   for(const td of (save.mapData||[])){
     if(td.r>=0&&td.r<WR&&td.c>=0&&td.c<WC)
       MAP[td.r][td.c]={t:td.t,bld:td.bld||null,decor:td.decor||null};
@@ -10819,16 +10826,20 @@ async function loadAutosave(){
     const raw=localStorage.getItem(AUTOSAVE_KEY);
     if(!raw) return false;
     const parsed=JSON.parse(raw);
+    let saveObj;
     if(parsed._gozo===true){
-      const payload=decodeURIComponent(escape(atob(parsed.d)));
       try{
-        const valid=await verifyData(payload,parsed.sig);
-        if(!valid) notify('⚠ Autosave signature mismatch — loading anyway.','warn');
-      } catch(e){ /* ignore sig error */ }
-      applySaveState(JSON.parse(payload));
+        const payload=decodeURIComponent(escape(atob(parsed.d)));
+        saveObj=JSON.parse(payload);
+      } catch(decErr){
+        console.warn('Autosave decode error:',decErr);
+        return false;
+      }
     } else {
-      applySaveState(parsed); // legacy
+      saveObj=parsed; // legacy plain JSON
     }
+    if(!saveObj||!saveObj.version){ console.warn('Invalid autosave'); return false; }
+    applySaveState(saveObj);
     return true;
   } catch(e){
     console.warn('Autosave load failed:',e.message);
@@ -10873,6 +10884,20 @@ function showNewGameForm(){
   setTimeout(()=>document.getElementById('input-village').focus(),50);
 }
 
+function doLoadAutosave(){
+  loadAutosave().then(ok=>{
+    if(ok){
+      _gameStarted=false;
+      launchGame(false);
+    } else {
+      alert('❌ Could not load autosave. It may be corrupted or missing.');
+    }
+  }).catch(err=>{
+    alert('❌ Load error: '+err.message);
+    console.error(err);
+  });
+}
+
 function showLoadGame(){
   const meta=hasAutosave();
   if(meta){
@@ -10881,7 +10906,7 @@ function showLoadGame(){
     if(hint){
       hint.style.display='block';
       hint.innerHTML=`💾 Autosave: Y${meta.yr||1} Day ${meta.day||1} — ${d.toLocaleDateString()}<br>
-        <button onclick="loadAutosave().then(ok=>{if(ok){_gameStarted=false;launchGame(false);}})" style="margin-top:6px;padding:4px 12px;background:#082010;border:1px solid #20a040;color:#40d060;cursor:pointer;font-size:10px">▶ Load Autosave</button>
+        <button onclick="doLoadAutosave()" style="margin-top:6px;padding:4px 12px;background:#082010;border:1px solid #20a040;color:#40d060;cursor:pointer;font-size:10px">▶ Load Autosave</button>
         &nbsp;
         <button onclick="document.getElementById('title-load-input').click()" style="margin-top:6px;padding:4px 12px;background:#080818;border:1px solid #2040a0;color:#4060d0;cursor:pointer;font-size:10px">📁 Load File</button>
         &nbsp;
@@ -10896,30 +10921,35 @@ function titleLoadGame(event){
   const file=event.target.files?.[0];
   if(!file) return;
   const reader=new FileReader();
-  reader.onload=async function(e){
-    event.target.value=''; // reset after reading
+  reader.onload=function(e){
+    event.target.value='';
     try{
+      let saveObj;
       let parsed;
       try{ parsed=JSON.parse(e.target.result); }
       catch{ alert('❌ Not a valid save file (.gozo or .json)'); return; }
 
       if(parsed._gozo===true){
-        const payload=decodeURIComponent(escape(atob(parsed.d)));
+        // Decode base64 save
         try{
-          const valid=await verifyData(payload,parsed.sig);
-          if(!valid) console.warn('Save signature mismatch — loading anyway.');
-        } catch(sigErr){ console.warn('Could not verify signature — loading anyway.'); }
-        applySaveState(JSON.parse(payload));
+          const payload=decodeURIComponent(escape(atob(parsed.d)));
+          saveObj=JSON.parse(payload);
+        } catch(decErr){
+          alert('❌ Could not decode save file: '+decErr.message); return;
+        }
       } else if(parsed.version){
-        applySaveState(parsed);
+        saveObj=parsed;
       } else {
         alert('❌ Unrecognized save format.'); return;
       }
 
-      // Always launch — reset _gameStarted so launchGame doesn't skip
+      if(!saveObj||!saveObj.version){
+        alert('❌ Save file missing version data.'); return;
+      }
+
+      applySaveState(saveObj);
       _gameStarted=false;
       launchGame(false);
-      setTimeout(()=>notify(`📂 Save loaded! Y${G.yr} Day ${G.day}`,'ok'),800);
     } catch(err){
       alert('❌ Load failed: '+err.message);
       console.error('Load error:',err);
