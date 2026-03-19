@@ -7031,13 +7031,55 @@ function drawBackyard(type, wx, wy, timer, prodTime, offset=1){
         X.fillStyle='#a06020';X.fillRect(wx+12,wy+4,TS-24,6);
         X.fillStyle='#1a1008';X.fillRect(cx-5,wy+10,10,14); // door
       }
-      // Chickens wander both tiles
-      for(let i=0;i<(isFront?2:1);i++){
-        const cx2=wx+12+i*20, cy2=(isFront?by-14:wy+TS/2)+Math.sin(t*2+i)*3;
-        X.fillStyle='#ffffff';X.beginPath();X.ellipse(cx2,cy2,5,4,0,0,Math.PI*2);X.fill();
-        X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(cx2-2,cy2-2,4,3,0,0,Math.PI*2);X.fill();
-        X.fillStyle='#ff4040';X.beginPath();X.arc(cx2+4,cy2-3,2,0,Math.PI*2);X.fill();
-        X.fillStyle='#ffaa00';X.beginPath();X.moveTo(cx2+4,cy2-1);X.lineTo(cx2+7,cy2);X.lineTo(cx2+4,cy2+1);X.fill();
+      // Chickens wander around the pen area
+      for(let i=0;i<(isFront?3:1);i++){
+        const phase=t*(0.9+i*0.3)+i*2.4;
+        // Wander in pen bounds
+        const rawX=wx+TS/2+Math.sin(phase)*22+Math.cos(phase*0.5+i)*10;
+        const rawY=(isFront?by-16:wy+TS*0.55)+Math.sin(phase*0.8+i)*8;
+        const bx2=Math.max(wx+8,Math.min(wx+TS-8,rawX));
+        const by2=Math.max(isFront?by-28:wy+8,Math.min(isFront?by-6:wy+TS-8,rawY));
+        const facingR=Math.cos(phase)>0;
+        const stepPhase=t*8+i;
+        const bobY=Math.sin(stepPhase)*1.5; // head bob while walking
+        // Shadow
+        X.fillStyle='rgba(0,0,0,0.10)';X.beginPath();X.ellipse(bx2,by2+5,5,2,0,0,Math.PI*2);X.fill();
+        // Legs (alternate stepping)
+        X.fillStyle='#e8a000';
+        const lStep=Math.sin(stepPhase)*3;
+        X.fillRect(bx2-3,by2+3,2,5+lStep);
+        X.fillRect(bx2+1,by2+3,2,5-lStep);
+        // Feet
+        X.fillRect(bx2-5,by2+8+lStep,5,2);
+        X.fillRect(bx2+1,by2+8-lStep,5,2);
+        // Body (white/speckled)
+        X.fillStyle='#f0f0e8';X.beginPath();X.ellipse(bx2,by2,6,4,0,0,Math.PI*2);X.fill();
+        X.fillStyle='#ffffff';X.beginPath();X.ellipse(bx2-2,by2-1,4,3,0,0,Math.PI*2);X.fill();
+        // Wing flap (occasional)
+        const wingFlap=Math.sin(t*6+i*1.5)*0.3;
+        if(Math.sin(t*1.2+i)>0.7){ // occasionally flap
+          X.fillStyle='rgba(220,220,200,0.8)';
+          X.beginPath();
+          X.ellipse(bx2+(facingR?-3:3),by2-1,7,3,facingR?-0.5:0.5,0,Math.PI*2);
+          X.fill();
+        }
+        // Head (faces movement direction)
+        const hx2=bx2+(facingR?7:-7);
+        X.fillStyle='#f0f0e8';X.beginPath();X.arc(hx2,by2-2+bobY,4,0,Math.PI*2);X.fill();
+        // Comb (red)
+        X.fillStyle='#ff3030';
+        X.beginPath();X.arc(hx2+(facingR?1:-1),by2-6+bobY,2.5,0,Math.PI*2);X.fill();
+        X.beginPath();X.arc(hx2+(facingR?2.5:-2.5),by2-7+bobY,1.5,0,Math.PI*2);X.fill();
+        // Beak
+        X.fillStyle='#e8a000';
+        X.beginPath();
+        X.moveTo(hx2+(facingR?4:-4),by2-2+bobY);
+        X.lineTo(hx2+(facingR?7:-7),by2-1+bobY);
+        X.lineTo(hx2+(facingR?4:-4),by2+bobY);
+        X.fill();
+        // Eye
+        X.fillStyle='#101010';X.beginPath();X.arc(hx2+(facingR?2:-2),by2-3+bobY,1,0,Math.PI*2);X.fill();
+        X.fillStyle='#ffffff';X.beginPath();X.arc(hx2+(facingR?2.5:-2.5),by2-3.5+bobY,0.4,0,Math.PI*2);X.fill();
       }
       if(isFront&&prog>0.5){X.font='10px serif';X.textAlign='center';X.fillText('🥚',cx,wy+10);}
       break;
