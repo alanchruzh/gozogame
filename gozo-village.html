@@ -936,7 +936,8 @@ const BD={
   tradingpost:{n:'Trading Post',e:'🚢',d:'Buy/Sell resources.',cost:{wood:40,stone:30,gold:50},ml:2,cat:'civic'},
   sawmill:   {n:'Sawmill',   e:'🪚',d:'Wood→Planks.',    cost:{wood:20,stone:12}, ml:2, cat:'work',
               chain:{input:{wood:2},output:{plank:3},workers:1}},
-  quarry:    {n:'Quarry',    e:'⛏',d:'+3 stone/day.', cost:{wood:15},          ml:3,pr:{stone:3},cat:'work'},
+  quarry:    {n:'Quarry',    e:'⛏',d:'+stone. Limited by deposit. Lv.3: unlimited.',cost:{wood:15},ml:3,pr:{stone:3},cat:'work',
+              lvDesc:{1:'Mines nearby stone deposit. Limited quantity.',2:'Faster mining. Still needs deposit.',3:'Deep mining — unlimited stone!'}},
   coalmine:  {n:'Coal Mine', e:'⛏',d:'Mine coal deposits. Upgrade to Deep Mining for unlimited coal.',
               cost:{wood:20,stone:10}, ml:3, pr:{coal:2}, cat:'work',
               lvDesc:{1:'Surface mining. Uses coal deposits.',2:'Deep shafts. +4 coal/day.',3:'⚒ Deep Mining — UNLIMITED coal!'},
@@ -1604,6 +1605,16 @@ function genMap(){
   placeDeposits(2+Math.floor(R()*2),'rock',true);
   placeDeposits(1+Math.floor(R()*2),'coal_deposit',true);
   placeDeposits(1+Math.floor(R()*2),'iron_deposit',true);
+  // Initialize stone deposit state for all rock tiles
+  for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
+    if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.STONE_G&&MAP[r][c].decor==='rock'){
+      const key=c+','+r;
+      if(!DEPOSIT_STATE[key]){
+        const qty=200+Math.floor(R()*150);
+        DEPOSIT_STATE[key]={type:'rock',qty,maxQty:qty,depleted:false};
+      }
+    }
+  }
 
   // Border tree line at map edges only (not on grass interior)
   for(let r=0;r<WR;r++) for(let c=0;c<WC;c++){
@@ -5909,7 +5920,31 @@ function tick(){
           } else if(!b._noDepWarn){b._noDepWarn=true;notify('⛏ Iron Mine: no iron deposit nearby!','warn');}
         }
       } else if(b.type==='quarry'){
-        if(G.hr%4===0) addR('stone',workers);
+        if(G.hr%4===0){
+          const isDeepQ=b.lv>=3;
+          if(isDeepQ){
+            // Lv3: unlimited deep mining
+            addR('stone',workers*2);
+          } else {
+            // Lv1/2: find nearby rock deposit
+            const nearRock=Object.entries(DEPOSIT_STATE).find(([k,d])=>{
+              const[dc,dr]=k.split(',').map(Number);
+              return d.type==='rock'&&!d.depleted&&Math.hypot(b.col-dc,b.row-dr)<8;
+            });
+            if(nearRock){
+              addR('stone',workers);
+              nearRock[1].qty=Math.max(0,nearRock[1].qty-workers);
+              if(nearRock[1].qty<=0){
+                nearRock[1].depleted=true;
+                notify('🪨 Stone deposit exhausted! Upgrade Quarry to Lv.3 for unlimited mining.','warn');
+                _worldDirty=true;
+              }
+            } else if(!b._noDepWarn){
+              b._noDepWarn=true;
+              notify('🪨 Quarry: no stone deposit nearby, or all exhausted! Upgrade to Lv.3 for unlimited.','warn');
+            }
+          }
+        }
       } else if(b.type==='smelter'){
         // Smelter: every 2 hrs, consume iron+coal → metal (per worker)
         if(G.hr%2===0){
@@ -6648,6 +6683,69 @@ function showBldDlg(bld,c,r){
     btns.push({l:'🚢 Open Trading',cls:'ok',fn:()=>openTradePanel(bld.id)});
     btns.push({l:'🐑 Buy Livestock',cls:'ok',fn:openBuyLivestockDlg});
   }
+  if(bld.type==='village_hall'){
+    // Recruit button — spend gold to attract new settlers immediately
+    const recruitCost=Math.max(20, 10*(NPCS.filter(n=>isAdult(n)).length));
+    const availHouses=G.bld.filter(b=>b.type==='house'&&!b.under_construction&&
+      NPCS.filter(n=>n.houseId===b.id).length<(b.lv||1)*2).length;
+    const recruitInfo=availHouses>0
+      ?`Available housing: ${availHouses} slot(s)\nRecruit cost: ${recruitCost} gold`
+      :'⚠ No available housing — build more houses first!';
+    extraInfo+='\n\n🏰 Village Hall Powers:\n'+recruitInfo;
+    btns.push({l:`📢 Recruit Settler (${recruitCost}💰)`,cls:'ok',fn:()=>{
+      if(availHouses===0){notify('No available housing!','err');return;}
+      if((G.res.gold||0)<recruitCost){notify(`Need ${recruitCost} gold to recruit!`,'err');return;}
+      G.res.gold=Math.max(0,(G.res.gold||0)-recruitCost);
+      // Instantly send a family (or single person) to nearest available house
+      const house=G.bld.find(b=>b.type==='house'&&!b.under_construction&&
+        NPCS.filter(n=>n.houseId===b.id).length<(b.lv||1)*2);
+      if(!house){notify('No available house!','err');return;}
+      const residents=NPCS.filter(n=>n.houseId===house.id);
+      const newFamId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
+      const ex=MAIN_ROAD_ENTRY.col*TS+TS/2,ey=MAIN_ROAD_ENTRY.row*TS+TS/2;
+      const hx=house.col*TS+TS/2,hy=house.row*TS+TS/2;
+      const spawn=(name,female,famId)=>NPCS.push({
+        name,female,familyId:famId,
+        x:ex+(Math.random()-0.5)*24,y:ey+(Math.random()-0.5)*24,
+        dir:2,col:`hsl(${Math.random()*360},60%,${female?72:65}%)`,
+        job:null,age:ADULT_DAYS+Math.floor(Math.random()*900),
+        pregnant:0,houseId:0,
+        _immigrantTarget:house.id,_immigrantTargetX:hx,_immigrantTargetY:hy,
+      });
+      if(residents.length===0){
+        const m=uniqueName(false),f2=uniqueName(true);
+        spawn(m,false,newFamId);spawn(f2,true,newFamId);
+        FAMILIES.push({id:newFamId,houseId:house.id,husbandName:m,wifeName:f2});
+        notify(`📢 Recruited ${m} & ${f2}! They are on their way.`,'ok');
+      } else {
+        const nm=uniqueName(!residents[0].female);
+        spawn(nm,!residents[0].female,residents[0].familyId||newFamId);
+        notify(`📢 Recruited ${nm}! On their way to join ${residents[0].name}.`,'ok');
+      }
+      closeDialog();
+    }});
+    // Decree button — boost happiness
+    const decreeCost=30*bld.lv;
+    btns.push({l:`📜 Issue Decree (+15 😊, ${decreeCost}💰)`,cls:'ok',fn:()=>{
+      if((G.res.gold||0)<decreeCost){notify(`Need ${decreeCost} gold for decree!`,'err');return;}
+      G.res.gold=Math.max(0,(G.res.gold||0)-decreeCost);
+      G.happy=Math.min(100,(G.happy||80)+15);
+      notify('📜 Decree issued! Villagers are pleased. +15 Happiness','ok');
+      closeDialog();updateUI();
+    }});
+    // Tax collection button (Lv2+)
+    if(bld.lv>=2){
+      const taxable=NPCS.filter(n=>isAdult(n)&&n.houseId).length;
+      const taxGold=Math.floor(taxable*2*bld.lv);
+      btns.push({l:`💰 Collect Special Tax (+${taxGold}💰)`,cls:'ok',fn:()=>{
+        if(taxGold===0){notify('No taxable citizens!','warn');return;}
+        addR('gold',taxGold);
+        G.happy=Math.max(10,(G.happy||80)-8);
+        notify(`💰 Collected ${taxGold} gold in taxes. Happiness -8.`,'warn');
+        closeDialog();updateUI();
+      }});
+    }
+  }
   if(BLD_WORKERS[bld.type]){
     const assigned=(G.bldWorkers[bld.id]||[]).filter(n=>n).length;
     const maxW=BLD_WORKERS[bld.type];
@@ -7327,19 +7425,38 @@ function wanderNPCs(){
                     if(tile.t===T.STONE_G){
                       const key=tc+','+tr;
                       const dep=DEPOSIT_STATE[key];
-                      // Check if this miner's building is deep mining (Lv.3)
-                      const minerBld=G.bld.find(b=>(b.type==='coalmine'||b.type==='ironmine')&&b.lv>=3&&
+                      // Deep mining = quarry Lv3 (unlimited stone) OR coal/iron mine Lv3
+                      const nearQuarry=G.bld.find(b=>b.type==='quarry'&&b.lv>=3&&
                         Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y)<TS*8);
-                      const isDeep=!!minerBld;
-                      if(dep&&dep.depleted&&!isDeep) continue;
+                      const nearDeepMine=G.bld.find(b=>(b.type==='coalmine'||b.type==='ironmine')&&b.lv>=3&&
+                        Math.hypot(b.col*TS-npc.x,b.row*TS-npc.y)<TS*8);
+                      const isDeep=!!(nearQuarry||nearDeepMine);
+
                       if(tile.decor==='coal_deposit'){
+                        if(dep&&dep.depleted&&!isDeep) continue;
                         addR('coal',1+Math.floor(Math.random()*2));
                         if(dep&&!isDeep){dep.qty=Math.max(0,dep.qty-2);if(dep.qty<=0){dep.depleted=true;tile.decor='rock';_worldDirty=true;notify('⛏ Coal deposit exhausted!','warn');}}
                       } else if(tile.decor==='iron_deposit'){
+                        if(dep&&dep.depleted&&!isDeep) continue;
                         addR('iron',1+Math.floor(Math.random()*2));
                         if(dep&&!isDeep){dep.qty=Math.max(0,dep.qty-2);if(dep.qty<=0){dep.depleted=true;tile.decor='rock';_worldDirty=true;notify('⛏ Iron deposit exhausted!','warn');}}
                       } else {
+                        // Stone (rock tile) — limited unless quarry Lv3
+                        if(dep&&dep.depleted&&!isDeep) continue;
                         addR('stone',2+Math.floor(Math.random()*2));
+                        if(dep&&!isDeep){
+                          dep.qty=Math.max(0,dep.qty-2);
+                          if(dep.qty<=0){
+                            dep.depleted=true;
+                            _worldDirty=true;
+                            notify('🪨 Stone deposit exhausted! Upgrade Quarry to Lv.3 for unlimited mining.','warn');
+                          }
+                        }
+                        // If no deposit state yet (old save), create it
+                        if(!dep&&!isDeep){
+                          const qty=200+Math.floor(Math.random()*150);
+                          DEPOSIT_STATE[key]={type:'rock',qty,maxQty:qty,depleted:false};
+                        }
                       }
                       spawnParticles(tc*TS+TS/2, tr*TS+TS/2, 'build', 4);
                       // Mining animation — npc faces the rock
@@ -7802,13 +7919,44 @@ function render(){
     for(let c2=sc;c2<ec;c2++){
       if(!MAP[r2]||!MAP[r2][c2])continue;
       const tile=MAP[r2][c2],wx=c2*TS+camX;
-      // Stone deposit proximity notification
+      // Stone deposit proximity notification + quantity display
       if(tile.t===T.STONE_G&&tile.decor==='rock'){
         const pdist=Math.hypot(PL.x-(wx+TS/2),PL.y-(ry+TS/2));
-        const key='rock:'+c2+','+r2;
-        if(pdist<TS*2&&!_depositNotified.has(key)){
-          _depositNotified.add(key);
-          notify('🪨 Stone Deposit discovered! Build a Quarry nearby to mine it.','ok');
+        const key=c2+','+r2;
+        const dep=DEPOSIT_STATE[key];
+        // Check if nearby quarry Lv3 (unlimited)
+        const nearDeepQ=G.bld.some(b=>b.type==='quarry'&&b.lv>=3&&
+          Math.hypot(b.col-c2,b.row-r2)<8);
+        // First-time discovery notification
+        const notifKey='rock:'+c2+','+r2;
+        if(pdist<TS*2&&!_depositNotified.has(notifKey)){
+          _depositNotified.add(notifKey);
+          const qty=dep?dep.qty:200;
+          if(nearDeepQ) notify('🪨 Stone Deposit (∞ Deep Mining active)','ok');
+          else notify(`🪨 Stone Deposit discovered! ${qty} stone remaining.`,'ok');
+        }
+        // Proximity label with quantity bar
+        if(pdist<TS*3){
+          const qty=dep?dep.qty:200;
+          const maxQty=dep?dep.maxQty:200;
+          const pct=nearDeepQ?1:Math.max(0,maxQty>0?qty/maxQty:1);
+          const depleted=dep&&dep.depleted&&!nearDeepQ;
+          const richCol=nearDeepQ?'#40e0ff':pct>0.66?'#60e040':pct>0.33?'#e0c040':'#e06020';
+          const alpha=Math.max(0,Math.min(1,(TS*3-pdist)/(TS*1.5)));
+          X.globalAlpha=alpha;
+          X.fillStyle='rgba(0,0,0,0.8)';X.fillRect(wx,ry-18,TS,32);
+          X.fillStyle=depleted?'#e04040':richCol;
+          X.font='bold 7px "Press Start 2P"';X.textAlign='center';
+          X.fillText('🪨 Stone',wx+TS/2,ry-7);
+          // Qty bar
+          X.fillStyle='rgba(60,60,60,0.8)';X.fillRect(wx+4,ry+1,TS-8,6);
+          X.fillStyle=richCol;X.fillRect(wx+4,ry+1,Math.round((TS-8)*pct),6);
+          // Status text
+          X.fillStyle='#c0c0c0';X.font='5px monospace';X.textAlign='center';
+          if(nearDeepQ) X.fillText('∞ DEEP MINING',wx+TS/2,ry+14);
+          else if(depleted) X.fillText('EXHAUSTED (need Lv.3)',wx+TS/2,ry+14);
+          else X.fillText(qty+' remaining',wx+TS/2,ry+14);
+          X.globalAlpha=1;
         }
       }
       // Deposit proximity label only (no animated overlay)
@@ -11407,28 +11555,57 @@ function updateBuffalo(){
         }
       }
     }
-    // Idle wandering near home
+    // Idle wandering near corral — graze, rest, stay close to home
     if(buf.state==='idle'){
       buf.wt=(buf.wt||0)+1;
-      if(buf.wt>120){
+      // Every 3-5 seconds pick new behavior
+      if(buf.wt>180+Math.floor(buf.homeX)%60){
         buf.wt=0;
-        if(Math.random()<0.5){buf.vx=0;buf.vy=0;}
-        else{
+        const roll=Math.random();
+        if(roll<0.4){
+          // Stand still and graze
+          buf.vx=0; buf.vy=0;
+          buf._grazing=true;
+        } else if(roll<0.7){
+          // Short walk within corral bounds (max 1.5 tiles from home)
+          buf._grazing=false;
           const a=Math.random()*Math.PI*2;
-          const wx=buf.homeX+Math.cos(a)*TS*1.5;
-          const wy=buf.homeY+Math.sin(a)*TS*1.5;
-          const dx2=wx-buf.x,dy2=wy-buf.y;
+          const radius=TS*(0.5+Math.random()*1.0); // close range only
+          const tx=buf.homeX+Math.cos(a)*radius;
+          const ty=buf.homeY+Math.sin(a)*radius;
+          // Clamp to world
+          const clampedX=Math.max(TS*2,Math.min(tx,(WC-2)*TS));
+          const clampedY=Math.max(TS*2,Math.min(ty,(WR-2)*TS));
+          const dx2=clampedX-buf.x, dy2=clampedY-buf.y;
           const d=Math.hypot(dx2,dy2);
-          if(d>4){buf.vx=(dx2/d)*0.5;buf.vy=(dy2/d)*0.5;}
+          if(d>8){buf.vx=(dx2/d)*0.35;buf.vy=(dy2/d)*0.35;}
+        } else {
+          // Return closer to home if drifted
+          buf._grazing=false;
+          const dx2=buf.homeX-buf.x, dy2=buf.homeY-buf.y;
+          const d=Math.hypot(dx2,dy2);
+          if(d>TS*0.5){buf.vx=(dx2/d)*0.4;buf.vy=(dy2/d)*0.4;}
+          else{buf.vx=0;buf.vy=0;}
         }
+      }
+      // Stop if reached near home or too far
+      const distFromHome=Math.hypot(buf.x-buf.homeX,buf.y-buf.homeY);
+      if(distFromHome>TS*1.8){
+        // Pull back to home
+        const dx2=buf.homeX-buf.x,dy2=buf.homeY-buf.y;
+        const d=Math.hypot(dx2,dy2);
+        buf.vx=(dx2/d)*0.5;buf.vy=(dy2/d)*0.5;
       }
       if(buf.vx||buf.vy){
         buf.x+=buf.vx;buf.y+=buf.vy;
         buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
         buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
-        buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
+        buf.ft=(buf.ft||0)+1;if(buf.ft>10){buf.ft=0;buf.fr=(buf.fr||0)+1;}
         if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
         if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
+        // Slow down naturally (friction)
+        buf.vx*=0.95; buf.vy*=0.95;
+        if(Math.abs(buf.vx)<0.05&&Math.abs(buf.vy)<0.05){buf.vx=0;buf.vy=0;}
       }
     }
   }
@@ -11494,6 +11671,23 @@ function drawBuffalo(buf){
     X.font='13px serif';X.textAlign='center';
     X.fillText(icons[buf.carryRes]||'📦',px,py-46+bob);
   }
+
+  // Grazing animation — grass particles when head down
+  if(buf._grazing&&!buf.carryRes){
+    const gt=Date.now()/600;
+    const graze=Math.sin(gt)*0.5+0.5; // 0..1 head bob
+    // Grass bits
+    X.fillStyle='#4a8a20';X.font='8px serif';X.textAlign='center';
+    if(Math.sin(gt*2)>0.3) X.fillText('🌿',px+(dir===1?14:dir===3?-14:4),py+4);
+    // "zzz" when fully resting
+    if(Math.sin(gt*0.4)>0.7){
+      const za=0.4+Math.sin(gt*0.8)*0.3;
+      X.fillStyle=`rgba(180,220,255,${za})`;X.font='7px monospace';X.textAlign='center';
+      X.fillText('z',px+16,py-30);X.font='9px monospace';
+      X.fillText('z',px+21,py-38);
+    }
+  }
+
   X.restore();
 }
 
