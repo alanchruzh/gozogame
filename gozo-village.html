@@ -4746,21 +4746,96 @@ function drawNPC(npc){
     const phase=workCycle; // -1..1
 
     if(job==='farmer'){
-      // Hoe: up-down chopping into soil
-      const hoeAngle = -Math.PI*0.4 + phase*0.7;
-      X.save();X.translate(px+9, py-18+bob);X.rotate(hoeAngle);
-      X.strokeStyle='#7a4010';X.lineWidth=4;
-      X.beginPath();X.moveTo(0,0);X.lineTo(0,-30);X.stroke();
-      FR(-9,-30,18,5,'#808080'); // blade horizontal
-      FR(-9,-35,18,6,'#a0a0a0'); // blade highlight
-      X.restore();
-      // Dirt puff when striking
-      if(phase>0.5){
-        X.fillStyle=`rgba(140,100,40,${(phase-0.5)*0.8})`;
-        X.beginPath();X.ellipse(px+12,py+2+bob,8+phase*4,4,0,0,Math.PI*2);X.fill();
-      }
-      if(phase>0.75){X.fillStyle='rgba(100,160,255,0.8)';X.beginPath();X.arc(px+14,py-30,2.5,0,Math.PI*2);X.fill();}
+      // Detect nearest field stage to determine tool
+      const nearField=G.fields.find(f=>{
+        const fx=f.col*TS+TS/2,fy=f.row*TS+TS/2;
+        return Math.hypot(npc.x-fx,npc.y-fy)<TS*2.5;
+      });
+      const fStage=nearField?nearField.growStage:0;
 
+      if(fStage===3){
+        // ── HARVEST: SCYTHE — sweeping arc motion ──
+        const swingAngle=-Math.PI*0.2+Math.sin(phase*Math.PI*2)*0.7;
+        X.save();X.translate(px+6,py-20+bob);X.rotate(swingAngle);
+        // Handle
+        X.strokeStyle='#6a3810';X.lineWidth=3;
+        X.beginPath();X.moveTo(0,0);X.lineTo(0,-34);X.stroke();
+        // Curved blade
+        X.strokeStyle='#b0b8b0';X.lineWidth=2.5;
+        X.beginPath();
+        X.arc(0,-34,18,Math.PI*0.9,Math.PI*1.5);X.stroke();
+        X.strokeStyle='#d8e0d8';X.lineWidth=1;
+        X.beginPath();
+        X.arc(0,-34,16,Math.PI*0.9,Math.PI*1.5);X.stroke();
+        // Blade tip glint
+        X.fillStyle='rgba(220,240,220,0.9)';X.beginPath();X.arc(-16,-34,3,0,Math.PI*2);X.fill();
+        X.restore();
+        // Grain particles when sweeping
+        if(phase>0.6){
+          for(let gi=0;gi<3;gi++){
+            X.fillStyle=`rgba(200,180,40,${(phase-0.6)*1.5})`;
+            X.beginPath();X.arc(px-8+gi*6,py-18+bob+Math.sin(Date.now()/200+gi)*4,2,0,Math.PI*2);X.fill();
+          }
+        }
+
+      } else if(fStage===2){
+        // ── GROWING: WATERING/FERTILIZING — bucket pour motion ──
+        const pourAngle=-Math.PI*0.3+Math.sin(phase*Math.PI)*0.5;
+        X.save();X.translate(px+8,py-18+bob);X.rotate(pourAngle);
+        // Bucket handle
+        X.strokeStyle='#707870';X.lineWidth=2;
+        X.beginPath();X.moveTo(0,0);X.arc(0,-8,8,-Math.PI*0.8,0);X.stroke();
+        // Bucket body
+        X.fillStyle='#888090';X.beginPath();
+        X.moveTo(-6,-8);X.lineTo(-8,4);X.lineTo(8,4);X.lineTo(6,-8);X.closePath();X.fill();
+        X.fillStyle='rgba(180,200,255,0.6)';X.fillRect(-5,-7,10,10);
+        X.restore();
+        // Water drops falling when tilted
+        if(phase>0.4){
+          const dropAlpha=(phase-0.4)*0.9;
+          for(let d=0;d<4;d++){
+            X.fillStyle=`rgba(100,160,255,${dropAlpha-d*0.15})`;
+            X.beginPath();X.arc(
+              px+14+Math.sin(d)*4,
+              py-4+bob+d*6+Math.sin(Date.now()/150+d)*2,
+              1.5,0,Math.PI*2
+            );X.fill();
+          }
+        }
+        // Green sparkle (fertilizer effect)
+        if(Math.sin(Date.now()/300)>0.8){
+          X.fillStyle='rgba(80,200,80,0.6)';X.font='9px serif';X.textAlign='center';
+          X.fillText('✦',px+16,py-22+bob);
+        }
+
+      } else {
+        // ── PLANTING/HOEING: CANGKUL — up-down into soil ──
+        const hoeAngle=-Math.PI*0.5+Math.sin(phase*Math.PI)*0.8;
+        X.save();X.translate(px+9,py-16+bob);X.rotate(hoeAngle);
+        // Handle - wooden
+        X.strokeStyle='#8a5020';X.lineWidth=4;
+        X.beginPath();X.moveTo(0,0);X.lineTo(0,-32);X.stroke();
+        X.strokeStyle='#a06030';X.lineWidth=2;
+        X.beginPath();X.moveTo(1,0);X.lineTo(1,-32);X.stroke();
+        // Cangkul blade (wide hoe head)
+        X.fillStyle='#7a8070';
+        X.beginPath();X.moveTo(-10,-32);X.lineTo(10,-32);X.lineTo(8,-24);X.lineTo(-8,-24);X.closePath();X.fill();
+        X.fillStyle='#9aaa90';
+        X.beginPath();X.moveTo(-10,-32);X.lineTo(10,-32);X.lineTo(8,-28);X.lineTo(-8,-28);X.closePath();X.fill();
+        X.restore();
+        // Dirt spray when striking soil
+        if(phase>0.7){
+          const dirtAlpha=(phase-0.7)*2;
+          for(let di=0;di<5;di++){
+            X.fillStyle=`rgba(${120+di*8},${80+di*5},40,${dirtAlpha-di*0.08})`;
+            X.beginPath();X.ellipse(
+              px+10+Math.cos(di*1.3)*8,
+              py+4+bob+Math.sin(di*1.3)*3,
+              3,2,di*0.5,0,Math.PI*2
+            );X.fill();
+          }
+        }
+      }
     } else if(job==='logger'){
       const logState=npc._logState||'find_tree';
       const isChopping=logState==='chopping'||logState==='tree_falls';
@@ -4987,7 +5062,21 @@ function drawNPC(npc){
     }
 
     // ── WORK STATUS BUBBLE ──
-    const workEmojis={farmer:'⚒',logger:'🪓',fisher:'🎣',miner:'⛏',smelter:'🔥',builder:'🔨',trader:'📖',hunter:'🏹',gatherer:'🍇',planter:'🌱'};
+    // Farmer emoji changes based on nearby field stage
+    let farmerEmoji='🌱';
+    if(job==='farmer'&&npc._working){
+      const nearField=G.fields.find(f=>{
+        const fx=f.col*TS+TS/2, fy=f.row*TS+TS/2;
+        return Math.hypot(npc.x-fx,npc.y-fy)<TS*2;
+      });
+      if(nearField){
+        if(nearField.growStage===0||nearField.growStage===1) farmerEmoji='⛏'; // hoeing/planting
+        else if(nearField.growStage===2) farmerEmoji='🌿'; // growing - patrol/fertilize
+        else if(nearField.growStage===3) farmerEmoji='🌾'; // harvest
+        else farmerEmoji='🌱';
+      }
+    }
+    const workEmojis={farmer:farmerEmoji,logger:'🪓',fisher:'🎣',miner:'⛏',smelter:'🔥',builder:'🔨',trader:'📖',hunter:'🏹',gatherer:'🍇',planter:'🌱'};
     const we=workEmojis[job];
     if(we){
       X.font='13px serif';X.textAlign='center';
@@ -5404,6 +5493,7 @@ function updateUI(){
   const _moreBtn=document.getElementById('res-more-btn');
   if(_moreBtn&&!_secResOpen) _moreBtn.style.color=secTotal>0?'#f0c040':'#a09060';
   const _rhny=document.getElementById('rhny');if(_rhny)_rhny.textContent=G.res.honey||0;
+  const _regg=document.getElementById('regg');if(_regg)_regg.textContent=G.res.egg||0;
   const _rwool=document.getElementById('rwool');if(_rwool)_rwool.textContent=G.res.wool||0;
   const _rmilk=document.getElementById('rmilk');if(_rmilk)_rmilk.textContent=G.res.milk||0;
   const _rfish=document.getElementById('rfish');if(_rfish)_rfish.textContent=G.res.fish||0;
@@ -5721,15 +5811,14 @@ function doFarmProd(){
       // Auto-plant at start of planting season
       if(season===crop.plant) field.growStage=1;
     } else if(field.growStage===1){
-      // After 30 days growing → sprouting
+      // After 15 days → sprouting (was 30)
       if(!field._plantDay) field._plantDay=dayOfYear;
-      // Reset if dayOfYear wrapped (new year)
       if(dayOfYear<field._plantDay) field._plantDay=dayOfYear;
-      if(dayOfYear-field._plantDay>=30) field.growStage=2;
+      if(dayOfYear-field._plantDay>=15) field.growStage=2;
     } else if(field.growStage===2){
-      // After 60 days total → ready
+      // After 30 days total → ready (was 60)
       if(field._plantDay&&dayOfYear<field._plantDay) field._plantDay=0;
-      if(field._plantDay&&dayOfYear-field._plantDay>=60) field.growStage=3;
+      if(field._plantDay&&dayOfYear-field._plantDay>=30) field.growStage=3;
     } else if(field.growStage===3){
       // Harvest!
       const fertBonus=1+(field.fertility-50)/200;
@@ -8574,10 +8663,13 @@ function doByardProd(){
     const by=BYARD[bld.backyard.type];
     if(!by) continue;
 
-    // Livestock needs food (hay) to produce
+    // Livestock (sheep/cow/pig) needs food to produce
     const isLivestock=by.cat==='livestock';
+    // Animal (chicken/goat) does NOT need food — they forage freely
+    const isAnimal=by.cat==='animal';
+
     if(isLivestock){
-      if((G.res.food||0)<1){
+      if((G.res.food||0)<(by.req?.food||1)){
         if(!bld.backyard._hungryWarn){
           bld.backyard._hungryWarn=true;
           notify(by.e+' '+by.n+' needs hay (food)!','warn');
@@ -8585,8 +8677,9 @@ function doByardProd(){
         continue;
       }
       bld.backyard._hungryWarn=false;
-      G.res.food=Math.max(0,(G.res.food||0)-1);
+      G.res.food=Math.max(0,(G.res.food||0)-(by.req?.food||1));
     }
+
     // Craft backyard: needs adult family member at home
     const craftTypes=['smithy','tannery','shoemaker','tailor','brewery','armor','weaver'];
     const isCraft=craftTypes.includes(bld.backyard.type);
@@ -8596,23 +8689,27 @@ function doByardProd(){
     }
 
     bld.backyard.timer=(bld.backyard.timer||0)+2;
-    if(bld.backyard.timer>=by.prodTime){
+    if(bld.backyard.timer>=(by.prodTime||1)){
       bld.backyard.timer=0;
       let canProduce=true;
-      for(const[k,v]of Object.entries(by.req||{})){
-        if((G.res[k]||0)<v){ canProduce=false; break; }
+      // For livestock, food already consumed above
+      // For animal/grow, no req check needed (req is empty)
+      if(!isLivestock&&!isAnimal){
+        for(const[k,v]of Object.entries(by.req||{})){
+          if((G.res[k]||0)<v){ canProduce=false; break; }
+        }
       }
       if(canProduce){
-        // For livestock, food already consumed above — skip req deduction to avoid double
-        if(!isLivestock){
+        if(!isLivestock&&!isAnimal){
           for(const[k,v]of Object.entries(by.req||{})) G.res[k]=Math.max(0,(G.res[k]||0)-v);
         }
-        // Home business: locked adults get efficiency bonus
         const effBonus=isCraft?1.3:1.0;
-        for(const[k,v]of Object.entries(by.prod)) addR(k,Math.round(v*mul*effBonus));
+        for(const[k,v]of Object.entries(by.prod)){
+          addR(k,Math.round(v*mul*effBonus));
+        }
         bld.backyard.totalProd=(bld.backyard.totalProd||0)+1;
         if(bld.backyard.totalProd===1) notify(by.e+' '+by.n+' started producing!','ok');
-      } else if(Object.keys(by.req||{}).length>0){
+      } else if(!isLivestock&&!isAnimal&&Object.keys(by.req||{}).length>0){
         if(!bld.backyard._reqWarn){ bld.backyard._reqWarn=true;
           const need=Object.entries(by.req).filter(([k,v])=>(G.res[k]||0)<v).map(([k,v])=>k).join(', ');
           notify('⚠ '+by.n+' needs: '+need,'warn');
@@ -11421,11 +11518,11 @@ function openBuyLivestockDlg(){
 
 // ── MARKET VENDOR NAMES & LOOKS ──
 const VENDOR_DEFS=[
-  {name:'Old Marta',   female:true,  coat:'#8030a0', hat:'#601880', goods:'🥬', shout:'Fresh greens!'},
-  {name:'Finn Baker',  female:false, coat:'#c06020', hat:'#904010', goods:'🍞', shout:'Hot bread!'},
-  {name:'Agnes',       female:true,  coat:'#2060c0', hat:'#104090', goods:'🧵', shout:'Fine cloth!'},
-  {name:'Bram',        female:false, coat:'#207040', hat:'#105030', goods:'🪵', shout:'Good timber!'},
-  {name:'Rosie',       female:true,  coat:'#c03040', hat:'#901020', goods:'🍯', shout:'Sweet honey!'},
+  {name:'Old Marta',  female:true,  coat:'#8030a0',hat:'#601880', goods:'🥬',goods2:'🥕', shout:'Fresh greens!',   priceText:'3g each'},
+  {name:'Finn Baker', female:false, coat:'#c06020',hat:'#904010', goods:'🍞',goods2:'🥐', shout:'Hot bread!',      priceText:'2g each'},
+  {name:'Agnes',      female:true,  coat:'#2060c0',hat:'#104090', goods:'🧵',goods2:'👗', shout:'Fine cloth!',     priceText:'6g bolt'},
+  {name:'Bram',       female:false, coat:'#207040',hat:'#105030', goods:'🪵',goods2:'🪨', shout:'Good timber!',    priceText:'2g pile'},
+  {name:'Rosie',      female:true,  coat:'#c03040',hat:'#901020', goods:'🍯',goods2:'🍎', shout:'Sweet honey!',    priceText:'4g jar'},
 ];
 
 function spawnMarketVendors(){
@@ -11465,7 +11562,8 @@ function spawnMarketVendors(){
     MARKET_VENDORS.push({
       ...def,
       stallCol:tile.c, stallRow:tile.r,
-      x:tile.c*TS+TS/2, y:tile.r*TS+TS*0.65,
+      // Position vendor at bottom edge of back tile (right behind table)
+      x:tile.c*TS+TS/2, y:tile.r*TS+TS*0.85,
       dir:2, fr:0, ft:0,
       _shoutTimer:120+i*80+Math.random()*200,
       _shouting:false, _shoutText:'', _shoutT:0,
@@ -11485,9 +11583,10 @@ function updateMarketVendors(){
   const t=Date.now()/1000;
   for(const v of MARKET_VENDORS){
     // Gentle idle wobble within stall
-    v._wobble=(v._wobble||0)+0.03;
-    v.x=v.stallCol*TS+TS/2+Math.sin(v._wobble)*4;
-    v.y=v.stallRow*TS+TS*0.6+Math.cos(v._wobble*0.7)*3;
+    v._wobble=(v._wobble||0)+0.02;
+    // Stay at bottom of back tile (close to table in front tile)
+    v.x=v.stallCol*TS+TS/2+Math.sin(v._wobble)*3;
+    v.y=v.stallRow*TS+TS*0.85+Math.cos(v._wobble*0.6)*2;
     v.dir=2; // always face south (toward customers)
 
     // Shout timer
@@ -11508,73 +11607,133 @@ function updateMarketVendors(){
 }
 
 function drawMarketVendors(){
+  const t=Date.now()/1000;
   for(const v of MARKET_VENDORS){
+    // Vendor berdiri di back tile, menghadap ke depan (selatan) menuju meja
+    // Meja ada di front tile (stallRow+1 atau row di bawah back tile)
     const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
-    if(px<-40||px>CV.width+40||py<-40||py>CV.height+40) continue;
+    if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) continue;
 
-    const bob=Math.sin(Date.now()/600+v._wobble)*1.5;
-    const armSwing=Math.sin(Date.now()/400+v._wobble)*3;
+    const bob=Math.sin(t*1.8+v._wobble)*1.2;
+    const armL=Math.sin(t*1.2+v._wobble)*4;
+    const armR=Math.sin(t*1.2+v._wobble+Math.PI)*4;
 
+    // ── DISPLAY TABLE (meja dagangan tepat di depan vendor) ──
+    // Meja di posisi antara back tile dan front tile
+    const tx=px, ty=py+18;
+    // Table surface
+    X.fillStyle='#c8a060';X.fillRect(tx-28,ty,56,10);
+    X.fillStyle='#e0b870';X.fillRect(tx-28,ty,56,3);
+    X.fillStyle='#a07840';X.fillRect(tx-26,ty+10,52,3);
+    // Table legs
+    X.fillStyle='#7a5020';
+    X.fillRect(tx-26,ty+13,4,10);X.fillRect(tx+22,ty+13,4,10);
+    // Table cloth overhang
+    X.fillStyle=v.coat;X.fillRect(tx-28,ty+10,56,4);
+
+    // ── GOODS DISPLAY ON TABLE ──
+    const items=v.tableGoods||[v.goods,v.goods2||v.goods];
+    // Item 1 (left)
+    X.font='14px serif';X.textAlign='center';
+    X.fillText(items[0],tx-14,ty+1);
+    // Item 2 (right)
+    X.fillText(items[1]||items[0],tx+14,ty+1);
+    // Animated "available" sign
+    const signPulse=0.7+Math.sin(t*2+v._wobble)*0.2;
+    X.fillStyle=`rgba(255,250,200,${signPulse*0.95})`;
+    X.fillRect(tx-22,ty-14,44,11);
+    X.fillStyle='#604010';X.font='bold 6px monospace';X.textAlign='center';
+    X.fillText('FOR SALE',tx,ty-5);
+
+    // Price tag bouncing
+    const priceBob=Math.sin(t*3+v._wobble)*1.5;
+    X.fillStyle='rgba(255,240,180,0.95)';
+    X.fillRect(tx-14,ty-28+priceBob,28,11);
+    X.fillStyle='rgba(255,60,60,0.8)';X.fillRect(tx-14,ty-28+priceBob,28,3);
+    X.fillStyle='#3a1a00';X.font='bold 6px monospace';X.textAlign='center';
+    X.fillText(v.priceText||v.shout.split('!')[0]+'!',tx,ty-20+priceBob);
+
+    // ── VENDOR BODY ──
     // Shadow
-    X.fillStyle='rgba(0,0,0,0.15)';X.beginPath();X.ellipse(px,py+14,8,3,0,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(0,0,0,0.14)';X.beginPath();X.ellipse(px,py+16,9,3,0,0,Math.PI*2);X.fill();
 
     // Legs
-    X.fillStyle='#4a3020';
-    X.fillRect(px-4,py+4+bob,4,10);X.fillRect(px+1,py+4+bob,4,10);
+    X.fillStyle='#2a1a08';
+    X.fillRect(px-5,py+4+bob,5,11);X.fillRect(px+1,py+4+bob,5,11);
+    // Shoes
+    X.fillStyle='#1a0e04';
+    X.fillRect(px-6,py+14+bob,7,4);X.fillRect(px,py+14+bob,7,4);
 
-    // Coat/body
-    X.fillStyle=v.coat;X.fillRect(px-7,py-8+bob,14,14);
-    // Coat collar
-    X.fillStyle=v.hat;X.fillRect(px-3,py-8+bob,6,3);
+    // Body/coat
+    X.fillStyle=v.coat;X.fillRect(px-8,py-10+bob,16,16);
+    // Coat lapels
+    X.fillStyle=v.hat;X.fillRect(px-2,py-10+bob,4,8);
+    // Apron / vest detail
+    X.fillStyle='rgba(255,255,255,0.15)';X.fillRect(px-3,py-8+bob,6,12);
 
-    // Arms (holding/gesturing)
+    // Arms — LEFT reaching toward table goods
     X.fillStyle=v.coat;
-    X.fillRect(px-11,py-6+bob+armSwing,5,8);  // left arm
-    X.fillRect(px+7, py-6+bob-armSwing,5,8);   // right arm
-    // Hands
-    X.fillStyle='#d4a070';
-    X.fillRect(px-12,py+1+bob+armSwing,5,4);
-    X.fillRect(px+8, py+1+bob-armSwing,5,4);
+    X.fillRect(px-13,py-8+bob+armL,5,10);
+    X.fillRect(px+9, py-8+bob+armR,5,10);
+    // Hands holding goods
+    const skin=v.female?'#e8b888':'#d4a070';
+    X.fillStyle=skin;
+    X.fillRect(px-14,py+1+bob+armL,5,5);
+    X.fillRect(px+10, py+1+bob+armR,5,5);
+    // Left hand holding product emoji
+    X.font='9px serif';X.textAlign='center';
+    X.fillText(items[0],px-12,py+1+bob+armL);
 
     // Head
-    const skin=v.female?'#e8b888':'#d4a070';
-    X.fillStyle=skin;X.fillRect(px-5,py-18+bob,10,10);
+    X.fillStyle=skin;X.fillRect(px-6,py-22+bob,12,12);
+    // Neck
+    X.fillStyle=skin;X.fillRect(px-3,py-11+bob,6,3);
+    // Smile
+    X.strokeStyle='rgba(80,40,10,0.5)';X.lineWidth=1;
+    X.beginPath();X.arc(px,py-16+bob,3,0.1,Math.PI-0.1);X.stroke();
+    // Eyes (looking forward/down at table)
+    X.fillStyle='#202020';
+    X.fillRect(px-3,py-19+bob,2,2);X.fillRect(px+1,py-19+bob,2,2);
+    // Eye shine
+    X.fillStyle='rgba(255,255,255,0.7)';
+    X.fillRect(px-3,py-19+bob,1,1);X.fillRect(px+1,py-19+bob,1,1);
 
     // Hair/Hat
     X.fillStyle=v.hat;
     if(v.female){
-      // Hair bun
-      X.fillRect(px-6,py-21+bob,12,5);
-      X.beginPath();X.arc(px+4,py-21+bob,4,0,Math.PI*2);X.fill();
+      X.fillRect(px-7,py-24+bob,14,5);
+      X.beginPath();X.arc(px+5,py-24+bob,4,0,Math.PI*2);X.fill();
+      // Hair highlights
+      X.fillStyle='rgba(255,255,255,0.15)';X.fillRect(px-5,py-24+bob,6,2);
     } else {
-      // Simple cap
-      X.fillRect(px-6,py-21+bob,12,4);
-      X.fillRect(px-8,py-20+bob,16,3);
+      // Merchant cap
+      X.fillRect(px-7,py-25+bob,14,5);
+      X.fillRect(px-9,py-23+bob,18,3);
+      // Cap brim
+      X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(px-9,py-23+bob,18,2);
     }
 
-    // Eyes
-    X.fillStyle='#202020';
-    X.fillRect(px-3,py-14+bob,2,2);X.fillRect(px+1,py-14+bob,2,2);
-
-    // Goods emoji held up
-    X.font='11px serif';X.textAlign='center';
-    X.fillText(v.goods,px,py-22+bob);
-
-    // Name label
-    X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px-18,py-30+bob,36,9);
+    // ── NAME LABEL ──
+    X.fillStyle='rgba(0,0,0,0.65)';X.fillRect(px-20,py-34+bob,40,10);
     X.fillStyle='#f0d080';X.font='bold 6px monospace';X.textAlign='center';
-    X.fillText(v.name,px,py-23+bob);
+    X.fillText(v.name,px,py-26+bob);
 
-    // Shout bubble
+    // ── SHOUT BUBBLE ──
     if(v._shouting&&v._shoutT>0){
       const alpha=Math.min(1,v._shoutT/20);
-      const tw=v._shoutText.length*5+8;
-      X.fillStyle=`rgba(255,255,220,${alpha*0.95})`;
-      X.fillRect(px-tw/2,py-48+bob,tw,12);
+      const tw=Math.max(60,v._shoutText.length*6+16);
+      const bx=px-tw/2, by=py-58+bob;
+      // Bubble background
+      X.fillStyle=`rgba(255,252,220,${alpha*0.97})`;
+      X.beginPath();X.roundRect(bx,by,tw,16,4);X.fill();
+      X.strokeStyle=`rgba(180,120,0,${alpha*0.6})`;X.lineWidth=1;
+      X.beginPath();X.roundRect(bx,by,tw,16,4);X.stroke();
       // Bubble tail
-      X.beginPath();X.moveTo(px-4,py-36+bob);X.lineTo(px+4,py-36+bob);X.lineTo(px,py-30+bob);X.fill();
-      X.fillStyle=`rgba(60,30,0,${alpha})`;X.font='bold 6px monospace';X.textAlign='center';
-      X.fillText(v._shoutText,px,py-39+bob);
+      X.fillStyle=`rgba(255,252,220,${alpha*0.97})`;
+      X.beginPath();X.moveTo(px-5,by+16);X.lineTo(px+5,by+16);X.lineTo(px,by+22);X.fill();
+      // Text
+      X.fillStyle=`rgba(100,50,0,${alpha})`;X.font='bold 7px monospace';X.textAlign='center';
+      X.fillText(v._shoutText,px,by+11);
     }
   }
 }
