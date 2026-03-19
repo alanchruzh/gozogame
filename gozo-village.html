@@ -2068,6 +2068,148 @@ function drawWith4Views(drawFn, cx, bot, lv, rot){
   X.beginPath();X.arc(swx,wy+18,6,0,Math.PI*2);X.fill();
 }
 
+// ── 4-VIEW WRAPPER FOR LARGE BUILDINGS (4-tile wide) ──
+// Draws a realistic side/back view for buildings wider than 1 tile
+function drawLargeBldSide(cx,bot,lv,rot,wallColor,roofColor,label){
+  // Side view: shows the depth/thickness of a large building
+  const flip=rot===3?-1:1;
+  const W=64,H=80,wy=bot-H-4;
+  // Foundation
+  X.fillStyle='#a09080';X.fillRect(cx-W/2-2,bot-6,W+4,6);
+  // Side wall (slightly darker than front)
+  X.fillStyle=wallColor;X.fillRect(cx-W/2,wy,W,H);
+  X.fillStyle='rgba(0,0,0,0.18)';X.fillRect(cx-W/2,wy,W,H); // darken for side
+  // Brick/stone texture
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let r=0;r<H;r+=9){const off=((r/9|0)%2===0)?0:14;for(let c=0;c<W;c+=28)X.fillRect(cx-W/2+c+off,wy+r,26,8);}
+  // Roof edge visible from side
+  X.fillStyle=roofColor;X.fillRect(cx-W/2-3,wy-5,W+6,8);
+  X.fillStyle='rgba(255,255,255,0.1)';X.fillRect(cx-W/2-3,wy-5,W+6,2);
+  // Side window (large, arched)
+  const wx2=cx+(flip>0?8:-8)-10,wy2=wy+16;
+  X.fillStyle='#8a7060';X.fillRect(wx2-3,wy2-3,26,30);
+  X.fillStyle='#a8d0e8';X.fillRect(wx2,wy2,20,26);
+  X.fillStyle='#b8dcf0';X.fillRect(wx2+1,wy2+1,18,24);
+  // Arch top
+  X.fillStyle='#8a7060';X.beginPath();X.arc(wx2+10,wy2,13,Math.PI,0);X.fill();
+  X.fillStyle='#a8d0e8';X.beginPath();X.arc(wx2+10,wy2,10,Math.PI,0);X.fill();
+  X.fillStyle='rgba(255,255,255,0.35)';X.fillRect(wx2+2,wy2+2,6,5);
+  // Window sill
+  X.fillStyle='#c0b090';X.fillRect(wx2-3,wy2+26,26,4);
+  // Second window (upper)
+  const wx3=cx-(flip>0?6:-6)-8,wy3=wy+6;
+  X.fillStyle='#8a7060';X.fillRect(wx3-2,wy3-2,18,20);
+  X.fillStyle='#a8d0e8';X.fillRect(wx3,wy3,14,16);
+  X.fillStyle='rgba(255,255,255,0.3)';X.fillRect(wx3+2,wy3+2,5,4);
+  // Depth indicator line (shows building goes far back)
+  X.strokeStyle='rgba(0,0,0,0.2)';X.lineWidth=2;
+  X.beginPath();X.moveTo(cx-W/2,wy);X.lineTo(cx-W/2-12,wy-8);X.stroke();
+  X.beginPath();X.moveTo(cx+W/2,wy);X.lineTo(cx+W/2+12,wy-8);X.stroke();
+  // Side label
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-22,bot-18,44,10);
+  X.fillStyle='rgba(255,255,255,0.7)';X.font='6px monospace';X.textAlign='center';
+  X.fillText(rot===1?'► '+label:label+' ◄',cx,bot-10);
+}
+
+function drawLargeBldBack(cx,bot,lv,wallColor,roofColor,label){
+  // Back view: plain wall, emergency exit, ventilation
+  const W=252,H=80,wy=bot-H-4;
+  X.fillStyle='#a09080';X.fillRect(cx-W/2-4,bot-6,W+8,6);
+  X.fillStyle=wallColor;X.fillRect(cx-W/2,wy,W,H);
+  X.fillStyle='rgba(0,0,0,0.25)';X.fillRect(cx-W/2,wy,W,H); // darker back
+  // Stone/brick texture
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let r=0;r<H;r+=9){const off=((r/9|0)%2===0)?0:14;for(let c=0;c<W;c+=28)X.fillRect(cx-W/2+c+off,wy+r,26,8);}
+  // Roof
+  X.fillStyle=roofColor;X.fillRect(cx-W/2-4,wy-5,W+8,8);
+  X.fillStyle='rgba(0,0,0,0.1)';X.fillRect(cx-W/2-4,wy-5,W+8,8);
+  // Small back windows (no arches, utility windows)
+  for(let i=0;i<5;i++){
+    const bwx=cx-W/2+22+i*46,bwy=wy+12;
+    X.fillStyle='#7a6858';X.fillRect(bwx-2,bwy-2,20,16);
+    X.fillStyle='#7090a0';X.fillRect(bwx,bwy,16,12);
+    X.fillStyle='rgba(255,255,255,0.2)';X.fillRect(bwx+1,bwy+1,5,3);
+    X.fillStyle='#7a6858';X.fillRect(bwx+7,bwy,2,12);
+  }
+  // Emergency/back door (plain metal)
+  X.fillStyle='#606870';X.fillRect(cx-14,wy+H-36,28,36);
+  X.fillStyle='#505860';X.fillRect(cx-12,wy+H-34,24,32);
+  X.fillStyle='#c0b8a0';X.fillRect(cx+6,wy+H-20,4,8); // handle
+  // Utility pipes/vents on wall
+  X.fillStyle='#808898';
+  X.fillRect(cx-W/2+8,wy+30,6,H-35);
+  X.fillRect(cx-W/2+8,wy+28,12,6);
+  X.fillRect(cx+W/2-14,wy+40,6,H-45);
+  // Back label
+  X.fillStyle='rgba(0,0,0,0.5)';X.fillRect(cx-24,bot-18,48,10);
+  X.fillStyle='rgba(255,255,255,0.6)';X.font='6px monospace';X.textAlign='center';
+  X.fillText('◄ '+label+' BACK ►',cx,bot-10);
+}
+
+// ── Per-building 4-view wrappers ──
+function bSchoolWithViews(cx,bot,lv,rot){
+  if(rot===0){bSchool(cx,bot,lv);return;}
+  if(rot===2){drawLargeBldBack(cx,bot,lv,'#c84830','#d85838','SCHOOL');return;}
+  drawLargeBldSide(cx,bot,lv,rot,'#c84830','#d85838','SCHOOL');
+}
+
+function bHospitalWithViews(cx,bot,lv,rot){
+  if(rot===0){bHospital(cx,bot,lv);return;}
+  if(rot===2){drawLargeBldBack(cx,bot,lv,'#dcddd8','#a8a9a4','HOSPITAL');
+    // Add red cross on back
+    X.fillStyle='#e02020';X.fillRect(cx-2,bot-68,4,14);X.fillRect(cx-6,bot-64,12,4);
+    return;}
+  drawLargeBldSide(cx,bot,lv,rot,'#dcddd8','#a8a9a4','HOSPITAL');
+}
+
+function bMosqueWithViews(cx,bot,lv,rot){
+  if(rot===0){bMosque(cx,bot,lv);return;}
+  if(rot===2){
+    // Mosque back: plain sandstone, small windows, minaret tip visible
+    drawLargeBldBack(cx,bot,lv,'#c8a870','#b89860','MOSQUE');
+    // Mini minaret tips at edges
+    for(const mx of [cx-W2/2+8,cx+W2/2-8]){
+      const mY=bot-80;
+      X.fillStyle='#2a7840';X.beginPath();X.moveTo(mx-6,mY);X.lineTo(mx,mY-12);X.lineTo(mx+6,mY);X.fill();
+      X.fillStyle='#d4b040';X.fillRect(mx-1,mY-16,2,6);
+    }
+    return;}
+  // Side view: shows minaret and dome profile
+  const flip=rot===3?-1:1;
+  drawLargeBldSide(cx,bot,lv,rot,'#c8a870','#b89860','MOSQUE');
+  // Add visible minaret on side
+  const mX=cx+flip*24, mY=bot-90, mW=10;
+  X.fillStyle='#c8a870';X.fillRect(mX-mW/2,mY,mW,86);
+  X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(mX-mW/2,mY,mW,86);
+  X.fillStyle='#2a7840';X.beginPath();X.moveTo(mX-mW/2-2,mY);X.lineTo(mX,mY-12);X.lineTo(mX+mW/2+2,mY);X.fill();
+  X.fillStyle='#d4b040';X.fillRect(mX-1,mY-16,2,8);
+  const crY=mY-20;
+  X.fillStyle='#d4b040';X.beginPath();X.arc(mX,crY,3,0,Math.PI*2);X.fill();
+  X.fillStyle='#2a7840';X.beginPath();X.arc(mX+2,crY-1,2.2,0,Math.PI*2);X.fill();
+  // Partial dome visible on side
+  const dG=X.createRadialGradient(cx-flip*20,bot-74,2,cx-flip*20,bot-74,28);
+  dG.addColorStop(0,'#4e9855');dG.addColorStop(0.5,'#267035');dG.addColorStop(1,'#164820');
+  X.fillStyle=dG;X.beginPath();X.ellipse(cx-flip*20,bot-70,22,18,0,Math.PI,0);X.fill();
+}
+const W2=252; // reference for mosque back
+
+function bChurchWithViews(cx,bot,lv,rot){
+  if(rot===0){bChurch(cx,bot,lv);return;}
+  if(rot===2){
+    drawLargeBldBack(cx,bot,lv,'#686878','#555560','CHURCH');
+    // Stained glass hint on back
+    X.fillStyle='rgba(180,100,200,0.3)';X.fillRect(cx-10,bot-72,20,28);
+    return;}
+  drawLargeBldSide(cx,bot,lv,rot,'#686878','#555560','CHURCH');
+  // Visible tower side
+  const flip=rot===3?-1:1;
+  X.fillStyle='#585868';X.fillRect(cx+flip*16,bot-96,18,56);
+  X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(cx+flip*16,bot-96,18,56);
+  // Tower pointed top
+  X.fillStyle='#444450';
+  X.beginPath();X.moveTo(cx+flip*16,bot-96);X.lineTo(cx+flip*25,bot-112);X.lineTo(cx+flip*34,bot-96);X.fill();
+}
+
 function drawBuildingShape(type,lv,cx,bot,rot=0){
   switch(type){
     case 'campfire':   bCampfire(cx,bot,lv);break;
@@ -2083,16 +2225,16 @@ function drawBuildingShape(type,lv,cx,bot,rot=0){
     case 'ironmine':   drawWith4Views((cx,bot,lv)=>bMine(cx,bot,lv,'iron'),cx,bot,lv,rot);break;
     case 'market':     drawWith4Views(bMarket,cx,bot,lv,rot);break;
     case 'well':       bWell(cx,bot,lv);break;
-    case 'church':     drawWith4Views(bChurch,cx,bot,lv,rot);break;
-    case 'mosque':     bMosque(cx,bot,lv);break;
+    case 'church':     bChurchWithViews(cx,bot,lv,rot);break;
+    case 'mosque':     bMosqueWithViews(cx,bot,lv,rot);break;
     case 'blacksmith': drawWith4Views(bSmith,cx,bot,lv,rot);break;
     case 'mill':       drawWith4Views(bMill,cx,bot,lv,rot);break;
     case 'smelter':    drawWith4Views(bSmelter,cx,bot,lv,rot);break;
     case 'hunting':    drawWith4Views(bHunting,cx,bot,lv,rot);break;
     case 'forest_hut': drawWith4Views(bForestHut,cx,bot,lv,rot);break;
     case 'tavern':     drawWith4Views(bTavern,cx,bot,lv,rot);break;
-    case 'school':     drawWith4Views(bSchool,cx,bot,lv,rot);break;
-    case 'hospital':   drawWith4Views(bHospital,cx,bot,lv,rot);break;
+    case 'school':     bSchoolWithViews(cx,bot,lv,rot);break;
+    case 'hospital':   bHospitalWithViews(cx,bot,lv,rot);break;
     case 'stable':     drawWith4Views(bStable,cx,bot,lv,rot);break;
     case 'corral':     drawWith4Views(bCorral,cx,bot,lv,rot);break;
     case 'food_stall':     drawWith4Views((cx,bot,lv)=>bStall(cx,bot,lv,'food'),cx,bot,lv,rot);break;
