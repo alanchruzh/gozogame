@@ -747,7 +747,7 @@ const ADULT_DAYS=1350; // 15 years * 90 days/year
 const PREG_DAYS=280;
 
 function isAdult(npc){ return (npc.age||0)>=ADULT_DAYS; }
-function getAdults(){ return NPCS.filter(isAdult); }
+function getAdults(){ return NPCS.filter(n=>isAdult(n)&&!n._immigrantTarget); }
 
 function upPop(){
   G.pop=getAdults().length;
@@ -768,32 +768,53 @@ function checkPopGrowth(){
     if(b.type!=='house'||b.under_construction) return false;
     const cap=(b.lv||1)*2; // Lv1=2, Lv2=4, Lv3=6
     const residents=NPCS.filter(n=>n.houseId===b.id);
-    return residents.length<cap;
+    // Also check no immigrants already heading here
+    const inbound=NPCS.filter(n=>n._immigrantTarget===b.id);
+    return residents.length+inbound.length<cap;
   });
 
-  if(availHouses.length && Math.random()<0.08){
+  if(availHouses.length && Math.random()<Math.min(0.6, 0.08*availHouses.length)){
     const house=availHouses[Math.floor(Math.random()*availHouses.length)];
     const residents=NPCS.filter(n=>n.houseId===house.id);
     const newFamilyId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
+
+    // Spawn at road entry point, not inside house
+    const entryX=MAIN_ROAD_ENTRY.col*TS+TS/2;
+    const entryY=MAIN_ROAD_ENTRY.row*TS+TS/2;
     const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
+
+    const spawnImmigrant=(name, female, familyId, houseId)=>{
+      const npc={
+        name, female, familyId,
+        x:entryX+(Math.random()-0.5)*TS,
+        y:entryY+(Math.random()-0.5)*TS,
+        dir:2, col:`hsl(${Math.random()*360},60%,${female?72:65}%)`,
+        job:null, age:ADULT_DAYS+Math.floor(Math.random()*(female?720:900)),
+        pregnant:0,
+        houseId:0, // not yet assigned — will settle on arrival
+        _immigrantTarget:houseId, // destination house
+        _immigrantTargetX:hx, _immigrantTargetY:hy,
+      };
+      NPCS.push(npc);
+      return npc;
+    };
 
     if(residents.length===0){
       const mName=uniqueName(false);
       const fName=uniqueName(true);
-      NPCS.push({name:mName,x:hx-8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,65%)`,job:null,female:false,
-        age:ADULT_DAYS+Math.floor(Math.random()*900),familyId:newFamilyId,pregnant:0,houseId:house.id});
-      NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,72%)`,job:null,female:true,
-        age:ADULT_DAYS+Math.floor(Math.random()*720),familyId:newFamilyId,pregnant:0,houseId:house.id});
+      spawnImmigrant(mName, false, newFamilyId, house.id);
+      spawnImmigrant(fName, true,  newFamilyId, house.id);
       FAMILIES.push({id:newFamilyId,houseId:house.id,husbandName:mName,wifeName:fName});
-      notify(`🏠 New family moved in! ${mName} & ${fName}`,'ok');
+      notify(`🚶 New family heading to the village! ${mName} & ${fName}`,'ok');
     } else if(residents.length===1&&!residents[0].female&&isAdult(residents[0])){
-      // Single man — a woman moves in
       const fName=uniqueName(true);
-      NPCS.push({name:fName,x:hx+8,y:hy,dir:2,col:`hsl(${Math.random()*360},60%,72%)`,job:null,female:true,
-        age:ADULT_DAYS+Math.floor(Math.random()*720),familyId:residents[0].familyId,pregnant:0,houseId:house.id});
-      notify(`💑 ${fName} moved in with ${residents[0].name}!`,'ok');
+      spawnImmigrant(fName, true, residents[0].familyId, house.id);
+      notify(`🚶 ${fName} is heading to join ${residents[0].name}!`,'ok');
+    } else if(residents.length===1&&residents[0].female&&isAdult(residents[0])){
+      const mName=uniqueName(false);
+      spawnImmigrant(mName, false, residents[0].familyId, house.id);
+      notify(`🚶 ${mName} is heading to join ${residents[0].name}!`,'ok');
     }
-    upPop();
   }
 
   // ── CHILDREN GROWN UP: find new house for adult children ──
@@ -814,9 +835,10 @@ function checkPopGrowth(){
 }
 
 function autoAssignHomeless(){
-  // Find all adult NPCs without a proper house
+  // Find all adult NPCs without a proper house (exclude in-transit immigrants)
   const homelessAdults=NPCS.filter(n=>
     isAdult(n) &&
+    !n._immigrantTarget && // skip immigrants still walking to their house
     !G.bld.find(b=>b.id===n.houseId&&b.type==='house'&&!b.under_construction)
   );
   if(!homelessAdults.length) return;
@@ -1025,6 +1047,7 @@ let BERRY_STATE={};  // key: "c,r" → {depleted, regrowTick, yield}
 let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees waiting to grow
 let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
 let TRAVELING_TRADERS=[]; // [{x,y,vx,vy,dir,fr,ft,name,goods,state,targetX,targetY,stall}]
+let LIVESTOCK_CARTS=[]; // [{x,y,vx,vy,dir,fr,ft,animal,houseId,targetX,targetY,state,e}]
 let _depositNotified=new Set(); // tracks which deposits player has been notified about
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
@@ -1398,6 +1421,7 @@ function genMap(){
   DEPOSIT_STATE={};
   _depositNotified=new Set();
   TRAVELING_TRADERS=[];
+  LIVESTOCK_CARTS=[];
   _waterSpots=null; // reset so fisher recalculates lake spots
   _waterTilesCache=null; // reset water animation cache
   G_activeDisaster=null;G_disasterTimer=0;
@@ -1863,16 +1887,7 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
   const cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
   const rot=rotation||0;
   // rot: 0=front(south), 1=right(east), 2=back(north), 3=left(west)
-  // Apply canvas transform based on rotation
-  const needsTransform=(rot!==0);
-  if(needsTransform){
-    X.save();
-    X.translate(cx, bot-TS/2); // center of tile
-    if(rot===1) X.rotate(Math.PI/2);       // right = 90°
-    else if(rot===2) X.rotate(Math.PI);     // back  = 180°
-    else if(rot===3) X.rotate(-Math.PI/2);  // left  = -90°
-    X.translate(-cx, -(bot-TS/2));
-  }
+  // Each building draw function handles its own 4 views
 
   // ── UNDER CONSTRUCTION — show building stages, not finished ──
   if(under_construction){
@@ -1920,7 +1935,7 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
       X.globalAlpha=0.5+prog*0.5;
       X.fillStyle='rgba(0,0,0,0.1)';
       X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
-      drawBuildingShape(type,lv,cx,bot);
+      drawBuildingShape(type,lv,cx,bot,rot);
       X.globalAlpha=1;
       // Scaffolding still visible
       X.strokeStyle='rgba(180,140,60,0.4)';X.lineWidth=1;
@@ -1939,47 +1954,108 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     X.fillStyle='#fff';X.font='bold 6px monospace';X.textAlign='center';
     X.fillText(Math.round(prog*100)+'%',cx,wy+10);
 
-    if(needsTransform) X.restore();
+    
     return;
   }
 
   // ── FINISHED BUILDING ──
   X.fillStyle='rgba(0,0,0,0.15)';
   X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
-  drawBuildingShape(type,lv,cx,bot);
-  if(needsTransform) X.restore();
+  drawBuildingShape(type,lv,cx,bot,rot);
+  
 }
 
 // Separate function for drawing the finished building shape
-function drawBuildingShape(type,lv,cx,bot){
+// Generic 4-view wrapper for buildings without custom side/back sprites
+// rot=0: front (draw normally)
+// rot=1: right side (flip horizontal, slight perspective)  
+// rot=2: back (draw back wall - no door, darker, back windows only)
+// rot=3: left side (mirror of right)
+function drawWith4Views(drawFn, cx, bot, lv, rot){
+  if(rot===0){ drawFn(cx,bot,lv); return; }
+
+  const wy=bot-TS+4;
+  const W=TS-4, H=TS-22;
+
+  if(rot===2){
+    // Back view: plain wall, no door, small back window
+    X.fillStyle='rgba(0,0,0,0.15)';
+    X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
+    // Draw building normally but then overlay back-view
+    X.save();
+    drawFn(cx,bot,lv);
+    // Dark overlay to indicate "back side"
+    X.fillStyle='rgba(0,0,0,0.35)';
+    X.fillRect(cx-TS/2+2,wy,TS-4,H+10);
+    X.restore();
+    // Cover door area with wall
+    X.fillStyle='#8a7060';
+    X.fillRect(cx-14,bot-36,28,30);
+    // Small back window
+    X.fillStyle='#1c2e48'; X.fillRect(cx-8,wy+8,16,12);
+    X.fillStyle='#3070a0'; X.fillRect(cx-7,wy+9,14,10);
+    X.fillStyle='rgba(255,255,255,0.3)'; X.fillRect(cx-6,wy+10,5,3);
+    // "BACK" label hint (tiny)
+    X.fillStyle='rgba(255,255,255,0.15)';X.font='6px monospace';X.textAlign='center';
+    X.fillText('◄ BACK ►',cx,bot-3);
+    return;
+  }
+
+  // Side views (rot===1 right, rot===3 left)
+  const flip = rot===1 ? 1 : -1;
+  X.save();
+  // Draw front, then squish horizontally to show side perspective
+  X.translate(cx,0);
+  X.scale(0.35,1); // squish to ~1/3 width = side view illusion
+  X.translate(-cx,0);
+  drawFn(cx,bot,lv);
+  X.restore();
+  // Side wall overlay
+  X.fillStyle='rgba(0,0,0,0.22)';
+  X.fillRect(cx-TS/2+2,wy,TS-4,H+10);
+  // Side window
+  const swx=cx+flip*6;
+  X.fillStyle='#1c2e48'; X.fillRect(swx-7,wy+10,14,11);
+  X.fillStyle='#3878b0'; X.fillRect(swx-6,wy+11,12,9);
+  X.fillStyle='rgba(255,255,255,0.35)'; X.fillRect(swx-5,wy+12,4,3);
+  // Side direction indicator
+  X.fillStyle='rgba(255,255,255,0.12)';X.font='6px monospace';X.textAlign='center';
+  X.fillText(rot===1?'► SIDE':'SIDE ◄',cx,bot-3);
+}
+
+function drawBuildingShape(type,lv,cx,bot,rot=0){
   switch(type){
     case 'campfire':   bCampfire(cx,bot,lv);break;
-    case 'house':      bHouse(cx,bot,lv);break;
-    case 'storage':    bStorage(cx,bot,lv);break;
-    case 'farm':       bFarm(cx,bot,lv);break;
-    case 'orchard':    bOrchard(cx,bot,lv);break;
-    case 'logger':     bLogger(cx,bot,lv);break;
-    case 'sawmill':    bSawmill(cx,bot,lv);break;
-    case 'quarry':     bQuarry(cx,bot,lv);break;
-    case 'coalmine':   bMine(cx,bot,lv,'coal');break;
-    case 'ironmine':   bMine(cx,bot,lv,'iron');break;
-    case 'market':     bMarket(cx,bot,lv);break;
+    case 'house':      bHouse(cx,bot,lv,rot);break;
+    case 'storage':    bStorage(cx,bot,lv,rot);break;
+    case 'farm':       bFarm(cx,bot,lv,rot);break;
+    case 'orchard':    drawWith4Views(bOrchard,cx,bot,lv,rot);break;
+    case 'logger':     drawWith4Views(bLogger,cx,bot,lv,rot);break;
+    case 'sawmill':    drawWith4Views(bSawmill,cx,bot,lv,rot);break;
+    case 'quarry':     drawWith4Views(bQuarry,cx,bot,lv,rot);break;
+    case 'coalmine':   drawWith4Views((cx,bot,lv)=>bMine(cx,bot,lv,'coal'),cx,bot,lv,rot);break;
+    case 'ironmine':   drawWith4Views((cx,bot,lv)=>bMine(cx,bot,lv,'iron'),cx,bot,lv,rot);break;
+    case 'market':     drawWith4Views(bMarket,cx,bot,lv,rot);break;
     case 'well':       bWell(cx,bot,lv);break;
-    case 'church':     bChurch(cx,bot,lv);break;
-    case 'blacksmith': bSmith(cx,bot,lv);break;
-    case 'mill':       bMill(cx,bot,lv);break;
-    case 'smelter':    bSmelter(cx,bot,lv);break;
-    case 'hunting':    bHunting(cx,bot,lv);break;
-    case 'forest_hut': bForestHut(cx,bot,lv);break;
-    case 'tavern':     bTavern(cx,bot,lv);break;
-    case 'school':     bSchool(cx,bot,lv);break;
-    case 'hospital':   bHospital(cx,bot,lv);break;
-    case 'stable':     bStable(cx,bot,lv);break;
-    case 'corral':     bCorral(cx,bot,lv);break;
-    case 'food_stall':     bStall(cx,bot,lv,'food');break;
-    case 'fuel_stall':     bStall(cx,bot,lv,'fuel');break;
-    case 'clothing_stall': bStall(cx,bot,lv,'clothing');break;
-    case 'weaver_wk':  bWeaverWk(cx,bot,lv);break;
+    case 'church':     drawWith4Views(bChurch,cx,bot,lv,rot);break;
+    case 'blacksmith': drawWith4Views(bSmith,cx,bot,lv,rot);break;
+    case 'mill':       drawWith4Views(bMill,cx,bot,lv,rot);break;
+    case 'smelter':    drawWith4Views(bSmelter,cx,bot,lv,rot);break;
+    case 'hunting':    drawWith4Views(bHunting,cx,bot,lv,rot);break;
+    case 'forest_hut': drawWith4Views(bForestHut,cx,bot,lv,rot);break;
+    case 'tavern':     drawWith4Views(bTavern,cx,bot,lv,rot);break;
+    case 'school':     drawWith4Views(bSchool,cx,bot,lv,rot);break;
+    case 'hospital':   drawWith4Views(bHospital,cx,bot,lv,rot);break;
+    case 'stable':     drawWith4Views(bStable,cx,bot,lv,rot);break;
+    case 'corral':     drawWith4Views(bCorral,cx,bot,lv,rot);break;
+    case 'food_stall':     drawWith4Views((cx,bot,lv)=>bStall(cx,bot,lv,'food'),cx,bot,lv,rot);break;
+    case 'fuel_stall':     drawWith4Views((cx,bot,lv)=>bStall(cx,bot,lv,'fuel'),cx,bot,lv,rot);break;
+    case 'clothing_stall': drawWith4Views((cx,bot,lv)=>bStall(cx,bot,lv,'clothing'),cx,bot,lv,rot);break;
+    case 'weaver_wk':  drawWith4Views(bWeaverWk,cx,bot,lv,rot);break;
+    case 'granary':    drawWith4Views(bGranary,cx,bot,lv,rot);break;
+    case 'storehouse': drawWith4Views(bStorehouse,cx,bot,lv,rot);break;
+    case 'tradingpost':drawWith4Views((cx,bot,lv)=>bGeneric(cx,bot,lv,BD['tradingpost']),cx,bot,lv,rot);break;
+    case 'sheep_farm': drawWith4Views(bSheepFarm,cx,bot,lv,rot);break;
     default:           bGeneric(cx,bot,lv,BD[type]);break;
   }
 }
@@ -2118,31 +2194,71 @@ function bCampfire(cx,bot,lv){
   X.fillStyle='#f0d060';X.font='7px monospace';X.textAlign='center';X.fillText(`${campers}/6`,cx,bot-34);
 }
 
-function bHouse(cx,bot,lv){
-  if(lv===1) bHouseLv1(cx,bot);
-  else if(lv===2) bHouseLv2(cx,bot);
-  else bHouseLv3(cx,bot);
+function bHouse(cx,bot,lv,rot=0){
+  if(lv===1) bHouseLv1(cx,bot,rot);
+  else if(lv===2) bHouseLv2(cx,bot,rot);
+  else bHouseLv3(cx,bot,rot);
 }
 
 // ── HOUSE LEVEL 1 — Simple cottage ──
-function bHouseLv1(cx,bot){
+function bHouseLv1(cx,bot,rot=0){
   const W=72,H=46,wy=bot-H-18;
-  // Foundation
+
+  if(rot===2){
+    // ── BACK VIEW — plain wall, no door, small ventilation window ──
+    FR(cx-W/2-2,bot-6,W+4,6,'#c8b898'); // foundation
+    FR(cx-W/2,wy,W,H,'#d8d0c0'); // plain back wall (slightly darker)
+    FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.15)');
+    // Small ventilation window high up
+    const bwx=cx-10,bwy=wy+8;
+    FR(bwx-2,bwy-2,24,18,'#b09870'); FR(bwx,bwy,20,14,'#1c2e48');
+    FR(bwx+1,bwy+1,18,12,'#4070a0'); FR(bwx+1,bwy+1,8,3,'rgba(255,255,255,0.4)');
+    LN(bwx+10,bwy+1,bwx+10,bwy+13,'rgba(0,0,0,0.2)'); LN(bwx+1,bwy+7,bwx+19,bwy+7,'rgba(0,0,0,0.2)');
+    // Roof (back view - just the ridge)
+    const rW=W+14,rH=26;
+    X.fillStyle='#7a3818';
+    X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+    // Chimney (back - visible from behind)
+    FR(cx+16,wy-rH+2,10,rH,'#a07858'); FR(cx+15,wy-rH+1,12,5,'#b08868');
+    return;
+  }
+
+  if(rot===1||rot===3){
+    // ── SIDE VIEW — narrower, shows eave profile ──
+    const flip=rot===3?-1:1; // mirror for left vs right
+    const sW=28,sH=46;
+    FR(cx-sW/2-2,bot-6,sW+4,6,'#c8b898'); // foundation
+    FR(cx-sW/2,wy,sW,sH,'#ece4d4'); // side wall
+    FR(cx-sW/2,wy,sW,3,'rgba(255,255,255,0.18)');
+    // Side window
+    const swx=cx-8,swy1=wy+14;
+    FR(swx-2,swy1-2,18,16,'#b09060'); FR(swx,swy1,14,12,'#1c2e48');
+    FR(swx+1,swy1+1,12,10,'#4898c8'); FR(swx+1,swy1+1,5,3,'rgba(255,255,255,0.5)');
+    LN(swx+7,swy1+1,swx+7,swy1+11,'rgba(0,0,0,0.2)');
+    // Side roof — triangle profile
+    const rH=26,rW=W+14;
+    X.fillStyle='#8a4018';
+    X.beginPath();X.moveTo(cx-sW/2-6,wy);X.lineTo(cx+sW/2+6,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+    X.fillStyle='#6a3010';
+    X.beginPath();X.moveTo(cx-sW/2-6,wy);X.lineTo(cx-sW/2-3,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
+    // Chimney visible from side
+    FR(cx+flip*8,wy-rH+4,7,rH-2,'#a07858');
+    FR(cx+flip*7,wy-rH+3,9,4,'#b08868');
+    return;
+  }
+
+  // ── FRONT VIEW (rot===0) — original detail ──
   FR(cx-W/2-2,bot-6,W+4,6,'#c8b898');
-  // Walls — whitewashed plaster
   FR(cx-W/2,wy,W,H,'#ece4d4');
   FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.2)');
   FR(cx+W/2-3,wy,3,H,'rgba(0,0,0,0.07)');
-  // Horizontal plaster lines
   X.fillStyle='rgba(0,0,0,0.03)';
   for(let i=12;i<H;i+=12) X.fillRect(cx-W/2+1,wy+i,W-2,1);
-  // Single window left
   const wx=cx-W/2+10,wy1=wy+10,ww=16,wh=14;
   FR(wx-2,wy1-2,ww+4,wh+4,'#c0a880'); FR(wx,wy1,ww,wh,'#1c2e48');
   FR(wx+1,wy1+1,ww-2,wh-2,'#4898c8'); FR(wx+1,wy1+1,(ww-2)/2,4,'rgba(255,255,255,0.5)');
   LN(wx+ww/2,wy1+1,wx+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
   LN(wx+1,wy1+wh/2,wx+ww-1,wy1+wh/2,'rgba(0,0,0,0.2)');
-  // Simple wooden door
   const dw=18,dh=26,dx=cx-dw/2,dy=bot-18-dh;
   FR(dx-2,dy-2,dw+4,dh+2,'#b89860');
   FR(dx,dy,dw,dh,'#7a3e10'); FR(dx,dy,dw,4,'#6a2e08');
@@ -2150,10 +2266,8 @@ function bHouseLv1(cx,bot){
   FR(dx+dw/2+1,dy+5,dw/2-3,dh*0.35,'rgba(0,0,0,0.10)');
   LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.15)',1);
   FR(dx+dw-6,dy+dh/2-2,3,5,'#d4a820');
-  // Small porch step
   FR(cx-18,bot-18,36,18,'#d4c8b0');
   FR(cx-18,bot-18,36,2,'rgba(255,255,255,0.12)');
-  // Simple triangular roof
   const rW=W+14,rH=26;
   X.fillStyle='#8a4018';
   X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx,wy-rH);X.closePath();X.fill();
@@ -2161,19 +2275,43 @@ function bHouseLv1(cx,bot){
   X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/2-3,wy);X.closePath();X.fill();
   for(let i=1;i<5;i++){const t=i/5;const lx=cx-rW/2*t,rx=cx+rW/2*t,ly=wy-rH*t;X.strokeStyle=`rgba(0,0,0,${0.12+i*0.02})`;X.lineWidth=1.5;X.beginPath();X.moveTo(lx,ly);X.lineTo(rx,ly);X.stroke();}
   FR(cx-4,wy-rH-2,8,6,'#6a3010');
-  // Chimney
   FR(cx+18,wy-rH+4,8,rH-2,'#a07858');
   FR(cx+17,wy-rH+3,10,4,'#b08868');
-  // Warm light in window at night
   const lt=Date.now()/1500;
   X.fillStyle=`rgba(255,200,80,${0.2+Math.sin(lt)*0.07})`;
   X.beginPath();X.arc(wx+ww/2,wy1+wh/2,7,0,Math.PI*2);X.fill();
 }
 
 // ── HOUSE LEVEL 2 — Two-storey townhouse ──
-function bHouseLv2(cx,bot){
+function bHouseLv2(cx,bot,rot=0){
   const W=84,H=70,wy=bot-H-14;
-  // Foundation/base
+  if(rot===2){
+    // Back view — plain brick back wall, no door
+    FR(cx-W/2-3,bot-8,W+6,8,'#b8a888');
+    FR(cx-W/2,wy+36,W,H-36,'#b8804a'); // brick, darker
+    X.fillStyle='rgba(0,0,0,0.06)';
+    for(let i=0;i<H-36;i+=7) for(let j=0;j<W;j+=14) X.fillRect(cx-W/2+j+(i%2===0?0:7),wy+36+i,13,6);
+    FR(cx-W/2,wy,W,36,'#d8d0c0'); // back upper wall
+    FR(cx-W/2-2,wy+36,W+4,5,'#7a5828');
+    // Back window
+    FR(cx-12,wy+8,26,18,'#b09060'); FR(cx-10,wy+10,22,14,'#1c2e48'); FR(cx-9,wy+11,20,12,'#4898c8');
+    X.fillStyle='#8a4018';X.beginPath();X.moveTo(cx-W/2-8,wy);X.lineTo(cx+W/2+8,wy);X.lineTo(cx,wy-28);X.closePath();X.fill();
+    return;
+  }
+  if(rot===1||rot===3){
+    // Side view
+    const sW=32,sH=70;
+    FR(cx-sW/2-2,bot-8,sW+4,8,'#b8a888');
+    FR(cx-sW/2,wy+36,sW,H-36,'#c8905a');
+    X.fillStyle='rgba(0,0,0,0.06)';
+    for(let i=0;i<H-36;i+=7) X.fillRect(cx-sW/2,wy+36+i,sW,6);
+    FR(cx-sW/2,wy,sW,36,'#ece4d4');
+    FR(cx-sW/2-2,wy+36,sW+4,5,'#7a5828');
+    FR(cx-10,wy+6,20,16,'#b09060'); FR(cx-8,wy+8,16,12,'#1c2e48'); FR(cx-7,wy+9,14,10,'#4898c8');
+    X.fillStyle='#8a4018';X.beginPath();X.moveTo(cx-sW/2-8,wy);X.lineTo(cx+sW/2+8,wy);X.lineTo(cx,wy-28);X.closePath();X.fill();
+    return;
+  }
+  // Front view
   FR(cx-W/2-3,bot-8,W+6,8,'#b8a888');
   FR(cx-W/2-3,bot-8,W+6,3,'#c8b898');
   // Ground floor walls — brick texture
@@ -2234,9 +2372,47 @@ function bHouseLv2(cx,bot){
 }
 
 // ── HOUSE LEVEL 3 — Manor house with tower ──
-function bHouseLv3(cx,bot){
+function bHouseLv3(cx,bot,rot=0){
   const W=96,H=80,wy=bot-H-12;
-  // Foundation stones
+
+  if(rot===2){
+    // Back view — dressed stone back wall, no door, arrow slit windows
+    FR(cx-W/2-4,bot-10,W+8,10,'#a89878');
+    FR(cx-W/2,wy,W,H,'#a89878');
+    X.fillStyle='rgba(0,0,0,0.05)';
+    for(let i=0;i<H;i+=8) for(let j=0;j<W;j+=16) X.fillRect(cx-W/2+j+(i%2===0?0:8),wy+i,15,7);
+    // Arrow slit windows (back)
+    for(let s=-1;s<=1;s+=2){ FR(cx+s*22-3,wy+20,6,20,'#1a2840'); }
+    FR(cx-5,wy+10,10,24,'#1a2840'); // center arrow slit
+    // Battlements at top
+    X.fillStyle='#c8b898';
+    for(let j=0;j<W;j+=12){ FR(cx-W/2+j,wy-8,8,8,'#b8a888'); }
+    FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.1)');
+    // Tower back
+    FR(cx-14,wy-20,28,20,'#a89878');
+    X.fillStyle='rgba(0,0,0,0.05)';
+    for(let i=0;i<20;i+=8) for(let j=0;j<28;j+=16) X.fillRect(cx-14+j,wy-20+i,15,7);
+    return;
+  }
+
+  if(rot===1||rot===3){
+    // Side view — stone profile, tower side
+    const sW=36,sH=80;
+    FR(cx-sW/2-4,bot-10,sW+8,10,'#a89878');
+    FR(cx-sW/2,wy,sW,sH,'#b8a888');
+    X.fillStyle='rgba(0,0,0,0.05)';
+    for(let i=0;i<sH;i+=8) X.fillRect(cx-sW/2,wy+i,sW,7);
+    // Side window
+    FR(cx-8,wy+24,16,22,'#6a5030'); FR(cx-6,wy+26,12,18,'#1a2840'); FR(cx-5,wy+27,10,16,'#4888c0');
+    // Side battlements
+    for(let j=0;j<sW;j+=10){ FR(cx-sW/2+j,wy-8,7,8,'#b8a888'); }
+    // Tower side
+    FR(cx-12,wy-18,24,18,'#a89878');
+    for(let i=0;i<18;i+=8) X.fillRect(cx-12,wy-18+i,24,7);
+    return;
+  }
+
+  // Front view
   FR(cx-W/2-4,bot-10,W+8,10,'#a89878');
   X.fillStyle='rgba(0,0,0,0.08)';
   for(let i=0;i<10;i+=5) for(let j=0;j<W+8;j+=18) X.fillRect(cx-W/2-4+j,bot-10+i,17,4);
@@ -2321,9 +2497,33 @@ function bHouseLv3(cx,bot){
   X.beginPath();X.arc(tx+tW/2,twy+19,6,0,Math.PI*2);X.fill();
 }
 
-function bFarm(cx,bot,lv){
+function bFarm(cx,bot,lv,rot=0){
   const W=72+lv*6,H=44+lv*4,wy=bot-H-8;
-  // Barn base
+
+  if(rot===2){
+    // Back of barn — plain wooden planks, ventilation gaps
+    FR(cx-W/2,wy,W,H,'#b86820');
+    X.fillStyle='rgba(0,0,0,0.08)';
+    for(let i=8;i<H;i+=8) X.fillRect(cx-W/2+1,wy+i,W-2,1);
+    FR(cx-W/2,wy,5,H,'#903810'); FR(cx+W/2-5,wy,5,H,'#903810');
+    // Ventilation slats
+    for(let i=10;i<H-10;i+=6) FR(cx-12,wy+i,24,4,'rgba(0,0,0,0.3)');
+    drawBarnRoof(cx,wy,W,lv);
+    return;
+  }
+  if(rot===1||rot===3){
+    // Side of barn — shows gambrel roof profile clearly
+    const sW=34;
+    FR(cx-sW/2,wy,sW,H,'#c07828');
+    X.fillStyle='rgba(0,0,0,0.08)';
+    for(let i=8;i<H;i+=8) X.fillRect(cx-sW/2+1,wy+i,sW-2,1);
+    FR(cx-sW/2,wy,5,H,'#a06020'); FR(cx+sW/2-5,wy,5,H,'#a06020');
+    // Side hay window
+    FR(cx-10,wy+6,20,16,'#b08040'); FR(cx-8,wy+8,16,12,'#2a3a18'); FR(cx-7,wy+9,14,10,'#4a6830');
+    drawBarnRoof(cx,wy,sW+20,lv);
+    return;
+  }
+  // Front view
   FR(cx-W/2,wy,W,H,'#c87830');
   FR(cx-W/2,wy,W,3,'rgba(255,255,255,0.15)');
   FR(cx+W/2-4,wy,4,H,'rgba(0,0,0,0.1)');
@@ -2357,6 +2557,19 @@ function bFarm(cx,bot,lv){
   X.beginPath();X.moveTo(cx,wy-rH);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx+rW/4-2,wy-rH*0.55);X.closePath();X.fill();
   // Hay bales outside
   for(let i=0;i<lv;i++){FR(cx-W/2-14+i*2,bot-14,12,14,'#d4a820');FR(cx-W/2-14+i*2,bot-14,12,3,'#c09010');}
+}
+
+function bStorage(cx,bot,lv,rot=0){
+  // Storage is granary or storehouse — route to those
+  bGranary(cx,bot,lv);
+}
+
+function drawBarnRoof(cx,wy,rW,lv){
+  const rH=22+lv*3;
+  X.fillStyle='#6a3808';
+  X.beginPath();X.moveTo(cx-rW/2,wy);X.lineTo(cx+rW/2,wy);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx-rW/4,wy-rH*0.55);X.closePath();X.fill();
+  X.fillStyle='#7a4010';
+  X.beginPath();X.moveTo(cx-rW/4,wy-rH*0.55);X.lineTo(cx+rW/4,wy-rH*0.55);X.lineTo(cx,wy-rH);X.closePath();X.fill();
 }
 
 function bOrchard(cx,bot,lv){
@@ -5182,6 +5395,38 @@ function workSpot(targetX,targetY,npcIdx){
 function wanderNPCs(){
   for(let i=0;i<NPCS.length;i++){
     const npc=NPCS[i];
+
+    // ── IMMIGRANT — walk toward target house, settle on arrival ──
+    if(npc._immigrantTarget){
+      const tx=npc._immigrantTargetX, ty=npc._immigrantTargetY;
+      const dx=tx-npc.x, dy=ty-npc.y;
+      const dist=Math.hypot(dx,dy);
+      if(dist>8){
+        // Walk toward house at slightly faster speed
+        const spd=1.2;
+        npc._dx=(dx/dist)*spd; npc._dy=(dy/dist)*spd;
+        npc._working=false;
+        // Face direction of movement
+        if(Math.abs(dx)>Math.abs(dy)){npc.dir=dx>0?1:3;}else{npc.dir=dy>0?2:0;}
+      } else {
+        // Arrived! Settle into house
+        npc.houseId=npc._immigrantTarget;
+        npc.x=tx; npc.y=ty;
+        delete npc._immigrantTarget;
+        delete npc._immigrantTargetX;
+        delete npc._immigrantTargetY;
+        npc._dx=0; npc._dy=0;
+        notify(`🏠 ${npc.name} has arrived and moved in!`,'ok');
+        upPop(); updateUI();
+      }
+      // Still apply movement
+      const nx2=npc.x+npc._dx, ny2=npc.y+npc._dy;
+      npc.x=Math.max(TS,Math.min(nx2,(WC-1)*TS));
+      npc.y=Math.max(TS,Math.min(ny2,(WR-1)*TS));
+      npc._ft=(npc._ft||0)+1;if(npc._ft>8){npc._ft=0;npc._fr=(npc._fr||0)+1;}
+      continue; // skip normal wander logic
+    }
+
     if(!isAdult(npc)){
       npc._working=false;npc._wt=(npc._wt||0)+1;
       if(npc._wt>60){npc._wt=0;if(Math.random()<.3){npc._dx=0;npc._dy=0;}else{const d=[[-0.7,0],[0.7,0],[0,-0.7],[0,0.7]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}}
@@ -5939,6 +6184,7 @@ function render(){
     for(const npc of [...NPCS])try{if(Math.floor(npc.y/TS)===r2)drawNPC(npc);}catch(e){console.warn('drawNPC err',e.message);}
     // Draw traveling traders
     for(const tr of TRAVELING_TRADERS)if(Math.floor(tr.y/TS)===r2)drawTravelingTrader(tr);
+    for(const cart of LIVESTOCK_CARTS)if(Math.floor(cart.y/TS)===r2)drawLivestockCart(cart);
     if(Math.floor(PL.y/TS)===r2)drawPlayer();
     // Move target ripple
     if(PL._moveRipple&&Math.floor(PL._moveRipple.y/TS)===r2){
@@ -6882,7 +7128,7 @@ function loop(now){
   try{
     if(!G.paused&&_gameStarted&&MAP&&MAP.length){
       movePlayer();updateCam();wanderNPCs();updateDeer();
-      updateBuffalo();updateHorses();updateTravelingTraders();
+      updateBuffalo();updateHorses();updateTravelingTraders();updateLivestockCarts();
       tick();
       updateFog();
     }
@@ -8144,6 +8390,7 @@ function buildSaveState(){
     deer:DEER.map(d=>({...d})),
     buffalo:BUFFALO.map(b=>({...b})),
     horses:HORSES.map(h=>({...h})),
+    livestockCarts:LIVESTOCK_CARTS.map(c=>({...c})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
     saplings:JSON.parse(JSON.stringify(SAPLINGS||{})),
     depositState:JSON.parse(JSON.stringify(DEPOSIT_STATE||{})),
@@ -8202,6 +8449,7 @@ function applySaveState(save){
   DEER=(save.deer||[]).map(d=>({...d}));
   BUFFALO=(save.buffalo||[]).map(b=>({...b}));
   HORSES=(save.horses||[]).map(h=>({...h}));
+  LIVESTOCK_CARTS=(save.livestockCarts||[]).map(c=>({...c}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
   SAPLINGS=JSON.parse(JSON.stringify(save.saplings||{}));
   DEPOSIT_STATE=JSON.parse(JSON.stringify(save.depositState||{}));
@@ -8241,12 +8489,21 @@ function applySaveState(save){
     npc._logZone=null; npc._chopTimer=0; npc._stuckCheck=0;
     npc._prevX=undefined; npc._prevY=undefined;
     npc._mineTargetC=undefined; npc._mineTargetR=undefined;
+    // Settle any immigrants that were in-transit
+    if(npc._immigrantTarget){
+      npc.houseId=npc._immigrantTarget;
+      delete npc._immigrantTarget;
+      delete npc._immigrantTargetX;
+      delete npc._immigrantTargetY;
+    }
   }
   // Reset building transient flags
   for(const b of G.bld){
     b._noDepWarn=false; b._noStockWarn=false; b._chainBlocked=false;
     b._noOreWarn=false; b._noAleWarn=false;
     if(b.backyard){ b.backyard._reqWarn=false; b.backyard._hungryWarn=false; }
+    // Restore pending livestock flags from active carts
+    b._pendingLivestock=LIVESTOCK_CARTS.some(c=>c.houseId===b.id)?true:undefined;
   }
   _worldDirty=true; WC_=null;
   correctNPCJobs(); // fix any wrong job assignments from old saves
@@ -9446,18 +9703,109 @@ function openBuyLivestockDlg(){
         notify(`Need ${a.cost} Regional Wealth!`,'err');return;
       }
       // Find a house to assign backyard to
-      const freeHouse=G.bld.find(b=>b.type==='house'&&!b.under_construction&&!b.backyard&&
+      const freeHouse=G.bld.find(b=>b.type==='house'&&!b.under_construction&&!b.backyard&&!b._pendingLivestock&&
         (BD.house.byardSlots[b.lv]==='all'||Array.isArray(BD.house.byardSlots[b.lv])));
       if(!freeHouse){notify('Need a house with free backyard slot!','err');return;}
       G.res.regional_wealth=Math.max(0,(G.res.regional_wealth||0)-a.cost);
-      freeHouse.backyard={type:a.type,timer:0,totalProd:0};
-      rwLog(`🐑 Bought ${a.name}: -${a.cost} RW → House #${freeHouse.id}`);
-      notify(`${a.e} ${a.name} added to House #${freeHouse.id} backyard!`,'ok');
+      rwLog(`${a.e} Ordered ${a.name}: -${a.cost} RW → delivering to House #${freeHouse.id}`);
+      // Mark house as pending delivery so no one else grabs it
+      freeHouse._pendingLivestock=a.type;
+      // Spawn a cart at the road entry
+      const ex=MAIN_ROAD_ENTRY.col*TS+TS/2;
+      const ey=MAIN_ROAD_ENTRY.row*TS+TS/2;
+      const tx=freeHouse.col*TS+TS/2;
+      const ty=freeHouse.row*TS+TS/2;
+      LIVESTOCK_CARTS.push({
+        x:ex, y:ey, vx:0, vy:0, dir:2, fr:0, ft:0,
+        animal:a.type, e:a.e, name:a.name,
+        houseId:freeHouse.id,
+        targetX:tx, targetY:ty,
+        state:'delivering',
+      });
+      notify(`${a.e} ${a.name} purchased! A cart is on its way to House #${freeHouse.id}...`,'ok');
       closeDialog();updateUI();
     }
   }));
   btns.push({l:'✖ Cancel',cls:'',fn:closeDialog});
   openDlg('🐑 Buy Livestock','Purchase animals from traders (uses Regional Wealth):',btns);
+}
+
+function updateLivestockCarts(){
+  for(let i=LIVESTOCK_CARTS.length-1;i>=0;i--){
+    const cart=LIVESTOCK_CARTS[i];
+    const dx=cart.targetX-cart.x, dy=cart.targetY-cart.y;
+    const dist=Math.hypot(dx,dy);
+    const spd=0.7*G.spd;
+    if(dist>6){
+      cart.vx=(dx/dist)*spd; cart.vy=(dy/dist)*spd;
+      cart.x+=cart.vx; cart.y+=cart.vy;
+      cart.x=Math.max(0,Math.min(cart.x,WPX)); cart.y=Math.max(0,Math.min(cart.y,WPY));
+      if(cart.vx<-0.2)cart.dir=3; else if(cart.vx>0.2)cart.dir=1;
+      if(cart.vy<-0.2)cart.dir=0; else if(cart.vy>0.2)cart.dir=2;
+      cart.ft=(cart.ft||0)+1; if(cart.ft>8){cart.ft=0;cart.fr=(cart.fr||0)+1;}
+    } else {
+      // Arrived! Assign livestock to house
+      const house=G.bld.find(b=>b.id===cart.houseId);
+      if(house&&!house.backyard){
+        house.backyard={type:cart.animal,timer:0,totalProd:0};
+        delete house._pendingLivestock;
+        const bp=getByardPos(house);
+        if(bp.r>=0&&bp.r<WR&&bp.c>=0&&bp.c<WC) MAP[bp.r][bp.c].decor=null;
+        _worldDirty=true;
+        notify(`${cart.e} ${cart.name} delivered to House #${cart.houseId}!`,'ok');
+        updateUI();
+      } else if(house&&house._pendingLivestock){
+        delete house._pendingLivestock;
+      }
+      LIVESTOCK_CARTS.splice(i,1);
+    }
+  }
+}
+
+function drawLivestockCart(cart){
+  const px=Math.round(cart.x+camX), py=Math.round(cart.y+camY);
+  if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) return;
+  const t=Date.now()/1000;
+  const bob=Math.sin(t*6+cart.x)*1.5; // cart bounce
+
+  X.save();
+  // Cart shadow
+  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(px,py+8,18,5,0,0,Math.PI*2);X.fill();
+
+  // Cart body (wooden box)
+  X.fillStyle='#c8a060';X.fillRect(px-16,py-14+bob,32,16);
+  X.fillStyle='#a07840';X.fillRect(px-16,py-14+bob,32,3); // top edge
+  X.fillStyle='#8a6030';X.fillRect(px-16,py-14+bob,3,16); // left edge
+  X.fillStyle='#8a6030';X.fillRect(px+13,py-14+bob,3,16); // right edge
+  // Cart slats
+  X.fillStyle='#8a6030';
+  for(let s=-10;s<=10;s+=8) X.fillRect(px+s,py-14+bob,2,16);
+
+  // Wheels
+  const wheelY=py+2+bob;
+  for(const wx of [px-12,px+12]){
+    X.fillStyle='#4a2808'; X.beginPath(); X.arc(wx,wheelY,7,0,Math.PI*2); X.fill();
+    X.fillStyle='#8a5020'; X.beginPath(); X.arc(wx,wheelY,5,0,Math.PI*2); X.fill();
+    X.fillStyle='#4a2808'; X.beginPath(); X.arc(wx,wheelY,2,0,Math.PI*2); X.fill();
+    // Spokes
+    X.strokeStyle='#4a2808'; X.lineWidth=1.5;
+    for(let a=0;a<Math.PI*2;a+=Math.PI/2){
+      X.beginPath();X.moveTo(wx,wheelY);X.lineTo(wx+Math.cos(a)*5,wheelY+Math.sin(a)*5);X.stroke();
+    }
+  }
+  // Wheel axle
+  X.fillStyle='#4a2808'; X.fillRect(px-12,wheelY-1,24,2);
+
+  // Animal emoji bouncing in cart
+  X.font='16px serif'; X.textAlign='center';
+  X.fillText(cart.e, px, py-12+bob+Math.sin(t*4)*2);
+
+  // "Delivering" label
+  X.fillStyle='rgba(0,0,0,0.65)'; X.fillRect(px-22,py-32+bob,44,13);
+  X.fillStyle='#f0d060'; X.font='bold 7px monospace'; X.textAlign='center';
+  X.fillText('DELIVERY', px, py-22+bob);
+
+  X.restore();
 }
 
 function bStable(cx,bot,lv){
