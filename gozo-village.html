@@ -608,7 +608,7 @@ const BLD_WORKERS={
   // Forestry & livestock
   forest_hut:2, corral:1, stable:1,
   // Civic — 1 worker each improves efficiency
-  well:1, church:1, mosque:1, school:1, hospital:1, tavern:1, village_hall:2,
+  well:1, church:1, mosque:1, school:1, hospital:1, tavern:1, village_hall:2, inn:1,
 };
 
 // ── MARKET SYSTEM ──
@@ -961,6 +961,10 @@ const BD={
   village_hall:{n:'Village Hall',e:'🏰',d:'Seat of village government. +Happiness. +Tax income.',
     cost:{wood:60,stone:50,gold:40}, ml:3, cat:'civic',
     lvDesc:{1:'Small hall — basic governance.',2:'Grand hall — expanded authority.',3:'Castle Keep — full regional control.'},
+  },
+  inn:{n:'Inn',e:'🏨',d:'Rest stop for travelers & traders. Traders sleep here at night.',
+    cost:{wood:40,stone:20,gold:15}, ml:2, cat:'civic',
+    lvDesc:{1:'Simple inn — 4 beds for travelers.',2:'Grand inn — 8 beds, better service.'},
   },
   school:    {n:'School',   e:'📚',d:'Children grow faster.',   cost:{wood:30,stone:25,gold:15}, ml:2, cat:'civic',
               pr:{}, lvDesc:{1:'Basic school.',2:'Academy.'}},
@@ -2418,6 +2422,228 @@ function bVillageHallWithViews(cx,bot,lv,rot){
 }
 const W3=252;
 
+function bInn(cx,bot,lv){
+  const W=192,H=72;
+  const wy=bot-H-4;
+  const t=Date.now()/1000;
+  const isNight=isNightTime();
+
+  // ── GROUND ──
+  FR(cx-W/2-4,bot-6,W+8,6,'#b0a888');
+  X.fillStyle='rgba(255,255,255,0.08)';
+  for(let i=0;i<W+8;i+=14) X.fillRect(cx-W/2-4+i,bot-6,9,6);
+
+  // ── MAIN BODY — warm brick/plaster ──
+  FR(cx-W/2,wy,W,H,'#c88848');
+  // Brick texture ground floor
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let r=0;r<H/2;r+=8){
+    const off=((r/8|0)%2===0)?0:14;
+    for(let c=0;c<W;c+=28) X.fillRect(cx-W/2+c+off,wy+H/2+r,26,7);
+  }
+  // Plaster upper floor (lighter)
+  FR(cx-W/2,wy,W,H/2,'#ddd0a8');
+  X.fillStyle='rgba(0,0,0,0.03)';
+  for(let i=10;i<H/2;i+=10) X.fillRect(cx-W/2+1,wy+i,W-2,1);
+  // Floor divider
+  FR(cx-W/2-2,wy+H/2,W+4,5,'#a07840');
+  FR(cx-W/2-2,wy+H/2,W+4,2,'rgba(255,255,255,0.15)');
+  // Roof cornice
+  FR(cx-W/2-3,wy-5,W+6,8,'#b07030');
+  FR(cx-W/2-3,wy-5,W+6,3,'rgba(255,255,255,0.12)');
+  // Roof top flat
+  FR(cx-W/2-2,wy-8,W+4,4,'#987028');
+
+  // ── UPPER FLOOR WINDOWS (4 rooms) ──
+  const upWin={w:26,h:20,y:wy+6};
+  const upPos=[cx-W/2+14,cx-W/2+56,cx+W/2-82,cx+W/2-40];
+  for(let i=0;i<upPos.length;i++){
+    const wx2=upPos[i];
+    // Window frame
+    FR(wx2-2,upWin.y-2,upWin.w+4,upWin.h+4,'#8a6030');
+    FR(wx2,upWin.y,upWin.w,upWin.h,'#1c2e48');
+    FR(wx2+1,upWin.y+1,upWin.w-2,upWin.h-2,'#3870a8');
+    // Window dividers
+    X.fillStyle='#7a5020';
+    X.fillRect(wx2+12,upWin.y+1,2,upWin.h-2);
+    X.fillRect(wx2+1,upWin.y+10,upWin.w-2,2);
+    // Curtains
+    X.fillStyle='rgba(180,80,80,0.7)';
+    X.fillRect(wx2+1,upWin.y+1,8,upWin.h-2);
+    X.fillRect(wx2+upWin.w-9,upWin.y+1,8,upWin.h-2);
+    // Night: warm window light glow
+    if(isNight){
+      const glow=X.createRadialGradient(wx2+13,upWin.y+10,1,wx2+13,upWin.y+10,20);
+      glow.addColorStop(0,`rgba(255,200,80,0.5)`);
+      glow.addColorStop(1,'rgba(255,180,40,0)');
+      X.fillStyle=glow;X.fillRect(wx2-8,upWin.y-6,upWin.w+16,upWin.h+12);
+      X.fillStyle='rgba(255,220,120,0.4)';
+      X.fillRect(wx2+1,upWin.y+1,upWin.w-2,upWin.h-2);
+    }
+    // Sill
+    FR(wx2-3,upWin.y+upWin.h+2,upWin.w+6,4,'#a07840');
+    // Room number
+    X.fillStyle='rgba(255,255,255,0.5)';X.font='bold 7px monospace';X.textAlign='center';
+    X.fillText(i+1+'',wx2+13,upWin.y-3);
+  }
+
+  // ── GROUND FLOOR WINDOWS (2) ──
+  const loWin={w:28,h:22,y:wy+H/2+8};
+  for(const wx2 of [cx-W/2+18,cx+W/2-46]){
+    FR(wx2-2,loWin.y-2,loWin.w+4,loWin.h+4,'#8a6030');
+    FR(wx2,loWin.y,loWin.w,loWin.h,'#1c2e48');
+    FR(wx2+1,loWin.y+1,loWin.w-2,loWin.h-2,'#3870a8');
+    if(isNight){
+      X.fillStyle='rgba(255,220,120,0.35)';
+      X.fillRect(wx2+1,loWin.y+1,loWin.w-2,loWin.h-2);
+    }
+    X.fillStyle='#7a5020';X.fillRect(wx2+13,loWin.y+1,2,loWin.h-2);
+    FR(wx2-3,loWin.y+loWin.h+2,loWin.w+6,4,'#a07840');
+  }
+
+  // ── MAIN DOOR & ENTRANCE ──
+  const dW=32,dH=H/2-6,dX=cx-dW/2,dY=wy+H/2+4;
+  // Door arch frame
+  X.fillStyle='#7a5020';
+  X.beginPath();X.arc(cx,dY,dW/2+4,Math.PI,0);X.fill();
+  X.fillRect(dX-4,dY,dW+8,dH);
+  // Double doors
+  FR(dX,dY,dW/2-1,dH,'#8a4a18');
+  FR(cx+1,dY,dW/2-1,dH,'#7a3e14');
+  // Door panels
+  X.fillStyle='rgba(0,0,0,0.12)';
+  FR(dX+2,dY+3,dW/2-5,dH*0.35,'rgba(0,0,0,0.1)');
+  FR(dX+2,dY+dH*0.42,dW/2-5,dH*0.25,'rgba(0,0,0,0.1)');
+  FR(cx+3,dY+3,dW/2-5,dH*0.35,'rgba(0,0,0,0.1)');
+  FR(cx+3,dY+dH*0.42,dW/2-5,dH*0.25,'rgba(0,0,0,0.1)');
+  FR(dX+dW/2-4,dY+dH*0.48,3,7,'#d4a820');
+  FR(cx+2,dY+dH*0.48,3,7,'#d4a820');
+  // Arch glass
+  X.fillStyle='rgba(100,160,220,0.4)';
+  X.beginPath();X.arc(cx,dY,dW/2,Math.PI,0);X.fill();
+  // Welcome mat
+  FR(cx-18,bot-10,36,6,'#806040');
+  X.fillStyle='#a08060';X.font='5px monospace';X.textAlign='center';
+  X.fillText('WELCOME',cx,bot-5);
+
+  // ── BALCONY RAILING upper floor ──
+  X.fillStyle='#8a6030';
+  X.fillRect(cx-W/2,wy+H/2-4,W,4);
+  // Balusters
+  X.fillStyle='#c8a060';
+  for(let i=4;i<W-4;i+=8) X.fillRect(cx-W/2+i,wy+H/2-14,3,10);
+  X.fillRect(cx-W/2,wy+H/2-16,W,3);
+
+  // ── INN SIGN ──
+  // Sign post
+  FR(cx-5,wy-22,10,14,'#8a6030');
+  // Sign board
+  FR(cx-36,wy-36,72,18,'#3a2808');
+  FR(cx-34,wy-34,68,14,'#c07810');
+  X.fillStyle='#f8f0a0';X.font='bold 8px "Press Start 2P"';X.textAlign='center';
+  X.fillText('INN',cx,wy-23);
+  // Hanging sign chain
+  X.strokeStyle='#888060';X.lineWidth=1;
+  X.beginPath();X.moveTo(cx-30,wy-36);X.lineTo(cx-32,wy-22);X.stroke();
+  X.beginPath();X.moveTo(cx+30,wy-36);X.lineTo(cx+32,wy-22);X.stroke();
+
+  // ── SLEEPING TRADERS indicator (night) ──
+  if(isNight&&MARKET_VENDORS.length>0){
+    const sleeping=MARKET_VENDORS.filter(v=>v._inInn);
+    if(sleeping.length>0){
+      X.fillStyle='rgba(60,40,20,0.7)';X.fillRect(cx-28,wy-52,56,14);
+      X.fillStyle='#a0c8ff';X.font='7px monospace';X.textAlign='center';
+      X.fillText('💤 '+sleeping.length+' resting',cx,wy-41);
+    }
+  }
+
+  // Lv2: Extra chimney + extension
+  if(lv>=2){
+    FR(cx+W/2-24,wy-20,12,16,'#c08848');
+    FR(cx+W/2-26,wy-22,16,5,'#b07838');
+    // Smoke
+    const smokeT=t*0.5;
+    for(let s=0;s<3;s++){
+      const sa=Math.max(0,0.3-s*0.08);
+      X.fillStyle=`rgba(180,180,180,${sa})`;
+      X.beginPath();X.arc(cx+W/2-18+Math.sin(smokeT+s)*4,wy-28-s*10,4+s*2,0,Math.PI*2);X.fill();
+    }
+  }
+}
+
+function bInnWithViews(cx,bot,lv,rot){
+  if(rot===0){bInn(cx,bot,lv);return;}
+  if(rot===2){
+    // Back view — brick wall, service entrance, laundry lines
+    const W=192,H=72,wy=bot-H-4;
+    FR(cx-W/2-4,bot-6,W+8,6,'#a09878');
+    FR(cx-W/2,wy,W,H,'#b87838');
+    X.fillStyle='rgba(0,0,0,0.06)';
+    for(let r=0;r<H;r+=8){const off=((r/8|0)%2===0)?0:14;for(let c=0;c<W;c+=28)X.fillRect(cx-W/2+c+off,wy+r,26,7);}
+    X.fillStyle='rgba(0,0,0,0.2)';X.fillRect(cx-W/2,wy,W,H);
+    FR(cx-W/2-3,wy-5,W+6,8,'#906828');
+    // Back small windows
+    for(const wx2 of [cx-W/2+20,cx-W/2+60,cx+W/2-80,cx+W/2-40]){
+      FR(wx2-2,wy+8,18,14,'#7a5020');
+      FR(wx2,wy+10,14,10,'#1c2e48');
+      FR(wx2+1,wy+11,12,8,'#3060a0');
+    }
+    // Service door (back)
+    FR(cx-14,wy+H-32,28,32,'#5a3010');
+    FR(cx-12,wy+H-30,24,28,'#4a2808');
+    FR(cx+8,wy+H-18,3,6,'#c0a020');
+    // Laundry line
+    X.strokeStyle='#a09070';X.lineWidth=1;
+    X.beginPath();X.moveTo(cx-W/2+10,wy+12);X.lineTo(cx+W/2-10,wy+12);X.stroke();
+    for(let i=0;i<5;i++){
+      const lx=cx-W/2+24+i*32;
+      const colors=['#c04040','#4060c0','#40a040','#c0a020','#c04080'];
+      X.fillStyle=colors[i%5];X.fillRect(lx-6,wy+12,12,18);
+      X.strokeStyle='#888';X.lineWidth=1;
+      X.beginPath();X.moveTo(lx-6,wy+12);X.lineTo(lx+6,wy+12);X.stroke();
+    }
+    FR(cx-28,bot-18,56,10,'rgba(0,0,0,0.5)');
+    X.fillStyle='rgba(255,255,200,0.6)';X.font='6px monospace';X.textAlign='center';
+    X.fillText('◄ INN BACK ►',cx,bot-10);
+    return;
+  }
+  // Side views
+  const flip=rot===3?-1:1;
+  const W=64,H=76,wy=bot-H-4;
+  FR(cx-W/2-2,bot-6,W+4,6,'#a09878');
+  // Brick lower, plaster upper
+  FR(cx-W/2,wy+H/2,W,H/2,'#c88848');
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let r=0;r<H/2;r+=8){const off=((r/8|0)%2===0)?0:14;for(let c=0;c<W;c+=28)X.fillRect(cx-W/2+c+off,wy+H/2+r,26,7);}
+  FR(cx-W/2,wy,W,H/2,'#ddd0a8');
+  X.fillStyle='rgba(0,0,0,0.2)';X.fillRect(cx-W/2,wy,W,H);
+  FR(cx-W/2-2,wy+H/2,W+4,4,'#a07840');
+  FR(cx-W/2-3,wy-5,W+6,7,'#b07030');
+  // Balcony railing side
+  for(let i=2;i<W-2;i+=8) X.fillRect(cx-W/2+i,wy+H/2-12,3,8,'#c8a060');
+  X.fillStyle='#8a6030';X.fillRect(cx-W/2,wy+H/2-14,W,3);
+  // Side windows (upper + lower)
+  const swx=cx-6;
+  FR(swx-2,wy+6,18,16,'#8a6030');
+  FR(swx,wy+8,14,12,'#1c2e48');FR(swx+1,wy+9,12,10,'#3870a8');
+  X.fillStyle='rgba(180,80,80,0.6)';X.fillRect(swx+1,wy+9,4,10);X.fillRect(swx+9,wy+9,4,10);
+  FR(swx-2,wy+H/2+8,18,16,'#8a6030');
+  FR(swx,wy+H/2+10,14,12,'#1c2e48');FR(swx+1,wy+H/2+11,12,10,'#3870a8');
+  if(isNightTime()){
+    X.fillStyle='rgba(255,220,120,0.4)';X.fillRect(swx+1,wy+9,12,10);
+    X.fillStyle='rgba(255,220,120,0.3)';X.fillRect(swx+1,wy+H/2+11,12,10);
+  }
+  // Chimney on side
+  FR(cx+flip*18,wy-18,10,22,'#c08848');FR(cx+flip*17,wy-20,12,5,'#b07838');
+  // Perspective depth lines
+  X.strokeStyle='rgba(0,0,0,0.2)';X.lineWidth=2;
+  X.beginPath();X.moveTo(cx-W/2,wy);X.lineTo(cx-W/2-12,wy-8);X.stroke();
+  X.beginPath();X.moveTo(cx+W/2,wy);X.lineTo(cx+W/2+12,wy-8);X.stroke();
+  FR(cx-28,bot-18,56,10,'rgba(0,0,0,0.5)');
+  X.fillStyle='rgba(255,255,200,0.6)';X.font='6px monospace';X.textAlign='center';
+  X.fillText(rot===1?'► INN SIDE':'INN SIDE ◄',cx,bot-10);
+}
+
 function drawBuildingShape(type,lv,cx,bot,rot=0){
   switch(type){
     case 'campfire':   bCampfire(cx,bot,lv);break;
@@ -2436,6 +2662,7 @@ function drawBuildingShape(type,lv,cx,bot,rot=0){
     case 'church':     bChurchWithViews(cx,bot,lv,rot);break;
     case 'mosque':     bMosqueWithViews(cx,bot,lv,rot);break;
     case 'village_hall':bVillageHallWithViews(cx,bot,lv,rot);break;
+    case 'inn':        bInnWithViews(cx,bot,lv,rot);break;
     case 'blacksmith': drawWith4Views(bSmith,cx,bot,lv,rot);break;
     case 'mill':       drawWith4Views(bMill,cx,bot,lv,rot);break;
     case 'smelter':    drawWith4Views(bSmelter,cx,bot,lv,rot);break;
@@ -5601,7 +5828,7 @@ function correctNPCJobs(){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
+    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',inn:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     if(!workers) continue;
     const bld=G.bld.find(b=>b.id===+bldId);
@@ -6189,7 +6416,7 @@ function swBPTab(cat, el){
     house:['house','storage','granary','storehouse'],
     food:['farm','orchard','mill','granary','malthouse','bakery','sheep_farm','weaver_wk'],
     work:['logger','quarry','coalmine','ironmine','smelter','sawmill','ironworks','blacksmith','hunting','forest_hut','corral'],
-    civic:['campfire','street_lamp','well','church','mosque','village_hall','market','tradingpost','tavern','school','hospital','stable','food_stall','fuel_stall','clothing_stall'],
+    civic:['campfire','street_lamp','well','church','mosque','village_hall','inn','market','tradingpost','tavern','school','hospital','stable','food_stall','fuel_stall','clothing_stall'],
   };
   const items=catMap[cat]||[];
   for(const key of items){
@@ -8305,7 +8532,7 @@ function renderBldWorker(bldId, maxW){
             blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
             granary:'farmer',storehouse:'farmer',forest_hut:'planter',
             food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-            well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
+            well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',inn:'idle',corral:'idle',stable:'idle'};
           if(jobMap[bld.type]) n.job=jobMap[bld.type];
         }
         renderBldWorker(bldId,maxW);
@@ -10299,7 +10526,7 @@ function applySaveState(save){
     blacksmith:'builder',tradingpost:'trader',sawmill:'logger',
     granary:'farmer',storehouse:'farmer',forest_hut:'planter',
     food_stall:'vendor',fuel_stall:'vendor',clothing_stall:'vendor',
-    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',corral:'idle',stable:'idle'};
+    well:'idle',church:'idle',mosque:'idle',school:'idle',hospital:'idle',tavern:'idle',village_hall:'idle',inn:'idle',corral:'idle',stable:'idle'};
   for(const[bldId,workers]of Object.entries(G.bldWorkers)){
     const bld=G.bld.find(b=>b.id===+bldId);
     if(!bld) continue;
@@ -11573,34 +11800,43 @@ function spawnMarketVendors(){
 }
 
 function updateMarketVendors(){
-  // Spawn/respawn vendors if needed
   if(G.marketZones&&G.marketZones.length>0&&MARKET_VENDORS.length<5){
     spawnMarketVendors();
     if(MARKET_VENDORS.length===0) return;
   }
   if(MARKET_VENDORS.length===0) return;
 
-  const t=Date.now()/1000;
+  const inn=G.bld.find(b=>b.type==='inn'&&!b.under_construction);
+  const innX=inn?(inn.col*TS+TS/2):null;
+  const innY=inn?(inn.row*TS+TS/2):null;
+  const hr=G.hr+(G.mn/60);
+  const isVendorSleeping=(hr>=22||hr<6);
+
   for(const v of MARKET_VENDORS){
-    // Gentle idle wobble within stall
-    v._wobble=(v._wobble||0)+0.02;
-    // Stay at bottom of back tile (close to table in front tile)
-    v.x=v.stallCol*TS+TS/2+Math.sin(v._wobble)*3;
-    v.y=v.stallRow*TS+TS*0.85+Math.cos(v._wobble*0.6)*2;
-    v.dir=2; // always face south (toward customers)
-
-    // Shout timer
-    v._shoutTimer=(v._shoutTimer||0)-1;
-    if(v._shoutTimer<=0){
-      v._shouting=true;
-      v._shoutText=v.shout;
-      v._shoutT=120; // show for 2 seconds
-      v._shoutTimer=300+Math.random()*400; // shout every 5-10 seconds
+    if(isVendorSleeping&&inn){
+      if(!v._inInn){
+        const dx=innX-v.x, dy=innY-v.y;
+        const dist=Math.hypot(dx,dy);
+        if(dist>8){v.x+=dx/dist*1.0; v.y+=dy/dist*1.0;}
+        else{v.x=innX;v.y=innY;v._inInn=true;}
+      }
+    } else {
+      v._inInn=false;
+      v.x=v.stallCol*TS+TS/2;
+      v.y=v.stallRow*TS+TS*0.85;
     }
-    if(v._shoutT>0) v._shoutT--;
-    else v._shouting=false;
+    v.dir=2;
 
-    // Animation frame
+    if(!isVendorSleeping||!inn){
+      v._shoutTimer=(v._shoutTimer||0)-1;
+      if(v._shoutTimer<=0){
+        v._shouting=true; v._shoutText=v.shout;
+        v._shoutT=120; v._shoutTimer=300+Math.random()*400;
+      }
+      if(v._shoutT>0) v._shoutT--;
+      else v._shouting=false;
+    } else { v._shouting=false; }
+
     v.ft=(v.ft||0)+1;
     if(v.ft>12){v.ft=0;v.fr=(v.fr||0)+1;}
   }
@@ -11609,47 +11845,40 @@ function updateMarketVendors(){
 function drawMarketVendors(){
   const t=Date.now()/1000;
   for(const v of MARKET_VENDORS){
-    // Vendor berdiri di back tile, menghadap ke depan (selatan) menuju meja
-    // Meja ada di front tile (stallRow+1 atau row di bawah back tile)
+    // Don't render vendors sleeping in inn
+    if(v._inInn) continue;
     const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
     if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) continue;
 
-    const bob=Math.sin(t*1.8+v._wobble)*1.2;
-    const armL=Math.sin(t*1.2+v._wobble)*4;
-    const armR=Math.sin(t*1.2+v._wobble+Math.PI)*4;
+    const bob=Math.sin(t*1.4)*1.0; // subtle idle sway, same phase for all = no chaos
+    const armL=Math.sin(t*0.9+v._wobble)*3;
+    const armR=Math.sin(t*0.9+v._wobble+Math.PI)*3;
 
-    // ── DISPLAY TABLE (meja dagangan tepat di depan vendor) ──
-    // Meja di posisi antara back tile dan front tile
+    // ── DISPLAY TABLE — fixed position, no movement ──
     const tx=px, ty=py+18;
-    // Table surface
     X.fillStyle='#c8a060';X.fillRect(tx-28,ty,56,10);
     X.fillStyle='#e0b870';X.fillRect(tx-28,ty,56,3);
     X.fillStyle='#a07840';X.fillRect(tx-26,ty+10,52,3);
-    // Table legs
     X.fillStyle='#7a5020';
     X.fillRect(tx-26,ty+13,4,10);X.fillRect(tx+22,ty+13,4,10);
-    // Table cloth overhang
     X.fillStyle=v.coat;X.fillRect(tx-28,ty+10,56,4);
 
     // ── GOODS DISPLAY ON TABLE ──
     const items=v.tableGoods||[v.goods,v.goods2||v.goods];
-    // Item 1 (left)
     X.font='14px serif';X.textAlign='center';
     X.fillText(items[0],tx-14,ty+1);
-    // Item 2 (right)
     X.fillText(items[1]||items[0],tx+14,ty+1);
-    // Animated "available" sign
-    const signPulse=0.7+Math.sin(t*2+v._wobble)*0.2;
-    X.fillStyle=`rgba(255,250,200,${signPulse*0.95})`;
+    // FOR SALE sign — fixed, slight pulse only in alpha
+    const signPulse=0.82+Math.sin(t*1.5+v._wobble*0.1)*0.12;
+    X.fillStyle=`rgba(255,250,200,${signPulse})`;
     X.fillRect(tx-22,ty-14,44,11);
     X.fillStyle='#604010';X.font='bold 6px monospace';X.textAlign='center';
     X.fillText('FOR SALE',tx,ty-5);
 
-    // Price tag bouncing
-    const priceBob=Math.sin(t*3+v._wobble)*1.5;
+    // Price tag — fixed position, no bob
     X.fillStyle='rgba(255,240,180,0.95)';
-    X.fillRect(tx-14,ty-28+priceBob,28,11);
-    X.fillStyle='rgba(255,60,60,0.8)';X.fillRect(tx-14,ty-28+priceBob,28,3);
+    X.fillRect(tx-14,ty-28,28,11);
+    X.fillStyle='rgba(255,60,60,0.8)';X.fillRect(tx-14,ty-28,28,3);
     X.fillStyle='#3a1a00';X.font='bold 6px monospace';X.textAlign='center';
     X.fillText(v.priceText||v.shout.split('!')[0]+'!',tx,ty-20+priceBob);
 
