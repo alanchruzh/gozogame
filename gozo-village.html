@@ -1975,52 +1975,59 @@ function drawWith4Views(drawFn, cx, bot, lv, rot){
   if(rot===0){ drawFn(cx,bot,lv); return; }
 
   const wy=bot-TS+4;
-  const W=TS-4, H=TS-22;
+  const W=TS-4, H=TS-18;
 
   if(rot===2){
-    // Back view: plain wall, no door, small back window
-    X.fillStyle='rgba(0,0,0,0.15)';
-    X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
-    // Draw building normally but then overlay back-view
+    // ── BACK VIEW: gambar normal, overlay gelap, tutup pintu, tambah jendela belakang ──
     X.save();
     drawFn(cx,bot,lv);
-    // Dark overlay to indicate "back side"
-    X.fillStyle='rgba(0,0,0,0.35)';
-    X.fillRect(cx-TS/2+2,wy,TS-4,H+10);
     X.restore();
-    // Cover door area with wall
-    X.fillStyle='#8a7060';
-    X.fillRect(cx-14,bot-36,28,30);
-    // Small back window
-    X.fillStyle='#1c2e48'; X.fillRect(cx-8,wy+8,16,12);
-    X.fillStyle='#3070a0'; X.fillRect(cx-7,wy+9,14,10);
-    X.fillStyle='rgba(255,255,255,0.3)'; X.fillRect(cx-6,wy+10,5,3);
-    // "BACK" label hint (tiny)
-    X.fillStyle='rgba(255,255,255,0.15)';X.font='6px monospace';X.textAlign='center';
-    X.fillText('◄ BACK ►',cx,bot-3);
+    // Dark overlay (back = tidak langsung terlihat)
+    X.fillStyle='rgba(0,0,0,0.32)';
+    X.fillRect(cx-TS/2+2,wy,TS-4,H+8);
+    // Tutup area pintu dengan tembok
+    X.fillStyle='#7a6858';
+    X.fillRect(cx-16,bot-40,32,36);
+    // Garis horizontal dinding belakang
+    X.fillStyle='rgba(0,0,0,0.08)';
+    for(let i=4;i<36;i+=8) X.fillRect(cx-16,bot-40+i,32,1);
+    // Jendela kecil belakang
+    X.fillStyle='#6a8898'; X.fillRect(cx-9,wy+8,18,13);
+    X.fillStyle='#1c2e48'; X.fillRect(cx-8,wy+9,16,11);
+    X.fillStyle='#3878b0'; X.fillRect(cx-7,wy+10,14,9);
+    X.fillStyle='rgba(255,255,255,0.3)'; X.fillRect(cx-6,wy+11,5,3);
+    LN(cx,wy+10,cx,wy+20,'rgba(0,0,0,0.2)');
+    LN(cx-7,wy+15,cx+7,wy+15,'rgba(0,0,0,0.2)');
     return;
   }
 
-  // Side views (rot===1 right, rot===3 left)
-  const flip = rot===1 ? 1 : -1;
+  // ── SIDE VIEW (rot 1=kanan, rot 3=kiri): ukuran normal, dinding samping, jendela samping ──
   X.save();
-  // Draw front, then squish horizontally to show side perspective
-  X.translate(cx,0);
-  X.scale(0.35,1); // squish to ~1/3 width = side view illusion
-  X.translate(-cx,0);
   drawFn(cx,bot,lv);
   X.restore();
-  // Side wall overlay
-  X.fillStyle='rgba(0,0,0,0.22)';
-  X.fillRect(cx-TS/2+2,wy,TS-4,H+10);
-  // Side window
-  const swx=cx+flip*6;
-  X.fillStyle='#1c2e48'; X.fillRect(swx-7,wy+10,14,11);
-  X.fillStyle='#3878b0'; X.fillRect(swx-6,wy+11,12,9);
-  X.fillStyle='rgba(255,255,255,0.35)'; X.fillRect(swx-5,wy+12,4,3);
-  // Side direction indicator
-  X.fillStyle='rgba(255,255,255,0.12)';X.font='6px monospace';X.textAlign='center';
-  X.fillText(rot===1?'► SIDE':'SIDE ◄',cx,bot-3);
+  // Overlay dinding samping — sedikit lebih gelap dari depan
+  X.fillStyle='rgba(0,0,0,0.20)';
+  X.fillRect(cx-TS/2+2,wy,TS-4,H+8);
+  // Tutup pintu dengan dinding
+  X.fillStyle='#8a7a68';
+  X.fillRect(cx-16,bot-40,32,36);
+  X.fillStyle='rgba(0,0,0,0.07)';
+  for(let i=4;i<36;i+=8) X.fillRect(cx-16,bot-40+i,32,1);
+  // Garis vertikal kayu/bata di sisi
+  X.fillStyle='rgba(0,0,0,0.06)';
+  for(let i=-20;i<=20;i+=10) X.fillRect(cx+i,wy,1,H+8);
+  // Jendela samping (lebih besar dari jendela belakang)
+  const swx=cx+(rot===1?12:-12);
+  X.fillStyle='#6a8898'; X.fillRect(swx-11,wy+10,22,16);
+  X.fillStyle='#1c2e48'; X.fillRect(swx-10,wy+11,20,14);
+  X.fillStyle='#4898c8'; X.fillRect(swx-9,wy+12,18,12);
+  X.fillStyle='rgba(255,255,255,0.4)'; X.fillRect(swx-8,wy+13,7,4);
+  LN(swx,wy+12,swx,wy+24,'rgba(0,0,0,0.2)');
+  LN(swx-9,wy+18,swx+9,wy+18,'rgba(0,0,0,0.2)');
+  // Cahaya hangat di jendela (malam)
+  const lt=Date.now()/1500;
+  X.fillStyle=`rgba(255,200,80,${0.12+Math.sin(lt)*0.05})`;
+  X.beginPath();X.arc(swx,wy+18,6,0,Math.PI*2);X.fill();
 }
 
 function drawBuildingShape(type,lv,cx,bot,rot=0){
