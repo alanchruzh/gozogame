@@ -1862,17 +1862,16 @@ function drawRock(wx,wy,v){ drawRockOnCtx(X,wx,wy,v); }
 function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
   const cx=Math.round(wx+TS/2), bot=Math.round(wy+TS);
   const rot=rotation||0;
-  // rot: 0=front, 1=right(mirror), 2=back, 3=left(mirror)
-  // We apply horizontal flip for left/right variants, NOT canvas rotation
-  const flipH=(rot===3); // flip horizontally for left-facing
-  // For back-facing (rot=2), slightly darken to indicate back view
-  const backFacing=(rot===2);
-
-  if(flipH){
+  // rot: 0=front(south), 1=right(east), 2=back(north), 3=left(west)
+  // Apply canvas transform based on rotation
+  const needsTransform=(rot!==0);
+  if(needsTransform){
     X.save();
-    X.translate(cx,0);
-    X.scale(-1,1);
-    X.translate(-cx,0);
+    X.translate(cx, bot-TS/2); // center of tile
+    if(rot===1) X.rotate(Math.PI/2);       // right = 90°
+    else if(rot===2) X.rotate(Math.PI);     // back  = 180°
+    else if(rot===3) X.rotate(-Math.PI/2);  // left  = -90°
+    X.translate(-cx, -(bot-TS/2));
   }
 
   // ── UNDER CONSTRUCTION — show building stages, not finished ──
@@ -1940,7 +1939,7 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
     X.fillStyle='#fff';X.font='bold 6px monospace';X.textAlign='center';
     X.fillText(Math.round(prog*100)+'%',cx,wy+10);
 
-    if(flipH) X.restore();
+    if(needsTransform) X.restore();
     return;
   }
 
@@ -1948,7 +1947,7 @@ function drawBuilding(type,lv,wx,wy,rotation,under_construction,build_progress){
   X.fillStyle='rgba(0,0,0,0.15)';
   X.beginPath();X.ellipse(cx+4,bot-3,TW*0.45,7,0,0,Math.PI*2);X.fill();
   drawBuildingShape(type,lv,cx,bot);
-  if(flipH) X.restore();
+  if(needsTransform) X.restore();
 }
 
 // Separate function for drawing the finished building shape
@@ -5889,18 +5888,33 @@ function render(){
         const field=G.fields.find(f=>f.col===c2&&f.row===r2);
         if(field&&field.growStage>0&&field.growStage<4)drawCrop(field,wx,ry);
       }
-      // Backyard — draw on 2 tiles directly above house (behind it visually)
-      // Tile r2 is 1 above house, tile r2-1 is 2 above house
+      // Backyard — draw behind house based on rotation
+      // rotation: 0=front(south), 1=right(east), 2=back(north), 3=left(west)
+      // Backyard is always on the opposite side from where the house faces
       for(const offset of [1,2]){
-        if(r2+offset<WR){
-          const houseTile=MAP[r2+offset][c2];
+        // Check all 4 directions for a house whose backyard might be here
+        const checks=[
+          {dr:offset, dc:0},   // house below → backyard above (rot 0, facing south)
+          {dr:-offset,dc:0},   // house above → backyard below (rot 2, facing north)
+          {dr:0, dc:offset},   // house left  → backyard right (rot 1, facing east)
+          {dr:0, dc:-offset},  // house right → backyard left  (rot 3, facing west)
+        ];
+        for(const{dr,dc} of checks){
+          const hr=r2+dr, hc=c2+dc;
+          if(hr<0||hr>=WR||hc<0||hc>=WC) continue;
+          const houseTile=MAP[hr]?.[hc];
           if(houseTile?.bld?.type==='house'&&!tile.bld){
             const gbld=G.bld.find(b=>b.id===houseTile.bld.id);
-            if(gbld?.backyard){
-              const byDef=BYARD[gbld.backyard.type];
-              // offset=1: front half of backyard, offset=2: back half
-              if(byDef) drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,byDef.prodTime||1,offset);
-            }
+            if(!gbld?.backyard) continue;
+            const rot=gbld.rotation||0;
+            // Determine if current tile is the backyard tile for this rotation
+            const isBack=(rot===0&&dr===offset&&dc===0)||  // facing south, backyard north
+                         (rot===2&&dr===-offset&&dc===0)|| // facing north, backyard south
+                         (rot===1&&dr===0&&dc===offset)||   // facing east, backyard west
+                         (rot===3&&dr===0&&dc===-offset);   // facing west, backyard east
+            if(!isBack) continue;
+            const byDef=BYARD[gbld.backyard.type];
+            if(byDef) drawBackyard(gbld.backyard.type,wx,ry,gbld.backyard.timer||0,byDef.prodTime||1,offset);
           }
         }
       }
@@ -6566,6 +6580,17 @@ function renderByPanel(){
   }
 }
 
+// Get the tile position of a house's backyard based on rotation
+// rotation: 0=front(south)→backyard north, 1=east→backyard west, 2=north→backyard south, 3=west→backyard east
+function getByardPos(bld){
+  const rot=bld.rotation||0;
+  if(rot===0) return {r:bld.row-1,c:bld.col};   // facing south, backyard north
+  if(rot===2) return {r:bld.row+1,c:bld.col};   // facing north, backyard south
+  if(rot===1) return {r:bld.row,  c:bld.col-1}; // facing east,  backyard west
+  if(rot===3) return {r:bld.row,  c:bld.col+1}; // facing west,  backyard east
+  return {r:bld.row-1,c:bld.col}; // default
+}
+
 function setByard(type){
   if(!_byHouseId) return;
   const bld=G.bld.find(b=>b.id===_byHouseId);
@@ -6588,7 +6613,7 @@ function setByard(type){
       [{l:'✓ Yes, replace',cls:'ok',fn:()=>{
         pay(by.cost);
         bld.backyard={type,lv:1,progress:0,timer:0,totalProd:0,_reqWarn:false};
-        if(bld.row>0){MAP[bld.row-1][bld.col].decor=null;_worldDirty=true;}
+        if(bld.row>0){const bp=getByardPos(bld);if(bp.r>=0&&bp.r<WR&&bp.c>=0&&bp.c<WC){MAP[bp.r][bp.c].decor=null;}_worldDirty=true;}
         notify('🏡 Backyard changed to '+by.n+'!','ok');
         renderByPanel();updateUI();closeDialog();
       }},{l:'✗ Cancel',cls:'',fn:closeDialog}]
@@ -6599,11 +6624,10 @@ function setByard(type){
   }
   pay(by.cost);
   bld.backyard={type,lv:1,progress:0,timer:0,totalProd:0,_reqWarn:false};
-  // Clear tile behind house so backyard is visible
-  if(bld.row>0){
-    MAP[bld.row-1][bld.col].decor=null;
-    _worldDirty=true;
-  }
+  // Clear tile behind house (based on rotation) so backyard is visible
+  const bp=getByardPos(bld);
+  if(bp.r>=0&&bp.r<WR&&bp.c>=0&&bp.c<WC){MAP[bp.r][bp.c].decor=null;}
+  _worldDirty=true;
   notify('🏡 '+by.n+' built!','ok');
   renderByPanel(); updateUI();
 }
