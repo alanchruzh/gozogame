@@ -12038,52 +12038,69 @@ function updateMarketVendors(){
 
 function drawMarketVendors(){
   const t=Date.now()/1000;
+
+  // ── PASS 1: Draw tables at FIXED stall positions (always, even when vendor walks away) ──
   for(const v of MARKET_VENDORS){
-    // Don't render vendors sleeping in inn
-    if(v._inInn) continue;
-    const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
-    if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) continue;
+    // Table always stays at stall — use stall world coords + camX/camY
+    const tx=Math.round(v.stallCol*TS+TS/2+camX);
+    const ty=Math.round(v.stallRow*TS+TS*0.85+18+camY);
+    if(tx<-80||tx>CV.width+80||ty<-80||ty>CV.height+80) continue;
 
-    const bob=Math.sin(t*1.4)*1.0; // subtle idle sway, same phase for all = no chaos
-    const armL=Math.sin(t*0.9+v._wobble)*3;
-    const armR=Math.sin(t*0.9+v._wobble+Math.PI)*3;
-
-    // ── DISPLAY TABLE — fixed position, no movement ──
-    const tx=px, ty=py+18;
+    // Table surface
     X.fillStyle='#c8a060';X.fillRect(tx-28,ty,56,10);
     X.fillStyle='#e0b870';X.fillRect(tx-28,ty,56,3);
     X.fillStyle='#a07840';X.fillRect(tx-26,ty+10,52,3);
+    // Table legs
     X.fillStyle='#7a5020';
     X.fillRect(tx-26,ty+13,4,10);X.fillRect(tx+22,ty+13,4,10);
+    // Table cloth
     X.fillStyle=v.coat;X.fillRect(tx-28,ty+10,56,4);
 
-    // ── GOODS DISPLAY ON TABLE ──
+    // Goods on table
     const items=v.tableGoods||[v.goods,v.goods2||v.goods];
     X.font='14px serif';X.textAlign='center';
     X.fillText(items[0],tx-14,ty+1);
     X.fillText(items[1]||items[0],tx+14,ty+1);
-    // FOR SALE sign — fixed, slight pulse only in alpha
+
+    // FOR SALE sign
     const signPulse=0.82+Math.sin(t*1.5+v._wobble*0.1)*0.12;
     X.fillStyle=`rgba(255,250,200,${signPulse})`;
     X.fillRect(tx-22,ty-14,44,11);
     X.fillStyle='#604010';X.font='bold 6px monospace';X.textAlign='center';
     X.fillText('FOR SALE',tx,ty-5);
 
-    // Price tag — fixed position, no bob
-    X.fillStyle='rgba(255,240,180,0.95)';
-    X.fillRect(tx-14,ty-28,28,11);
+    // Price tag
+    X.fillStyle='rgba(255,240,180,0.95)';X.fillRect(tx-14,ty-28,28,11);
     X.fillStyle='rgba(255,60,60,0.8)';X.fillRect(tx-14,ty-28,28,3);
     X.fillStyle='#3a1a00';X.font='bold 6px monospace';X.textAlign='center';
-    X.fillText(v.priceText||v.shout.split('!')[0]+'!',tx,ty-20+priceBob);
+    X.fillText(v.priceText||v.shout.split('!')[0]+'!',tx,ty-20);
 
-    // ── VENDOR BODY ──
+    // If vendor sleeping — show empty/closed sign
+    if(v._inInn){
+      X.fillStyle='rgba(30,20,10,0.7)';X.fillRect(tx-22,ty-14,44,32);
+      X.fillStyle='rgba(200,150,100,0.8)';X.font='bold 6px monospace';X.textAlign='center';
+      X.fillText('CLOSED',tx,ty-5);
+      X.fillStyle='rgba(150,120,80,0.6)';X.font='6px monospace';
+      X.fillText('💤 sleeping',tx,ty+6);
+    }
+  }
+
+  // ── PASS 2: Draw vendor bodies at their CURRENT position (moving to/from inn) ──
+  for(const v of MARKET_VENDORS){
+    if(v._inInn) continue; // hidden inside inn
+    const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
+    if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) continue;
+
+    const bob=Math.sin(t*1.4)*1.0;
+    const armL=Math.sin(t*0.9+v._wobble)*3;
+    const armR=Math.sin(t*0.9+v._wobble+Math.PI)*3;
+    const items2=v.tableGoods||[v.goods,v.goods2||v.goods];
+
     // Shadow
     X.fillStyle='rgba(0,0,0,0.14)';X.beginPath();X.ellipse(px,py+16,9,3,0,0,Math.PI*2);X.fill();
-
     // Legs
     X.fillStyle='#2a1a08';
     X.fillRect(px-5,py+4+bob,5,11);X.fillRect(px+1,py+4+bob,5,11);
-    // Shoes
     X.fillStyle='#1a0e04';
     X.fillRect(px-6,py+14+bob,7,4);X.fillRect(px,py+14+bob,7,4);
 
@@ -12105,7 +12122,7 @@ function drawMarketVendors(){
     X.fillRect(px+10, py+1+bob+armR,5,5);
     // Left hand holding product emoji
     X.font='9px serif';X.textAlign='center';
-    X.fillText(items[0],px-12,py+1+bob+armL);
+    X.fillText(items2[0],px-12,py+1+bob+armL);
 
     // Head
     X.fillStyle=skin;X.fillRect(px-6,py-22+bob,12,12);
