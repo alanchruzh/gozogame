@@ -359,6 +359,8 @@ document.addEventListener('selectstart',e=>{if(e.target.tagName!=='INPUT'&&e.tar
   <button class="tbtn" onclick="saveGameToFile()" title="Save game to file">💾 SAVE</button>
   <button class="tbtn" onclick="document.getElementById('load-file-input').click()" title="Load game from file">📂 LOAD</button>
   <input type="file" id="load-file-input" accept=".gozo,.json" style="display:none" onchange="loadGameFromFile(event)">
+  <div class="hdv"></div>
+  <button class="tbtn" id="tb-fullscreen" onclick="toggleFullscreen()" title="Toggle Fullscreen (F11)">⛶</button>
 </div>
 
 <!-- BUILD PANEL -->
@@ -1048,6 +1050,7 @@ let SAPLINGS={};     // key: "c,r" → {age, maxAge, stage} — planted trees wa
 let DEPOSIT_STATE={};// key: "c,r" → {type, qty, maxQty, depleted}
 let TRAVELING_TRADERS=[]; // [{x,y,vx,vy,dir,fr,ft,name,goods,state,targetX,targetY,stall}]
 let LIVESTOCK_CARTS=[]; // [{x,y,vx,vy,dir,fr,ft,animal,houseId,targetX,targetY,state,e}]
+let MARKET_VENDORS=[]; // 5 permanent vendors standing at stalls
 let _depositNotified=new Set(); // tracks which deposits player has been notified about
 let FOG=[];          // FOG[r][c] = 0 (unknown) | 1 (explored) | 2 (visible)
 let FOG_ENABLED=false;
@@ -1422,6 +1425,7 @@ function genMap(){
   _depositNotified=new Set();
   TRAVELING_TRADERS=[];
   LIVESTOCK_CARTS=[];
+  MARKET_VENDORS=[];
   _waterSpots=null; // reset so fisher recalculates lake spots
   _waterTilesCache=null; // reset water animation cache
   G_activeDisaster=null;G_disasterTimer=0;
@@ -3874,6 +3878,26 @@ function drawNPC(npc){
     X.font='12px serif';X.fillText(carryIcon,px+14,py-18);
   }
 
+  // ── SLEEPING ZZZ ──
+  if(npc._sleeping){
+    const t=Date.now()/1000;
+    const zAlpha=0.5+Math.sin(t*1.5)*0.3;
+    X.save(); X.globalAlpha=zAlpha;
+    X.fillStyle='#a0c8ff'; X.font='bold 8px monospace'; X.textAlign='center';
+    X.fillText('z',px+10,py-28+Math.sin(t)*3);
+    X.font='bold 10px monospace';
+    X.fillText('z',px+16,py-36+Math.sin(t+1)*3);
+    X.font='bold 12px monospace';
+    X.fillText('Z',px+22,py-46+Math.sin(t+2)*3);
+    X.restore();
+  }
+
+  // ── SOCIAL (market/evening) indicator ──
+  if(isSocialHour()&&!npc._sleeping&&npc._socialTargetX){
+    X.font='9px serif'; X.textAlign='center';
+    X.fillText('🚶',px,py-34);
+  }
+
   // ── CHAT BUBBLE when player nearby ──
   const dx=PL.x-npc.x, dy=PL.y-npc.y;
   if(Math.sqrt(dx*dx+dy*dy)<TS*1.8){
@@ -4421,10 +4445,64 @@ function tick(){
     if(G.day>90){G.day=1;G.season=(G.season+1)%4;if(G.season===0)G.yr++;}
   }
   const _tl=document.getElementById('timelbl');if(_tl)_tl.textContent='Day '+G.day;
-  const _tl2=document.getElementById('timelbl2');if(_tl2)_tl2.textContent=String(G.hr).padStart(2,'0')+':'+String(Math.floor(G.mn)).padStart(2,'0');
+  const _tl2=document.getElementById('timelbl2');
+  if(_tl2){
+    const _ph=getDayPhase();
+    const _phIcon={dawn:'🌅',morning:'🌄',day:'☀',evening:'🌇',dusk:'🌆',night:'🌙'}[_ph]||'';
+    _tl2.textContent=_phIcon+' '+String(G.hr).padStart(2,'0')+':'+String(Math.floor(G.mn)).padStart(2,'0');
+    const _phColor={dawn:'#ff9060',morning:'#ffd080',day:'#c0e0ff',evening:'#ffb060',dusk:'#c080e0',night:'#8090d0'}[_ph]||'#c09040';
+    _tl2.style.color=_phColor;
+    // Notify on phase change
+    if(_ph!==_lastDayPhase){
+      const _phMsg={dawn:'🌅 Dawn breaks...',morning:'🌄 Good morning!',day:'☀ A new day of work begins',evening:'🌇 Evening — time to rest soon',dusk:'🌆 Dusk settles over the village',night:'🌙 Nightfall — villagers head home'}[_ph];
+      if(_phMsg&&_lastDayPhase!==undefined) notify(_phMsg,'ok');
+      _lastDayPhase=_ph;
+    }
+  }
 }
 
-// ─── MISSING: GHOST TILE (hover highlight) ───
+// ─── DAY PHASE SYSTEM ───
+// Dawn: 05-07, Morning: 07-08, Day: 08-16, Evening: 16-19, Dusk: 19-21, Night: 21-05
+function getDayPhase(){
+  const h=G.hr+(G.mn/60);
+  if(h>=5  &&h<7)  return 'dawn';
+  if(h>=7  &&h<8)  return 'morning';
+  if(h>=8  &&h<16) return 'day';
+  if(h>=16 &&h<19) return 'evening';
+  if(h>=19 &&h<21) return 'dusk';
+  return 'night'; // 21-05
+}
+
+function isWorkHour(){ const p=getDayPhase(); return p==='day'; }
+function isNightTime(){ const p=getDayPhase(); return p==='night'||p==='dawn'; }
+function isSocialHour(){ const p=getDayPhase(); return p==='morning'||p==='evening'; }
+
+// Sky darkness/tint for each phase (0=fully bright, 1=fully dark)
+function getSkyDarkness(){
+  const h=G.hr+(G.mn/60);
+  // Smooth transition between phases
+  if(h>=8  &&h<16) return 0;                          // full day
+  if(h>=7  &&h<8)  return 0.05+(8-h)*0.1;            // morning → day
+  if(h>=16 &&h<19) return (h-16)/3*0.3;              // day → evening
+  if(h>=19 &&h<21) return 0.3+(h-19)/2*0.4;          // evening → night
+  if(h>=21)        return 0.7;                         // night
+  if(h<5)          return 0.7;                         // night
+  if(h>=5 &&h<7)   return 0.7-(h-5)/2*0.65;          // dawn
+  return 0;
+}
+
+// Sky color overlay for each phase
+function getSkyTint(){
+  const p=getDayPhase();
+  if(p==='dawn')    return 'rgba(180,100,60,';   // orange-pink
+  if(p==='morning') return 'rgba(255,180,80,';   // golden
+  if(p==='day')     return null;                  // no tint
+  if(p==='evening') return 'rgba(220,140,60,';   // warm amber
+  if(p==='dusk')    return 'rgba(100,60,120,';   // purple-blue
+  return 'rgba(10,20,60,';                        // deep blue night
+}
+
+
 let ghostTile={c:-1,r:-1};
 
 // ─── MISSING: FARM FIELD FUNCTIONS ───
@@ -4768,6 +4846,8 @@ function doProd(){
   }
 
   doFarmProd();doByardProd();collectPending();updateMarket();checkPopGrowth();doTraderSpawn();processTradeQueue();
+  // Ensure market vendors are spawned
+  if(G.marketZones&&G.marketZones.length>0&&MARKET_VENDORS.length<5) spawnMarketVendors();
 
   // ── BERRY BUSH REGROW ──
   for(const key of Object.keys(BERRY_STATE)){
@@ -4864,6 +4944,25 @@ function swBPTab(cat, el){
     scroll.appendChild(div);
   }
 }
+
+function toggleFullscreen(){
+  const btn=document.getElementById('tb-fullscreen');
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen().then(()=>{
+      if(btn) btn.textContent='⛶ EXIT';
+    }).catch(()=>notify('Fullscreen not supported','warn'));
+  } else {
+    document.exitFullscreen().then(()=>{
+      if(btn) btn.textContent='⛶';
+    });
+  }
+}
+
+// Update button when fullscreen changes externally (e.g. pressing Escape)
+document.addEventListener('fullscreenchange',()=>{
+  const btn=document.getElementById('tb-fullscreen');
+  if(btn) btn.textContent=document.fullscreenElement?'⛶ EXIT':'⛶';
+});
 
 function togglePause(){
   G.paused=!G.paused;
@@ -5438,7 +5537,73 @@ function wanderNPCs(){
       npc._working=false;npc._wt=(npc._wt||0)+1;
       if(npc._wt>60){npc._wt=0;if(Math.random()<.3){npc._dx=0;npc._dy=0;}else{const d=[[-0.7,0],[0.7,0],[0,-0.7],[0,0.7]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}}
     } else {
+      const phase=getDayPhase();
       const job=npc.job||'idle';
+
+      // ── NIGHT: Go home and sleep ──
+      if(isNightTime()){
+        npc._working=false;
+        const home=G.bld.find(b=>b.id===npc.houseId&&(b.type==='house'||b.type==='campfire'));
+        if(home){
+          const hx=home.col*TS+TS/2, hy=home.row*TS+TS/2;
+          const dist=Math.hypot(npc.x-hx,npc.y-hy);
+          if(dist>TS*0.6){
+            // Walk home
+            const dx2=hx-npc.x,dy2=hy-npc.y;
+            const d2=Math.hypot(dx2,dy2);
+            npc._dx=(dx2/d2)*0.6;npc._dy=(dy2/d2)*0.6;
+            if(Math.abs(dx2)>Math.abs(dy2)){npc.dir=dx2>0?1:3;}else{npc.dir=dy2>0?2:0;}
+          } else {
+            // At home - sleep (barely move)
+            npc._dx*=0.1;npc._dy*=0.1;
+            npc._sleeping=true;
+          }
+        }
+        npc._ft=(npc._ft||0)+1;if(npc._ft>8){npc._ft=0;npc._fr=(npc._fr||0)+1;}
+        const nx3=npc.x+npc._dx,ny3=npc.y+npc._dy;
+        npc.x=Math.max(TS,Math.min(nx3,(WC-1)*TS));
+        npc.y=Math.max(TS,Math.min(ny3,(WR-1)*TS));
+        continue;
+      }
+      npc._sleeping=false;
+
+      // ── SOCIAL TIME: Morning/Evening — wander toward market or nearby NPCs ──
+      if(isSocialHour()){
+        npc._working=false;
+        // Try to go to market zone or wander freely
+        const hasMarket=G.marketZones&&G.marketZones.length>0;
+        if(hasMarket&&Math.random()<0.002){
+          // Occasionally head toward market
+          const zone=G.marketZones[0];
+          npc._socialTargetX=(zone.col+Math.random()*zone.w)*TS;
+          npc._socialTargetY=(zone.row+Math.random()*zone.h)*TS;
+        }
+        if(npc._socialTargetX){
+          const dx2=npc._socialTargetX-npc.x,dy2=npc._socialTargetY-npc.y;
+          const d2=Math.hypot(dx2,dy2);
+          if(d2>32){
+            npc._dx=(dx2/d2)*0.5;npc._dy=(dy2/d2)*0.5;
+            if(Math.abs(dx2)>Math.abs(dy2)){npc.dir=dx2>0?1:3;}else{npc.dir=dy2>0?2:0;}
+          } else {
+            npc._socialTargetX=null;npc._socialTargetY=null;
+            npc._dx=0;npc._dy=0;
+          }
+        } else {
+          // Wander randomly
+          npc._wt=(npc._wt||0)+1;
+          if(npc._wt>90){npc._wt=0;
+            if(Math.random()<0.4){npc._dx=0;npc._dy=0;}
+            else{const d=[[-0.5,0],[0.5,0],[0,-0.5],[0,0.5]][Math.random()*4|0];npc._dx=d[0];npc._dy=d[1];}
+          }
+        }
+        npc._ft=(npc._ft||0)+1;if(npc._ft>8){npc._ft=0;npc._fr=(npc._fr||0)+1;}
+        const nx3=npc.x+npc._dx,ny3=npc.y+npc._dy;
+        npc.x=Math.max(TS,Math.min(nx3,(WC-1)*TS));
+        npc.y=Math.max(TS,Math.min(ny3,(WR-1)*TS));
+        continue;
+      }
+
+      // ── WORK TIME (08-16) or Dawn/Dusk transition — normal job logic ──
       const jobLoc=job==='idle'?null:findJobLocation(job,i);
       if(jobLoc){
         const spot=workSpot(jobLoc.x,jobLoc.y,i);
@@ -6300,6 +6465,7 @@ function render(){
       }
     }
   } // end r2 loop
+  drawMarketVendors();
 
   // Ghost cursor
   if(ghostTile.c>=0&&ghostTile.r>=0&&ghostTile.r<WR&&ghostTile.c<WC){
@@ -6446,7 +6612,107 @@ function render(){
   // ── FOG OF WAR ──
   drawFog();
 
-  // Day/night overlay disabled — too distracting
+  // ── DAY/NIGHT OVERLAY ──
+  if(_gameStarted){
+    const dark=getSkyDarkness();
+    const tint=getSkyTint();
+    const gameArea={x:0,y:HH,w:CV.width,h:CV.height-HH-BH};
+    if(dark>0){
+      // Main darkness overlay
+      X.fillStyle=`rgba(10,15,40,${dark*0.82})`;
+      X.fillRect(gameArea.x,gameArea.y,gameArea.w,gameArea.h);
+    }
+    if(tint&&dark>0){
+      // Color tint (dawn/dusk/evening warmth)
+      X.fillStyle=tint+(dark*0.35)+')';
+      X.fillRect(gameArea.x,gameArea.y,gameArea.w,gameArea.h);
+    }
+
+    // ── MOON (night only) ──
+    const phase=getDayPhase();
+    if(phase==='night'||phase==='dusk'){
+      const moonX=CV.width*0.78, moonY=HH+38;
+      const moonAlpha=phase==='night'?0.9:Math.max(0,(dark-0.3)/0.4*0.9);
+      X.save();
+      X.globalAlpha=moonAlpha;
+      // Moon glow
+      const moonGlow=X.createRadialGradient(moonX,moonY,4,moonX,moonY,28);
+      moonGlow.addColorStop(0,'rgba(220,230,255,0.25)');
+      moonGlow.addColorStop(1,'rgba(100,120,200,0)');
+      X.fillStyle=moonGlow; X.beginPath();X.arc(moonX,moonY,28,0,Math.PI*2);X.fill();
+      // Moon body
+      X.fillStyle='#e8eeff'; X.beginPath();X.arc(moonX,moonY,11,0,Math.PI*2);X.fill();
+      X.fillStyle='#d0d8f0'; X.beginPath();X.arc(moonX,moonY,10,0,Math.PI*2);X.fill();
+      // Craters
+      X.fillStyle='rgba(180,190,220,0.5)';
+      X.beginPath();X.arc(moonX-4,moonY-3,3,0,Math.PI*2);X.fill();
+      X.beginPath();X.arc(moonX+4,moonY+2,2,0,Math.PI*2);X.fill();
+      X.beginPath();X.arc(moonX+2,moonY-5,1.5,0,Math.PI*2);X.fill();
+      // Moon reflection on ground (subtle)
+      if(dark>0.4){
+        const moonBeam=X.createRadialGradient(moonX,CV.height*0.5,10,moonX,CV.height*0.5,180);
+        moonBeam.addColorStop(0,'rgba(200,210,255,0.04)');
+        moonBeam.addColorStop(1,'rgba(200,210,255,0)');
+        X.fillStyle=moonBeam;X.fillRect(gameArea.x,gameArea.y,gameArea.w,gameArea.h);
+      }
+      X.restore();
+    }
+
+    // ── STARS (night/dusk) ──
+    if(dark>0.3){
+      const starAlpha=Math.min(1,(dark-0.3)/0.4);
+      X.save(); X.globalAlpha=starAlpha*0.8;
+      // Deterministic stars from seed
+      for(let s=0;s<60;s++){
+        const sx=((s*137+s*s*17)%CV.width);
+        const sy=HH+((s*97+s*31)%(gameArea.h*0.5));
+        const ss=0.5+((s*53)%10)/10*1.5;
+        const twinkle=0.5+Math.sin(Date.now()/800+s*0.7)*0.5;
+        X.fillStyle=`rgba(255,255,240,${twinkle})`;
+        X.beginPath();X.arc(sx,sy,ss,0,Math.PI*2);X.fill();
+      }
+      X.restore();
+    }
+
+    // ── SUNRISE/SUNSET SUN ──
+    if(phase==='dawn'||phase==='morning'||phase==='dusk'||phase==='evening'){
+      const h=G.hr+(G.mn/60);
+      let sunX,sunY,sunAlpha;
+      if(phase==='dawn'||phase==='morning'){
+        const t=(h-5)/3; // 0..1 over 5-8
+        sunX=CV.width*0.15+t*CV.width*0.1;
+        sunY=HH+50-t*30;
+        sunAlpha=t*0.9;
+      } else {
+        const t=(h-16)/5; // 0..1 over 16-21
+        sunX=CV.width*0.75+t*CV.width*0.1;
+        sunY=HH+20+t*40;
+        sunAlpha=(1-t)*0.8;
+      }
+      const sunColor=phase==='dawn'||phase==='morning'?'255,180,60':'255,120,40';
+      X.save(); X.globalAlpha=sunAlpha;
+      const sunGlow=X.createRadialGradient(sunX,sunY,4,sunX,sunY,32);
+      sunGlow.addColorStop(0,`rgba(${sunColor},0.4)`);
+      sunGlow.addColorStop(1,`rgba(${sunColor},0)`);
+      X.fillStyle=sunGlow;X.beginPath();X.arc(sunX,sunY,32,0,Math.PI*2);X.fill();
+      X.fillStyle=`rgb(${sunColor})`;X.beginPath();X.arc(sunX,sunY,9,0,Math.PI*2);X.fill();
+      X.fillStyle=`rgba(255,240,200,0.9)`;X.beginPath();X.arc(sunX,sunY,7,0,Math.PI*2);X.fill();
+      X.restore();
+    }
+
+    // ── WINDOW LIGHTS at night — houses glow warm ──
+    if(dark>0.4){
+      for(const b of G.bld){
+        if(b.type!=='house'||b.under_construction) continue;
+        const bx=b.col*TS+camX+TS/2, by=b.row*TS+camY+TS*0.4;
+        const lightAlpha=(dark-0.4)/0.3*0.25;
+        const glow=X.createRadialGradient(bx,by,2,bx,by,TS*0.7);
+        glow.addColorStop(0,`rgba(255,200,80,${Math.min(0.3,lightAlpha)})`);
+        glow.addColorStop(1,'rgba(255,180,60,0)');
+        X.fillStyle=glow;X.beginPath();X.arc(bx,by,TS*0.7,0,Math.PI*2);X.fill();
+      }
+    }
+  }
 
   // ── SEASON OVERLAY & PARTICLES ──
   const seasonTint=getSeasonOverlay();
@@ -7119,6 +7385,26 @@ function resize(){
 
 // ─── MAIN LOOP ───
 let lastT=0;
+let _tickInterval=null;
+const TICK_MS=16; // ~60fps tick rate
+
+function startGameTick(){
+  if(_tickInterval) clearInterval(_tickInterval);
+  _tickInterval=setInterval(()=>{
+    if(!G.paused&&_gameStarted&&MAP&&MAP.length){
+      try{
+        movePlayer();updateCam();wanderNPCs();updateDeer();
+        updateBuffalo();updateHorses();updateTravelingTraders();updateLivestockCarts();updateMarketVendors();
+        tick();
+        updateFog();
+      }catch(e){ console.error('tick error:',e); }
+    }
+  }, TICK_MS);
+}
+
+function stopGameTick(){
+  if(_tickInterval){ clearInterval(_tickInterval); _tickInterval=null; }
+}
 
 
 // ─── INPUT ───
@@ -7145,6 +7431,7 @@ window.addEventListener('keydown',e=>{
     updateModeUI();}
   if(e.key.toLowerCase()==='e'&&_gameStarted&&!G.paused) doInteract();
   if(e.key.toLowerCase()==='f') toggleFertilityMap();
+  if(e.key==='F11'){e.preventDefault();toggleFullscreen();}
   if(e.key===' ')e.preventDefault();
 });
 window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
@@ -7152,30 +7439,26 @@ window.addEventListener('blur',()=>keys.clear()); // clear all keys when window 
 
 // Resume audio when tab becomes visible again
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&musicOn&&audioCtx){
-    if(audioCtx.state==='suspended'){
-      audioCtx.resume().then(()=>{
-        // If music died while hidden, restart it
-        if(Date.now()-_lastMusicBeat>3000){
-          if(musicScheduler) clearTimeout(musicScheduler);
-          beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
-          scheduleMusic();
-        }
-      }).catch(()=>{});
+  if(!document.hidden){
+    // Restart tick interval in case browser throttled/killed it while hidden
+    if(_gameStarted) startGameTick();
+    // Resume audio
+    if(musicOn&&audioCtx){
+      if(audioCtx.state==='suspended'){
+        audioCtx.resume().then(()=>{
+          if(Date.now()-_lastMusicBeat>3000){
+            if(musicScheduler) clearTimeout(musicScheduler);
+            beatCount=0; _trackBeatCount=0; currentTrack=Math.floor(Math.random()*MUSIC_TRACKS.length);
+            scheduleMusic();
+          }
+        }).catch(()=>{});
+      }
     }
   }
 });
 
 function loop(now){
-  const dt=Math.min(now-lastT,50);lastT=now;
-  try{
-    if(!G.paused&&_gameStarted&&MAP&&MAP.length){
-      movePlayer();updateCam();wanderNPCs();updateDeer();
-      updateBuffalo();updateHorses();updateTravelingTraders();updateLivestockCarts();
-      tick();
-      updateFog();
-    }
-  } catch(e){ console.error('loop error:',e); }
+  lastT=now;
   render();
   requestAnimationFrame(loop);
 }
@@ -8478,6 +8761,7 @@ function processTradeQueue(){
 const SAVE_VERSION = 6;
 let _autosaveTimer = null;
 let _lastAutosave  = null;
+let _lastDayPhase  = undefined;
 
 // ── HMAC-SHA256 SIGNING — prevents save file tampering ──
 const SIGN_SECRET = 'GozoVillage$2025#s3cr3t!@kunci-privat-game';
@@ -8532,6 +8816,7 @@ function buildSaveState(){
     buffalo:BUFFALO.map(b=>({...b})),
     horses:HORSES.map(h=>({...h})),
     livestockCarts:LIVESTOCK_CARTS.map(c=>({...c})),
+    marketVendors:MARKET_VENDORS.map(v=>({...v})),
     berryState:JSON.parse(JSON.stringify(BERRY_STATE||{})),
     saplings:JSON.parse(JSON.stringify(SAPLINGS||{})),
     depositState:JSON.parse(JSON.stringify(DEPOSIT_STATE||{})),
@@ -8591,6 +8876,7 @@ function applySaveState(save){
   BUFFALO=(save.buffalo||[]).map(b=>({...b}));
   HORSES=(save.horses||[]).map(h=>({...h}));
   LIVESTOCK_CARTS=(save.livestockCarts||[]).map(c=>({...c}));
+  MARKET_VENDORS=(save.marketVendors||[]).map(v=>({...v}));
   BERRY_STATE=JSON.parse(JSON.stringify(save.berryState||{}));
   SAPLINGS=JSON.parse(JSON.stringify(save.saplings||{}));
   DEPOSIT_STATE=JSON.parse(JSON.stringify(save.depositState||{}));
@@ -8629,6 +8915,7 @@ function applySaveState(save){
     npc._gatherTimer=0; npc._fishTimer=0; npc._huntTimer=0;
     npc._logZone=null; npc._chopTimer=0; npc._stuckCheck=0;
     npc._prevX=undefined; npc._prevY=undefined;
+    npc._sleeping=false; npc._socialTargetX=null; npc._socialTargetY=null;
     npc._mineTargetC=undefined; npc._mineTargetR=undefined;
     // Settle any immigrants that were in-transit
     if(npc._immigrantTarget){
@@ -9873,6 +10160,166 @@ function openBuyLivestockDlg(){
   openDlg('🐑 Buy Livestock','Purchase animals from traders (uses Regional Wealth):',btns);
 }
 
+// ── MARKET VENDOR NAMES & LOOKS ──
+const VENDOR_DEFS=[
+  {name:'Old Marta',   female:true,  coat:'#8030a0', hat:'#601880', goods:'🥬', shout:'Fresh greens!'},
+  {name:'Finn Baker',  female:false, coat:'#c06020', hat:'#904010', goods:'🍞', shout:'Hot bread!'},
+  {name:'Agnes',       female:true,  coat:'#2060c0', hat:'#104090', goods:'🧵', shout:'Fine cloth!'},
+  {name:'Bram',        female:false, coat:'#207040', hat:'#105030', goods:'🪵', shout:'Good timber!'},
+  {name:'Rosie',       female:true,  coat:'#c03040', hat:'#901020', goods:'🍯', shout:'Sweet honey!'},
+];
+
+function spawnMarketVendors(){
+  if(!G.marketZones||G.marketZones.length===0) return;
+
+  // Collect all BACK tiles (stallPhase===1 = vendor side behind table)
+  const backTiles=[];
+  for(const zone of G.marketZones){
+    for(let r=zone.row;r<zone.row+zone.h;r++){
+      for(let c=zone.col;c<zone.col+zone.w;c++){
+        if(!MAP[r]||!MAP[r][c]||MAP[r][c].t!==T.MARKET_ZONE) continue;
+        const si=(r-zone.row)*zone.w+(c-zone.col);
+        if(si%2===1) backTiles.push({r,c}); // back tile = vendor stands here
+      }
+    }
+  }
+  // If no back tiles found, try all market tiles
+  if(backTiles.length===0){
+    for(const zone of G.marketZones){
+      for(let r=zone.row;r<zone.row+zone.h;r++){
+        for(let c=zone.col;c<zone.col+zone.w;c++){
+          if(MAP[r]&&MAP[r][c]&&MAP[r][c].t===T.MARKET_ZONE)
+            backTiles.push({r,c});
+        }
+      }
+    }
+  }
+  if(backTiles.length===0) return;
+
+  MARKET_VENDORS=[];
+  const count=Math.min(5,VENDOR_DEFS.length,backTiles.length);
+  // Spread vendors evenly across available back tiles
+  const step=Math.max(1,Math.floor(backTiles.length/count));
+  for(let i=0;i<count;i++){
+    const def=VENDOR_DEFS[i];
+    const tile=backTiles[Math.min(i*step, backTiles.length-1)];
+    MARKET_VENDORS.push({
+      ...def,
+      stallCol:tile.c, stallRow:tile.r,
+      x:tile.c*TS+TS/2, y:tile.r*TS+TS*0.65,
+      dir:2, fr:0, ft:0,
+      _shoutTimer:120+i*80+Math.random()*200,
+      _shouting:false, _shoutText:'', _shoutT:0,
+      _wobble:Math.random()*Math.PI*2,
+    });
+  }
+}
+
+function updateMarketVendors(){
+  // Spawn/respawn vendors if needed
+  if(G.marketZones&&G.marketZones.length>0&&MARKET_VENDORS.length<5){
+    spawnMarketVendors();
+    if(MARKET_VENDORS.length===0) return;
+  }
+  if(MARKET_VENDORS.length===0) return;
+
+  const t=Date.now()/1000;
+  for(const v of MARKET_VENDORS){
+    // Gentle idle wobble within stall
+    v._wobble=(v._wobble||0)+0.03;
+    v.x=v.stallCol*TS+TS/2+Math.sin(v._wobble)*4;
+    v.y=v.stallRow*TS+TS*0.6+Math.cos(v._wobble*0.7)*3;
+    v.dir=2; // always face south (toward customers)
+
+    // Shout timer
+    v._shoutTimer=(v._shoutTimer||0)-1;
+    if(v._shoutTimer<=0){
+      v._shouting=true;
+      v._shoutText=v.shout;
+      v._shoutT=120; // show for 2 seconds
+      v._shoutTimer=300+Math.random()*400; // shout every 5-10 seconds
+    }
+    if(v._shoutT>0) v._shoutT--;
+    else v._shouting=false;
+
+    // Animation frame
+    v.ft=(v.ft||0)+1;
+    if(v.ft>12){v.ft=0;v.fr=(v.fr||0)+1;}
+  }
+}
+
+function drawMarketVendors(){
+  for(const v of MARKET_VENDORS){
+    const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
+    if(px<-40||px>CV.width+40||py<-40||py>CV.height+40) continue;
+
+    const bob=Math.sin(Date.now()/600+v._wobble)*1.5;
+    const armSwing=Math.sin(Date.now()/400+v._wobble)*3;
+
+    // Shadow
+    X.fillStyle='rgba(0,0,0,0.15)';X.beginPath();X.ellipse(px,py+14,8,3,0,0,Math.PI*2);X.fill();
+
+    // Legs
+    X.fillStyle='#4a3020';
+    X.fillRect(px-4,py+4+bob,4,10);X.fillRect(px+1,py+4+bob,4,10);
+
+    // Coat/body
+    X.fillStyle=v.coat;X.fillRect(px-7,py-8+bob,14,14);
+    // Coat collar
+    X.fillStyle=v.hat;X.fillRect(px-3,py-8+bob,6,3);
+
+    // Arms (holding/gesturing)
+    X.fillStyle=v.coat;
+    X.fillRect(px-11,py-6+bob+armSwing,5,8);  // left arm
+    X.fillRect(px+7, py-6+bob-armSwing,5,8);   // right arm
+    // Hands
+    X.fillStyle='#d4a070';
+    X.fillRect(px-12,py+1+bob+armSwing,5,4);
+    X.fillRect(px+8, py+1+bob-armSwing,5,4);
+
+    // Head
+    const skin=v.female?'#e8b888':'#d4a070';
+    X.fillStyle=skin;X.fillRect(px-5,py-18+bob,10,10);
+
+    // Hair/Hat
+    X.fillStyle=v.hat;
+    if(v.female){
+      // Hair bun
+      X.fillRect(px-6,py-21+bob,12,5);
+      X.beginPath();X.arc(px+4,py-21+bob,4,0,Math.PI*2);X.fill();
+    } else {
+      // Simple cap
+      X.fillRect(px-6,py-21+bob,12,4);
+      X.fillRect(px-8,py-20+bob,16,3);
+    }
+
+    // Eyes
+    X.fillStyle='#202020';
+    X.fillRect(px-3,py-14+bob,2,2);X.fillRect(px+1,py-14+bob,2,2);
+
+    // Goods emoji held up
+    X.font='11px serif';X.textAlign='center';
+    X.fillText(v.goods,px,py-22+bob);
+
+    // Name label
+    X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px-18,py-30+bob,36,9);
+    X.fillStyle='#f0d080';X.font='bold 6px monospace';X.textAlign='center';
+    X.fillText(v.name,px,py-23+bob);
+
+    // Shout bubble
+    if(v._shouting&&v._shoutT>0){
+      const alpha=Math.min(1,v._shoutT/20);
+      const tw=v._shoutText.length*5+8;
+      X.fillStyle=`rgba(255,255,220,${alpha*0.95})`;
+      X.fillRect(px-tw/2,py-48+bob,tw,12);
+      // Bubble tail
+      X.beginPath();X.moveTo(px-4,py-36+bob);X.lineTo(px+4,py-36+bob);X.lineTo(px,py-30+bob);X.fill();
+      X.fillStyle=`rgba(60,30,0,${alpha})`;X.font='bold 6px monospace';X.textAlign='center';
+      X.fillText(v._shoutText,px,py-39+bob);
+    }
+  }
+}
+
 function updateLivestockCarts(){
   for(let i=LIVESTOCK_CARTS.length-1;i>=0;i--){
     const cart=LIVESTOCK_CARTS[i];
@@ -10423,6 +10870,7 @@ document.addEventListener('keydown',function(e){
 // Start game loop paused — render shows title screen, ticks blocked until launchGame()
 G.paused=true;
 requestAnimationFrame(loop);
+startGameTick();
 </script>
 </body>
 </html>
