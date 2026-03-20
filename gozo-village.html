@@ -12200,15 +12200,15 @@ function drawLivestockCart(cart){
 
   if(isSide){
     // ══ TAMPAK SAMPING ══
+    const hx=px+flip*44, hy=py;  // kuda di depan (arah gerak)
+    const cx2=px-flip*6;          // gerobak di belakang kuda
 
     // Tali kuda (harness)
     X.strokeStyle='#5a3810';X.lineWidth=2;
-    // Tali dari depan gerobak (cx2+flip*18) ke belakang kuda (hx-flip*14)
     X.beginPath();X.moveTo(cx2+flip*18,py-5+bob);X.lineTo(hx-flip*14,py-8+bob);X.stroke();
     X.beginPath();X.moveTo(cx2+flip*18,py+1+bob);X.lineTo(hx-flip*14,py-2+bob);X.stroke();
 
     // ── KUDA ──
-    const hx=px+flip*44, hy=py;  // kuda di depan (arah gerak)
     // Kaki kuda (animasi)
     const legSwing=moving?Math.sin(t*8)*8:0;
     X.fillStyle='#d4c8a0'; // kaki belakang
@@ -12251,7 +12251,6 @@ function drawLivestockCart(cart){
     X.quadraticCurveTo(hx-flip*24,hy+6+bob,hx-flip*20,hy+16+bob);X.stroke();
 
     // ── GEROBAK ──
-    const cx2=px-flip*6;  // gerobak di belakang kuda
     // Badan gerobak - kayu coklat hangat
     X.fillStyle='#c8922a';X.fillRect(cx2-flip*18,py-22+bob,36,22);
     // Panel kayu (slats vertikal)
