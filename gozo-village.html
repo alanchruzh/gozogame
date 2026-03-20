@@ -12210,17 +12210,28 @@ function drawLivestockCart(cart){
 
     // ── KUDA ──
     // Kaki kuda (animasi)
-    const legSwing=moving?Math.sin(t*8)*8:0;
-    X.fillStyle='#d4c8a0'; // kaki belakang
-    X.fillRect(hx+flip*2,hy+4+bob,4,10+Math.sin(t*8+1)*4|0);
-    X.fillRect(hx+flip*8,hy+4+bob,4,10-Math.sin(t*8+1)*4|0);
-    // Kaki depan
-    X.fillRect(hx-flip*8,hy+4+bob,4,10+legSwing|0);
-    X.fillRect(hx-flip*2,hy+4+bob,4,10-legSwing|0);
-    // Kuku
-    X.fillStyle='#3a2808';
-    X.fillRect(hx+flip*2,hy+13+bob,4,3);X.fillRect(hx+flip*8,hy+13+bob,4,3);
-    X.fillRect(hx-flip*8,hy+13+bob,4,3);X.fillRect(hx-flip*2,hy+13+bob,4,3);
+    const legH=14; // panjang kaki
+    // 4 kaki dengan fase berbeda — kuda diagonal gait
+    const ph=moving?t*6:0;
+    const legs=[
+      {ox:flip*6,  phase:ph},           // kaki depan 1
+      {ox:flip*1,  phase:ph+Math.PI},    // kaki depan 2 (berlawanan)
+      {ox:-flip*4, phase:ph+Math.PI*0.5},// kaki belakang 1
+      {ox:-flip*9, phase:ph+Math.PI*1.5},// kaki belakang 2
+    ];
+    X.fillStyle='#c8c0a8';
+    for(const leg of legs){
+      const swing=Math.sin(leg.phase)*6;
+      const lx=hx+leg.ox, ly=hy+4+bob;
+      // Upper leg
+      X.fillRect(lx-2,ly,4,8);
+      // Lower leg (swings)
+      X.fillRect(lx-1+swing*0.5|0,ly+7,3,7);
+      // Kuku
+      X.fillStyle='#3a2808';
+      X.fillRect(lx-2+swing*0.5|0,ly+13,5,3);
+      X.fillStyle='#c8c0a8';
+    }
     // Badan kuda
     const bodyG=X.createLinearGradient(hx-14,hy-8,hx+14,hy+4);
     bodyG.addColorStop(0,'#e8e0c8');bodyG.addColorStop(1,'#c8c0a8');
