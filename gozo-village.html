@@ -763,71 +763,63 @@ function upPop(){
 
 // Population growth: new family moves in if happy + empty house available
 function checkPopGrowth(){
-  // Always recalculate pop first
   upPop();
   if(G.pop>=G.cap) return;
-  if(G.happy<40) return;
+  if(G.happy<30) return;
 
   const availHouses=G.bld.filter(b=>{
     if(b.type!=='house'||b.under_construction) return false;
     const cap=(b.lv||1)*2;
-    const residents=NPCS.filter(n=>n.houseId===b.id&&!n._immigrantTarget).length;
-    const inbound=NPCS.filter(n=>n._immigrantTarget===b.id).length;
-    return residents+inbound<cap;
+    return NPCS.filter(n=>n.houseId===b.id).length<cap;
   });
 
   if(availHouses.length===0){ autoAssignHomeless(); return; }
 
-  // GUARANTEED: always spawn if empty house exists (no random check)
-  const maxSpawns=availHouses.length>=3?2:1;
+  const maxSpawns=availHouses.length>=5?3:availHouses.length>=2?2:1;
   let spawned=0;
 
   for(let hi=0;hi<availHouses.length&&spawned<maxSpawns;hi++){
     const house=availHouses[hi];
-    const residents=NPCS.filter(n=>n.houseId===house.id&&!n._immigrantTarget);
-    const inbound=NPCS.filter(n=>n._immigrantTarget===house.id).length;
+    const residents=NPCS.filter(n=>n.houseId===house.id);
     const cap=(house.lv||1)*2;
-    const slotsLeft=cap-residents.length-inbound;
+    const slotsLeft=cap-residents.length;
     if(slotsLeft<=0) continue;
 
     const newFamId=(FAMILIES.length>0?Math.max(...FAMILIES.map(f=>f.id)):-1)+1;
-    const ex=MAIN_ROAD_ENTRY.col*TS+TS/2, ey=MAIN_ROAD_ENTRY.row*TS+TS/2;
-    const hx=house.col*TS+TS/2, hy=house.row*TS+TS/2;
+    const hx=house.col*TS+TS/2, hy=house.row*TS+TS;
 
-    const spawn=(name,female,famId,houseId)=>NPCS.push({
+    const spawnAt=(name,female,famId,houseId)=>NPCS.push({
       name,female,familyId:famId,
-      x:ex+(Math.random()-0.5)*24, y:ey+(Math.random()-0.5)*24,
+      x:hx+(Math.random()-0.5)*TS*0.4,
+      y:hy+(Math.random()-0.5)*TS*0.4,
       dir:2,col:`hsl(${Math.random()*360},60%,${female?72:65}%)`,
       job:null,age:ADULT_DAYS+Math.floor(Math.random()*(female?720:900)),
-      pregnant:0,houseId:0,
-      _immigrantTarget:houseId,_immigrantTargetX:hx,_immigrantTargetY:hy,
+      pregnant:0,houseId:houseId,
     });
 
     if(residents.length===0&&slotsLeft>=2){
       const m=uniqueName(false),f2=uniqueName(true);
-      spawn(m,false,newFamId,house.id); spawn(f2,true,newFamId,house.id);
+      spawnAt(m,false,newFamId,house.id);
+      spawnAt(f2,true,newFamId,house.id);
       FAMILIES.push({id:newFamId,houseId:house.id,husbandName:m,wifeName:f2});
-      notify(`🚶 ${m} & ${f2} are heading to the village!`,'ok');
+      notify(`🏠 ${m} & ${f2} moved into the village!`,'ok');
       spawned++;
     } else if(residents.length===0){
       const nm=uniqueName(Math.random()<0.5);
-      spawn(nm,Math.random()<0.5,newFamId,house.id);
-      notify(`🚶 ${nm} is heading to the village!`,'ok');
-      spawned++;
-    } else if(residents.length===1&&isAdult(residents[0])){
-      const pf=!residents[0].female, pn=uniqueName(pf);
-      spawn(pn,pf,residents[0].familyId||newFamId,house.id);
-      notify(`🚶 ${pn} is heading to join ${residents[0].name}!`,'ok');
+      spawnAt(nm,Math.random()<0.5,newFamId,house.id);
+      notify(`🏠 ${nm} moved into the village!`,'ok');
       spawned++;
     } else if(slotsLeft>0){
       const nm=uniqueName(Math.random()<0.5);
-      spawn(nm,Math.random()<0.5,newFamId,house.id);
-      notify(`🚶 ${nm} is moving to the village!`,'ok');
+      spawnAt(nm,Math.random()<0.5,residents[0]?.familyId||newFamId,house.id);
+      notify(`🏠 ${nm} joined ${residents[0].name}!`,'ok');
       spawned++;
     }
   }
 
-  // Children grown up
+  upPop(); updateUI();
+
+  // Anak dewasa pindah ke rumah kosong
   const grown=NPCS.filter(n=>isAdult(n)&&n.age<ADULT_DAYS+180&&!n._movedOut);
   for(const c of grown){
     const h=G.bld.find(b=>b.type==='house'&&!b.under_construction&&
@@ -7108,12 +7100,11 @@ function wanderNPCs(){
       const tx=npc._immigrantTargetX, ty=npc._immigrantTargetY;
       const dx=tx-npc.x, dy=ty-npc.y;
       const dist=Math.hypot(dx,dy);
-      if(dist>8){
-        // Walk toward house at slightly faster speed
-        const spd=1.2;
+      if(dist>16){
+        // Walk toward house — speed scales with game speed
+        const spd=1.5*Math.max(1,G.spd||1);
         npc._dx=(dx/dist)*spd; npc._dy=(dy/dist)*spd;
         npc._working=false;
-        // Face direction of movement
         if(Math.abs(dx)>Math.abs(dy)){npc.dir=dx>0?1:3;}else{npc.dir=dy>0?2:0;}
       } else {
         // Arrived! Settle into house
@@ -7126,7 +7117,6 @@ function wanderNPCs(){
         notify(`🏠 ${npc.name} has arrived and moved in!`,'ok');
         upPop(); updateUI();
       }
-      // Still apply movement
       const nx2=npc.x+npc._dx, ny2=npc.y+npc._dy;
       npc.x=Math.max(TS,Math.min(nx2,(WC-1)*TS));
       npc.y=Math.max(TS,Math.min(ny2,(WR-1)*TS));
