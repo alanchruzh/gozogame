@@ -9151,6 +9151,7 @@ function startGameTick(){
       try{
         movePlayer();updateCam();wanderNPCs();updateDeer();
         updateBuffalo();updateHorses();updateTravelingTraders();updateLivestockCarts();updateMarketVendors();
+        updateAmbientSFX();
         tick();
         updateFog();
       }catch(e){ console.error('tick error:',e); }
@@ -9486,6 +9487,103 @@ function scheduleMusic(){
 // ── WATCHDOG: fires every 4 seconds, restarts music if it silently died ──
 let _musicWatchdog=null;
 let _lastMusicBeat=Date.now();
+
+// ── AMBIENT SOUND EFFECTS — aktif saat player dekat ──
+const SFX_RADIUS=TS*5;
+const _sfxTimers={};
+
+function playSFX(id,fn,cooldownMs=800){
+  if(!audioCtx||!masterGain||!musicOn) return;
+  if(audioCtx.state==='suspended') return;
+  const now=Date.now();
+  if(_sfxTimers[id]&&now-_sfxTimers[id]<cooldownMs) return;
+  _sfxTimers[id]=now;
+  fn();
+}
+
+function sfxPickaxe(pan=0){
+  const t=audioCtx.currentTime;
+  playNote(900,t,0.03,0.22,'square',pan);
+  playNote(450,t+0.02,0.07,0.14,'sawtooth',pan);
+  playNote(220,t+0.04,0.10,0.09,'sine',pan);
+}
+function sfxAxe(pan=0){
+  const t=audioCtx.currentTime;
+  playDrum(t,180,0.28,0.08);
+  playNote(280,t,0.05,0.18,'sawtooth',pan);
+  playNote(140,t+0.05,0.13,0.10,'sine',pan);
+}
+function sfxHammer(pan=0){
+  const t=audioCtx.currentTime;
+  playNote(700,t,0.03,0.28,'square',pan);
+  playNote(350,t+0.01,0.09,0.18,'sawtooth',pan);
+  playDrum(t,260,0.18,0.05);
+}
+function sfxSaw(pan=0){
+  const t=audioCtx.currentTime;
+  playShaker(t,0.14);
+  playNote(170,t,0.14,0.09,'sawtooth',pan);
+}
+function sfxWater(pan=0){
+  const t=audioCtx.currentTime;
+  for(let i=0;i<3;i++)
+    playNote(280+Math.random()*180,t+i*0.07,0.08,0.07,'sine',pan);
+}
+function sfxFarm(pan=0){
+  const t=audioCtx.currentTime;
+  playNote(190,t,0.09,0.11,'sine',pan);
+  playShaker(t+0.05,0.04);
+}
+function sfxFire(pan=0){
+  const t=audioCtx.currentTime;
+  playShaker(t,0.07);
+  playShaker(t+0.05,0.05);
+  playNote(110,t,0.09,0.04,'sine',pan);
+}
+function sfxBuild(pan=0){
+  const t=audioCtx.currentTime;
+  playDrum(t,190,0.18,0.07);
+  playNote(380,t+0.03,0.05,0.13,'square',pan);
+}
+
+function updateAmbientSFX(){
+  if(!musicOn||!audioCtx||!_gameStarted) return;
+
+  const panOf=(wx)=>Math.max(-1,Math.min(1,(wx-PL.x)/(TS*8)));
+  const near=(wx,wy)=>Math.hypot(wx-PL.x,wy-PL.y)<SFX_RADIUS;
+
+  for(const npc of NPCS){
+    if(!npc._working) continue;
+    if(!near(npc.x,npc.y)) continue;
+    const pan=panOf(npc.x);
+    const id='npc_'+npc.name;
+    switch(npc.job){
+      case 'miner':   playSFX(id,()=>sfxPickaxe(pan),900+Math.random()*400);break;
+      case 'logger':  playSFX(id,()=>sfxAxe(pan),1100+Math.random()*500);break;
+      case 'builder': playSFX(id,()=>sfxBuild(pan),700+Math.random()*300);break;
+      case 'farmer':  playSFX(id,()=>sfxFarm(pan),1200+Math.random()*600);break;
+      case 'fisher':  playSFX(id,()=>sfxWater(pan),2000+Math.random()*1000);break;
+    }
+  }
+
+  for(const b of G.bld){
+    const bx=b.col*TS+TS/2, by=b.row*TS+TS/2;
+    if(!near(bx,by)) continue;
+    const pan=panOf(bx);
+    const workers=(G.bldWorkers[b.id]||[]).filter(n=>n).length;
+    if(!workers&&b.type!=='campfire') continue;
+    const id='bld_'+b.id;
+    switch(b.type){
+      case 'blacksmith': playSFX(id,()=>sfxHammer(pan),600+Math.random()*300);break;
+      case 'sawmill':    playSFX(id,()=>sfxSaw(pan),500+Math.random()*200);break;
+      case 'campfire':   playSFX(id,()=>sfxFire(pan),2500+Math.random()*1500);break;
+      case 'smelter':    playSFX(id,()=>sfxFire(pan),800+Math.random()*400);break;
+      case 'quarry':     playSFX(id,()=>sfxPickaxe(pan),700+Math.random()*300);break;
+      case 'logger':     playSFX(id,()=>sfxAxe(pan),900+Math.random()*400);break;
+      case 'well':       playSFX(id,()=>sfxWater(pan),3000+Math.random()*2000);break;
+    }
+  }
+}
 
 function startMusicWatchdog(){
   if(_musicWatchdog) clearInterval(_musicWatchdog);
