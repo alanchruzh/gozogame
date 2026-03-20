@@ -12203,11 +12203,12 @@ function drawLivestockCart(cart){
 
     // Tali kuda (harness)
     X.strokeStyle='#5a3810';X.lineWidth=2;
-    X.beginPath();X.moveTo(px-flip*10,py-5+bob);X.lineTo(px-flip*36,py-8+bob);X.stroke();
-    X.beginPath();X.moveTo(px-flip*10,py+1+bob);X.lineTo(px-flip*36,py-2+bob);X.stroke();
+    // Tali dari depan gerobak (cx2+flip*18) ke belakang kuda (hx-flip*14)
+    X.beginPath();X.moveTo(cx2+flip*18,py-5+bob);X.lineTo(hx-flip*14,py-8+bob);X.stroke();
+    X.beginPath();X.moveTo(cx2+flip*18,py+1+bob);X.lineTo(hx-flip*14,py-2+bob);X.stroke();
 
     // ── KUDA ──
-    const hx=px-flip*44, hy=py;
+    const hx=px+flip*44, hy=py;  // kuda di depan (arah gerak)
     // Kaki kuda (animasi)
     const legSwing=moving?Math.sin(t*8)*8:0;
     X.fillStyle='#d4c8a0'; // kaki belakang
@@ -12227,30 +12228,30 @@ function drawLivestockCart(cart){
     X.beginPath();X.ellipse(hx,hy-2+bob,18,10,0,0,Math.PI*2);X.fill();
     // Leher
     X.fillStyle='#d8d0b8';
-    X.beginPath();X.moveTo(hx-flip*12,hy-8+bob);X.lineTo(hx-flip*18,hy-20+bob);
-    X.lineTo(hx-flip*10,hy-20+bob);X.lineTo(hx-flip*4,hy-8+bob);X.closePath();X.fill();
-    // Kepala kuda
+    X.beginPath();X.moveTo(hx+flip*12,hy-8+bob);X.lineTo(hx+flip*18,hy-20+bob);
+    X.lineTo(hx+flip*10,hy-20+bob);X.lineTo(hx+flip*4,hy-8+bob);X.closePath();X.fill();
+    // Kepala kuda — menghadap ke depan (arah gerak)
     X.fillStyle='#d0c8b0';
-    X.beginPath();X.ellipse(hx-flip*22,hy-18+bob,8,6,flip*0.3,0,Math.PI*2);X.fill();
+    X.beginPath();X.ellipse(hx+flip*22,hy-18+bob,8,6,flip*0.3,0,Math.PI*2);X.fill();
     // Moncong
     X.fillStyle='#c0b8a0';
-    X.beginPath();X.ellipse(hx-flip*28,hy-16+bob,4,3,flip*0.2,0,Math.PI*2);X.fill();
+    X.beginPath();X.ellipse(hx+flip*28,hy-16+bob,4,3,flip*0.2,0,Math.PI*2);X.fill();
     // Mata kuda
-    X.fillStyle='#1a1008';X.beginPath();X.arc(hx-flip*20,hy-20+bob,2,0,Math.PI*2);X.fill();
-    X.fillStyle='rgba(255,255,255,0.6)';X.beginPath();X.arc(hx-flip*19,hy-21+bob,0.8,0,Math.PI*2);X.fill();
-    // Rambut (mane)
+    X.fillStyle='#1a1008';X.beginPath();X.arc(hx+flip*20,hy-20+bob,2,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(255,255,255,0.6)';X.beginPath();X.arc(hx+flip*19,hy-21+bob,0.8,0,Math.PI*2);X.fill();
+    // Mane (di atas leher)
     X.fillStyle='#8a6830';
-    X.fillRect(hx-flip*18,hy-22+bob,5,10);
-    X.beginPath();X.ellipse(hx-flip*14,hy-22+bob,4,3,0,0,Math.PI*2);X.fill();
-    // Ekor
+    X.fillRect(hx+flip*13,hy-22+bob,5,10);
+    X.beginPath();X.ellipse(hx+flip*14,hy-22+bob,4,3,0,0,Math.PI*2);X.fill();
+    // Ekor — di belakang kuda (berlawanan arah gerak)
     X.strokeStyle='#8a6830';X.lineWidth=3;
-    X.beginPath();X.moveTo(hx+flip*14,hy-2+bob);
-    X.quadraticCurveTo(hx+flip*22,hy+8+bob,hx+flip*18,hy+14+bob);X.stroke();
-    X.lineWidth=2;X.beginPath();X.moveTo(hx+flip*14,hy-2+bob);
-    X.quadraticCurveTo(hx+flip*24,hy+6+bob,hx+flip*20,hy+16+bob);X.stroke();
+    X.beginPath();X.moveTo(hx-flip*14,hy-2+bob);
+    X.quadraticCurveTo(hx-flip*22,hy+8+bob,hx-flip*18,hy+14+bob);X.stroke();
+    X.lineWidth=2;X.beginPath();X.moveTo(hx-flip*14,hy-2+bob);
+    X.quadraticCurveTo(hx-flip*24,hy+6+bob,hx-flip*20,hy+16+bob);X.stroke();
 
     // ── GEROBAK ──
-    const cx2=px+flip*6;
+    const cx2=px-flip*6;  // gerobak di belakang kuda
     // Badan gerobak - kayu coklat hangat
     X.fillStyle='#c8922a';X.fillRect(cx2-flip*18,py-22+bob,36,22);
     // Panel kayu (slats vertikal)
