@@ -1447,7 +1447,6 @@ function genMap(){
   MARKET_VENDORS=[];
   _waterSpots=null; // reset so fisher recalculates lake spots
   _waterTilesCache=null; // reset water animation cache
-  G_activeDisaster=null;G_disasterTimer=0;
   G_activeQuests=[];G_completedQuests=new Set();
   G_questLog=[];
   FOG=[];
@@ -2968,7 +2967,7 @@ function bHouseLv1(cx,bot,rot=0){
   LN(wx+ww/2,wy1+1,wx+ww/2,wy1+wh-1,'rgba(0,0,0,0.2)');
   LN(wx+1,wy1+wh/2,wx+ww-1,wy1+wh/2,'rgba(0,0,0,0.2)');
   const dw=18,dh=26,dx=cx-dw/2,dy=bot-18-dh;
-  FR(dx-2,dy-2,dw+4,dh+2,'#b89860');
+  FR(dx-2,dy-2,dw+4,dh,'#b89860');
   FR(dx,dy,dw,dh,'#7a3e10'); FR(dx,dy,dw,4,'#6a2e08');
   FR(dx+2,dy+5,dw/2-3,dh*0.35,'rgba(0,0,0,0.14)');
   FR(dx+dw/2+1,dy+5,dw/2-3,dh*0.35,'rgba(0,0,0,0.10)');
@@ -3157,6 +3156,7 @@ function bHouseLv3(cx,bot,rot=0){
   }
   // Grand entrance portico
   const dw=28,dh=38,dx=cx-dw/2,dy=bot-12-dh;
+  // Grand entrance portico
   FR(cx-22,wy+H-2,7,12,'#a89070'); FR(cx+15,wy+H-2,7,12,'#a89070');
   FR(cx-24,bot-12,50,5,'#b8a080');
   X.fillStyle='#5a4020';X.beginPath();X.arc(cx,dy+2,dw/2+4,Math.PI,0);X.fill();
@@ -3243,7 +3243,7 @@ function bFarm(cx,bot,lv,rot=0){
   if(lv>=2) FR(cx-3,wy,6,H,'#a06020');
   // Door (large barn door)
   const dw=lv>=2?28:20, dh=H-4, dx=cx-dw/2, dy=wy+4;
-  FR(dx-2,dy-2,dw+4,dh+2,'#7a4810');
+  FR(dx-2,dy-2,dw+4,dh,'#7a4810');
   FR(dx,dy,dw/2-1,dh,'#8a5020'); FR(dx+dw/2+1,dy,dw/2-1,dh,'#804818');
   LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.2)',1.5);
   FR(dx+3,dy+4,dw/2-6,dh*0.4,'rgba(0,0,0,0.1)');
@@ -4010,20 +4010,23 @@ function bHunting(cx,bot,lv){
 
 // ── GRANARY 🌾 ──
 function bGranary(cx,bot,lv){
-  const W=68+lv*6, H=56+lv*4, wy=bot-H-20;
-  // Rounded base (big round barn style)
+  const W=68+lv*6, H=56+lv*4, wy=bot-H-6;
+  // Foundation
+  X.fillStyle='#b09870';X.fillRect(cx-W/2-3,bot-6,W+6,6);
+  // Walls
   X.fillStyle='#c8a850';X.fillRect(cx-W/2,wy,W,H);
   X.fillStyle='rgba(255,255,255,0.09)';X.fillRect(cx-W/2,wy,W,5);
   X.strokeStyle='rgba(0,0,0,0.06)';X.lineWidth=1;
   for(let i=10;i<H;i+=10){X.beginPath();X.moveTo(cx-W/2+1,wy+i);X.lineTo(cx+W/2-1,wy+i);X.stroke();}
   // Corner posts
   X.fillStyle='rgba(0,0,0,0.1)';X.fillRect(cx-W/2,wy,5,H);X.fillRect(cx+W/2-5,wy,5,H);
-  // Big barn door
-  X.fillStyle='#7a5010';X.fillRect(cx-16,bot-36,32,36);
-  X.fillStyle='rgba(0,0,0,0.18)';X.fillRect(cx-15,bot-34,14,30);X.fillRect(cx+1,bot-34,14,30);
-  X.strokeStyle='#5a3808';X.lineWidth=1.5;X.strokeRect(cx-16,bot-36,32,36);
-  LN(cx,bot-36,cx,bot,'rgba(0,0,0,0.25)',1.5);
-  X.fillStyle='#c89018';X.fillRect(cx-2,bot-18,4,4);
+  // Big barn door — bottom flush with foundation top (bot-6)
+  const dh=30, dy=bot-6-dh;
+  X.fillStyle='#7a5010';X.fillRect(cx-16,dy,32,dh);
+  X.fillStyle='rgba(0,0,0,0.18)';X.fillRect(cx-15,dy+2,14,dh-4);X.fillRect(cx+1,dy+2,14,dh-4);
+  X.strokeStyle='#5a3808';X.lineWidth=1.5;X.strokeRect(cx-16,dy,32,dh);
+  LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.25)',1.5);
+  X.fillStyle='#c89018';X.fillRect(cx-2,dy+dh/2-2,4,4);
   // Windows
   WIN(cx-W/2+8,wy+12,14,11); WIN(cx+W/2-22,wy+12,14,11);
   // Round roof (dome style)
@@ -4038,22 +4041,24 @@ function bGranary(cx,bot,lv){
     X.beginPath();X.moveTo(cx-W/2*tt-4*tt,wy-rh*tt);X.lineTo(cx+W/2*tt+4*tt,wy-rh*tt);X.stroke();
   }
   // Grain sack indicator
-  X.fillStyle='#d4b050';X.beginPath();X.ellipse(cx,bot-42,8,10,0,0,Math.PI*2);X.fill();
-  X.strokeStyle='#b09030';X.lineWidth=1;X.beginPath();X.moveTo(cx-5,bot-38);X.lineTo(cx+5,bot-38);X.stroke();
+  X.fillStyle='#d4b050';X.beginPath();X.ellipse(cx,dy-8,8,10,0,0,Math.PI*2);X.fill();
+  X.strokeStyle='#b09030';X.lineWidth=1;X.beginPath();X.moveTo(cx-5,dy-4);X.lineTo(cx+5,dy-4);X.stroke();
   // Wheat stalks on side
   for(let i=0;i<3;i++){
     const wx2=cx-W/2+6+i*4;
-    X.strokeStyle='#c8a820';X.lineWidth=1.5;X.beginPath();X.moveTo(wx2,bot-4);X.lineTo(wx2-2,bot-22);X.stroke();
-    X.fillStyle='#e0c030';X.beginPath();X.arc(wx2-2,bot-24,3,0,Math.PI*2);X.fill();
+    X.strokeStyle='#c8a820';X.lineWidth=1.5;X.beginPath();X.moveTo(wx2,bot-6);X.lineTo(wx2-2,bot-24);X.stroke();
+    X.fillStyle='#e0c030';X.beginPath();X.arc(wx2-2,bot-26,3,0,Math.PI*2);X.fill();
   }
-  // Smoke from chimney (granary has a ventilation)
+  // Ventilation smoke
   const t=Date.now()/700;
   for(let i=0;i<2;i++){X.fillStyle=`rgba(200,200,180,${0.22-i*0.08})`;X.beginPath();X.arc(cx+W/2-10+Math.sin(t+i)*2,wy-38-i*8,3+i*2,0,Math.PI*2);X.fill();}
 }
 
 // ── STOREHOUSE 🏪 ──
 function bStorehouse(cx,bot,lv){
-  const W=76+lv*8, H=52+lv*5, wy=bot-H-18;
+  const W=76+lv*8, H=52+lv*5, wy=bot-H-6;
+  // Foundation
+  X.fillStyle='#706050';X.fillRect(cx-W/2-3,bot-6,W+6,6);
   // Wide warehouse walls
   X.fillStyle='#7a6040';X.fillRect(cx-W/2,wy,W,H);
   X.fillStyle='rgba(255,255,255,0.06)';X.fillRect(cx-W/2,wy,W,4);
@@ -4061,13 +4066,14 @@ function bStorehouse(cx,bot,lv){
   for(let i=10;i<H;i+=10){X.beginPath();X.moveTo(cx-W/2+1,wy+i);X.lineTo(cx+W/2-1,wy+i);X.stroke();}
   // Heavy corner posts
   X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(cx-W/2,wy,6,H);X.fillRect(cx+W/2-6,wy,6,H);
-  // Wide loading door
-  X.fillStyle='#4a3010';X.fillRect(cx-20,bot-40,40,40);
-  X.fillStyle='rgba(0,0,0,0.2)';X.fillRect(cx-19,bot-38,18,34);X.fillRect(cx+1,bot-38,18,34);
-  LN(cx,bot-40,cx,bot,'rgba(0,0,0,0.3)',2);
-  // Door handles / iron
-  X.fillStyle='#909090';X.fillRect(cx-4,bot-22,3,5);X.fillRect(cx+2,bot-22,3,5);
-  X.strokeStyle='#3a2808';X.lineWidth=1.5;X.strokeRect(cx-20,bot-40,40,40);
+  // Wide loading door — bottom flush with foundation top (bot-6)
+  const dh=34, dy=bot-6-dh;
+  X.fillStyle='#4a3010';X.fillRect(cx-20,dy,40,dh);
+  X.fillStyle='rgba(0,0,0,0.2)';X.fillRect(cx-19,dy+2,18,dh-4);X.fillRect(cx+1,dy+2,18,dh-4);
+  LN(cx,dy,cx,dy+dh,'rgba(0,0,0,0.3)',2);
+  // Door handles
+  X.fillStyle='#909090';X.fillRect(cx-4,dy+dh/2,3,5);X.fillRect(cx+2,dy+dh/2,3,5);
+  X.strokeStyle='#3a2808';X.lineWidth=1.5;X.strokeRect(cx-20,dy,40,dh);
   // Windows (higher up)
   WIN(cx-W/2+8,wy+8,13,10); WIN(cx+W/2-21,wy+8,13,10);
   if(lv>=2){WIN(cx-W/2+8,wy+H-22,12,9); WIN(cx+W/2-20,wy+H-22,12,9);}
@@ -4076,13 +4082,13 @@ function bStorehouse(cx,bot,lv){
   X.beginPath();X.moveTo(cx-W/2-4,wy);X.lineTo(cx+W/2+4,wy);X.lineTo(cx+W/2,wy-16-lv*3);X.lineTo(cx-W/2,wy-16-lv*3);X.closePath();X.fill();
   X.fillStyle='#3a3018';
   X.beginPath();X.moveTo(cx+W/2+4,wy);X.lineTo(cx+W/2,wy-16-lv*3);X.lineTo(cx+W/2-2,wy-16-lv*3);X.closePath();X.fill();
-  // Chimney (storage needs ventilation)
+  // Chimney
   X.fillStyle='#808080';X.fillRect(cx+W/2-16,wy-28-lv*3,9,18);X.fillStyle='#606060';X.fillRect(cx+W/2-17,wy-29-lv*3,11,4);
   const t=Date.now()/700;
   for(let i=0;i<3;i++){X.fillStyle=`rgba(180,180,170,${0.3-i*0.08})`;X.beginPath();X.arc(cx+W/2-12+Math.sin(t+i)*3,wy-32-lv*3-i*8,4+i*2,0,Math.PI*2);X.fill();}
   // Crates/barrels outside
   for(let i=0;i<3;i++){
-    const bx=cx+W/2+4+i*14, by2=bot-10-i*2;
+    const bx=cx+W/2+4+i*14, by2=bot-6;
     X.fillStyle='#8a5820';X.fillRect(bx,by2-16,12,16);
     X.strokeStyle='#6a3e10';X.lineWidth=1;X.strokeRect(bx,by2-16,12,16);
     LN(bx,by2-10,bx+12,by2-10,'#6a3e10');
@@ -5713,13 +5719,6 @@ function updateUI(){
   document.getElementById('rg').textContent=G.res.gold||0;
   const _rwlth=document.getElementById('rwlth');if(_rwlth)_rwlth.textContent=G.res.wealth||0;
   const _rwd=document.getElementById('rw-display');if(_rwd)_rwd.textContent=Math.floor(G.res.regional_wealth||0);
-  const _eb=document.getElementById('event-banner');
-  if(_eb){
-    if(G_activeDisaster){
-      _eb.style.display='block';
-      _eb.textContent=`${G_activeDisaster.name} — ${G_disasterTimer} days left`;
-    } else { _eb.style.display='none'; }
-  }
   // Quest button pulse when quests active
   const _tbq=document.getElementById('tb-quest');
   if(_tbq) _tbq.classList.toggle('has-quests',G_activeQuests.length>0);
@@ -6406,8 +6405,6 @@ function doProd(){
   }
 
   // ── NEW SYSTEMS ──
-  if(G.ticks%5===0) checkRandomEvent();
-  if(G_activeDisaster) resolveDisaster();
   checkQuests();
   updateNPCStats();
   // Spawn animals if buildings exist
@@ -7580,74 +7577,124 @@ function doRebuildWorld(){
 // ─── DRAW CROP (on field tile) ───
 function drawCrop(field, wx, wy){
   const crop=CROPS[field.crop||'wheat']||CROPS.wheat;
-  const stage=field.growStage; // 1=seed,2=sprout,3=growing,4=ready (we now use sub-stages)
-  const cx=wx+TS/2, by=wy+TS;
+  const stage=field.growStage;
   const t=Date.now()/1000;
-  // Calculate fine progress within stage using _plantDay
+  const isWheat=crop.e==='🌾';
+  const isFlax=crop.e==='🌺';
+  const cx=wx+TS/2, by=wy+TS;
+
   const dayOfYear=((G.season||0)*90)+(G.day||1);
   const plantDay=field._plantDay||dayOfYear;
   const daysGrown=Math.max(0,dayOfYear-plantDay);
-  const growPct=Math.min(1,daysGrown/60); // 0→1 over 60 days
+  const growPct=Math.min(1,daysGrown/30);
 
-  const isWheat=crop.e==='🌾';
-  const isFlax=crop.e==='🌺';
-  const cropCol=isWheat?'#7ab020':isFlax?'#a060e0':'#50a030';
-  const ripeCol=isWheat?'#d4a020':isFlax?'#e070c0':'#60c040';
-
-  if(stage===0) return; // bare soil — drawn by FARM_ZONE tile
+  if(stage===0) return;
 
   if(stage===1){
-    // Seeds / tiny sprouts — just peeking out
-    X.fillStyle='#5a8030';
-    for(let i=0;i<5;i++){
-      const px=wx+6+i*(TS/5), h=3+growPct*4;
-      X.fillRect(px-1,by-4-h,2,h);
-      // Tiny leaf
-      X.fillStyle='#70a040';
-      X.beginPath();X.ellipse(px+2,by-5-h,2,1.5,0.3,0,Math.PI*2);X.fill();
-      X.fillStyle='#5a8030';
-    }
-  } else if(stage===2){
-    // Young plants — growing stalks with leaves
-    const maxH=8+growPct*16;
-    X.strokeStyle=cropCol;X.lineWidth=1.5;
-    for(let i=0;i<6;i++){
-      const px=wx+5+i*(TS/6);
-      const h=maxH*(0.7+Math.sin(t*0.5+i)*0.1);
-      const sway=Math.sin(t*0.8+i*0.7)*1.5;
-      X.beginPath();X.moveTo(px,by-4);X.quadraticCurveTo(px+sway,by-4-h*0.5,px+sway*1.5,by-4-h);X.stroke();
-      X.fillStyle=cropCol;X.beginPath();X.ellipse(px+sway*1.5,by-5-h,3,2,0.4,0,Math.PI*2);X.fill();
-    }
-  } else if(stage===3){
-    // Mature / ready to harvest — full height with heads
-    const h=26+growPct*6;
-    const col=ripeCol;
-    X.strokeStyle=col;X.lineWidth=2;
-    for(let i=0;i<6;i++){
-      const px=wx+5+i*(TS/6);
-      const sway=Math.sin(t*0.6+i*0.9)*2;
-      const lean=(i%2)*4-2;
-      // Stalk
-      X.beginPath();X.moveTo(px,by-4);X.quadraticCurveTo(px+sway,by-h*0.5,px+lean+sway,by-h);X.stroke();
-      // Grain head
-      if(isWheat){
-        X.fillStyle=col;
-        for(let g=0;g<4;g++){
-          X.beginPath();X.ellipse(px+lean+sway+(g%2)*2-1,by-h-g*4,2,3,0.1,0,Math.PI*2);X.fill();
-        }
-      } else if(isFlax){
-        X.fillStyle=ripeCol;X.beginPath();X.arc(px+lean+sway,by-h-2,4,0,Math.PI*2);X.fill();
-        X.fillStyle='#f0f0ff';X.beginPath();X.arc(px+lean+sway,by-h-2,2,0,Math.PI*2);X.fill();
-      } else {
-        X.fillStyle=col;X.beginPath();X.ellipse(px+lean+sway,by-h,4,5,0.2,0,Math.PI*2);X.fill();
+    // ── SEEDLINGS — tiny green shoots in rows ──
+    const h=3+growPct*8;
+    for(let row=0;row<3;row++){
+      for(let col=0;col<4;col++){
+        const px=wx+8+col*14, py=wy+TS-12-row*14;
+        // Stem
+        X.fillStyle='#5a8828';
+        X.fillRect(px-1,py-h,2,h);
+        // Small leaf left
+        X.fillStyle='#6aaa30';
+        X.fillRect(px-3,py-h*0.6,3,2);
+        // Small leaf right
+        X.fillRect(px+1,py-h*0.6,3,2);
       }
     }
-    // Harvest shimmer
-    const alpha=0.1+Math.sin(t*2)*0.08;
-    X.fillStyle=`rgba(255,220,50,${alpha})`;X.fillRect(wx,wy,TS,TS);
+
+  } else if(stage===2){
+    // ── GROWING — medium green stalks with leaves ──
+    const h=14+growPct*10;
+    for(let row=0;row<3;row++){
+      for(let col=0;col<4;col++){
+        const px=wx+8+col*14, py=wy+TS-10-row*14;
+        const sway=Math.sin(t*0.7+col*0.9+row*1.3)*1.5;
+        // Stalk
+        X.fillStyle='#4a9020';
+        X.fillRect(px-1,py-h,2,h);
+        // Mid leaves (alternating)
+        X.fillStyle='#5ab030';
+        if((col+row)%2===0){
+          // Leaf pointing right
+          X.fillRect(px+1,py-h*0.5,5+sway|0,2);
+        } else {
+          // Leaf pointing left
+          X.fillRect(px-6+sway|0,py-h*0.5,5,2);
+        }
+        // Top leaf
+        X.fillStyle='#70c040';
+        X.fillRect(px-1+sway|0,py-h,3,4);
+      }
+    }
+
+  } else if(stage===3){
+    // ── HARVEST READY — full golden wheat pixel art ──
+    // Animate gentle wave
+    for(let row=0;row<4;row++){
+      for(let col=0;col<4;col++){
+        const px=wx+6+col*13+(row%2)*6;
+        const py=wy+TS-8-row*13;
+        const wave=Math.sin(t*0.9+col*0.7+row*0.5)*1.5;
+        const h=isWheat?24:20;
+
+        if(isWheat){
+          // ── WHEAT STALK ──
+          // Lower stalk (green-brown)
+          X.fillStyle='#8a8030';
+          X.fillRect(px-1,py-h+6,2,h-6);
+          // Upper stalk (golden)
+          X.fillStyle='#c8a020';
+          X.fillRect(px-1+wave|0,py-h,2,8);
+
+          // ── WHEAT HEAD — pixel by pixel ──
+          // Awns (barbs sticking out)
+          X.fillStyle='#d4b030';
+          // Left awns
+          X.fillRect(px-4+wave|0,py-h-2,3,1);
+          X.fillRect(px-5+wave|0,py-h-5,3,1);
+          X.fillRect(px-4+wave|0,py-h-8,3,1);
+          // Right awns
+          X.fillRect(px+2+wave|0,py-h-2,3,1);
+          X.fillRect(px+3+wave|0,py-h-5,3,1);
+          X.fillRect(px+2+wave|0,py-h-8,3,1);
+          // Grain kernels (center column)
+          X.fillStyle='#e8c030';
+          X.fillRect(px-1+wave|0,py-h-1,3,3);
+          X.fillRect(px-1+wave|0,py-h-5,3,3);
+          X.fillRect(px-1+wave|0,py-h-9,3,2);
+          // Highlight on kernels
+          X.fillStyle='#f0d860';
+          X.fillRect(px+wave|0,py-h,1,1);
+          X.fillRect(px+wave|0,py-h-4,1,1);
+          X.fillRect(px+wave|0,py-h-8,1,1);
+          // Stem leaves
+          X.fillStyle='#a09020';
+          X.fillRect(px+1,py-h+10,4,2);
+          X.fillRect(px-4,py-h+14,4,2);
+
+        } else if(isFlax){
+          X.fillStyle='#8080b0';X.fillRect(px-1,py-h,2,h);
+          X.fillStyle='#d060d0';X.beginPath();X.arc(px+wave,py-h-3,4,0,Math.PI*2);X.fill();
+          X.fillStyle='#f0a0f0';X.beginPath();X.arc(px+wave,py-h-3,2,0,Math.PI*2);X.fill();
+        } else {
+          X.fillStyle='#509030';X.fillRect(px-1,py-h,2,h);
+          X.fillStyle='#60c040';X.beginPath();X.ellipse(px+wave,py-h-3,4,5,0.2,0,Math.PI*2);X.fill();
+        }
+      }
+    }
+
+    // Golden shimmer overlay saat siap panen
+    const alpha=0.07+Math.sin(t*2)*0.05;
+    X.fillStyle=`rgba(255,210,30,${alpha})`;
+    X.fillRect(wx+2,wy+2,TS-4,TS-4);
     // Ready indicator
-    X.font='12px serif';X.textAlign='center';
-    X.fillText('✨',cx,wy+8);
+    X.font='11px serif';X.textAlign='center';
+    X.fillText('✨',cx,wy+10);
   }
 }
 
@@ -8450,24 +8497,6 @@ function render(){
     X.fillRect(0,HH,CV.width,CV.height-HH-BH);
   }
   drawSeasonParticles();
-
-  // ── DISASTER VISUAL — fire flicker on burning building ──
-  if(G_activeDisaster?.id==='fire'){
-    for(const b of G.bld){
-      if(!b.on_fire)continue;
-      const bx=b.col*TS+camX, by=b.row*TS+camY;
-      const ft=Date.now()/200;
-      for(let fi=0;fi<5;fi++){
-        const fx=bx+TS/2+Math.sin(ft+fi*1.3)*12;
-        const fy=by+TS/4+Math.cos(ft*0.8+fi)*8;
-        const fh=16+Math.sin(ft+fi)*6;
-        X.fillStyle=`rgba(255,${80+fi*20},0,0.8)`;
-        X.beginPath();X.moveTo(fx-5,fy);X.quadraticCurveTo(fx,fy-fh,fx+5,fy);X.fill();
-      }
-      X.font='20px serif';X.textAlign='center';
-      X.fillText('🔥',bx+TS/2,by+TS/2);
-    }
-  }
 
   // ── QUEST INDICATOR — active quest hint on HUD ──
   if(G_activeQuests.length>0&&_gameStarted){
@@ -10574,8 +10603,6 @@ function buildSaveState(){
     activeQuests:[...G_activeQuests],
     completedQuests:[...G_completedQuests],
     questLog:[...G_questLog],
-    activeDisaster:G_activeDisaster?{...G_activeDisaster}:null,
-    disasterTimer:G_disasterTimer||0,
   };
 }
 
@@ -10619,7 +10646,12 @@ function applySaveState(save){
   NPCS=(save.npcs||[]).map(n=>({...n}));
   FAMILIES=(save.families||[]).map(f=>({...f}));
   DEER=(save.deer||[]).map(d=>({...d}));
-  BUFFALO=(save.buffalo||[]).map(b=>({...b}));
+  BUFFALO=(save.buffalo||[]).map(b=>({...b,
+    state:'idle', phase:null, carryRes:null, carryQty:0,
+    // Snap back to home if strayed far
+    x:b.homeX||b.x, y:b.homeY||b.y,
+    vx:0, vy:0, wt:0,
+  }));
   HORSES=(save.horses||[]).map(h=>({...h}));
   LIVESTOCK_CARTS=(save.livestockCarts||[]).map(c=>({...c}));
   MARKET_VENDORS=(save.marketVendors||[]).map(v=>({...v}));
@@ -10633,8 +10665,6 @@ function applySaveState(save){
   if(save.activeQuests) G_activeQuests=[...save.activeQuests];
   if(save.completedQuests) G_completedQuests=new Set(save.completedQuests);
   if(save.questLog) G_questLog=[...save.questLog];
-  G_activeDisaster=save.activeDisaster||null;
-  G_disasterTimer=save.disasterTimer||0;
   // Fix 4: Reset water spots cache so fisher recalculates positions
   _waterSpots=null;
   _waterTilesCache=null; // reset water animation cache
@@ -11116,138 +11146,15 @@ function animateTitleBg(){
 // ═══════════════════════════════════════════════════════
 //  DISASTER & EVENT SYSTEM
 // ═══════════════════════════════════════════════════════
-const DISASTERS=[
-  {id:'fire',      name:'🔥 Fire!',        msg:'A building is on fire! Send workers to help.',  dur:3, effect:'destroyBuilding'},
-  {id:'raid',      name:'⚔️ Bandit Raid!', msg:'Bandits are attacking! Lose some resources.',   dur:2, effect:'loseResources'},
-  {id:'flood',     name:'🌊 Flood!',       msg:'River flooding! Farm fields damaged.',           dur:4, effect:'damageFields'},
-  {id:'plague',    name:'🤒 Plague!',      msg:'Sickness spreads! Villager happiness drops.',   dur:5, effect:'reducehappy'},
-  {id:'drought',   name:'☀️ Drought!',     msg:'Severe drought! Food production halved.',       dur:6, effect:'reduceProd'},
-  {id:'storm',     name:'⛈️ Storm!',       msg:'Storm damages buildings! Repairs needed.',      dur:2, effect:'damageBuildings'},
-];
 
-let G_activeDisaster=null;
-let G_disasterTimer=0;
 let G_questLog=[];
 let G_activeQuests=[];
 
 // Called from doProd every ~10 days
-function checkRandomEvent(){
-  if(G_activeDisaster) return; // one disaster at a time
-  if(G.day<20&&G.yr<=1&&G.season===0) return; // grace period at start of game only
-  const totalDays=((G.yr-1)*360)+(G.season*90)+G.day;
-  const chance=0.04+(totalDays/1000); // increases over time
-  if(Math.random()>chance) return;
-  const d=DISASTERS[Math.floor(Math.random()*DISASTERS.length)];
-  triggerDisaster(d);
-}
 
-function triggerDisaster(d){
-  G_activeDisaster={...d};
-  G_disasterTimer=d.dur;
-  // Apply immediate effect
-  applyDisasterEffect(d.id);
-  // Show big warning
-  showDisasterAlert(d);
-}
 
-function applyDisasterEffect(id){
-  switch(id){
-    case 'fire':{
-      const targets=G.bld.filter(b=>!b.under_construction&&b.type!=='campfire');
-      if(targets.length){
-        const t=targets[Math.floor(Math.random()*targets.length)];
-        t.on_fire=true;
-        setTimeout(()=>{
-          if(t.on_fire&&G.bld.some(b=>b.id===t.id)){
-            // Relocate residents if it's a house
-            if(t.type==='house'){
-              const homeless=NPCS.filter(n=>n.houseId===t.id);
-              for(const npc of homeless){
-                const availHouse=G.bld.find(b=>{
-                  if(b.under_construction||b.id===t.id) return false;
-                  if(b.type!=='house'&&b.type!=='campfire') return false;
-                  const cap=b.type==='campfire'?6:(b.lv||1)*2;
-                  return NPCS.filter(n=>n.houseId===b.id).length<cap;
-                });
-                npc.houseId=availHouse?availHouse.id:0;
-                if(availHouse) notify(`🏠 ${npc.name} relocated after fire!`,'warn');
-                else notify(`😟 ${npc.name} lost their home in the fire!`,'err');
-              }
-            }
-            // Cleanup bldWorkers
-            delete G.bldWorkers[t.id];
-            G.bld=G.bld.filter(b=>b.id!==t.id);
-            const tile=MAP[t.row]&&MAP[t.row][t.col];
-            if(tile){tile.bld=null;tile.t=T.GRASS;}
-            notify(`🔥 ${BD[t.type]?.n||t.type} was destroyed by fire!`,'err');
-            _worldDirty=true; upPop(); updateUI();
-          }
-        }, 30000);
-      }
-    } break;
-    case 'raid':{
-      const loss={gold:Math.floor((G.res.gold||0)*0.15), food:Math.floor((G.res.food||0)*0.2)};
-      G.res.gold=Math.max(0,(G.res.gold||0)-loss.gold);
-      G.res.food=Math.max(0,(G.res.food||0)-loss.food);
-      G.happy=Math.max(10,G.happy-15);
-      notify(`⚔️ Bandits stole ${loss.gold} gold and ${loss.food} food!`,'err');
-    } break;
-    case 'flood':{
-      let dmg=0;
-      for(const f of G.fields){if(Math.random()<0.5){f.growStage=0;dmg++;}}
-      if(dmg) notify(`🌊 Flood destroyed ${dmg} farm fields!`,'err');
-    } break;
-    case 'plague':{
-      G.happy=Math.max(10,G.happy-20);
-      G.health=Math.max(10,G.health-25);
-      // Random NPC gets sick
-      const adults=NPCS.filter(n=>isAdult(n)&&!n.sick);
-      if(adults.length){
-        const sick=adults[Math.floor(Math.random()*adults.length)];
-        sick.sick=true;
-        notify(`🤒 ${sick.name} fell sick from the plague!`,'err');
-      }
-    } break;
-    case 'drought':{
-      G.res.food=Math.max(0,Math.floor((G.res.food||0)*0.6));
-      notify('☀️ Drought! Food reserves reduced by 40%!','err');
-    } break;
-    case 'storm':{
-      const targets=G.bld.filter(b=>!b.under_construction);
-      targets.slice(0,Math.min(3,targets.length)).forEach(b=>{
-        if(Math.random()<0.4) b.damaged=true;
-      });
-      G.happy=Math.max(10,G.happy-10);
-      notify('⛈️ Storm damaged some buildings! Check your village.','err');
-    } break;
-  }
-}
 
-function showDisasterAlert(d){
-  triggerShake(18);
-  // Flash red overlay briefly
-  const overlay=document.createElement('div');
-  overlay.style.cssText='position:fixed;inset:0;z-index:8000;background:rgba(200,0,0,0.25);pointer-events:none;transition:opacity 1s';
-  document.body.appendChild(overlay);
-  setTimeout(()=>{overlay.style.opacity='0';},500);
-  setTimeout(()=>{overlay.remove();},1500);
-  // Notification
-  notify(`🚨 ${d.name} — ${d.msg}`,'err');
-}
 
-function resolveDisaster(){
-  if(!G_activeDisaster) return;
-  G_disasterTimer--;
-  if(G_disasterTimer<=0){
-    const d=G_activeDisaster;
-    G_activeDisaster=null;
-    // Clear fire flags
-    G.bld.forEach(b=>{b.on_fire=false; b.damaged=false;});
-    // Clear sick flags (recovery)
-    NPCS.forEach(n=>{n.sick=false;});
-    notify(`✅ The ${d.name.replace(/^[^\w]*/,'')} has passed.`,'ok');
-  }
-}
 
 // ═══════════════════════════════════════════════════════
 //  QUEST SYSTEM
@@ -11540,130 +11447,58 @@ function updateBuffalo(){
   BUFFALO=BUFFALO.filter(b=>G.bld.some(bld=>bld.id===b.ownerId&&bld.type==='corral'));
 
   for(const buf of BUFFALO){
-    // State machine
-    if(buf.state==='idle'){
-      // Find a task: carry heavy material from storehouse/quarry to another building
-      const storehouseOrQuarry=G.bld.filter(b=>
-        (b.type==='storehouse'||b.type==='quarry'||b.type==='coalmine'||b.type==='ironmine')
-        &&!b.under_construction
-      );
-      for(const src of storehouseOrQuarry){
-        // Find a building that needs material nearby
-        const heavyRes=['stone','coal','iron','wood','metal'];
-        for(const res of heavyRes){
-          if((G.res[res]||0)>20){
-            // Move to pickup spot
-            buf.state='moving';
-            buf.carryRes=res;
-            buf.carryQty=Math.min(15, Math.floor((G.res[res]||0)*0.3));
-            buf.targetX=src.col*TS+TS/2;
-            buf.targetY=src.row*TS+TS/2;
-            buf.phase='pickup';
-            break;
-          }
-        }
-        if(buf.state!=='idle') break;
-      }
-    } else if(buf.state==='moving'){
-      const dx=buf.targetX-buf.x, dy=buf.targetY-buf.y;
-      const dist=Math.hypot(dx,dy);
-      const spd=0.7; // slower than player — heavy load
-      if(dist>4){
-        buf.vx=(dx/dist)*spd; buf.vy=(dy/dist)*spd;
-        buf.x+=buf.vx; buf.y+=buf.vy;
-        buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
-        buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
-        if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
-        if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
-        buf.ft=(buf.ft||0)+1;if(buf.ft>8){buf.ft=0;buf.fr=(buf.fr||0)+1;}
+    // Always reset to idle — no delivery missions
+    buf.state='idle';
+
+    // Hard clamp — never stray more than 1.5 tiles from home
+    const distFromHome=Math.hypot(buf.x-buf.homeX,buf.y-buf.homeY);
+    if(distFromHome>TS*1.5){
+      const dx=buf.homeX-buf.x, dy=buf.homeY-buf.y;
+      const d=Math.hypot(dx,dy);
+      buf.x+=dx/d*0.8; buf.y+=dy/d*0.8;
+      buf.vx=0; buf.vy=0;
+    }
+
+    // Idle grazing behavior
+    buf.wt=(buf.wt||0)+1;
+    if(buf.wt>180+Math.floor(buf.homeX)%60){
+      buf.wt=0;
+      const roll=Math.random();
+      if(roll<0.45){
+        // Stand still and graze
+        buf.vx=0; buf.vy=0;
+        buf._grazing=true;
+      } else if(roll<0.75){
+        // Short walk — max 1.2 tiles from home
+        buf._grazing=false;
+        const a=Math.random()*Math.PI*2;
+        const radius=TS*(0.3+Math.random()*0.9);
+        const tx=buf.homeX+Math.cos(a)*radius;
+        const ty=buf.homeY+Math.sin(a)*radius;
+        const cx2=Math.max(TS*2,Math.min(tx,(WC-2)*TS));
+        const cy2=Math.max(TS*2,Math.min(ty,(WR-2)*TS));
+        const dx2=cx2-buf.x, dy2=cy2-buf.y;
+        const d=Math.hypot(dx2,dy2);
+        if(d>8){buf.vx=(dx2/d)*0.3;buf.vy=(dy2/d)*0.3;}
       } else {
-        buf.vx=0;buf.vy=0;buf.fr=0;
-        if(buf.phase==='pickup'){
-          // Pick up material — no actual resource deduction, just visual carry
-          buf.state='moving';
-          buf.phase='deliver';
-          // Find nearest building that needs this resource (construction or production)
-          const targets=G.bld.filter(b=>b.under_construction||
-            ['smelter','ironworks','blacksmith','mill','sawmill'].includes(b.type));
-          if(targets.length){
-            const t=targets[Math.floor(Math.random()*targets.length)];
-            buf.targetX=t.col*TS+TS/2;
-            buf.targetY=t.row*TS+TS/2;
-          } else {
-            buf.targetX=buf.homeX; buf.targetY=buf.homeY;
-            buf.phase='return';
-          }
-        } else if(buf.phase==='deliver'){
-          // Deliver — speed up construction or production slightly
-          const nearBld=G.bld.find(b=>{
-            const dx2=b.col*TS-buf.x, dy2=b.row*TS-buf.y;
-            return Math.hypot(dx2,dy2)<TS*1.5&&b.under_construction;
-          });
-          if(nearBld&&nearBld.build_ticks_left>0){
-            nearBld.build_ticks_left=Math.max(0,nearBld.build_ticks_left-0.3);
-            _worldDirty=true;
-          }
-          buf.carryRes=null; buf.carryQty=0;
-          buf.targetX=buf.homeX; buf.targetY=buf.homeY;
-          buf.phase='return';
-        } else {
-          buf.state='idle'; buf.phase=null;
-          buf.wt=0;
-        }
+        // Drift back to home center
+        buf._grazing=false;
+        const dx2=buf.homeX-buf.x, dy2=buf.homeY-buf.y;
+        const d=Math.hypot(dx2,dy2);
+        if(d>8){buf.vx=(dx2/d)*0.35;buf.vy=(dy2/d)*0.35;}
+        else{buf.vx=0;buf.vy=0;}
       }
     }
-    // Idle wandering near corral — graze, rest, stay close to home
-    if(buf.state==='idle'){
-      buf.wt=(buf.wt||0)+1;
-      // Every 3-5 seconds pick new behavior
-      if(buf.wt>180+Math.floor(buf.homeX)%60){
-        buf.wt=0;
-        const roll=Math.random();
-        if(roll<0.4){
-          // Stand still and graze
-          buf.vx=0; buf.vy=0;
-          buf._grazing=true;
-        } else if(roll<0.7){
-          // Short walk within corral bounds (max 1.5 tiles from home)
-          buf._grazing=false;
-          const a=Math.random()*Math.PI*2;
-          const radius=TS*(0.5+Math.random()*1.0); // close range only
-          const tx=buf.homeX+Math.cos(a)*radius;
-          const ty=buf.homeY+Math.sin(a)*radius;
-          // Clamp to world
-          const clampedX=Math.max(TS*2,Math.min(tx,(WC-2)*TS));
-          const clampedY=Math.max(TS*2,Math.min(ty,(WR-2)*TS));
-          const dx2=clampedX-buf.x, dy2=clampedY-buf.y;
-          const d=Math.hypot(dx2,dy2);
-          if(d>8){buf.vx=(dx2/d)*0.35;buf.vy=(dy2/d)*0.35;}
-        } else {
-          // Return closer to home if drifted
-          buf._grazing=false;
-          const dx2=buf.homeX-buf.x, dy2=buf.homeY-buf.y;
-          const d=Math.hypot(dx2,dy2);
-          if(d>TS*0.5){buf.vx=(dx2/d)*0.4;buf.vy=(dy2/d)*0.4;}
-          else{buf.vx=0;buf.vy=0;}
-        }
-      }
-      // Stop if reached near home or too far
-      const distFromHome=Math.hypot(buf.x-buf.homeX,buf.y-buf.homeY);
-      if(distFromHome>TS*1.8){
-        // Pull back to home
-        const dx2=buf.homeX-buf.x,dy2=buf.homeY-buf.y;
-        const d=Math.hypot(dx2,dy2);
-        buf.vx=(dx2/d)*0.5;buf.vy=(dy2/d)*0.5;
-      }
-      if(buf.vx||buf.vy){
-        buf.x+=buf.vx;buf.y+=buf.vy;
-        buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
-        buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
-        buf.ft=(buf.ft||0)+1;if(buf.ft>10){buf.ft=0;buf.fr=(buf.fr||0)+1;}
-        if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
-        if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
-        // Slow down naturally (friction)
-        buf.vx*=0.95; buf.vy*=0.95;
-        if(Math.abs(buf.vx)<0.05&&Math.abs(buf.vy)<0.05){buf.vx=0;buf.vy=0;}
-      }
+
+    if(buf.vx||buf.vy){
+      buf.x+=buf.vx; buf.y+=buf.vy;
+      buf.x=Math.max(TS,Math.min(buf.x,(WC-1)*TS));
+      buf.y=Math.max(TS,Math.min(buf.y,(WR-1)*TS));
+      buf.ft=(buf.ft||0)+1; if(buf.ft>10){buf.ft=0;buf.fr=(buf.fr||0)+1;}
+      if(buf.vx<-0.2)buf.dir=3; else if(buf.vx>0.2)buf.dir=1;
+      if(buf.vy<-0.2)buf.dir=0; else if(buf.vy>0.2)buf.dir=2;
+      buf.vx*=0.94; buf.vy*=0.94;
+      if(Math.abs(buf.vx)<0.04&&Math.abs(buf.vy)<0.04){buf.vx=0;buf.vy=0;}
     }
   }
 }
@@ -12089,7 +11924,7 @@ function updateMarketVendors(){
     } else { v._shouting=false; }
 
     v.ft=(v.ft||0)+1;
-    if(v.ft>12){v.ft=0;v.fr=(v.fr||0)+1;}
+    if(v.ft>8){v.ft=0;v.fr=(v.fr||0)+1;}
   }
 }
 
@@ -12142,93 +11977,117 @@ function drawMarketVendors(){
     }
   }
 
-  // ── PASS 2: Draw vendor bodies at their CURRENT position (moving to/from inn) ──
+  // ── PASS 2: Draw vendor bodies — same style as NPC warga ──
   for(const v of MARKET_VENDORS){
-    if(v._inInn) continue; // hidden inside inn
+    if(v._inInn) continue;
     const px=Math.round(v.x+camX), py=Math.round(v.y+camY);
     if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) continue;
 
-    const bob=Math.sin(t*1.4)*1.0;
-    const armL=Math.sin(t*0.9+v._wobble)*3;
-    const armR=Math.sin(t*0.9+v._wobble+Math.PI)*3;
+    // Deteksi bergerak pakai world coords (bukan screen, bukan pengaruh kamera)
+    const prevWX=v._prevWX||v.x, prevWY=v._prevWY||v.y;
+    const moving=Math.abs(v.x-prevWX)>0.2||Math.abs(v.y-prevWY)>0.2;
+    v._prevWX=v.x; v._prevWY=v.y;
+
+    // Frame counter — pakai v.fr seperti NPC (_fr naik tiap 8 tick)
+    const f=v.fr||0;
+
+    // Arah hadap — dari world coords
+    const dwx=v.x-prevWX, dwy=v.y-prevWY;
+    if(moving){
+      if(Math.abs(dwx)>Math.abs(dwy)) v.dir=dwx>0?1:3;
+      else v.dir=dwy>0?2:0;
+    }
+    const dir=v.dir||2;
+
+    // Walk values — sama persis NPC
+    const walkBob=moving&&f%2===0?-1:0;
+    const walkLg=moving?(f%4<2?3:-3):0;
+    const bob=walkBob;
+    const lg=walkLg;
+
+    const skin=v.female?'#f4c8a0':'#e8b880';
+    const shoe=v.female?'#6a3850':'#201808';
     const items2=v.tableGoods||[v.goods,v.goods2||v.goods];
 
     // Shadow
-    X.fillStyle='rgba(0,0,0,0.14)';X.beginPath();X.ellipse(px,py+16,9,3,0,0,Math.PI*2);X.fill();
-    // Legs
-    X.fillStyle='#2a1a08';
-    X.fillRect(px-5,py+4+bob,5,11);X.fillRect(px+1,py+4+bob,5,11);
-    X.fillStyle='#1a0e04';
-    X.fillRect(px-6,py+14+bob,7,4);X.fillRect(px,py+14+bob,7,4);
+    X.fillStyle='rgba(0,0,0,0.18)';
+    X.beginPath();X.ellipse(px,py+5,9,3.5,0,0,Math.PI*2);X.fill();
 
-    // Body/coat
-    X.fillStyle=v.coat;X.fillRect(px-8,py-10+bob,16,16);
-    // Coat lapels
-    X.fillStyle=v.hat;X.fillRect(px-2,py-10+bob,4,8);
-    // Apron / vest detail
-    X.fillStyle='rgba(255,255,255,0.15)';X.fillRect(px-3,py-8+bob,6,12);
-
-    // Arms — LEFT reaching toward table goods
-    X.fillStyle=v.coat;
-    X.fillRect(px-13,py-8+bob+armL,5,10);
-    X.fillRect(px+9, py-8+bob+armR,5,10);
-    // Hands holding goods
-    const skin=v.female?'#e8b888':'#d4a070';
-    X.fillStyle=skin;
-    X.fillRect(px-14,py+1+bob+armL,5,5);
-    X.fillRect(px+10, py+1+bob+armR,5,5);
-    // Left hand holding product emoji
-    X.font='9px serif';X.textAlign='center';
-    X.fillText(items2[0],px-12,py+1+bob+armL);
-
-    // Head
-    X.fillStyle=skin;X.fillRect(px-6,py-22+bob,12,12);
-    // Neck
-    X.fillStyle=skin;X.fillRect(px-3,py-11+bob,6,3);
-    // Smile
-    X.strokeStyle='rgba(80,40,10,0.5)';X.lineWidth=1;
-    X.beginPath();X.arc(px,py-16+bob,3,0.1,Math.PI-0.1);X.stroke();
-    // Eyes (looking forward/down at table)
-    X.fillStyle='#202020';
-    X.fillRect(px-3,py-19+bob,2,2);X.fillRect(px+1,py-19+bob,2,2);
-    // Eye shine
-    X.fillStyle='rgba(255,255,255,0.7)';
-    X.fillRect(px-3,py-19+bob,1,1);X.fillRect(px+1,py-19+bob,1,1);
-
-    // Hair/Hat
-    X.fillStyle=v.hat;
+    // ── LEGS ──
     if(v.female){
-      X.fillRect(px-7,py-24+bob,14,5);
-      X.beginPath();X.arc(px+5,py-24+bob,4,0,Math.PI*2);X.fill();
-      // Hair highlights
-      X.fillStyle='rgba(255,255,255,0.15)';X.fillRect(px-5,py-24+bob,6,2);
+      FR(px-6+lg,py-5+bob,5,8,v.hat); FR(px-1-lg,py-5+bob,5,8,v.hat);
+      FR(px-6+lg,py+2+bob,5,3,shoe);  FR(px-1-lg,py+2+bob,5,3,shoe);
     } else {
-      // Merchant cap
-      X.fillRect(px-7,py-25+bob,14,5);
-      X.fillRect(px-9,py-23+bob,18,3);
-      // Cap brim
-      X.fillStyle='rgba(0,0,0,0.15)';X.fillRect(px-9,py-23+bob,18,2);
+      FR(px-5+lg,py-5+bob,5,8,'#3a2a10'); FR(px-1-lg,py-5+bob,5,8,'#3a2a10');
+      FR(px-5+lg,py+2+bob,5,3,shoe);        FR(px-1-lg,py+2+bob,5,3,shoe);
     }
 
-    // ── NAME LABEL ──
-    X.fillStyle='rgba(0,0,0,0.65)';X.fillRect(px-20,py-34+bob,40,10);
-    X.fillStyle='#f0d080';X.font='bold 6px monospace';X.textAlign='center';
-    X.fillText(v.name,px,py-26+bob);
+    // ── BODY ──
+    FR(px-5,py-16+bob,10,13,v.coat);
+    FR(px-2,py-16+bob,4,3,'rgba(255,255,255,0.15)');
 
-    // ── SHOUT BUBBLE ──
-    if(v._shouting&&v._shoutT>0){
+    // ── ARMS ──
+    if(dir===1){
+      FR(px+4,py-16+bob,4,11,v.coat); FR(px+4,py-7+bob,4,4,skin);
+      FR(px-8,py-14+bob,4,8,v.coat);  FR(px-8,py-7+bob,4,4,skin);
+    } else if(dir===3){
+      FR(px-8,py-16+bob,4,11,v.coat); FR(px-8,py-7+bob,4,4,skin);
+      FR(px+4,py-14+bob,4,8,v.coat);  FR(px+4,py-7+bob,4,4,skin);
+    } else {
+      FR(px-9,py-16+bob,4,10,v.coat); FR(px-9,py-7+bob,4,4,skin);
+      FR(px+5,py-16+bob,4,10,v.coat); FR(px+5,py-7+bob,4,4,skin);
+    }
+    // Item di tangan kiri
+    X.font='9px serif';X.textAlign='center';
+    X.fillText(moving?'🎒':items2[0],px-12,py-5+bob);
+
+    // ── HEAD ──
+    FR(px-5,py-26+bob,10,10,skin);
+
+    // ── HAT / HAIR — pakai v.hat sebagai warna, style sesuai female ──
+    X.fillStyle=v.hat;
+    if(v.female){
+      // Hair bun / scarf
+      FR(px-6,py-30+bob,12,5,v.hat);
+      X.beginPath();X.arc(px+4,py-30+bob,4,0,Math.PI*2);X.fill();
+      X.fillStyle='rgba(255,255,255,0.15)';FR(px-4,py-30+bob,5,2,'rgba(255,255,255,0.2)');
+    } else {
+      // Merchant cap
+      FR(px-6,py-30+bob,12,4,v.hat);
+      FR(px-8,py-28+bob,16,3,v.hat);
+      X.fillStyle='rgba(0,0,0,0.15)';FR(px-8,py-28+bob,16,2,'rgba(0,0,0,0.15)');
+    }
+
+    // ── EYES ──
+    X.fillStyle='#202020';
+    X.fillRect(px-3,py-23+bob,2,2); X.fillRect(px+1,py-23+bob,2,2);
+    X.fillStyle='rgba(255,255,255,0.7)';
+    X.fillRect(px-3,py-23+bob,1,1); X.fillRect(px+1,py-23+bob,1,1);
+
+    // ── NAME LABEL ──
+    X.fillStyle='rgba(0,0,0,0.65)';X.fillRect(px-20,py-36+bob,40,10);
+    X.fillStyle='#f0d080';X.font='bold 6px monospace';X.textAlign='center';
+    X.fillText(v.name,px,py-28+bob);
+
+    // Destination saat jalan
+    if(moving){
+      const goToInn=(G.hr+(G.mn/60))>=22||(G.hr+(G.mn/60))<6;
+      X.fillStyle='rgba(0,0,0,0.55)';X.fillRect(px-22,py-48,44,10);
+      X.fillStyle=goToInn?'#a0c8ff':'#a0e080';X.font='5px monospace';X.textAlign='center';
+      X.fillText(goToInn?'→ Inn':'→ Stall',px,py-40);
+    }
+
+    // Shout bubble (hanya saat diam di lapak)
+    if(!moving&&v._shouting&&v._shoutT>0){
       const alpha=Math.min(1,v._shoutT/20);
       const tw=Math.max(60,v._shoutText.length*6+16);
       const bx=px-tw/2, by=py-58+bob;
-      // Bubble background
       X.fillStyle=`rgba(255,252,220,${alpha*0.97})`;
       X.beginPath();X.roundRect(bx,by,tw,16,4);X.fill();
       X.strokeStyle=`rgba(180,120,0,${alpha*0.6})`;X.lineWidth=1;
       X.beginPath();X.roundRect(bx,by,tw,16,4);X.stroke();
-      // Bubble tail
       X.fillStyle=`rgba(255,252,220,${alpha*0.97})`;
       X.beginPath();X.moveTo(px-5,by+16);X.lineTo(px+5,by+16);X.lineTo(px,by+22);X.fill();
-      // Text
       X.fillStyle=`rgba(100,50,0,${alpha})`;X.font='bold 7px monospace';X.textAlign='center';
       X.fillText(v._shoutText,px,by+11);
     }
@@ -12506,7 +12365,7 @@ function bForestHut(cx,bot,lv){
 // ═══════════════════════════════════════════════════════
 //  SAPLING / REFORESTATION SYSTEM
 // ═══════════════════════════════════════════════════════
-const SAPLING_GROW_DAYS = 30; // days for sapling → full tree
+const SAPLING_GROW_DAYS = 20; // days for sapling → full tree
 const SAPLING_MAX_AGE   = SAPLING_GROW_DAYS * 2; // in doProd ticks (each tick = 2 days)
 
 function plantTree(col, row){
@@ -12629,35 +12488,53 @@ function doPlantingWork(npc){
   if(!hut) return;
 
   npc._plantTimer=(npc._plantTimer||0)+1;
-  if(npc._plantTimer<120) return; // plant every ~2 seconds
+  if(npc._plantTimer<90) return; // plant every ~1.5 seconds
   npc._plantTimer=0;
 
-  // Find a good spot to plant — near chopped forest areas or empty grass
-  const nc2=Math.floor(npc.x/TS), nr2=Math.floor(npc.y/TS);
+  // Search from the HUT position (not NPC position) — wider radius
+  const hc=hut.col, hr2=hut.row;
+  const radius=hut.lv>=2?16:12;
   const candidates=[];
-  for(let dr2=-8;dr2<=8;dr2++) for(let dc2=-8;dc2<=8;dc2++){
-    const tr=nr2+dr2, tc=nc2+dc2;
+
+  for(let dr2=-radius;dr2<=radius;dr2++) for(let dc2=-radius;dc2<=radius;dc2++){
+    const tr=hr2+dr2, tc=hc+dc2;
     if(tr<2||tr>=WR-2||tc<2||tc>=WC-2) continue;
     if(!MAP[tr]||!MAP[tr][tc]) continue;
     const tile=MAP[tr][tc];
     if(tile.t!==T.GRASS||tile.bld||tile.decor) continue;
     const key=tc+','+tr;
     if(SAPLINGS[key]) continue;
-    // Bonus if adjacent to forest
-    let score=Math.random()*3;
-    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
-      if(MAP[tr+i]&&MAP[tr+i][tc+j]&&MAP[tr+i][tc+j].t===T.FOREST) score+=2;
-    }
-    // Don't plant too close to buildings
+    // Don't plant too close to buildings or roads
     const nearBld=G.bld.some(b=>Math.abs(b.col-tc)<=2&&Math.abs(b.row-tr)<=2);
-    if(!nearBld) candidates.push({r:tr,c:tc,score});
+    if(nearBld) continue;
+    if(MAP[tr][tc].t===T.PATH) continue;
+
+    let score=Math.random()*2;
+    // Bonus if adjacent to existing forest
+    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
+      const nr=tr+i, nc=tc+j;
+      if(MAP[nr]&&MAP[nr][nc]){
+        if(MAP[nr][nc].t===T.FOREST) score+=3;
+        // STRONG bonus for tile surrounded by non-forest — these are cleared areas!
+        if(MAP[nr][nc].t===T.GRASS&&!MAP[nr][nc].decor&&!MAP[nr][nc].bld) score+=0.5;
+      }
+    }
+    // Prefer tiles closer to hut
+    const dist=Math.hypot(dr2,dc2);
+    score += (radius-dist)/radius*2;
+
+    candidates.push({r:tr,c:tc,score});
   }
+
+  // If no forest-adjacent tiles found, plant anywhere valid in radius
   if(!candidates.length) return;
-  // Pick best candidate
+
   candidates.sort((a,b)=>b.score-a.score);
   const best=candidates[0];
   if(plantTree(best.c,best.r)){
-    notify(`🌱 ${npc.name} planted a sapling! (grows in ${SAPLING_GROW_DAYS} days)`,'ok');
+    // Only notify occasionally to avoid spam
+    if(Math.random()<0.2)
+      notify(`🌱 ${npc.name} planted a sapling!`,'ok');
     // Walk toward the planted spot
     npc._dx=(best.c*TS+TS/2-npc.x)/50;
     npc._dy=(best.r*TS+TS/2-npc.y)/50;
