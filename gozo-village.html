@@ -12084,80 +12084,260 @@ function drawMarketVendors(){
   }
 }
 
+// BFS pathfinding untuk cart — cari waypoints lewat tile PATH
+function findCartPath(fromX,fromY,toX,toY){
+  const fc=Math.floor(fromX/TS), fr=Math.floor(fromY/TS);
+  const tc=Math.floor(toX/TS), tr=Math.floor(toY/TS);
+  if(fc===tc&&fr===tr) return [];
+
+  // BFS di grid — prefer PATH tiles, bisa juga lewat GRASS jika perlu
+  const queue=[{c:fc,r:fr,path:[]}];
+  const visited=new Set([fc+','+fr]);
+  const dirs=[[-1,0],[1,0],[0,-1],[0,1]];
+
+  while(queue.length>0){
+    const {c,r,path}=queue.shift();
+    for(const[dc,dr] of dirs){
+      const nc=c+dc, nr=r+dr;
+      if(nc<0||nr<0||nc>=WC||nr>=WR) continue;
+      const key=nc+','+nr;
+      if(visited.has(key)) continue;
+      visited.add(key);
+      const tile=MAP[nr]?.[nc];
+      if(!tile) continue;
+      // Bisa lewat PATH atau GRASS (PATH lebih disukai via cost)
+      const isPath=tile.t===T.PATH;
+      const isPassable=isPath||tile.t===T.GRASS||tile.t===T.DIRT||tile.t===T.FARM_ZONE;
+      if(!isPassable) continue;
+
+      const newPath=[...path,{c:nc,r:nr,isPath}];
+      if(nc===tc&&nr===tr) return newPath;
+      queue.push({c:nc,r:nr,path:newPath});
+    }
+  }
+  return [{c:tc,r:tr,isPath:false}]; // fallback: langsung ke tujuan
+}
+
 function updateLivestockCarts(){
   for(let i=LIVESTOCK_CARTS.length-1;i>=0;i--){
     const cart=LIVESTOCK_CARTS[i];
-    const dx=cart.targetX-cart.x, dy=cart.targetY-cart.y;
+
+    // Build path on first update
+    if(!cart._path){
+      const house=G.bld.find(b=>b.id===cart.houseId);
+      const tx=house?(house.col*TS+TS/2):cart.targetX;
+      const ty=house?(house.row*TS+TS):cart.targetY;
+      cart._path=findCartPath(cart.x,cart.y,tx,ty);
+      cart._pathIdx=0;
+    }
+
+    // Follow waypoints
+    let wx=cart.targetX, wy=cart.targetY;
+    if(cart._path&&cart._pathIdx<cart._path.length){
+      const wp=cart._path[cart._pathIdx];
+      wx=wp.c*TS+TS/2; wy=wp.r*TS+TS/2;
+    }
+
+    const dx=wx-cart.x, dy=wy-cart.y;
     const dist=Math.hypot(dx,dy);
-    const spd=0.7*G.spd;
+    const spd=0.9*G.spd;
+
     if(dist>6){
       cart.vx=(dx/dist)*spd; cart.vy=(dy/dist)*spd;
       cart.x+=cart.vx; cart.y+=cart.vy;
-      cart.x=Math.max(0,Math.min(cart.x,WPX)); cart.y=Math.max(0,Math.min(cart.y,WPY));
-      if(cart.vx<-0.2)cart.dir=3; else if(cart.vx>0.2)cart.dir=1;
-      if(cart.vy<-0.2)cart.dir=0; else if(cart.vy>0.2)cart.dir=2;
+      cart.x=Math.max(0,Math.min(cart.x,WPX));
+      cart.y=Math.max(0,Math.min(cart.y,WPY));
+      if(Math.abs(cart.vx)>Math.abs(cart.vy)){
+        cart.dir=cart.vx>0?1:3;
+      } else {
+        cart.dir=cart.vy>0?2:0;
+      }
       cart.ft=(cart.ft||0)+1; if(cart.ft>8){cart.ft=0;cart.fr=(cart.fr||0)+1;}
     } else {
-      // Arrived! Assign livestock to house
-      const house=G.bld.find(b=>b.id===cart.houseId);
-      if(house&&!house.backyard){
-        house.backyard={type:cart.animal,timer:0,totalProd:0};
-        delete house._pendingLivestock;
-        const bp=getByardPos(house);
-        if(bp.r>=0&&bp.r<WR&&bp.c>=0&&bp.c<WC) MAP[bp.r][bp.c].decor=null;
-        _worldDirty=true;
-        notify(`${cart.e} ${cart.name} delivered to House #${cart.houseId}!`,'ok');
-        updateUI();
-      } else if(house&&house._pendingLivestock){
-        delete house._pendingLivestock;
+      // Reached waypoint — advance to next
+      if(cart._path&&cart._pathIdx<cart._path.length){
+        cart._pathIdx++;
       }
-      LIVESTOCK_CARTS.splice(i,1);
+      // Reached final destination
+      if(!cart._path||cart._pathIdx>=cart._path.length){
+        const house=G.bld.find(b=>b.id===cart.houseId);
+        if(house&&!house.backyard){
+          house.backyard={type:cart.animal,timer:0,totalProd:0};
+          delete house._pendingLivestock;
+          const bp=getByardPos(house);
+          if(bp.r>=0&&bp.r<WR&&bp.c>=0&&bp.c<WC) MAP[bp.r][bp.c].decor=null;
+          _worldDirty=true;
+          notify(`${cart.e} ${cart.name} delivered!`,'ok');
+          updateUI();
+        } else if(house&&house._pendingLivestock){
+          delete house._pendingLivestock;
+        }
+        LIVESTOCK_CARTS.splice(i,1);
+      }
     }
   }
 }
 
 function drawLivestockCart(cart){
   const px=Math.round(cart.x+camX), py=Math.round(cart.y+camY);
-  if(px<-80||px>CV.width+80||py<-80||py>CV.height+80) return;
+  if(px<-120||px>CV.width+120||py<-120||py>CV.height+120) return;
+
   const t=Date.now()/1000;
-  const bob=Math.sin(t*6+cart.x)*1.5; // cart bounce
+  const dir=cart.dir||2;
+  const moving=Math.abs(cart.vx||0)>0.1||Math.abs(cart.vy||0)>0.1;
+  const f=cart.fr||0;
+  const wheelRot=moving?(f%8)*(Math.PI/4):0; // roda berputar
+  const bob=moving?Math.sin(t*8+cart.x*0.1)*1.2:0; // guncangan
+
+  const flip=(dir===3)?-1:1; // kiri atau kanan
+  const isSide=(dir===1||dir===3);
 
   X.save();
-  // Cart shadow
-  X.fillStyle='rgba(0,0,0,0.18)';X.beginPath();X.ellipse(px,py+8,18,5,0,0,Math.PI*2);X.fill();
 
-  // Cart body (wooden box)
-  X.fillStyle='#c8a060';X.fillRect(px-16,py-14+bob,32,16);
-  X.fillStyle='#a07840';X.fillRect(px-16,py-14+bob,32,3); // top edge
-  X.fillStyle='#8a6030';X.fillRect(px-16,py-14+bob,3,16); // left edge
-  X.fillStyle='#8a6030';X.fillRect(px+13,py-14+bob,3,16); // right edge
-  // Cart slats
-  X.fillStyle='#8a6030';
-  for(let s=-10;s<=10;s+=8) X.fillRect(px+s,py-14+bob,2,16);
+  // ── SHADOW ──
+  X.fillStyle='rgba(0,0,0,0.18)';
+  X.beginPath();X.ellipse(px,py+14,isSide?32:22,5,0,0,Math.PI*2);X.fill();
 
-  // Wheels
-  const wheelY=py+2+bob;
-  for(const wx of [px-12,px+12]){
-    X.fillStyle='#4a2808'; X.beginPath(); X.arc(wx,wheelY,7,0,Math.PI*2); X.fill();
-    X.fillStyle='#8a5020'; X.beginPath(); X.arc(wx,wheelY,5,0,Math.PI*2); X.fill();
-    X.fillStyle='#4a2808'; X.beginPath(); X.arc(wx,wheelY,2,0,Math.PI*2); X.fill();
-    // Spokes
-    X.strokeStyle='#4a2808'; X.lineWidth=1.5;
-    for(let a=0;a<Math.PI*2;a+=Math.PI/2){
-      X.beginPath();X.moveTo(wx,wheelY);X.lineTo(wx+Math.cos(a)*5,wheelY+Math.sin(a)*5);X.stroke();
+  if(isSide){
+    // ══ TAMPAK SAMPING ══
+
+    // Tali kuda (harness)
+    X.strokeStyle='#5a3810';X.lineWidth=2;
+    X.beginPath();X.moveTo(px-flip*10,py-5+bob);X.lineTo(px-flip*36,py-8+bob);X.stroke();
+    X.beginPath();X.moveTo(px-flip*10,py+1+bob);X.lineTo(px-flip*36,py-2+bob);X.stroke();
+
+    // ── KUDA ──
+    const hx=px-flip*44, hy=py;
+    // Kaki kuda (animasi)
+    const legSwing=moving?Math.sin(t*8)*8:0;
+    X.fillStyle='#d4c8a0'; // kaki belakang
+    X.fillRect(hx+flip*2,hy+4+bob,4,10+Math.sin(t*8+1)*4|0);
+    X.fillRect(hx+flip*8,hy+4+bob,4,10-Math.sin(t*8+1)*4|0);
+    // Kaki depan
+    X.fillRect(hx-flip*8,hy+4+bob,4,10+legSwing|0);
+    X.fillRect(hx-flip*2,hy+4+bob,4,10-legSwing|0);
+    // Kuku
+    X.fillStyle='#3a2808';
+    X.fillRect(hx+flip*2,hy+13+bob,4,3);X.fillRect(hx+flip*8,hy+13+bob,4,3);
+    X.fillRect(hx-flip*8,hy+13+bob,4,3);X.fillRect(hx-flip*2,hy+13+bob,4,3);
+    // Badan kuda
+    const bodyG=X.createLinearGradient(hx-14,hy-8,hx+14,hy+4);
+    bodyG.addColorStop(0,'#e8e0c8');bodyG.addColorStop(1,'#c8c0a8');
+    X.fillStyle=bodyG;
+    X.beginPath();X.ellipse(hx,hy-2+bob,18,10,0,0,Math.PI*2);X.fill();
+    // Leher
+    X.fillStyle='#d8d0b8';
+    X.beginPath();X.moveTo(hx-flip*12,hy-8+bob);X.lineTo(hx-flip*18,hy-20+bob);
+    X.lineTo(hx-flip*10,hy-20+bob);X.lineTo(hx-flip*4,hy-8+bob);X.closePath();X.fill();
+    // Kepala kuda
+    X.fillStyle='#d0c8b0';
+    X.beginPath();X.ellipse(hx-flip*22,hy-18+bob,8,6,flip*0.3,0,Math.PI*2);X.fill();
+    // Moncong
+    X.fillStyle='#c0b8a0';
+    X.beginPath();X.ellipse(hx-flip*28,hy-16+bob,4,3,flip*0.2,0,Math.PI*2);X.fill();
+    // Mata kuda
+    X.fillStyle='#1a1008';X.beginPath();X.arc(hx-flip*20,hy-20+bob,2,0,Math.PI*2);X.fill();
+    X.fillStyle='rgba(255,255,255,0.6)';X.beginPath();X.arc(hx-flip*19,hy-21+bob,0.8,0,Math.PI*2);X.fill();
+    // Rambut (mane)
+    X.fillStyle='#8a6830';
+    X.fillRect(hx-flip*18,hy-22+bob,5,10);
+    X.beginPath();X.ellipse(hx-flip*14,hy-22+bob,4,3,0,0,Math.PI*2);X.fill();
+    // Ekor
+    X.strokeStyle='#8a6830';X.lineWidth=3;
+    X.beginPath();X.moveTo(hx+flip*14,hy-2+bob);
+    X.quadraticCurveTo(hx+flip*22,hy+8+bob,hx+flip*18,hy+14+bob);X.stroke();
+    X.lineWidth=2;X.beginPath();X.moveTo(hx+flip*14,hy-2+bob);
+    X.quadraticCurveTo(hx+flip*24,hy+6+bob,hx+flip*20,hy+16+bob);X.stroke();
+
+    // ── GEROBAK ──
+    const cx2=px+flip*6;
+    // Badan gerobak - kayu coklat hangat
+    X.fillStyle='#c8922a';X.fillRect(cx2-flip*18,py-22+bob,36,22);
+    // Panel kayu (slats vertikal)
+    X.fillStyle='#a06820';
+    for(let s=0;s<4;s++) X.fillRect(cx2-flip*16+s*9,py-22+bob,2,22);
+    // Top rail
+    X.fillStyle='#8a5418';X.fillRect(cx2-flip*19,py-23+bob,38,4);
+    X.fillStyle='rgba(255,255,255,0.1)';X.fillRect(cx2-flip*19,py-23+bob,38,2);
+    // Side panel
+    X.fillStyle='rgba(0,0,0,0.12)';X.fillRect(cx2+flip*17,py-22+bob,3,22);
+    // Frame besi di sudut
+    X.fillStyle='#484840';
+    X.fillRect(cx2-flip*19,py-22+bob,3,22);X.fillRect(cx2-flip*19,py-22+bob,38,3);
+    // Atap merah
+    X.fillStyle='#b83020';X.fillRect(cx2-flip*21,py-28+bob,42,7);
+    X.fillStyle='#d04030';X.fillRect(cx2-flip*21,py-28+bob,42,3);
+    X.fillStyle='rgba(255,255,255,0.1)';X.fillRect(cx2-flip*21,py-28+bob,42,1);
+    // Jendela
+    X.fillStyle='#1c2e48';X.fillRect(cx2-flip*8,py-20+bob,14,10);
+    X.fillStyle='#5090c0';X.fillRect(cx2-flip*7,py-19+bob,12,8);
+    X.fillStyle='rgba(255,255,255,0.35)';X.fillRect(cx2-flip*6,py-18+bob,5,3);
+    X.fillStyle='#8a5418';X.fillRect(cx2-flip*1,py-20+bob,2,10); // divider
+    // Pintu (di belakang gerobak)
+    X.fillStyle='#8a5020';X.fillRect(cx2+flip*8,py-22+bob,9,22);
+    X.fillStyle='rgba(0,0,0,0.1)';X.fillRect(cx2+flip*8,py-22+bob,9,22);
+    X.fillStyle='#d4a020';X.fillRect(cx2+flip*15,py-12+bob,3,5); // handle
+
+    // ── RODA GEROBAK (2 besar di samping) ──
+    for(const wy2 of [cx2-flip*14, cx2+flip*14]){
+      const wr2=py+2+bob;
+      // Rim kayu gelap
+      X.fillStyle='#3a2008';X.beginPath();X.arc(wy2,wr2,11,0,Math.PI*2);X.fill();
+      // Rim luar besi
+      X.strokeStyle='#282008';X.lineWidth=2;X.beginPath();X.arc(wy2,wr2,11,0,Math.PI*2);X.stroke();
+      // Kayu roda
+      X.fillStyle='#7a4a18';X.beginPath();X.arc(wy2,wr2,9,0,Math.PI*2);X.fill();
+      // Hub tengah
+      X.fillStyle='#3a2008';X.beginPath();X.arc(wy2,wr2,3,0,Math.PI*2);X.fill();
+      X.fillStyle='#686858';X.beginPath();X.arc(wy2,wr2,2,0,Math.PI*2);X.fill();
+      // Jari-jari (berputar)
+      X.strokeStyle='#4a2a08';X.lineWidth=1.5;
+      for(let a=0;a<Math.PI*2;a+=Math.PI/3){
+        const ra=a+wheelRot;
+        X.beginPath();X.moveTo(wy2+Math.cos(ra)*2,wr2+Math.sin(ra)*2);
+        X.lineTo(wy2+Math.cos(ra)*9,wr2+Math.sin(ra)*9);X.stroke();
+      }
     }
+    // Axle
+    X.fillStyle='#3a2008';X.fillRect(cx2-flip*14,py+1+bob,28,2);
+
+    // Animal in cart
+    X.font='13px serif';X.textAlign='center';
+    X.fillText(cart.e,cx2,py-24+bob+Math.sin(t*4)*1.5);
+
+  } else {
+    // ══ TAMPAK DEPAN/BELAKANG ══
+    // Kuda
+    X.fillStyle='#d0c8b0';X.beginPath();X.ellipse(px,py-8+bob,12,8,0,0,Math.PI*2);X.fill();
+    X.fillStyle='#d0c8b0';X.beginPath();X.ellipse(px,py-16+bob,6,7,0,0,Math.PI*2);X.fill();
+    // Telinga
+    X.fillStyle='#c8c0a8';X.fillRect(px-6,py-23+bob,4,5);X.fillRect(px+2,py-23+bob,4,5);
+    // Mata
+    X.fillStyle='#1a1008';X.beginPath();X.arc(px-3,py-17+bob,1.5,0,Math.PI*2);X.fill();
+    X.beginPath();X.arc(px+3,py-17+bob,1.5,0,Math.PI*2);X.fill();
+    // Kaki kuda (depan)
+    const lf=moving?Math.sin(t*8)*4:0;
+    X.fillStyle='#c8c0a8';
+    X.fillRect(px-8,py+bob,4,12+lf|0);X.fillRect(px+4,py+bob,4,12-lf|0);
+    // Gerobak di belakang
+    X.fillStyle='#c8922a';X.fillRect(px-18,py-4+bob,36,20);
+    X.fillStyle='#8a5418';X.fillRect(px-19,py-5+bob,38,4);
+    X.fillStyle='#b83020';X.fillRect(px-20,py-12+bob,40,8);
+    X.fillStyle='#d04030';X.fillRect(px-20,py-12+bob,40,3);
+    // Roda (tampak depan — 2 kecil)
+    for(const wx3 of [px-16,px+16]){
+      X.fillStyle='#3a2008';X.beginPath();X.arc(wx3,py+12+bob,7,0,Math.PI*2);X.fill();
+      X.fillStyle='#7a4a18';X.beginPath();X.arc(wx3,py+12+bob,5,0,Math.PI*2);X.fill();
+      X.fillStyle='#484840';X.beginPath();X.arc(wx3,py+12+bob,2,0,Math.PI*2);X.fill();
+    }
+    X.font='12px serif';X.textAlign='center';
+    X.fillText(cart.e,px,py-8+bob+Math.sin(t*4)*1.5);
   }
-  // Wheel axle
-  X.fillStyle='#4a2808'; X.fillRect(px-12,wheelY-1,24,2);
 
-  // Animal emoji bouncing in cart
-  X.font='16px serif'; X.textAlign='center';
-  X.fillText(cart.e, px, py-12+bob+Math.sin(t*4)*2);
-
-  // "Delivering" label
-  X.fillStyle='rgba(0,0,0,0.65)'; X.fillRect(px-22,py-32+bob,44,13);
-  X.fillStyle='#f0d060'; X.font='bold 7px monospace'; X.textAlign='center';
-  X.fillText('DELIVERY', px, py-22+bob);
+  // DELIVERY label
+  X.fillStyle='rgba(0,0,0,0.6)';X.fillRect(px-24,py-44+bob,48,12);
+  X.fillStyle='#f0e060';X.font='bold 6px "Press Start 2P"';X.textAlign='center';
+  X.fillText('DELIVERY',px,py-35+bob);
 
   X.restore();
 }
