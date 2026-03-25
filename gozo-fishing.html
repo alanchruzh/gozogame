@@ -715,7 +715,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 // DATA
 // ═══════════════════════════════════════════
 const BAITS=[
-  // gozo = harga dalam USDC token (integer, 10^18 per token)
+  // gozo = harga dalam USDC token (6 desimal, 10^6 per token)
   {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:0.1,  gp:20,  pw:1,
    rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
   {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:0.2,  gp:50,  pw:2,
@@ -4328,9 +4328,16 @@ function updateWeather(dt){
     else if(G.weather==='rain') notify('🌧 Rain! Better fishing conditions!');
     G._lastWeather = G.weather;
     startRainAmbience(G.weather);
+    // Sync rainDrops overlay
+    if(G.weather==='storm') initRain(220);
+    else if(G.weather==='rain') initRain(120);
+    else rainDrops=[];
   } else if(G._lastWeather !== G.weather){
     G._lastWeather = G.weather;
     startRainAmbience(G.weather);
+    if(G.weather==='storm') initRain(220);
+    else if(G.weather==='rain') initRain(120);
+    else rainDrops=[];
   }
 
   // Spawn rain particles
@@ -4391,6 +4398,9 @@ function updateWeather(dt){
       if(c.wx > WORLD_W + totalW) c.wx = -totalW - 10;
     });
   }
+
+  // Update raindrops overlay
+  updateRainDrops();
 
   }
 
@@ -4599,25 +4609,9 @@ function initRain(count){
   }
 }
 
-function updateWeather(dt){
-  G.weatherTimer -= dt;
-  if(G.weatherTimer <= 0){
-    // Pick next weather
-    G.weather = WEATHER_TYPES[Math.floor(Math.random()*WEATHER_TYPES.length)];
-    G.weatherTimer = 60 + Math.random()*120; // 1-3 min
-    const lbl = document.getElementById('weatherLabel');
-    if(lbl){
-      const icons={'clear':'☀️ Clear','rain':'🌧️ Rainy — rare fish more likely!','storm':'⛈️ Storm — legendary fish active!'};
-      lbl.textContent = icons[G.weather]||'';
-      lbl.style.opacity='1';
-      setTimeout(()=>{if(lbl)lbl.style.transition='opacity 2s';lbl.style.opacity='0';},4000);
-    }
-    if(G.weather==='rain') initRain(120);
-    else if(G.weather==='storm') initRain(220);
-    else rainDrops=[];
-  }
-
-  // Update rain drops
+// updateWeather merged into primary updateWeather above (duplicate removed)
+function updateRainDrops(){
+  // Update simple raindrops overlay
   rainDrops.forEach(d=>{
     d.y += d.spd;
     d.x += d.spd * 0.2;
@@ -4757,6 +4751,7 @@ function addToLeaderboard(fish, weight, goldEarned){
   // Keep top 20 entries
   G.leaderboard.sort((a,b)=>b.weight-a.weight);
   if(G.leaderboard.length>20) G.leaderboard.length=20;
+  saveLB(G.leaderboard);
 }
 
 let _lbCurrentTab='weight';
@@ -8954,8 +8949,8 @@ async function openShop(){
     txt.textContent = 'Loading...';
     try {
       const bal = await gFetchBalance();
-      shopBalGozo = Number(bal / BigInt('1000000'));
-      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
+      shopBalGozo = Number(bal) / 1000000;
+      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toFixed(2)+' USDC';
     } catch(e){ txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4); }
   } else {
     bar.className = 'shop-wallet';
@@ -8995,7 +8990,7 @@ function renderShopTab(tab){
       d.innerHTML=`<div class="sicon">${b.icon}</div>
         <div class="sname">${b.name}</div>
         <div class="sdesc">${b.desc}</div>
-        <div class="sprice">💎 ${b.gozo} USDC / 10 pcs</div>
+        <div class="sprice">💎 ${Number(b.gozo).toFixed(2)} USDC / 10 pcs</div>
         <button class="sbuy-gozo ${gWallet?'':'connect'}" id="sbtn${i}" onclick="buyBait(${i})">
           ${gWallet?'BUY 10':'🔌 CONNECT WALLET'}
         </button>`;
@@ -9026,7 +9021,7 @@ function renderRodShop(){
     } else if(!gWallet){
       btnHtml = `<button class="rod-btn buy connect" onclick="buyRod(${rod.id})">🔌 CONNECT</button>`;
     } else {
-      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${rod.gozo.toLocaleString()} USDC</button>`;
+      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${Number(rod.gozo).toFixed(2)} USDC</button>`;
     }
     d.innerHTML=`
       <canvas id="rodCanvas_${rod.id}" width="64" height="96"
@@ -9064,7 +9059,7 @@ async function buyRod(id){
     const w = await gConnectWallet();
     if(!w){ shopSetStatus('❌ Wallet not connected.','err'); return; }
     const bal = await gFetchBalance();
-    shopBalGozo = Number(bal / BigInt('1000000'));
+    shopBalGozo = Number(bal) / 1000000;
     renderRodShop(); return;
   }
   const rod = RODS.find(r=>r.id===id);
@@ -9076,14 +9071,14 @@ async function buyRod(id){
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000'));
-    shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} USDC, have ${have.toLocaleString()}`, 'err');
+    const have = Number(bal) / 1000000;
+    shopSetStatus(`❌ Need ${Number(rod.gozo).toFixed(2)} USDC, have ${Number(have).toFixed(2)}`, 'err');
     rodBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChain = await gEnsureChain();
   if(!onChain){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); rodBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} USDC...`,'');
+  shopSetStatus(`Confirm in wallet — send ${Number(rod.gozo).toFixed(2)} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -9095,9 +9090,13 @@ async function buyRod(id){
     G.ownedRods.push(id);
     G.rod = id;
     showRodUnlock(id);
-    shopBalGozo -= rod.gozo;
+    // Re-fetch balance dari chain agar akurat
+    try {
+      const newBal = await gFetchBalance();
+      shopBalGozo = Number(newBal) / 1000000;
+    } catch(e){ shopBalGozo -= rod.gozo; }
     document.getElementById('shopWalletTxt').textContent =
-      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
+      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toFixed(2)+' USDC';
     shopSetStatus(`✅ ${rod.icon} ${rod.name} purchased & equipped!`,'ok');
     showSaveToast(`${rod.icon} ${rod.name} unlocked!`, false);
     renderRodShop();
@@ -9136,15 +9135,15 @@ async function buyBait(i){
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000'));
-    shopSetStatus(`❌ Insufficient balance! Have ${have} USDC, need ${bait.gozo} USDC.`,'err');
+    const have = Number(bal) / 1000000;
+    shopSetStatus(`❌ Insufficient balance! Have ${Number(have).toFixed(2)} USDC, need ${Number(bait.gozo).toFixed(2)} USDC.`,'err');
     document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
     shopBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChainB = await gEnsureChain();
   if(!onChainB){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false); shopBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${bait.gozo} USDC...`,'');
+  shopSetStatus(`Confirm in wallet — send ${Number(bait.gozo).toFixed(2)} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -9161,9 +9160,9 @@ async function buyBait(i){
     // Refresh balance display
     try {
       const newBal = await gFetchBalance();
-      const gozo = Number(newBal/BigInt('1000000'));
+      const gozo = Number(newBal) / 1000000;
       document.getElementById('shopWalletTxt').textContent =
-        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' USDC';
+        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+Number(gozo).toFixed(2)+' USDC';
     } catch(e){}
   } catch(e){
     if(e.code===4001)        shopSetStatus('❌ Transaction cancelled.','err');
@@ -9354,12 +9353,12 @@ function startGame(){
   setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
   notify('🎁 Starter bonus: 10 Free Earthworms!');
   initQuests();
+  // Load leaderboard dari localStorage
+  G.leaderboard = getLB();
   G.weather='clear'; G.weatherTimer=90; G._lastWeather='clear';
   { const h=new Date().getHours(); const tod=h<6?'🌑 Night':h<9?'🌅 Dawn':h<18?'☀️ Day':h<20?'🌆 Dusk':'🌙 Night';
     document.getElementById('weatherHud').textContent=tod+' · ☀️ Clear'; }
   setTimeout(()=>startFishingMusic(), 500);
-  G.weather='clear'; G.weatherTimer=30+Math.random()*60;
-  initQuests();
   // Try to restore autosave
   // Only restore if save has level field (not stale)
   try {
@@ -9463,7 +9462,7 @@ let gWallet=null, gProvider=null;
     }
   } catch(e){}
   if(window.ethereum){
-    window.ethereum.on('accountsChanged', a=>{ gWallet = a[0]||null; gProvider = gWallet?window.ethereum:null; });
+    window.ethereum.on('accountsChanged', a=>{ gWallet=a[0]||null; gProvider=gWallet?window.ethereum:null; const shopOpen=document.getElementById('shopModal')?.classList.contains('show'); if(shopOpen) openShop(); });
     window.ethereum.on('chainChanged', ()=>location.reload());
   }
 })();
@@ -9485,7 +9484,7 @@ async function gConnectWallet(){
 async function gEnsureChain(){
   if(!gProvider) return false;
   const chainId = await gProvider.request({method:'eth_chainId'});
-  if(chainId === W3.CHAIN_ID) return true;
+  if(chainId.toLowerCase() === W3.CHAIN_ID.toLowerCase()) return true;
   try {
     await gProvider.request({method:'wallet_switchEthereumChain', params:[{chainId:W3.CHAIN_ID}]});
     return true;
@@ -9513,12 +9512,22 @@ async function gEnsureChain(){
 async function gRpcCall(method, params){
   // Always query HyperEVM RPC directly — avoids MetaMask chain mismatch
   const body = JSON.stringify({jsonrpc:'2.0',id:1,method,params});
-  const res = await fetch(W3.RPC_URLS[0], {
-    method:'POST', headers:{'Content-Type':'application/json'}, body
-  });
-  const json = await res.json();
-  if(json.error) throw new Error(json.error.message||'RPC error');
-  return json.result;
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 10000);
+  try {
+    const res = await fetch(W3.RPC_URLS[0], {
+      method:'POST', headers:{'Content-Type':'application/json'}, body,
+      signal: controller.signal
+    });
+    const json = await res.json();
+    if(json.error) throw new Error(json.error.message||'RPC error');
+    return json.result;
+  } catch(e) {
+    if(e.name==='AbortError') throw new Error('RPC timeout — cek koneksi internet.');
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function gFetchBalance(){
