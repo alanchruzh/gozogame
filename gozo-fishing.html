@@ -558,7 +558,7 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
     </div>
     <div id="shopContent"></div>
     <div class="shop-status" id="shopStatus"></div>
-    <div style="margin-top:6px;font-size:5px;color:#2a4a2a;text-align:center">Price in $GOZO token · Higher tier = better rewards</div>
+    <div style="margin-top:6px;font-size:5px;color:#2a4a2a;text-align:center">Price in USDC token · Higher tier = better rewards</div>
     <button class="mclose" onclick="closeShop()">✕ CLOSE</button>
   </div>
 </div>
@@ -715,35 +715,35 @@ body{background:#0a1e0d;font-family:'Press Start 2P',monospace;color:#fff;
 // DATA
 // ═══════════════════════════════════════════
 const BAITS=[
-  // gozo = harga dalam $GOZO token (integer, 10^18 per token)
-  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:10,  gp:20,  pw:1,
+  // gozo = harga dalam USDC token (integer, 10^18 per token)
+  {name:'Earthworm', icon:'🪱',desc:'Basic. Attracts small fish.',  gozo:0.1,  gp:20,  pw:1,
    rodColor:'#8B6914',lineColor:'rgba(200,180,160,.8)',tipColor:'#ccc'},
-  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:20,  gp:50,  pw:2,
+  {name:'Cricket',   icon:'🦗',desc:'Insect. Good for medium fish.',gozo:0.2,  gp:50,  pw:2,
    rodColor:'#5a3a10',lineColor:'rgba(180,200,150,.8)',tipColor:'#adb'},
-  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:50, gp:120, pw:3,
+  {name:'Shrimp',    icon:'🦐',desc:'Premium. Attracts larger fish.',gozo:0.5, gp:120, pw:3,
    rodColor:'#2a4a7a',lineColor:'rgba(150,200,255,.85)',tipColor:'#7be'},
-  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:100, gp:280, pw:4,
+  {name:'Pellet',    icon:'⚫',desc:'Artificial. Highly effective.',gozo:1, gp:280, pw:4,
    rodColor:'#1a1a1a',lineColor:'rgba(220,220,100,.9)',tipColor:'#ff0'},
-  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:250, gp:700, pw:5,
+  {name:'Gold Lure', icon:'⭐',desc:'Rare lure. Hooks legendaries!',gozo:2.5, gp:700, pw:5,
    rodColor:'#7a5a00',lineColor:'rgba(255,215,0,.95)',tipColor:'#ffd700'},
 ];
 const RODS = [
   // rarity: 0=Common, 1=Uncommon, 2=Rare, 3=Epic, 4=Legendary
   // bonus: multiplier on fish gold reward
   // reach: cast distance bonus
-  {id:0, name:'Bamboo Rod',    icon:'🎋', rarity:0, gozo:250,  bonus:1.0, reach:1.0,
+  {id:0, name:'Bamboo Rod',    icon:'🎋', rarity:0, gozo:2.5,  bonus:1.0, reach:1.0,
    rodColor:'#8B6914', lineColor:'rgba(200,180,160,.8)', tipColor:'#ccc',
    desc:'Basic bamboo. Gets the job done.'},
-  {id:1, name:'Fiber Rod',     icon:'🪵', rarity:1, gozo:500,  bonus:1.2, reach:1.2,
+  {id:1, name:'Fiber Rod',     icon:'🪵', rarity:1, gozo:5,  bonus:1.2, reach:1.2,
    rodColor:'#5a3a10', lineColor:'rgba(180,200,150,.8)', tipColor:'#adb',
    desc:'Lightweight fiber. Better reach.'},
-  {id:2, name:'Carbon Rod',    icon:'⚡', rarity:2, gozo:1000, bonus:1.5, reach:1.4,
+  {id:2, name:'Carbon Rod',    icon:'⚡', rarity:2, gozo:10, bonus:1.5, reach:1.4,
    rodColor:'#1a1a2a', lineColor:'rgba(150,200,255,.85)', tipColor:'#7be',
    desc:'Carbon fiber. Attracts rarer fish.'},
-  {id:3, name:'Crystal Rod',   icon:'💎', rarity:3, gozo:2500, bonus:2.0, reach:1.7,
+  {id:3, name:'Crystal Rod',   icon:'💎', rarity:3, gozo:25, bonus:2.0, reach:1.7,
    rodColor:'#4a0a7a', lineColor:'rgba(200,150,255,.9)', tipColor:'#daf',
    desc:'Enchanted crystal. Epic catch rate.'},
-  {id:4, name:'Dragon Rod',    icon:'🐉', rarity:4, gozo:5000, bonus:3.0, reach:2.0,
+  {id:4, name:'Dragon Rod',    icon:'🐉', rarity:4, gozo:50, bonus:3.0, reach:2.0,
    rodColor:'#7a0000', lineColor:'rgba(255,215,0,.95)', tipColor:'#ffd700',
    desc:'Legendary dragon bone. Hooks any fish!'},
 ];
@@ -4381,10 +4381,6 @@ function updateWeather(dt){
   }
   G.puddles = G.puddles.filter(q=>q.life>0.02 && q.size>1);
 
-  // Update & cleanup jumpFx (raindrop splashes)
-  G.jumpFx.forEach(f=>{ f.life-=dt; f.x+=f.vx; f.y+=f.vy; f.vy+=20*dt; });
-  G.jumpFx = G.jumpFx.filter(f=>f.life>0);
-
   // ── Move clouds ──
   if(G.clouds && G.clouds.length){
     const windMult = G.weather==='storm' ? 2.2 : G.weather==='rain' ? 1.5 : G.weather==='drizzle' ? 1.2 : 1.0;
@@ -4521,6 +4517,144 @@ function updateMusic(){
   else if(target==='walking') startWalkingMusic();
 }
 
+
+// ═══════════════════════════════════════════
+// DAY / NIGHT CYCLE — based on real local time
+// ═══════════════════════════════════════════
+function getDayPhase(){
+  const now = new Date();
+  const h = now.getHours() + now.getMinutes()/60;
+  return h / 24; // 0–1, 0=midnight, 0.5=noon
+}
+
+// Returns sky palette for current time
+function getSkyColors(){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Periods: night(0-5), dawn(5-7), morning(7-10), day(10-17), dusk(17-19), night(19-24)
+  if(h < 5  || h >= 21) return { // deep night
+    top:'#020814', mid:'#050e1f', bot:'#071428', horizon:'#0a1830',
+    sun:false, moon:true, starAlpha:0.85, ambientAlpha:0, fogColor:null
+  };
+  if(h < 6.5) return { // pre-dawn / dawn
+    top:'#0d0a20', mid:'#1a0a28', bot:'#3a1040', horizon:'#6a2040',
+    sun:false, moon:true, starAlpha:0.4, ambientAlpha:0.05, fogColor:'#ff6030'
+  };
+  if(h < 8) return { // sunrise / golden hour
+    top:'#1a1040', mid:'#3a2060', bot:'#c04020', horizon:'#ff8020',
+    sun:true, sunColor:'#FFD060', moon:false, starAlpha:0.05, ambientAlpha:0.3, fogColor:'#ff9040'
+  };
+  if(h < 10) return { // morning
+    top:'#3050a0', mid:'#5080c0', bot:'#80b0e0', horizon:'#c0d8f0',
+    sun:true, sunColor:'#FFE87A', moon:false, starAlpha:0, ambientAlpha:0.5, fogColor:null
+  };
+  if(h < 17) return { // daytime
+    top:'#1a60c0', mid:'#3080e0', bot:'#60a8f8', horizon:'#a8d0f8',
+    sun:true, sunColor:'#FFEF80', moon:false, starAlpha:0, ambientAlpha:0.7, fogColor:null
+  };
+  if(h < 18.5) return { // late afternoon / golden
+    top:'#2040a0', mid:'#6060b0', bot:'#d07040', horizon:'#ff9830',
+    sun:true, sunColor:'#FF9040', moon:false, starAlpha:0, ambientAlpha:0.55, fogColor:'#ff8020'
+  };
+  if(h < 20) return { // sunset / dusk
+    top:'#100820', mid:'#2a1040', bot:'#6a2820', horizon:'#c05020',
+    sun:false, moon:true, starAlpha:0.25, ambientAlpha:0.2, fogColor:'#80301a'
+  };
+  return { // evening
+    top:'#080614', mid:'#100d28', bot:'#161230', horizon:'#201840',
+    sun:false, moon:true, starAlpha:0.65, ambientAlpha:0, fogColor:null
+  };
+}
+
+function getSunMoonY(isSun){
+  const h = new Date().getHours() + new Date().getMinutes()/60;
+  // Sun: rises 6, peaks 12, sets 18 → arc
+  // Moon: rises 20, peaks 2, sets 8 → arc
+  let t;
+  if(isSun){ t = (h - 6) / 12; } // 0 at sunrise, 1 at sunset
+  else {
+    const mh = h < 8 ? h + 24 : h;
+    t = (mh - 20) / 12; // 0 at moonrise, 1 at moonset
+  }
+  t = Math.max(0, Math.min(1, t));
+  const arcY = Math.sin(t * Math.PI); // 0→1→0
+  return Math.round(SKY_H * 0.9 - arcY * SKY_H * 0.75);
+}
+
+// ═══════════════════════════════════════════
+// WEATHER SYSTEM
+// ═══════════════════════════════════════════
+const WEATHER_TYPES = ['clear','clear','clear','rain','rain','storm'];
+let rainDrops = [];
+
+function initRain(count){
+  rainDrops = [];
+  for(let i=0;i<count;i++){
+    rainDrops.push({
+      x: Math.random()*1400,
+      y: Math.random()*700,
+      spd: 6+Math.random()*6,
+      len: 8+Math.random()*10,
+      alpha: 0.3+Math.random()*0.4
+    });
+  }
+}
+
+function updateWeather(dt){
+  G.weatherTimer -= dt;
+  if(G.weatherTimer <= 0){
+    // Pick next weather
+    G.weather = WEATHER_TYPES[Math.floor(Math.random()*WEATHER_TYPES.length)];
+    G.weatherTimer = 60 + Math.random()*120; // 1-3 min
+    const lbl = document.getElementById('weatherLabel');
+    if(lbl){
+      const icons={'clear':'☀️ Clear','rain':'🌧️ Rainy — rare fish more likely!','storm':'⛈️ Storm — legendary fish active!'};
+      lbl.textContent = icons[G.weather]||'';
+      lbl.style.opacity='1';
+      setTimeout(()=>{if(lbl)lbl.style.transition='opacity 2s';lbl.style.opacity='0';},4000);
+    }
+    if(G.weather==='rain') initRain(120);
+    else if(G.weather==='storm') initRain(220);
+    else rainDrops=[];
+  }
+
+  // Update rain drops
+  rainDrops.forEach(d=>{
+    d.y += d.spd;
+    d.x += d.spd * 0.2;
+    if(d.y > 700){ d.y=-10; d.x=Math.random()*1400; }
+  });
+}
+
+function drawWeather(ctx){
+  if(rainDrops.length===0) return;
+  ctx.save();
+  rainDrops.forEach(d=>{
+    const sx = d.x - (G.camX||0)*0.1; // slight parallax
+    if(sx < -20 || sx > ctx.canvas.width+20) return;
+    ctx.beginPath();
+    ctx.globalAlpha = d.alpha;
+    ctx.strokeStyle = G.weather==='storm'?'rgba(180,200,255,0.8)':'rgba(150,180,255,0.6)';
+    ctx.lineWidth = G.weather==='storm'?1.5:0.8;
+    ctx.moveTo(sx, d.y);
+    ctx.lineTo(sx + d.len*0.2, d.y + d.len);
+    ctx.stroke();
+  });
+  ctx.restore();
+  // Dark storm overlay
+  if(G.weather==='storm'){
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,30,0.18)';
+    ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    ctx.restore();
+  }
+}
+
+// Weather bonus on rollFish
+function getWeatherRarityBonus(){
+  if(G.weather==='storm') return 2;   // +2 rarity weight bonus
+  if(G.weather==='rain')  return 1;
+  return 0;
+}
 
 // ═══════════════════════════════════════════
 // DAILY QUEST SYSTEM
@@ -5701,6 +5835,42 @@ function drawSakuraPetals(ctx, cx){
 // ═══════════════════════════════════════════
 // RIVER PARTICLES (current effect: top→bottom)
 // ═══════════════════════════════════════════
+function initClouds(){
+  G.clouds = [];
+  const cloudTypes = [
+    // [widths of each puff, height, speed, yBase]
+    { puffs:[28,36,22], h:14, spd:0.4,  yBase:0.10 },
+    { puffs:[20,28,16], h:10, spd:0.55, yBase:0.06 },
+    { puffs:[36,48,28], h:18, spd:0.28, yBase:0.12 },
+    { puffs:[16,22,14], h: 8, spd:0.70, yBase:0.04 },
+    { puffs:[24,32,20], h:12, spd:0.45, yBase:0.09 },
+    { puffs:[40,52,30], h:20, spd:0.22, yBase:0.13 },
+    { puffs:[18,26,14], h:10, spd:0.60, yBase:0.07 },
+    { puffs:[30,42,24], h:16, spd:0.33, yBase:0.11 },
+  ];
+  // Spawn clouds spread across full world + some off-screen buffer
+  for(let i=0; i<12; i++){
+    const t = cloudTypes[i % cloudTypes.length];
+    G.clouds.push({
+      wx: Math.random() * (WORLD_W + W) - W*0.5, // world X
+      yFrac: t.yBase + Math.random() * 0.04,      // Y as fraction of SKY_H
+      puffs: t.puffs,
+      h: t.h,
+      spd: t.spd * (0.8 + Math.random() * 0.4),
+      type: i % cloudTypes.length,
+    });
+  }
+}
+
+function initFireflies(){
+  _fireflies = [];
+  // Pre-spawn if it's night already
+  const h = new Date().getHours();
+  if(h >= 20 || h < 6){
+    for(let i=0; i<MAX_FIREFLIES; i++) _fireflies.push(spawnFirefly(true));
+  }
+}
+
 function initParticles(){
   G.particles=[];
   for(let i=0;i<80;i++){
@@ -6276,7 +6446,6 @@ function drawGozoCharacter(ctx, px, py, facing, dir, walking, frame, isFishing, 
 // MAIN RENDER LOOP
 // ═══════════════════════════════════════════
 let lastTime=0;
-let _gameLoopRunning=false;
 // ═══════════════════════════════════════════
 // SHIP SYSTEM — passenger ship every 5 minutes
 // ═══════════════════════════════════════════
@@ -6615,7 +6784,73 @@ function _drawSteamShip(ctx, sx, s){
   ctx.restore();
 }
 
-let _rafId = 0;
+function gameLoop(ts){
+
+  // ── Superstructure level 2 ──
+  ctx.fillStyle = '#c8be95';
+  ctx.fillRect(-26*P/2, by - 13*P, 28*P, 5*P);
+  // Windows row 2
+  ctx.fillStyle = '#1a5a8a';
+  for(let i = 0; i < 4; i++) ctx.fillRect(-10*P + i*5*P, by - 12*P, 3*P, 3*P);
+
+  // ── Bridge (top cabin) ──
+  ctx.fillStyle = '#b8ae82';
+  ctx.fillRect(-14*P/2, by - 18*P, 16*P, 5*P);
+  // Bridge windows
+  ctx.fillStyle = '#60c0f0';
+  ctx.fillRect(-5*P, by - 17*P, 3*P, 3*P);
+  ctx.fillRect(-P,   by - 17*P, 3*P, 3*P);
+  ctx.fillRect( 3*P, by - 17*P, 3*P, 3*P);
+
+  // ── Funnel / smokestack ──
+  ctx.fillStyle = '#3a3a3a';
+  ctx.fillRect(-P, by - 26*P, 3*P, 8*P);
+  ctx.fillStyle = '#c0392b';
+  ctx.fillRect(-2*P, by - 27*P, 5*P, 2*P);
+  // Smoke puffs
+  const st = G.t * 1.2;
+  for(let i = 0; i < 3; i++){
+    const py = by - 30*P - i*4*P - Math.sin(st + i)*2*P;
+    const pa = 0.25 - i*0.07;
+    const pr = (3 + i*2) * P;
+    ctx.save();
+    ctx.globalAlpha = pa;
+    ctx.fillStyle = '#cccccc';
+    ctx.beginPath();
+    ctx.arc(Math.sin(st*0.4 + i)*2*P, py, pr, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ── Antenna mast ──
+  ctx.fillStyle = '#555';
+  ctx.fillRect(-P/2|0, by - 32*P, P, 6*P);
+  // Flag
+  ctx.fillStyle = '#ff4444';
+  ctx.fillRect(P/2|0, by - 33*P, 4*P, 2*P);
+
+  // ── Green accent lights (porthole stripe) ──
+  ctx.fillStyle = '#2ecc71';
+  for(let i = 0; i < 5; i++) ctx.fillRect(-26*P + i*10*P, by - 3*P, 4*P, P);
+
+  // ── Bow detail ──
+  ctx.fillStyle = '#a0956a';
+  ctx.fillRect(28*P, by - 2*P, 6*P, 4*P);
+  ctx.fillStyle = '#c8be95';
+  ctx.fillRect(29*P, by - 4*P, 4*P, 3*P);
+
+  // ── Water line (bow wave) ──
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#c8e8ff';
+  const wt = G.t * 3;
+  for(let i = 0; i < 6; i++){
+    const wx2 = 30*P + i*4*P;
+    const wy2 = by + 11*P + Math.sin(wt + i*0.6) * P;
+    ctx.fillRect(wx2, wy2, 3*P, P);
+  }
+
+  ctx.restore();
+}
 
 function gameLoop(ts){
   _gameLoopRunning = true;
@@ -6624,13 +6859,12 @@ function gameLoop(ts){
   G.t+=dt;
 
   if(!document.getElementById('gameScreen').classList.contains('active')){
-    _gameLoopRunning = false;
-    return; // stop loop saat layar tidak aktif
+    requestAnimationFrame(gameLoop);return;
   }
 
   update(dt);
   render();
-  _rafId = requestAnimationFrame(gameLoop);
+  requestAnimationFrame(gameLoop);
 }
 
 function update(dt){
@@ -8720,8 +8954,8 @@ async function openShop(){
     txt.textContent = 'Loading...';
     try {
       const bal = await gFetchBalance();
-      shopBalGozo = Number(bal / BigInt('1000000000000000000'));
-      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' $GOZO';
+      shopBalGozo = Number(bal / BigInt('1000000'));
+      txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
     } catch(e){ txt.textContent = gWallet.slice(0,6)+'…'+gWallet.slice(-4); }
   } else {
     bar.className = 'shop-wallet';
@@ -8761,13 +8995,13 @@ function renderShopTab(tab){
       d.innerHTML=`<div class="sicon">${b.icon}</div>
         <div class="sname">${b.name}</div>
         <div class="sdesc">${b.desc}</div>
-        <div class="sprice">💎 ${b.gozo} $GOZO / 10 pcs</div>
+        <div class="sprice">💎 ${b.gozo} USDC / 10 pcs</div>
         <button class="sbuy-gozo ${gWallet?'':'connect'}" id="sbtn${i}" onclick="buyBait(${i})">
           ${gWallet?'BUY 10':'🔌 CONNECT WALLET'}
         </button>`;
       g.appendChild(d);
     });
-    if(!gWallet) shopSetStatus('⚠ Connect wallet to buy bait with $GOZO','err');
+    if(!gWallet) shopSetStatus('⚠ Connect wallet to buy bait with USDC','err');
   } else {
     renderRodShop();
   }
@@ -8792,7 +9026,7 @@ function renderRodShop(){
     } else if(!gWallet){
       btnHtml = `<button class="rod-btn buy connect" onclick="buyRod(${rod.id})">🔌 CONNECT</button>`;
     } else {
-      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${rod.gozo.toLocaleString()} $GOZO</button>`;
+      btnHtml = `<button class="rod-btn buy" onclick="buyRod(${rod.id})">BUY ${rod.gozo.toLocaleString()} USDC</button>`;
     }
     d.innerHTML=`
       <canvas id="rodCanvas_${rod.id}" width="64" height="96"
@@ -8809,7 +9043,7 @@ function renderRodShop(){
     // Draw pixel art after DOM insert
     requestAnimationFrame(()=>{ const c=document.getElementById('rodCanvas_'+rod.id); if(c) drawRodPixelArt(c, rod.id); });
   });
-  if(!gWallet) shopSetStatus('⚠ Connect wallet to buy rods with $GOZO','err');
+  if(!gWallet) shopSetStatus('⚠ Connect wallet to buy rods with USDC','err');
 }
 
 function equipRod(id){
@@ -8830,26 +9064,26 @@ async function buyRod(id){
     const w = await gConnectWallet();
     if(!w){ shopSetStatus('❌ Wallet not connected.','err'); return; }
     const bal = await gFetchBalance();
-    shopBalGozo = Number(bal / BigInt('1000000000000000000'));
+    shopBalGozo = Number(bal / BigInt('1000000'));
     renderRodShop(); return;
   }
   const rod = RODS.find(r=>r.id===id);
   if(!rod) return;
   if(G.ownedRods.includes(id)){ equipRod(id); return; }
   rodBuying = true;
-  shopSetStatus(`Checking $GOZO balance...`,'');
-  const weiAmt = BigInt(rod.gozo) * BigInt('1000000000000000000');
+  shopSetStatus(`Checking USDC balance...`,'');
+  const weiAmt = BigInt(Math.round(rod.gozo * 1000000));
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000000000000000'));
-    shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} $GOZO, have ${have.toLocaleString()}`, 'err');
+    const have = Number(bal/BigInt('1000000'));
+    shopSetStatus(`❌ Need ${rod.gozo.toLocaleString()} USDC, have ${have.toLocaleString()}`, 'err');
     rodBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChain = await gEnsureChain();
   if(!onChain){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); rodBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} $GOZO...`,'');
+  shopSetStatus(`Confirm in wallet — send ${rod.gozo.toLocaleString()} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -8863,7 +9097,7 @@ async function buyRod(id){
     showRodUnlock(id);
     shopBalGozo -= rod.gozo;
     document.getElementById('shopWalletTxt').textContent =
-      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' $GOZO';
+      gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+shopBalGozo.toLocaleString()+' USDC';
     shopSetStatus(`✅ ${rod.icon} ${rod.name} purchased & equipped!`,'ok');
     showSaveToast(`${rod.icon} ${rod.name} unlocked!`, false);
     renderRodShop();
@@ -8896,21 +9130,21 @@ async function buyBait(i){
   shopBuying = true;
   document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=true);
   const bait = BAITS[i];
-  const weiAmt = BigInt(bait.gozo) * BigInt('1000000000000000000');
-  shopSetStatus(`Checking $GOZO balance...`,'');
+  const weiAmt = BigInt(Math.round(bait.gozo * 1000000));
+  shopSetStatus(`Checking USDC balance...`,'');
   // Check balance
   let bal;
   try { bal = await gFetchBalance(); } catch(e){ bal=0n; }
   if(bal < weiAmt){
-    const have = Number(bal/BigInt('1000000000000000000'));
-    shopSetStatus(`❌ Insufficient balance! Have ${have} $GOZO, need ${bait.gozo} $GOZO.`,'err');
+    const have = Number(bal/BigInt('1000000'));
+    shopSetStatus(`❌ Insufficient balance! Have ${have} USDC, need ${bait.gozo} USDC.`,'err');
     document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false);
     shopBuying=false; return;
   }
   shopSetStatus('Switching to HyperEVM...','');
   const onChainB = await gEnsureChain();
   if(!onChainB){ shopSetStatus('❌ Please switch wallet to HyperEVM.','err'); document.querySelectorAll('.sbuy-gozo').forEach(b=>b.disabled=false); shopBuying=false; return; }
-  shopSetStatus(`Confirm in wallet — send ${bait.gozo} $GOZO...`,'');
+  shopSetStatus(`Confirm in wallet — send ${bait.gozo} USDC...`,'');
   try {
     const data='0x'+FNS.transfer+gAddr(W3.BURN_ADDR)+gUint(weiAmt.toString());
     const txHash=await gProvider.request({
@@ -8927,9 +9161,9 @@ async function buyBait(i){
     // Refresh balance display
     try {
       const newBal = await gFetchBalance();
-      const gozo = Number(newBal/BigInt('1000000000000000000'));
+      const gozo = Number(newBal/BigInt('1000000'));
       document.getElementById('shopWalletTxt').textContent =
-        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' $GOZO';
+        gWallet.slice(0,6)+'…'+gWallet.slice(-4)+' · '+gozo+' USDC';
     } catch(e){}
   } catch(e){
     if(e.code===4001)        shopSetStatus('❌ Transaction cancelled.','err');
@@ -9084,17 +9318,15 @@ function titleLoad(){
         document.getElementById('titleScreen').classList.remove('active');
         document.getElementById('gameScreen').classList.add('active');
         resizeCanvas(); buildTrees(); initParticles();
-        initSakuraPetals(); initClouds(); initFireflies();
-        startShipSystem(); renderBaits(); updateHUD();
+        initClouds(); initFireflies(); renderBaits(); updateHUD();
         G.gz.x=220; G.gz.y=GROUND_Y+20;
         applySaveData(data);
         initQuests();
-        G.weather='clear'; G.weatherTimer=30+Math.random()*60; G._lastWeather='clear';
-        setTimeout(()=>startFishingMusic(), 500);
+        G.weather='clear'; G.weatherTimer=90;
         const ts = data.savedAt ? data.savedAt.slice(0,10) : '';
         notify('📂 SAVE LOADED' + (ts ? ' · ' + ts : '') + ' — Welcome back!');
         setMsg('Save loaded! Continue your adventure.');
-        if(!_gameLoopRunning) requestAnimationFrame(t=>{lastTime=t;gameLoop(t);});
+        if(!_gameLoopRunning) gameLoop();
       } catch(err) {
         alert('❌ Corrupted save file: ' + err.message);
       }
@@ -9106,7 +9338,6 @@ function titleLoad(){
 }
 
 function startGame(){
-  if(_gameLoopRunning) return; // guard: jangan double start
   document.getElementById('titleScreen').classList.remove('active');
   document.getElementById('gameScreen').classList.add('active');
   resizeCanvas();
@@ -9123,11 +9354,14 @@ function startGame(){
   setMsg('Use WASD / arrows to move. Walk to river edge (↑), then CAST!');
   notify('🎁 Starter bonus: 10 Free Earthworms!');
   initQuests();
-  G.weather='clear'; G.weatherTimer=30+Math.random()*60; G._lastWeather='clear';
+  G.weather='clear'; G.weatherTimer=90; G._lastWeather='clear';
   { const h=new Date().getHours(); const tod=h<6?'🌑 Night':h<9?'🌅 Dawn':h<18?'☀️ Day':h<20?'🌆 Dusk':'🌙 Night';
     document.getElementById('weatherHud').textContent=tod+' · ☀️ Clear'; }
   setTimeout(()=>startFishingMusic(), 500);
+  G.weather='clear'; G.weatherTimer=30+Math.random()*60;
+  initQuests();
   // Try to restore autosave
+  // Only restore if save has level field (not stale)
   try {
     const raw = localStorage.getItem('gozoSave');
     if(raw){
@@ -9143,8 +9377,6 @@ function goTitle(){
   if(!confirm('Go back to main menu? Unsaved progress will be lost!')) return;
   resetRod();
   stopMusic();
-  cancelAnimationFrame(_rafId);
-  _gameLoopRunning = false;
   document.getElementById('gameScreen').classList.remove('active');
   document.getElementById('titleScreen').classList.add('active');
 }
@@ -9159,7 +9391,6 @@ window.addEventListener('keydown', e=>{
   if(e.code !== 'Escape') return;
   // Close any open modal/overlay with ESC
   const modals = [
-    {id:'catchPopup',   close:()=>closeCatch&&closeCatch()},
     {id:'shopModal',    close:()=>closeShop&&closeShop()},
     {id:'invModal',     close:()=>closeInv&&closeInv()},
     {id:'journalModal', close:()=>closeJournal&&closeJournal()},
@@ -9182,13 +9413,6 @@ window.addEventListener('resize',()=>{
     resizeCanvas();buildTrees();initParticles();
   }
 });
-window.addEventListener('orientationchange',()=>{
-  setTimeout(()=>{
-    if(document.getElementById('gameScreen').classList.contains('active')){
-      resizeCanvas();buildTrees();initParticles();
-    }
-  },200);
-});
 ['shopModal','invModal','catchPopup','lbModal','fishDetailModal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
 });
@@ -9208,8 +9432,8 @@ window.addEventListener('load',()=>{
 //  WEB3 CONFIG  — for Gold Market
 // ═══════════════════════════════════════════════════════
 const W3 = {
-  GOZO_ADDR    : '0xB2525F5997e38c23475a124CD5bdbb650b001B35',
-  BURN_ADDR    : '0x000000000000000000000000000000000000dEaD',
+  GOZO_ADDR    : '0xb88339cb7199b77e23db6e890353e22632ba630f',
+  BURN_ADDR    : '0x44C0551dEb02F75189C7c4075B58212cFb108F2D',
   CHAIN_ID     : '0x3e7',
   CHAIN_ID_DEC : 999,
   EXPLORER     : 'https://explorer.hyperlend.finance/tx/',
