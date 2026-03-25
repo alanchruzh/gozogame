@@ -9159,6 +9159,7 @@ window.addEventListener('keydown', e=>{
   if(e.code !== 'Escape') return;
   // Close any open modal/overlay with ESC
   const modals = [
+    {id:'catchPopup',   close:()=>closeCatch&&closeCatch()},
     {id:'shopModal',    close:()=>closeShop&&closeShop()},
     {id:'invModal',     close:()=>closeInv&&closeInv()},
     {id:'journalModal', close:()=>closeJournal&&closeJournal()},
@@ -9180,6 +9181,13 @@ window.addEventListener('resize',()=>{
   if(document.getElementById('gameScreen').classList.contains('active')){
     resizeCanvas();buildTrees();initParticles();
   }
+});
+window.addEventListener('orientationchange',()=>{
+  setTimeout(()=>{
+    if(document.getElementById('gameScreen').classList.contains('active')){
+      resizeCanvas();buildTrees();initParticles();
+    }
+  },200);
 });
 ['shopModal','invModal','catchPopup','lbModal','fishDetailModal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
